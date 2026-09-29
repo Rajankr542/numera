@@ -22,7 +22,22 @@ import {
 } from "./creation.js";
 import { NDArray } from "./ndarray.js";
 import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
-
+import {
+  abs,
+  add,
+  broadcastShapes,
+  broadcastTo,
+  divide,
+  exp,
+  floorDivide,
+  log,
+  mod,
+  multiply,
+  negative,
+  power,
+  sqrt,
+  subtract,
+} from "./ufunc.js";
 export { DType, dtype, promoteTypes } from "./dtype.js";
 export type { DTypeLike, DTypeName } from "./dtype.js";
 export {
@@ -66,7 +81,23 @@ export {
 } from "./creation.js";
 export type { ArrayOptions, EyeOptions, LinspaceOptions } from "./creation.js";
 export { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
-
+export {
+  abs,
+  add,
+  broadcastShapes,
+  broadcastTo,
+  divide,
+  exp,
+  floorDivide,
+  log,
+  mod,
+  multiply,
+  negative,
+  power,
+  sqrt,
+  subtract,
+} from "./ufunc.js";
+export type { ArrayLike } from "./ufunc.js";
 /** Development instrumentation: live native buffers / bytes (PLAN §33). */
 export function memoryStats(): { buffers: number; bytes: number } {
   return addon.memoryStats();
@@ -100,6 +131,20 @@ const np = {
   swapAxes,
   moveAxis,
   ravel,
+  add,
+  subtract,
+  multiply,
+  divide,
+  power,
+  mod,
+  floorDivide,
+  abs,
+  negative,
+  sqrt,
+  exp,
+  log,
+  broadcastShapes,
+  broadcastTo,
   fromTypedArray,
   mayShareMemory,
   lib,

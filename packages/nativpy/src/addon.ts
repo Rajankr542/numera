@@ -49,6 +49,11 @@ export interface NativeAddon {
   moveaxis(a: NativeNDArray, source: number[], destination: number[]): NativeNDArray;
   ravel(a: NativeNDArray): NativeNDArray;
   flatten(a: NativeNDArray): NativeNDArray;
+  // M4/M5 ufuncs and broadcasting
+  broadcastShapes(shapes: number[][]): number[];
+  broadcastTo(a: NativeNDArray, shape: number[]): NativeNDArray;
+  binary(op: string, a: NativeNDArray, b: NativeNDArray): NativeNDArray;
+  unary(op: string, a: NativeNDArray): NativeNDArray;
 }
 
 // Resolution order (DECISIONS D-007): NATIVPY_ADDON_PATH, then the repo build.

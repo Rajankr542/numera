@@ -5,12 +5,14 @@
 #include <string>
 #include <vector>
 
+#include "broadcast.hpp"
 #include "creation.hpp"
 #include "dtype_binding.hpp"
 #include "error.hpp"
 #include "error_binding.hpp"
 #include "ndarray_binding.hpp"
 #include "shape_ops.hpp"
+#include "ufunc.hpp"
 
 namespace nativpy::bindings {
 
@@ -103,6 +105,36 @@ void init_ops_binding(Napi::Env env, Napi::Object exports) {
               }));
   exports.Set("flatten", fn(env, "flatten", [](Info i, Napi::Env e) {
                 return NDArrayWrap::create(e, flatten(arr(i, 0)));
+              }));
+  // ---- broadcasting (M5) / ufuncs (M4) ----
+  exports.Set("broadcastShapes", fn(env, "broadcastShapes", [](Info i, Napi::Env e) {
+                if (!i[0].IsArray()) throw_error(ErrorKind::Value, "shapes must be an array");
+                const auto list = i[0].As<Napi::Array>();
+                std::vector<Shape> shapes;
+                for (std::uint32_t k = 0; k < list.Length(); ++k) {
+                  shapes.push_back(arg_ints(list.Get(k), "shape"));
+                }
+                const Shape out = broadcast_shapes(shapes);
+                auto res = Napi::Array::New(e, out.size());
+                for (std::uint32_t k = 0; k < out.size(); ++k) {
+                  res.Set(k, Napi::Number::New(e, static_cast<double>(out[k])));
+                }
+                return res;
+              }));
+  exports.Set("broadcastTo", fn(env, "broadcastTo", [](Info i, Napi::Env e) {
+                return NDArrayWrap::create(e, broadcast_to(arr(i, 0), arg_ints(i[1], "shape")));
+              }));
+  exports.Set("binary", fn(env, "binary", [](Info i, Napi::Env e) {
+                const std::string name = i[0].ToString().Utf8Value();
+                const auto op = binary_op_from_name(name);
+                if (!op) throw_error(ErrorKind::Value, "unknown binary ufunc " + name);
+                return NDArrayWrap::create(e, binary(*op, arr(i, 1), arr(i, 2)));
+              }));
+  exports.Set("unary", fn(env, "unary", [](Info i, Napi::Env e) {
+                const std::string name = i[0].ToString().Utf8Value();
+                const auto op = unary_op_from_name(name);
+                if (!op) throw_error(ErrorKind::Value, "unknown unary ufunc " + name);
+                return NDArrayWrap::create(e, unary(*op, arr(i, 1)));
               }));
 }
 

@@ -127,3 +127,46 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   bigint, ragged, sparse, complex target) falls back to `fromNested`.
 - `astype` has a C-contiguous flat loop that uses the same `cast_value` as
   the strided loop.
+
+## D-014 — Broadcasting and arithmetic ufuncs (M4/M5) — Accepted — 2026-09-29
+- **Broadcasting** is a single native subsystem (`native/core/broadcast.hpp`).
+  `BroadcastPlan` holds the output shape and each operand's byte strides
+  (0 on broadcast dims). It merges compatible adjacent dims and runs an
+  inner loop over the last dim, like NumPy inner loops. Every ufunc uses it.
+  An incompatible shape raises `BroadcastError`; NumPy raises `ValueError`.
+  Public helpers: `broadcastShapes` and `broadcastTo` (a zero-stride view).
+- **Ufunc results** are always new C-contiguous arrays. NumPy's default
+  `order='K'` can return F-ordered results for F-ordered inputs; values and
+  shape match, strides may not. `out=`, `where=`, `casting=` and `dtype=` are
+  not supported yet.
+- **Loop dtype** follows NumPy's type resolution:
+  - Binary ops use `promote_types(a, b)`.
+  - `divide` sends bool and int inputs to float64.
+  - `power`, `mod` and `floorDivide` send bool to int8.
+  - `sqrt`, `exp` and `log` send bool/int8/uint8 to float16, int16/uint16 to
+    float32 and wider ints to float64.
+  - For bool: `add` is logical OR and `multiply` is logical AND.
+    `subtract` and `negative` on bool raise `DTypeError` (NumPy
+    `TypeError`).
+  - float16 is computed in float32 and rounded once, like NumPy.
+- **Integer edge cases** have no undefined behaviour:
+  - `add`, `subtract`, `multiply` and `power` wrap (modular).
+  - `x // 0` and `x % 0` give 0. NumPy gives the same values, plus a
+    RuntimeWarning.
+  - `MIN // -1` gives MIN.
+  - A negative integer exponent raises `ValueError`, as in NumPy.
+  - Float `mod` and `floorDivide` port NumPy's `npy_divmod`.
+- **JS number scalars** follow NumPy 2's weak scalar promotion (NEP 50):
+  - An integer-valued number keeps an int or float array's dtype.
+    Bool arrays go to int64.
+  - A non-integer number keeps a float array's dtype. Int and bool arrays go
+    to float64.
+  - A scalar that doesn't fit the array dtype raises `ValueError` (NumPy
+    `OverflowError`, D-009).
+- **Complex operands** raise `NotImplementedError` because their values can't
+  be read back or verified yet (D-008).
+- **Transcendentals** (`sqrt`, `exp`, `log`, `power` on floats) call the
+  platform libm. NumPy has its own SIMD kernels, so results may differ by a
+  few ULP. The differential tests use a relative tolerance for these
+  functions only. Every other op must match exactly.
+
