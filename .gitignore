@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+build-*/
+.venv/
+__pycache__/
+*.pyc
+tests/differential/cases/*.json
+benchmarks/reports/*.json
+!benchmarks/reports/.gitkeep
+.DS_Store
+*.tgz
