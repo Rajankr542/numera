@@ -58,6 +58,9 @@ interface Case {
   approx?: boolean;
   scalar?: number;
   index?: unknown[];
+  chain?: string[];
+  writeable?: boolean;
+  set_error?: string | null;
 }
 
 function load(group: string): { numpy_version: string; cases: Case[] } {
@@ -393,6 +396,59 @@ describe("differential: indexing (M6)", () => {
       // results are fresh C-contiguous copies.
       if (c.shares) expect(r.strides).toEqual(exp.strides);
       else expect(r.flags.cContiguous).toBe(true);
+    }
+  });
+});
+
+
+describe("differential: writeable flag (D-016)", () => {
+  const { numpy_version, cases } = load("writeable");
+  const steps: Record<string, (a: NDArray) => NDArray> = {
+    broadcast: (a) => np.broadcastTo(a, [2, ...a.shape]),
+    broadcast_same: (a) => np.broadcastTo(a, a.shape),
+    row: (a) => a.get(0),
+    slice: (a) => a.get(np.ellipsis, [1, null, null]),
+    ellipsis0d: (a) => a.get(...new Array<IndexSpec>(a.ndim).fill(0), np.ellipsis),
+    fancy: (a) => a.get(np.array([0])),
+    T: (a) => a.T,
+    expand: (a) => np.expandDims(a, 0),
+    squeeze: (a) => a.squeeze(),
+    swap: (a) => a.swapAxes(0, -1),
+    moveaxis: (a) => np.moveAxis(a, 0, -1),
+    reshape_flat: (a) => a.reshape(-1),
+    reshape_23: (a) => a.reshape(2, 3),
+    ravel: (a) => a.ravel(),
+    flatten: (a) => a.flatten(),
+    copy: (a) => a.copy(),
+    astype: (a) => a.astype("float64"),
+    add: (a) => np.add(a, 1),
+    strided: (a) => np.lib.stride_tricks.asStrided(a, [2], [a.itemSize * 2]),
+    row_of_2d: (a) => a.reshape(2, 3).get(1),
+  };
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    const src = np.arange(6);
+    let a = src;
+    for (const s of c.chain!) a = steps[s]!(a);
+    const exp = c.expected as Described;
+    if (c.chain!.includes("astype")) {
+      // astype on non-C inputs: NumPy order='K' keeps layout; nativpy is
+      // always C-contiguous (documented in COMPATIBILITY.md).
+      expect(a.shape).toEqual(exp.shape);
+      expect(a.toArray()).toEqual(decodeExpected(exp.values!));
+      expect(a.flags.cContiguous).toBe(true);
+    } else {
+      checkArray(a, exp);
+    }
+    expect(a.flags.writeable).toBe(c.writeable);
+    const before = src.toArray();
+    const write = () => a.set(new Array<IndexSpec>(a.ndim).fill(0), 99);
+    if (c.set_error) {
+      expect(write).toThrow(np.ValueError);
+      expect(write).toThrow(c.set_error);
+      expect(src.toArray()).toEqual(before);
+    } else {
+      write();
+      expect(a.item(...new Array<number>(a.ndim).fill(0))).toBe(99);
     }
   });
 });

@@ -229,3 +229,18 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   - JS number scalars in `where` are not weak (NEP 50). They are inferred as
     int64/float64 arrays.
 
+## D-016 — Writeable flag and read-only views — Accepted — 2026-09-29
+- `NDArray` carries a `writeable` flag. It was previously reported as always
+  `true`, which let `set` write through `broadcastTo` views into the source.
+- Semantics (verified against NumPy 2.5.3):
+  - Freshly allocated arrays and every copy (`copy`, `astype`, copying
+    `reshape`/`ravel`/`flatten`, advanced-index results, ufunc outputs) are
+    writeable.
+  - `broadcast_to` returns a read-only view.
+  - Every view (`view`/`asStrided`, basic indexing, `transpose`, `squeeze`,
+    `expandDims`, view `reshape`, ...) inherits the flag of its base.
+- Any write into a read-only array (`set_index`, element setters) raises
+  `ValueError` "assignment destination is read-only", as NumPy does.
+- `flags.writeable` reports the real flag. Setting the flag from JS
+  (`setflags`) is not supported yet.
+

@@ -96,8 +96,8 @@ NDArray broadcast_to(const NDArray& a, const Shape& shape) {
     throw_error(ErrorKind::Broadcast, "input operand has more dimensions than allowed by the axis remapping");
   }
   Strides s = detail::aligned_strides(a, shape);
-  // Size-0 target: any strides are valid; keep 0.
-  return a.view(shape, std::move(s), a.offset());
+  // Size-0 target: any strides are valid; keep 0. Read-only like NumPy (D-016).
+  return a.view(shape, std::move(s), a.offset()).as_readonly();
 }
 
 }  // namespace nativpy

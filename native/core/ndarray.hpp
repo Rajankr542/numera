@@ -41,6 +41,13 @@ class NDArray {
   [[nodiscard]] bool is_f_contiguous() const noexcept;
   [[nodiscard]] bool owns_data() const noexcept { return owns_data_; }
 
+  // D-016: views inherit writeability; copies are writeable.
+  [[nodiscard]] bool writeable() const noexcept { return writeable_; }
+  // Same view with the writeable flag cleared (used by broadcast_to).
+  [[nodiscard]] NDArray as_readonly() const;
+  // Throws ErrorKind::Value "assignment destination is read-only".
+  void check_writeable() const;
+
   // True if both arrays reference the same MemoryBuffer.
   [[nodiscard]] bool shares_buffer(const NDArray& other) const noexcept {
     return buffer_ == other.buffer_;
@@ -83,6 +90,7 @@ class NDArray {
   std::int64_t offset_;
   std::int64_t size_;
   bool owns_data_;
+  bool writeable_ = true;
 };
 
 // Calls fn(byte_ptr) for every element in C order. Generic strided iteration.

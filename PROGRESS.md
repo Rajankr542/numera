@@ -1,5 +1,20 @@
 # PROGRESS
 
+## 2026-09-29 — Read-only views (D-016)
+
+Fixed a bug where `set` wrote through `broadcastTo` views into the source
+array. NumPy raises `ValueError: assignment destination is read-only`.
+- C++: `NDArray` has a `writeable` flag. `view()` inherits it, `broadcast_to`
+  clears it, and allocations and copies are writeable. `set_index` and the
+  element setters call `check_writeable()`.
+- Binding: `flags.writeable` reports the real flag (it was hard-coded `true`).
+- Tests: a C++ case in `test_indexing.cpp`, a vitest case, and a new
+  differential group `writeable` (27 op chains). Each chain checks the layout,
+  `flags.writeable`, and whether a write succeeds or raises NumPy's message.
+- COMPATIBILITY.md: verified rows for indexing and `flags.writeable`.
+- Verification: `pnpm build`, `pnpm typecheck`, `pnpm test:native`,
+  `pnpm test:asan` pass; `pnpm test` 54 tests; `pnpm test:diff` 1245 cases.
+
 ## 2026-09-29 — M6 indexing
 
 Done:

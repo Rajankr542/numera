@@ -70,7 +70,19 @@ bool NDArray::may_share_memory(const NDArray& other) const noexcept {
 }
 
 NDArray NDArray::view(Shape shape, Strides strides, std::int64_t offset) const {
-  return {buffer_, dtype_, std::move(shape), std::move(strides), offset, false};
+  NDArray v{buffer_, dtype_, std::move(shape), std::move(strides), offset, false};
+  v.writeable_ = writeable_;
+  return v;
+}
+
+NDArray NDArray::as_readonly() const {
+  NDArray v = view(shape_, strides_, offset_);
+  v.writeable_ = false;
+  return v;
+}
+
+void NDArray::check_writeable() const {
+  if (!writeable_) throw_error(ErrorKind::Value, "assignment destination is read-only");
 }
 
 std::int64_t NDArray::byte_offset_of(const std::vector<std::int64_t>& index) const {
@@ -134,12 +146,15 @@ std::uint64_t NDArray::get_uint64(std::int64_t flat) const {
   return read_as<std::uint64_t>(dtype_, element_ptr(flat));
 }
 void NDArray::set_double(std::int64_t flat, double value) {
+  check_writeable();
   write_from(dtype_, element_ptr(flat), value);
 }
 void NDArray::set_int64(std::int64_t flat, std::int64_t value) {
+  check_writeable();
   write_from(dtype_, element_ptr(flat), value);
 }
 void NDArray::set_uint64(std::int64_t flat, std::uint64_t value) {
+  check_writeable();
   write_from(dtype_, element_ptr(flat), value);
 }
 

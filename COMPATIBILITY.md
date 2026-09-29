@@ -21,6 +21,8 @@ differential tests (`pnpm test:diff`).
 | `add` `subtract` `multiply` `divide` `power` `mod` `floorDivide` | all 12 real dtypes plus mixed pairs; result dtype, NaN/inf/-0, integer wrap, `x//0`, `x%0`; `power` on floats within rtol (D-014) |
 | `abs` `negative` `sqrt` `exp` `log` | all 12 real dtypes; `sqrt`/`exp`/`log` within rtol (float16 1e-3, float32 1e-6, float64 1e-14) |
 | broadcasting | `broadcastShapes`, `broadcastTo`, broadcast results incl. 0-d and zero-size; NEP 50 number scalars |
+| indexing (`get`/`slice`/`set`) | integer, negative, slice (incl. reverse/clamped/empty), ellipsis, newaxis, integer-array, boolean mask, 0-d bool, mixed advanced; result dtype/shape/values, view-vs-copy, basic-view strides, error class; setitem on int32/float64/uint8/bool with broadcast, cast and repeated indices (D-015) |
+| `flags.writeable` | `broadcastTo` views read-only; views inherit (basic index, transpose, expandDims, squeeze, swapAxes, moveAxis, view reshape, asStrided); copies writeable; writing a read-only view raises `ValueError` "assignment destination is read-only" (D-016) |
 
 ## Documented divergences
 | Behaviour | NumPy | nativpy | Decision |
@@ -46,6 +48,8 @@ differential tests (`pnpm test:diff`).
 | setitem value broadcast mismatch | `ValueError` | `BroadcastError` | D-015 |
 | nested JS list as an index array | list → array index | not accepted; wrap in `np.array` | D-015 |
 | `where(c, x, y)` with JS number scalars | weak (NEP 50) | inferred int64/float64 arrays | D-015 |
+| `astype` on non-C-contiguous input | keeps layout (`order='K'`) | always C-contiguous (same values) | D-011 |
+| `setflags(write=...)` | supported | not implemented; flag is read-only from JS | D-016 |
 
 ## Not implemented
 - Complex element read/write (`toArray`, `item`, `array([...], complex)`): `NotImplementedError` (D-008). Ufuncs on complex operands raise `NotImplementedError`.

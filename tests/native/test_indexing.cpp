@@ -1,9 +1,11 @@
 #include <cstdint>
 #include <optional>
 
+#include "broadcast.hpp"
 #include "creation.hpp"
 #include "error.hpp"
 #include "indexing.hpp"
+#include "shape_ops.hpp"
 #include "test_harness.hpp"
 
 using namespace nativpy;
@@ -108,4 +110,25 @@ TEST_CASE("indexing: assignment, nonzero, take, where") {
   NDArray w = where(ints({1, 0}), ints({5, 5}), ones({}, DType::Float64));
   CHECK(w.dtype() == DType::Float64);
   CHECK_EQ(w.get_double(1), 1.0);
+}
+
+TEST_CASE("indexing: read-only broadcast views reject writes (D-016)") {
+  NDArray a = ar(3);
+  NDArray b = broadcast_to(a, {2, 3});
+  CHECK(a.writeable());
+  CHECK(!b.writeable());
+  CHECK_THROWS_KIND(set_index(b, {K::integer_(0), K::integer_(0)}, ints({99})), ErrorKind::Value);
+  CHECK_THROWS_KIND(set_index(b, {K::array_(ints({0}))}, ints({1})), ErrorKind::Value);
+  CHECK_THROWS_KIND(b.set_int64(0, 1), ErrorKind::Value);
+  CHECK_EQ(a.get_int64(0), 0);  // source untouched
+  // Views inherit the flag; copies are writeable.
+  CHECK(!get_index(b, {K::integer_(0)}).writeable());
+  CHECK(!transpose(b, {}).writeable());
+  CHECK(!b.view({3}, {8}, 0).writeable());
+  CHECK(b.copy().writeable());
+  CHECK(b.astype(DType::Float64).writeable());
+  CHECK(get_index(b, {K::array_(ints({0}))}).writeable());
+  CHECK(b.reshape({6}).writeable());  // non-contiguous -> copy
+  // Views of writeable arrays stay writeable.
+  CHECK(get_index(a, {K::slice(1, std::nullopt, std::nullopt)}).writeable());
 }

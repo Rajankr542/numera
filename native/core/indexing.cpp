@@ -329,6 +329,7 @@ NDArray get_index(const NDArray& a, const std::vector<IndexItem>& index) {
 }
 
 void set_index(NDArray& a, const std::vector<IndexItem>& index, const NDArray& value) {
+  a.check_writeable();  // D-016
   const Staged s = stage(a, promote_integers(normalize(a, index)));
   if (s.adv_arrays.empty()) {
     NDArray target = s.view;

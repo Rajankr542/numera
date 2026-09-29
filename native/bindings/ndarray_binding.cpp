@@ -229,7 +229,7 @@ NATIVPY_METHOD(flags, {
   f.Set("cContiguous", Napi::Boolean::New(env, a.is_c_contiguous()));
   f.Set("fContiguous", Napi::Boolean::New(env, a.is_f_contiguous()));
   f.Set("ownData", Napi::Boolean::New(env, a.owns_data()));
-  f.Set("writeable", Napi::Boolean::New(env, true));
+  f.Set("writeable", Napi::Boolean::New(env, a.writeable()));
   return f;
 })
 

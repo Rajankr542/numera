@@ -12,7 +12,7 @@ namespace nativpy {
 // NumPy broadcasting of shapes. Throws ErrorKind::Broadcast on mismatch.
 Shape broadcast_shapes(const std::vector<Shape>& shapes);
 
-// Zero-stride read-only-by-convention view of `a` with the target shape.
+// Zero-stride read-only view of `a` with the target shape (D-016).
 NDArray broadcast_to(const NDArray& a, const Shape& shape);
 
 // Iteration plan for N operands over a common (output) shape (PLAN §14).

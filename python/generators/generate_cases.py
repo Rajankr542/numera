@@ -496,6 +496,59 @@ def index_cases() -> list[dict]:
     return cases
 
 
+# D-016: flags.writeable after a chain of ops starting from arange(6).
+# Each step name is replayed by the JS runner.
+_WRITEABLE_STEPS = {
+    "broadcast": lambda a: np.broadcast_to(a, (2,) + a.shape),
+    "broadcast_same": lambda a: np.broadcast_to(a, a.shape),
+    "row": lambda a: a[0],
+    "slice": lambda a: a[..., 1:],
+    "ellipsis0d": lambda a: a[(0,) * a.ndim + (Ellipsis,)],
+    "fancy": lambda a: a[np.array([0])],
+    "T": lambda a: a.T,
+    "expand": lambda a: np.expand_dims(a, 0),
+    "squeeze": lambda a: np.squeeze(a),
+    "swap": lambda a: np.swapaxes(a, 0, -1),
+    "moveaxis": lambda a: np.moveaxis(a, 0, -1),
+    "reshape_flat": lambda a: a.reshape(-1),
+    "reshape_23": lambda a: a.reshape(2, 3),
+    "ravel": lambda a: np.ravel(a),
+    "flatten": lambda a: a.flatten(),
+    "copy": lambda a: a.copy(),
+    "astype": lambda a: a.astype("float64"),
+    "add": lambda a: a + 1,
+    "strided": lambda a: np.lib.stride_tricks.as_strided(a, (2,), (a.itemsize * 2,)),
+}
+
+
+def writeable_cases() -> list[dict]:
+    chains = [
+        [], ["broadcast"], ["broadcast_same"], ["broadcast", "row"], ["broadcast", "slice"],
+        ["broadcast", "ellipsis0d"], ["broadcast", "fancy"], ["broadcast", "T"],
+        ["broadcast", "expand"], ["broadcast", "expand", "squeeze"], ["broadcast", "swap"],
+        ["broadcast", "moveaxis"], ["broadcast", "reshape_flat"], ["broadcast_same", "reshape_23"],
+        ["broadcast", "ravel"], ["broadcast", "flatten"], ["broadcast", "copy"],
+        ["broadcast", "astype"], ["broadcast", "add"], ["broadcast", "strided"],
+        ["broadcast", "copy", "row"], ["row_of_2d"], ["slice"], ["T"], ["strided"],
+        ["reshape_23", "row"], ["broadcast", "row", "copy", "slice"],
+    ]
+    steps = {**_WRITEABLE_STEPS, "row_of_2d": lambda a: a.reshape(2, 3)[1]}
+    cases = []
+    for chain in chains:
+        a = np.arange(6)
+        for s in chain:
+            a = steps[s](a)
+        case = {"op": "writeable", "chain": chain, "expected": describe(a),
+                "writeable": bool(a.flags.writeable)}
+        try:
+            a[(0,) * a.ndim] = 99
+            case["set_error"] = None
+        except ValueError as e:
+            case["set_error"] = str(e)
+        cases.append(case)
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -509,6 +562,7 @@ def main() -> None:
         "ufuncs": ufunc_cases(),
         "promotion": promotion_cases(),
         "indexing": index_cases(),
+        "writeable": writeable_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

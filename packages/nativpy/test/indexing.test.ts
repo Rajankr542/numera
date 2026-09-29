@@ -69,6 +69,26 @@ describe("indexing (M6)", () => {
     expect(() => a.set([0], [1, 2])).toThrow(BroadcastError);
   });
 
+  it("D-016: broadcastTo views are read-only; views inherit, copies are writeable", () => {
+    const a = np.arange(3);
+    const b = np.broadcastTo(a, [2, 3]);
+    expect(a.flags.writeable).toBe(true);
+    expect(b.flags.writeable).toBe(false);
+    expect(() => b.set([0, 0], 99)).toThrow(ValueError);
+    expect(() => b.set([0, 0], 99)).toThrow("assignment destination is read-only");
+    expect(() => b.set(np.array([0]), 1)).toThrow(ValueError);
+    expect(a.toArray()).toEqual([0, 1, 2]);
+    expect(b.get(0).flags.writeable).toBe(false);
+    expect(b.transpose().flags.writeable).toBe(false);
+    expect(np.expandDims(b, 0).flags.writeable).toBe(false);
+    expect(b.copy().flags.writeable).toBe(true);
+    expect(b.get(np.array([0])).flags.writeable).toBe(true);
+    const c = b.copy();
+    c.set([0, 0], 5);
+    expect(c.item(0, 0)).toBe(5);
+    expect(a.slice([[1, null]]).flags.writeable).toBe(true);
+  });
+
   it("nonzero, take, where", () => {
     const [r, c] = np.nonzero([[0, 1], [2, 0]]);
     expect(r!.toArray()).toEqual([0, 1]);
