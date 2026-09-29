@@ -28,6 +28,10 @@ results = []
 for n in SIZES:
     lst = [i * 0.5 for i in range(n)]
     arr = np.array(lst)
+    arr2 = arr + 1
+    row = np.arange(1000, dtype=np.float64)
+    mat = np.ones((n // 1000, 1000))
+    tr = mat.T
     cases = {
         "zeros(float64)": lambda: np.zeros(n),
         "array(list float64)": lambda: np.array(lst),
@@ -35,6 +39,13 @@ for n in SIZES:
         "astype(float32)": lambda: arr.astype(np.float32),
         "copy": lambda: arr.copy(),
         "toTypedArray": lambda: arr.tobytes(),
+        "add(a, b)": lambda: np.add(arr, arr2),
+        "multiply(a, scalar)": lambda: np.multiply(arr, 2.5),
+        "add(matrix, row) bcast": lambda: np.add(mat, row),
+        # ascontiguousarray: nativpy always returns C order (D-014)
+        "add(a.T, a.T) strided": lambda: np.ascontiguousarray(np.add(tr, tr)),
+        "sqrt(a)": lambda: np.sqrt(arr),
+        "exp(a)": lambda: np.exp(arr),
     }
     for name, fn in cases.items():
         r = bench(fn)

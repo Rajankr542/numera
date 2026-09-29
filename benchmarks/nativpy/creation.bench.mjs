@@ -26,6 +26,10 @@ for (const n of SIZES) {
   const list = Array.from({ length: n }, (_, i) => i * 0.5);
   const typed = new Float64Array(list);
   const arr = np.array(list);
+  const arr2 = np.add(arr, 1);
+  const row = np.arange(0, 1000, 1, { dtype: "float64" });
+  const mat = n >= 1000 ? np.ones([n / 1000, 1000]) : undefined;
+  const tr = mat ? mat.T : undefined;
   const cases = {
     "zeros(float64)": () => np.zeros([n]),
     "array(list float64)": () => np.array(list),
@@ -33,6 +37,12 @@ for (const n of SIZES) {
     "astype(float32)": () => arr.astype("float32"),
     "copy": () => arr.copy(),
     "toTypedArray": () => arr.toTypedArray(),
+    "add(a, b)": () => np.add(arr, arr2),
+    "multiply(a, scalar)": () => np.multiply(arr, 2.5),
+    "add(matrix, row) bcast": () => np.add(mat, row),
+    "add(a.T, a.T) strided": () => np.add(tr, tr),
+    "sqrt(a)": () => np.sqrt(arr),
+    "exp(a)": () => np.exp(arr),
   };
   for (const [name, fn] of Object.entries(cases)) {
     const r = bench(fn);
