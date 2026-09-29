@@ -1,0 +1,19 @@
+{
+  "name": "nativpy",
+  "version": "0.0.1",
+  "description": "NumPy semantics. Native performance. JavaScript/TypeScript API.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=18"
+  }
+}
