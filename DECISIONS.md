@@ -90,3 +90,40 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   true iff the two arrays use the same buffer, both are non-empty, and their
   byte extents `[low, high)` overlap. This supersedes the same-buffer wording
   in D-010.
+
+
+## D-012 — M2 creation / M3 shape semantics — Accepted — 2026-09-29
+- `full(shape, v, {dtype})` converts `v` with `np.array(v, {dtype})`, so the
+  D-009 rules apply: out-of-range values raise ValueError, as in NumPy's
+  OverflowError. Fractional fills into integer dtypes also go through D-009,
+  which truncates (as NumPy does). Without `dtype`, the dtype is inferred
+  from `v` (D-004).
+- `arange(start, stop?, step?, {dtype})` defaults to int64 when all arguments
+  are safe integers, otherwise float64. Values follow NumPy's `fill` rule:
+  `v0 + i*(v1-v0)`, computed in the target dtype. step 0, a non-finite length,
+  or a bool result with more than 2 elements raise ValueError.
+- `linspace` computes in float64, floors values for integer dtypes, then
+  casts (NumPy ≥ 2.0). Negative `num` raises ValueError.
+- `transpose/squeeze/expandDims/swapAxes/moveAxis` always return views.
+  `ravel` returns a view when reshape(-1) can; `flatten` always copies.
+  Repeated axes raise ValueError; out-of-range axes raise IndexError
+  (NumPy's AxisError subclasses both). `expandDims` is implemented with
+  reshape, so its strides match NumPy exactly.
+- `asarray(x)` returns `x` itself when it is an NDArray of the requested
+  dtype.
+
+## D-013 — Allocation and bulk-conversion fast paths — Accepted — 2026-09-29
+- Zero-filled buffers come from `std::calloc` with 64 bytes of slack, aligned
+  to 64 bytes by hand; the raw pointer is kept for `free`. Large calloc
+  blocks get lazily zeroed pages from the OS, so `zeros` no longer touches
+  every page. Non-zeroed buffers use `std::malloc` the same way. Alignment
+  (64 B) and ownership (one RAII MemoryBuffer per allocation) do not change.
+- A caching buffer pool is **deferred**. It would hide page-fault cost for
+  `copy`, but it keeps memory alive beyond what V8 knows about and makes the
+  live-buffer instrumentation harder to read. It needs a separate decision.
+- `np.array(list)`: a single JS pass flattens rectangular, all-`number` input
+  into a Float64Array. Native `fromFloat64` then converts it with the same
+  `store_number` rule (D-009) as the per-element path. Any other input (bool,
+  bigint, ragged, sparse, complex target) falls back to `fromNested`.
+- `astype` has a C-contiguous flat loop that uses the same `cast_value` as
+  the strided loop.

@@ -52,6 +52,28 @@ Napi::Array int64_vector_to_js(Napi::Env env, const std::vector<std::int64_t>& v
   return out;
 }
 
+// Stores one JS number (as double) into an element of dtype T following
+// D-009. Shared by the per-element and bulk (fromFloat64) conversion paths.
+template <typename T>
+inline void store_number(std::byte* p, double d) {
+  if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+    if (std::isnan(d)) throw_error(ErrorKind::Value, "cannot convert float NaN to integer");
+    if (std::isinf(d)) throw_error(ErrorKind::Value, "cannot convert float infinity to integer");
+    const double t = std::trunc(d);
+    // Exact range checks in double: min is a power of two (exact); max+1 too.
+    const double lo = static_cast<double>(std::numeric_limits<T>::min());
+    const double hi_excl = static_cast<double>(std::numeric_limits<T>::max() / 2 + 1) * 2.0;
+    if (t < lo || t >= hi_excl) {
+      char buf[64];
+      std::snprintf(buf, sizeof(buf), "%.17g", t);
+      throw_error(ErrorKind::Value, std::string("integer ") + buf + " out of bounds for target dtype");
+    }
+    store<T>(p, static_cast<T>(t));
+  } else {
+    store<T>(p, cast_value<T>(d));
+  }
+}
+
 // Stores one JS scalar into an element of dtype T following D-009.
 template <typename T>
 void store_js_scalar(std::byte* p, const Napi::Value& v) {
@@ -83,20 +105,7 @@ void store_js_scalar(std::byte* p, const Napi::Value& v) {
         return;
       }
       if (!v.IsNumber()) throw_error(ErrorKind::Value, "array elements must be numbers, bigints or booleans");
-      const double d = v.As<Napi::Number>().DoubleValue();
-      if (std::isnan(d)) throw_error(ErrorKind::Value, "cannot convert float NaN to integer");
-      if (std::isinf(d)) throw_error(ErrorKind::Value, "cannot convert float infinity to integer");
-      const double t = std::trunc(d);
-      // Exact range checks in double: min is a power of two (exact); max+1 too.
-      const double lo = static_cast<double>(std::numeric_limits<T>::min());
-      const double hi_excl = static_cast<double>(std::numeric_limits<T>::max() / 2 + 1) * 2.0;
-      if (t < lo || t >= hi_excl) {
-        char buf[64];
-        std::snprintf(buf, sizeof(buf), "%.17g", t);
-        throw_error(ErrorKind::Value,
-                    std::string("integer ") + buf + " out of bounds for target dtype");
-      }
-      store<T>(p, static_cast<T>(t));
+      store_number<T>(p, v.As<Napi::Number>().DoubleValue());
     } else {
       double d = 0.0;
       if (v.IsBigInt()) {
@@ -107,7 +116,7 @@ void store_js_scalar(std::byte* p, const Napi::Value& v) {
       } else {
         throw_error(ErrorKind::Value, "array elements must be numbers, bigints or booleans");
       }
-      store<T>(p, cast_value<T>(d));
+      store_number<T>(p, d);
     }
   }
 }
@@ -393,6 +402,39 @@ Napi::Value js_from_nested(const Napi::CallbackInfo& info) {
   });
 }
 
+// fromFloat64(f64, shape, dtype): bulk path for np.array on all-number input
+// (PLAN §80). The TS layer flattens the numbers into one Float64Array; every
+// element goes through the same store_number<T> rule as fromNested (D-009).
+Napi::Value js_from_float64(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  return translate_errors(env, [&]() -> Napi::Value {
+    if (!info[0].IsTypedArray() || info[0].As<Napi::TypedArray>().TypedArrayType() != napi_float64_array) {
+      throw_error(ErrorKind::Value, "expected a Float64Array");
+    }
+    const auto src = info[0].As<Napi::Float64Array>();
+    const Shape shape = to_int64_vector(info[1], "shape");
+    const DType dt = parse_dtype(info[2]);
+    NDArray a = NDArray::empty(shape, dt);
+    if (static_cast<std::size_t>(a.size()) != src.ElementLength()) {
+      throw_error(ErrorKind::Shape, "fromFloat64: element count does not match shape");
+    }
+    const double* in = src.Data();
+    const auto n = static_cast<std::size_t>(a.size());
+    dispatch_dtype(dt, [&](auto tag) {
+      using T = dtype_t<decltype(tag)::value>;
+      if constexpr (is_complex_v<T>) {
+        throw_error(ErrorKind::NotImplemented, "complex element conversion from JS (D-008)");
+      } else if constexpr (std::is_same_v<T, double>) {
+        if (n > 0) std::memcpy(a.data(), in, n * sizeof(double));
+      } else {
+        std::byte* out = a.data();
+        for (std::size_t i = 0; i < n; ++i) store_number<T>(out + i * sizeof(T), in[i]);
+      }
+    });
+    return NDArrayWrap::create(env, std::move(a));
+  });
+}
+
 // fromTypedArray(typedArray, shape, dtype): copies the bytes (D-010 / PLAN §31:
 // zero-copy import is deferred until lifetime rules are designed).
 Napi::Value js_from_typed_array(const Napi::CallbackInfo& info) {
@@ -430,6 +472,7 @@ void init_ndarray_binding(Napi::Env env, Napi::Object exports) {
   exports.Set("empty", Napi::Function::New(env, js_empty, "empty"));
   exports.Set("zeros", Napi::Function::New(env, js_zeros, "zeros"));
   exports.Set("fromNested", Napi::Function::New(env, js_from_nested, "fromNested"));
+  exports.Set("fromFloat64", Napi::Function::New(env, js_from_float64, "fromFloat64"));
   exports.Set("fromTypedArray", Napi::Function::New(env, js_from_typed_array, "fromTypedArray"));
   exports.Set("memoryStats", Napi::Function::New(env, js_live_buffers, "memoryStats"));
 }

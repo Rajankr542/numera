@@ -157,6 +157,16 @@ NDArray NDArray::astype(DType target) const {
     dispatch_dtype(target, [&](auto dst_tag) {
       using D = dtype_t<decltype(dst_tag)::value>;
       std::byte* dst = out.data();
+      if (is_c_contiguous()) {
+        // Contiguous fast path (PLAN §80): a flat loop the compiler can
+        // auto-vectorize. Same per-element cast_value as the strided path.
+        const std::byte* src = data();
+        const auto n = static_cast<std::size_t>(size_);
+        for (std::size_t i = 0; i < n; ++i) {
+          store<D>(dst + i * sizeof(D), cast_value<D>(load<S>(src + i * sizeof(S))));
+        }
+        return;
+      }
       for_each_element(*this, [&](const std::byte* src) {
         store<D>(dst, cast_value<D>(load<S>(src)));
         dst += sizeof(D);

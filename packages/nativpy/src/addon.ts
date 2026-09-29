@@ -33,7 +33,22 @@ export interface NativeAddon {
   zeros(shape: number[], dtype: string): NativeNDArray;
   fromNested(data: unknown, dtype: string): NativeNDArray;
   fromTypedArray(data: ArrayBufferView, shape: number[], dtype: string): NativeNDArray;
+  fromFloat64(data: Float64Array, shape: number[], dtype: string): NativeNDArray;
   memoryStats(): { buffers: number; bytes: number };
+  // M2 creation
+  full(shape: number[], value: NativeNDArray): NativeNDArray;
+  ones(shape: number[], dtype: string): NativeNDArray;
+  arange(start: number, stop: number, step: number, dtype: string): NativeNDArray;
+  linspace(start: number, stop: number, num: number, endpoint: boolean, dtype: string): NativeNDArray;
+  eye(n: number, m: number, k: number, dtype: string): NativeNDArray;
+  // M3 shape
+  transpose(a: NativeNDArray, axes: number[]): NativeNDArray;
+  squeeze(a: NativeNDArray, axes: number[] | undefined): NativeNDArray;
+  expandDims(a: NativeNDArray, axes: number[]): NativeNDArray;
+  swapaxes(a: NativeNDArray, axis1: number, axis2: number): NativeNDArray;
+  moveaxis(a: NativeNDArray, source: number[], destination: number[]): NativeNDArray;
+  ravel(a: NativeNDArray): NativeNDArray;
+  flatten(a: NativeNDArray): NativeNDArray;
 }
 
 // Resolution order (DECISIONS D-007): NATIVPY_ADDON_PATH, then the repo build.

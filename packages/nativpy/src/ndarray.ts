@@ -1,4 +1,4 @@
-import type { NativeNDArray } from "./addon.js";
+import { addon, type NativeNDArray } from "./addon.js";
 import { dtype as toDType, type DType, type DTypeLike } from "./dtype.js";
 import { ValueError, wrapNative } from "./errors.js";
 
@@ -69,6 +69,37 @@ export class NDArray {
   /** C-contiguous deep copy. */
   copy(): NDArray {
     return wrapNative(() => NDArray._wrap(this._native.copy()));
+  }
+
+  /** Permuted-axes view (reverses axes by default). */
+  transpose(...axes: number[] | [readonly number[]]): NDArray {
+    const list = (axes.length === 1 && Array.isArray(axes[0]) ? axes[0] : axes) as number[];
+    return wrapNative(() => NDArray._wrap(addon.transpose(this._native, [...list])));
+  }
+
+  /** Transposed view (`a.T`). */
+  get T(): NDArray {
+    return this.transpose();
+  }
+
+  /** Removes size-1 axes (all, or the given ones). Always a view. */
+  squeeze(axis?: number | readonly number[]): NDArray {
+    const axes = axis === undefined ? undefined : typeof axis === "number" ? [axis] : [...axis];
+    return wrapNative(() => NDArray._wrap(addon.squeeze(this._native, axes)));
+  }
+
+  swapAxes(axis1: number, axis2: number): NDArray {
+    return wrapNative(() => NDArray._wrap(addon.swapaxes(this._native, axis1, axis2)));
+  }
+
+  /** 1-D view when possible, otherwise a copy (NumPy ravel). */
+  ravel(): NDArray {
+    return wrapNative(() => NDArray._wrap(addon.ravel(this._native)));
+  }
+
+  /** 1-D copy, always (NumPy flatten). */
+  flatten(): NDArray {
+    return wrapNative(() => NDArray._wrap(addon.flatten(this._native)));
   }
 
   /** Converted C-contiguous copy (NumPy `astype`, unsafe casting). */

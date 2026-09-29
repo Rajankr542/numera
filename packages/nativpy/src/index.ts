@@ -1,8 +1,27 @@
 import { addon } from "./addon.js";
 import * as dtypes from "./dtype.js";
 import * as errors from "./errors.js";
-import { array, asStrided, empty, fromTypedArray, mayShareMemory, zeros } from "./creation.js";
+import {
+  arange,
+  array,
+  asarray,
+  asStrided,
+  empty,
+  emptyLike,
+  eye,
+  fromTypedArray,
+  full,
+  fullLike,
+  identity,
+  linspace,
+  mayShareMemory,
+  ones,
+  onesLike,
+  zeros,
+  zerosLike,
+} from "./creation.js";
 import { NDArray } from "./ndarray.js";
+import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 
 export { DType, dtype, promoteTypes } from "./dtype.js";
 export type { DTypeLike, DTypeName } from "./dtype.js";
@@ -25,8 +44,28 @@ export {
 export * from "./errors.js";
 export { NDArray } from "./ndarray.js";
 export type { ArrayFlags, NestedArray, Shape } from "./ndarray.js";
-export { array, asStrided, empty, fromTypedArray, inferDType, mayShareMemory, zeros } from "./creation.js";
-export type { ArrayOptions } from "./creation.js";
+export {
+  arange,
+  array,
+  asarray,
+  asStrided,
+  empty,
+  emptyLike,
+  eye,
+  fromTypedArray,
+  full,
+  fullLike,
+  identity,
+  inferDType,
+  linspace,
+  mayShareMemory,
+  ones,
+  onesLike,
+  zeros,
+  zerosLike,
+} from "./creation.js";
+export type { ArrayOptions, EyeOptions, LinspaceOptions } from "./creation.js";
+export { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 
 /** Development instrumentation: live native buffers / bytes (PLAN §33). */
 export function memoryStats(): { buffers: number; bytes: number } {
@@ -41,8 +80,26 @@ const np = {
   dtype: dtypes.dtype,
   promoteTypes: dtypes.promoteTypes,
   array,
+  asarray,
   empty,
+  emptyLike,
   zeros,
+  zerosLike,
+  ones,
+  onesLike,
+  full,
+  fullLike,
+  arange,
+  linspace,
+  eye,
+  identity,
+  reshape,
+  transpose,
+  squeeze,
+  expandDims,
+  swapAxes,
+  moveAxis,
+  ravel,
   fromTypedArray,
   mayShareMemory,
   lib,

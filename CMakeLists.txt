@@ -31,6 +31,8 @@ add_library(nativpy_core STATIC
   native/core/shape.cpp
   native/core/strides.cpp
   native/core/ndarray.cpp
+  native/core/creation.cpp
+  native/core/shape_ops.cpp
 )
 target_include_directories(nativpy_core PUBLIC native/core)
 target_compile_options(nativpy_core PRIVATE ${NATIVPY_WARNINGS})
@@ -49,6 +51,7 @@ if(NATIVPY_BUILD_ADDON AND CMAKE_JS_VERSION)
     native/bindings/ndarray_binding.cpp
     native/bindings/dtype_binding.cpp
     native/bindings/error_binding.cpp
+    native/bindings/ops_binding.cpp
     ${CMAKE_JS_SRC})
   set_target_properties(nativpy_addon PROPERTIES PREFIX "" SUFFIX ".node"
                         OUTPUT_NAME "nativpy")
@@ -74,7 +77,8 @@ if(NATIVPY_BUILD_TESTS)
     tests/native/test_memory.cpp
     tests/native/test_dtype.cpp
     tests/native/test_shape_strides.cpp
-    tests/native/test_ndarray.cpp)
+    tests/native/test_ndarray.cpp
+    tests/native/test_creation_shape.cpp)
   target_link_libraries(nativpy_core_tests PRIVATE nativpy_core)
   target_compile_options(nativpy_core_tests PRIVATE ${NATIVPY_WARNINGS})
   add_test(NAME nativpy_core_tests COMMAND nativpy_core_tests)

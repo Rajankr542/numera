@@ -31,9 +31,10 @@ class MemoryBuffer {
   static std::int64_t live_bytes() noexcept;
 
  private:
-  MemoryBuffer(std::byte* data, std::size_t size) noexcept;
+  MemoryBuffer(void* raw, std::byte* data, std::size_t size) noexcept;
 
-  std::byte* data_;
+  void* raw_;  // pointer returned by malloc/calloc (freed in the destructor)
+  std::byte* data_;  // raw_ rounded up to kAlignment
   std::size_t size_;
 };
 
