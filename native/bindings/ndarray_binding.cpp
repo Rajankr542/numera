@@ -203,6 +203,11 @@ const NDArray& NDArrayWrap::unwrap(const Napi::Value& value) {
   return NDArrayWrap::Unwrap(obj)->array();
 }
 
+bool NDArrayWrap::is_ndarray(const Napi::Value& value) {
+  return value.IsObject() &&
+         value.As<Napi::Object>().InstanceOf(addon_data(value.Env()).ndarray_ctor.Value());
+}
+
 #define NATIVPY_METHOD(NAME, BODY)                                  \
   Napi::Value NDArrayWrap::NAME(const Napi::CallbackInfo& info) {   \
     Napi::Env env = info.Env();                                     \

@@ -41,8 +41,14 @@ differential tests (`pnpm test:diff`).
 | number scalar out of the array dtype's range | `OverflowError` | `ValueError` | D-009/D-014 |
 | `sqrt`/`exp`/`log`/float `power` | NumPy SIMD kernels | platform libm (may differ by a few ULP) | D-014 |
 | integer `//0`, `%0` | 0 + RuntimeWarning | 0, no warning | D-014 |
+| `a[1, 2]` (full integer index) | NumPy scalar | 0-d `NDArray` copy via `get`; `item()` for a JS scalar | D-015 |
+| advanced-index result strides | may be non-C (internal transposes) | always C-contiguous copy (same shape/values) | D-015 |
+| setitem value broadcast mismatch | `ValueError` | `BroadcastError` | D-015 |
+| nested JS list as an index array | list → array index | not accepted; wrap in `np.array` | D-015 |
+| `where(c, x, y)` with JS number scalars | weak (NEP 50) | inferred int64/float64 arrays | D-015 |
 
 ## Not implemented
 - Complex element read/write (`toArray`, `item`, `array([...], complex)`): `NotImplementedError` (D-008). Ufuncs on complex operands raise `NotImplementedError`.
 - Ufunc keywords `out=`, `where=`, `casting=`, `dtype=`, `order=`; `NDArray` operator methods.
-- Everything from PLAN M6 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+- `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.
+- Everything from PLAN M7 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.

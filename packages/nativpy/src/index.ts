@@ -21,6 +21,7 @@ import {
   zerosLike,
 } from "./creation.js";
 import { NDArray } from "./ndarray.js";
+import { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
 import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 import {
   abs,
@@ -98,6 +99,8 @@ export {
   subtract,
 } from "./ufunc.js";
 export type { ArrayLike } from "./ufunc.js";
+export { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
+export type { IndexSpec, SliceTuple } from "./indexing.js";
 /** Development instrumentation: live native buffers / bytes (PLAN §33). */
 export function memoryStats(): { buffers: number; bytes: number } {
   return addon.memoryStats();
@@ -145,6 +148,11 @@ const np = {
   log,
   broadcastShapes,
   broadcastTo,
+  nonzero,
+  take,
+  where,
+  newaxis,
+  ellipsis,
   fromTypedArray,
   mayShareMemory,
   lib,

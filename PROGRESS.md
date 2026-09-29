@@ -1,5 +1,37 @@
 # PROGRESS
 
+## 2026-09-29 — M6 indexing
+
+Done:
+- C++ `native/core/indexing.{hpp,cpp}`:
+  - `slice_indices`, a port of Python `slice.indices`.
+  - `get_index` builds basic views. It then gathers advanced indices using
+    NumPy placement rules: adjacent vs. separated indices, bool arrays turned
+    into nonzero, and 0-d bools.
+  - `set_index` broadcasts the value, casts unsafely and stages overlapping
+    sources through a copy.
+  - `nonzero`, `take` and `where`.
+- Bindings: `getIndex`, `setIndex`, `nonzero`, `take` and `where` in
+  `ops_binding.cpp`, plus `NDArrayWrap::is_ndarray`.
+- TS:
+  - `NDArray.get`, `.slice` and `.set`.
+  - `np.newaxis` and `np.ellipsis`.
+  - `np.nonzero`, `np.take` and `np.where`.
+  - Semantics are in D-015.
+- Tests:
+  - `tests/native/test_indexing.cpp`.
+  - `packages/nativpy/test/indexing.test.ts`, which covers the PLAN §9/§13/§57
+    examples.
+  - A differential `indexing` group with 103 cases: 63 getitem expressions
+    and 40 setitem cases across 4 dtypes, including error classes.
+- Verification (macOS arm64, Node 22.7, NumPy 2.5.3):
+  - `pnpm build` and `pnpm typecheck` are clean.
+  - `pnpm test:native` passes, and `pnpm test:asan` passes (ASan+UBSan clean).
+  - `pnpm test`: 53 tests pass.
+  - `pnpm test:diff`: 1218 cases pass.
+- Not measured: indexing performance. The gather precomputes a per-element
+  offset table (O(n) int64 memory); no claims are made.
+
 ## 2026-09-29 — M4 arithmetic ufuncs, M5 broadcasting
 
 Done:

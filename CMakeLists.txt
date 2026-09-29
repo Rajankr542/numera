@@ -35,6 +35,7 @@ add_library(nativpy_core STATIC
   native/core/shape_ops.cpp
   native/core/broadcast.cpp
   native/core/ufunc.cpp
+  native/core/indexing.cpp
 )
 target_include_directories(nativpy_core PUBLIC native/core)
 target_compile_options(nativpy_core PRIVATE ${NATIVPY_WARNINGS})
@@ -81,7 +82,8 @@ if(NATIVPY_BUILD_TESTS)
     tests/native/test_shape_strides.cpp
     tests/native/test_ndarray.cpp
     tests/native/test_creation_shape.cpp
-    tests/native/test_ufunc.cpp)
+    tests/native/test_ufunc.cpp
+    tests/native/test_indexing.cpp)
   target_link_libraries(nativpy_core_tests PRIVATE nativpy_core)
   target_compile_options(nativpy_core_tests PRIVATE ${NATIVPY_WARNINGS})
   add_test(NAME nativpy_core_tests COMMAND nativpy_core_tests)

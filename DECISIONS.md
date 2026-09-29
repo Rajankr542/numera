@@ -170,3 +170,62 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   few ULP. The differential tests use a relative tolerance for these
   functions only. Every other op must match exactly.
 
+
+## D-015 — Indexing API and semantics (M6) — Accepted — 2026-09-29
+- **The API has no `a[...]` syntax, because JS can't overload it.**
+  - `a.get(...specs)` works like NumPy `a[s0, s1, ...]`.
+  - `a.slice(specs)` takes a list of per-axis specs (PLAN §13).
+    - A flat list of 1–3 numbers or nulls is read as a single slice tuple, so
+      `a.slice([0, 5])` means `a[0:5]` (PLAN §13 example).
+    - For an integer index on axis 0 alone, use `get`.
+  - `a.set(specs, value)` works like `a[...] = value`. A single non-tuple spec
+    may be passed bare.
+- **Spec encoding:**
+  - A number is an integer index.
+  - `null` is `:`.
+  - `[start, stop, step]` is a slice; any entry may be `null`.
+  - `np.ellipsis` (`"..."`) is `...`.
+  - `np.newaxis` (`"newaxis"`) adds an axis.
+  - A boolean is a 0-d bool index.
+  - An `NDArray` (integer or bool dtype) is an advanced index.
+  - Nested JS lists are not accepted as index arrays; wrap them in
+    `np.array`. This avoids ambiguity with slice tuples.
+- **`get` always returns an `NDArray`.** A full integer index such as
+  `a.get(1, 2)` gives a 0-d copy (NumPy returns a scalar, which also does not
+  share memory). `a.get(1, 2, np.ellipsis)` gives a 0-d view, as in NumPy.
+  Use `item()` for a JS scalar.
+- **Basic indexing** (integers, slices, newaxis, ellipsis) returns a view.
+  Its shape, strides and offset match NumPy exactly.
+- **Advanced indexing** implements NumPy's rules:
+  - Index arrays broadcast together.
+  - Integer scalars count as advanced indices when any array index is present.
+  - If the advanced indices are adjacent, the broadcast dims replace them in
+    place. If they are separated by a slice, ellipsis or newaxis, the
+    broadcast dims go first.
+  - A bool array is treated as `nonzero(mask)`.
+  - A 0-d bool adds a length-1 or length-0 axis.
+  - The result is always a new C-contiguous array. NumPy's strides can differ
+    because of internal transposes, so differential tests compare shape,
+    values and non-sharing only.
+- **Assignment:**
+  - `value` broadcasts to the selection shape and is cast unsafely to the
+    target dtype, as in NumPy `setitem`.
+  - A broadcast mismatch raises `BroadcastError`; NumPy raises `ValueError`.
+  - Overlapping sources are staged through a copy.
+  - With repeated advanced indices the last write wins, as in NumPy.
+  - Nested JS values are converted with the target dtype. Out-of-range JS
+    numbers raise `ValueError`, like `np.array(..., dtype)` (D-009).
+- **Errors:**
+  - An out-of-bounds index, too many indices, more than one ellipsis, a
+    bool-shape mismatch, a non-integer index array, or index arrays whose
+    shapes don't broadcast all raise `IndexError`.
+  - A zero slice step raises `ValueError`.
+- **`nonzero`, `take` and `where`:**
+  - `nonzero` returns int64 arrays and raises `ValueError` on 0-d input.
+  - `take(a, idx, axis?)` flattens when `axis` is omitted. Negative indices
+    wrap; out-of-bounds indices raise `IndexError`. `mode=` is not supported.
+  - `where(c, x, y)` uses `promote_types(x, y)` and broadcasts all three
+    arguments. `where(c)` is `nonzero(c)`.
+  - JS number scalars in `where` are not weak (NEP 50). They are inferred as
+    int64/float64 arrays.
+

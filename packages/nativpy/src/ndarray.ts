@@ -1,9 +1,62 @@
-import { addon, type NativeNDArray } from "./addon.js";
+import { addon, type NativeIndexItem, type NativeNDArray } from "./addon.js";
 import { dtype as toDType, type DType, type DTypeLike } from "./dtype.js";
-import { ValueError, wrapNative } from "./errors.js";
+import { IndexError, ValueError, wrapNative } from "./errors.js";
 
 export type Shape = readonly number[];
 export type NestedArray = number | boolean | bigint | readonly NestedArray[];
+
+/**
+ * Per-axis index spec (PLAN §13, D-015), mirroring NumPy's `a[...]` elements:
+ * - `number`                 integer index (drops the axis; negative allowed)
+ * - `null`                   full slice `:`
+ * - `[start, stop, step?]`   slice; entries may be `null` (Python `None`)
+ * - `np.ellipsis` (`"..."`)  ellipsis
+ * - `np.newaxis`             new axis of length 1
+ * - `boolean`                0-d boolean index (NumPy `a[True]`)
+ * - `NDArray`                integer or boolean array (advanced indexing → copy)
+ */
+export const newaxis = "newaxis" as const;
+export const ellipsis = "..." as const;
+export type SliceTuple =
+  | readonly []
+  | readonly [number | null]
+  | readonly [number | null, number | null]
+  | readonly [number | null, number | null, number | null];
+export type IndexSpec =
+  | number
+  | boolean
+  | null
+  | SliceTuple
+  | typeof newaxis
+  | typeof ellipsis
+  | NDArray;
+
+function encodeIndex(specs: readonly IndexSpec[]): NativeIndexItem[] {
+  return specs.map((spec): NativeIndexItem => {
+    if (spec === null) return {};
+    if (typeof spec === "number" || typeof spec === "boolean") return spec;
+    if (spec === ellipsis) return "...";
+    if (spec === newaxis) return null;
+    if (spec instanceof NDArray) return spec._native;
+    if (Array.isArray(spec)) {
+      if (spec.length > 3) throw new IndexError("slice tuples take at most [start, stop, step]");
+      const [start, stop, step] = spec as readonly (number | null | undefined)[];
+      return { start: start ?? null, stop: stop ?? null, step: step ?? null };
+    }
+    throw new IndexError(
+      "only integers, slices, newaxis, ellipsis, and integer or boolean arrays are valid indices",
+    );
+  });
+}
+
+function isSliceTuple(x: unknown): x is SliceTuple {
+  return (
+    Array.isArray(x) &&
+    x.length >= 1 &&
+    x.length <= 3 &&
+    x.every((v) => v === null || typeof v === "number")
+  );
+}
 
 export interface ArrayFlags {
   readonly cContiguous: boolean;
@@ -124,6 +177,38 @@ export class NDArray {
   /** Nested JS arrays (a conversion, not the internal representation — PLAN §30). */
   toArray(): NestedArray {
     return wrapNative(() => this._native.toList() as NestedArray);
+  }
+
+  /**
+   * NumPy `a[i, j, ...]` with one spec per argument (D-015). Always returns an
+   * NDArray (0-d for a full integer index; use `item()` for a JS scalar).
+   * Basic indices return views; any array index returns a copy.
+   */
+  get(...index: IndexSpec[]): NDArray {
+    return wrapNative(() => NDArray._wrap(addon.getIndex(this._native, encodeIndex(index))));
+  }
+
+  /**
+   * NumPy `a[index]` (PLAN §13). `index` is a list of per-axis specs, e.g.
+   * `a.slice([null, [1, 3]])` is `a[:, 1:3]`. A flat list of only numbers/nulls
+   * (length 1–3) is a single slice tuple: `a.slice([0, 5])` is `a[0:5]` (D-015).
+   */
+  slice(index: readonly IndexSpec[] | SliceTuple): NDArray {
+    return this.get(...(isSliceTuple(index) ? [index] : (index as IndexSpec[])));
+  }
+
+  /**
+   * NumPy `a[index] = value`. `index` is a list of per-axis specs (like the
+   * arguments of `get`) or a single non-tuple spec. `value` broadcasts to the
+   * selection and is cast unsafely to this array's dtype. Writes through
+   * views; for repeated advanced indices the last value wins.
+   */
+  set(index: readonly IndexSpec[] | Exclude<IndexSpec, SliceTuple>, value: NDArray | NestedArray): void {
+    const specs = Array.isArray(index) ? (index as IndexSpec[]) : [index as IndexSpec];
+    wrapNative(() => {
+      const v = value instanceof NDArray ? value._native : addon.fromNested(value, this.dtype.name);
+      addon.setIndex(this._native, encodeIndex(specs), v);
+    });
   }
 
   /** New C-order TypedArray copy of the data (D-005, D-010). */

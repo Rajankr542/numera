@@ -6,7 +6,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import np, { type NDArray, type NestedArray } from "../../packages/nativpy/src/index.js";
+import np, {
+  type IndexSpec,
+  type NDArray,
+  type NestedArray,
+} from "../../packages/nativpy/src/index.js";
 
 const casesDir = join(dirname(fileURLToPath(import.meta.url)), "cases");
 
@@ -53,6 +57,7 @@ interface Case {
   b_shape?: number[];
   approx?: boolean;
   scalar?: number;
+  index?: unknown[];
 }
 
 function load(group: string): { numpy_version: string; cases: Case[] } {
@@ -327,3 +332,68 @@ describe("differential: promote_types", () => {
     },
   );
 });
+
+describe("differential: indexing (M6)", () => {
+  const { numpy_version, cases } = load("indexing");
+  type Item =
+    | "newaxis"
+    | "..."
+    | { i: number }
+    | { s: (number | null)[] }
+    | { b: boolean }
+    | { arr: NestedArray; dtype: string };
+  const decode = (items: Item[]): IndexSpec[] =>
+    items.map((it): IndexSpec => {
+      if (it === "newaxis") return np.newaxis;
+      if (it === "...") return np.ellipsis;
+      if ("i" in it) return it.i;
+      if ("s" in it) return it.s as [number | null, number | null, number | null];
+      if ("b" in it) return it.b;
+      return np.array(it.arr, { dtype: it.dtype });
+    });
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    const n = c.shape!.reduce((p, d) => p * d, 1);
+    const idx = decode(c.index as Item[]);
+    let make: () => NDArray;
+    let src: NDArray;
+    if (c.op === "getitem") {
+      src = np.arange(n).reshape(c.shape!);
+      make = () => src.get(...idx);
+    } else {
+      src = np.arange(n).reshape(c.shape!).astype(c.dtype!);
+      const v =
+        c.dtype === "uint8"
+          ? np.array(c.arg as NestedArray).astype("uint8")
+          : (c.arg as NestedArray);
+      make = () => {
+        src.set(idx, v);
+        return src;
+      };
+    }
+    if (c.error !== undefined) {
+      // NumPy raises ValueError for setitem broadcast mismatches; nativpy
+      // raises BroadcastError (D-014).
+      const cls =
+        c.error === "IndexError"
+          ? np.IndexError
+          : c.op === "setitem"
+            ? np.BroadcastError
+            : np.ValueError;
+      expect(make).toThrow(cls);
+      return;
+    }
+    const r = make();
+    const exp = c.expected as Described;
+    expect(r.dtype.name).toBe(exp.dtype);
+    expect(r.shape).toEqual(exp.shape);
+    expect(r.toArray()).toEqual(decodeExpected(exp.values!));
+    if (c.op === "getitem") {
+      expect(np.mayShareMemory(src, r)).toBe(c.shares!);
+      // D-015: basic-index views match NumPy strides exactly; advanced
+      // results are fresh C-contiguous copies.
+      if (c.shares) expect(r.strides).toEqual(exp.strides);
+      else expect(r.flags.cContiguous).toBe(true);
+    }
+  });
+});
+

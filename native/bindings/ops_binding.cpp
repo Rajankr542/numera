@@ -10,6 +10,7 @@
 #include "dtype_binding.hpp"
 #include "error.hpp"
 #include "error_binding.hpp"
+#include "indexing.hpp"
 #include "ndarray_binding.hpp"
 #include "shape_ops.hpp"
 #include "ufunc.hpp"
@@ -53,6 +54,44 @@ Napi::Function fn(Napi::Env env, const char* name, Fn body) {
 
 const NDArray& arr(const Napi::CallbackInfo& info, std::size_t i) {
   return NDArrayWrap::unwrap(info[i]);
+}
+
+std::optional<std::int64_t> opt_int(const Napi::Object& o, const char* key) {
+  const Napi::Value v = o.Get(key);
+  if (v.IsUndefined() || v.IsNull()) return std::nullopt;
+  return arg_int(v, key);
+}
+
+// Decodes the JS index encoding produced by packages/nativpy/src/indexing.ts.
+std::vector<IndexItem> arg_index(const Napi::Value& v) {
+  if (!v.IsArray()) throw_error(ErrorKind::Index, "index must be an array");
+  const auto a = v.As<Napi::Array>();
+  std::vector<IndexItem> out;
+  out.reserve(a.Length());
+  for (std::uint32_t k = 0; k < a.Length(); ++k) {
+    const Napi::Value it = a.Get(k);
+    if (it.IsNull()) {
+      out.push_back(IndexItem::new_axis());
+    } else if (it.IsNumber()) {
+      out.push_back(IndexItem::integer_(arg_int(it, "index")));
+    } else if (it.IsBoolean()) {
+      NDArray b = NDArray::empty({}, DType::Bool);
+      b.set_int64(0, it.As<Napi::Boolean>().Value() ? 1 : 0);
+      out.push_back(IndexItem::array_(std::move(b)));
+    } else if (it.IsString() && it.As<Napi::String>().Utf8Value() == "...") {
+      out.push_back(IndexItem::ellipsis());
+    } else if (NDArrayWrap::is_ndarray(it)) {
+      out.push_back(IndexItem::array_(NDArrayWrap::unwrap(it)));
+    } else if (it.IsObject()) {
+      const auto o = it.As<Napi::Object>();
+      out.push_back(IndexItem::slice(opt_int(o, "start"), opt_int(o, "stop"), opt_int(o, "step")));
+    } else {
+      throw_error(ErrorKind::Index,
+                  "only integers, slices, newaxis, ellipsis, and integer or boolean arrays are "
+                  "valid indices");
+    }
+  }
+  return out;
 }
 
 }  // namespace
@@ -135,6 +174,29 @@ void init_ops_binding(Napi::Env env, Napi::Object exports) {
                 const auto op = unary_op_from_name(name);
                 if (!op) throw_error(ErrorKind::Value, "unknown unary ufunc " + name);
                 return NDArrayWrap::create(e, unary(*op, arr(i, 1)));
+              }));
+  // ---- indexing (M6) ----
+  exports.Set("getIndex", fn(env, "getIndex", [](Info i, Napi::Env e) {
+                return NDArrayWrap::create(e, get_index(arr(i, 0), arg_index(i[1])));
+              }));
+  exports.Set("setIndex", fn(env, "setIndex", [](Info i, Napi::Env e) {
+                NDArray target = arr(i, 0);  // shares the buffer
+                set_index(target, arg_index(i[1]), arr(i, 2));
+                return e.Undefined();
+              }));
+  exports.Set("nonzero", fn(env, "nonzero", [](Info i, Napi::Env e) {
+                const auto out = nonzero(arr(i, 0));
+                Napi::Array res = Napi::Array::New(e, out.size());
+                for (std::uint32_t k = 0; k < out.size(); ++k) res.Set(k, NDArrayWrap::create(e, out[k]));
+                return res;
+              }));
+  exports.Set("take", fn(env, "take", [](Info i, Napi::Env e) {
+                std::optional<std::int64_t> axis;
+                if (!i[2].IsUndefined() && !i[2].IsNull()) axis = arg_int(i[2], "axis");
+                return NDArrayWrap::create(e, take(arr(i, 0), arr(i, 1), axis));
+              }));
+  exports.Set("where", fn(env, "where", [](Info i, Napi::Env e) {
+                return NDArrayWrap::create(e, where(arr(i, 0), arr(i, 1), arr(i, 2)));
               }));
 }
 

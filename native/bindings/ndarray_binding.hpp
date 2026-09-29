@@ -16,6 +16,8 @@ class NDArrayWrap : public Napi::ObjectWrap<NDArrayWrap> {
   static Napi::Object create(Napi::Env env, NDArray array);
   // Unwraps a JS value; throws ValueError if it is not a native NDArray.
   static const NDArray& unwrap(const Napi::Value& value);
+  // True if `value` is a native NDArray handle.
+  static bool is_ndarray(const Napi::Value& value);
 
   explicit NDArrayWrap(const Napi::CallbackInfo& info);
   ~NDArrayWrap() override;

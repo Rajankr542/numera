@@ -392,6 +392,110 @@ def promotion_cases() -> list[dict]:
             for a in all_dt for b in all_dt]
 
 
+# ---- indexing (M6) ----
+# Index items are JSON-encoded: {"i": n} integer, {"s": [start, stop, step]}
+# slice (null = None), "newaxis", "...", {"b": bool} 0-d bool, and
+# {"arr": nested, "dtype": dt} integer/boolean index arrays.
+def _dec_index(items: list) -> tuple:
+    out = []
+    for it in items:
+        if it == "newaxis":
+            out.append(np.newaxis)
+        elif it == "...":
+            out.append(Ellipsis)
+        elif "i" in it:
+            out.append(it["i"])
+        elif "s" in it:
+            out.append(slice(*it["s"]))
+        elif "b" in it:
+            out.append(it["b"])
+        else:
+            out.append(np.array(it["arr"], dtype=it["dtype"]))
+    return tuple(out)
+
+
+def _S(start=None, stop=None, step=None):
+    return {"s": [start, stop, step]}
+
+
+def _A(v, dt="int64"):
+    return {"arr": v, "dtype": dt}
+
+
+INDEX_CASES: list[tuple[list[int], list]] = [
+    ([10], [{"i": 3}]), ([10], [{"i": -1}]), ([10], [{"i": 10}]), ([10], [{"i": -11}]),
+    ([10], [_S(2, 7)]), ([10], [_S(None, None, -1)]), ([10], [_S(8, 1, -3)]),
+    ([10], [_S(-3)]), ([10], [_S(100, 200)]), ([10], [_S(None, None, 4)]),
+    ([10], [_S(-100, 100, 3)]), ([10], [_S(5, 2)]), ([10], [_S(None, None, 0)]),
+    ([3, 4], [{"i": 1}, {"i": 2}]), ([3, 4], [_S(), _S(1, 3)]), ([3, 4], [{"i": -1}, _S(None, None, -2)]),
+    ([3, 4], [_S(None, None, -1), _S(None, None, -1)]), ([3, 4], [{"i": 0}, {"i": 0}, {"i": 0}]),
+    ([2, 3, 4], ["...", {"i": 1}]), ([2, 3, 4], [{"i": 1}, "..."]), ([2, 3, 4], ["..."]),
+    ([2, 3, 4], [_S(), "...", _S(1, 2)]), ([2, 3, 4], ["newaxis", "...", "newaxis"]),
+    ([2, 3, 4], [_S(), "newaxis", {"i": 1}]), ([2, 3, 4], ["...", "..."]),
+    ([2, 3, 4], [{"i": 0}, {"i": 1}, {"i": 2}, "newaxis"]), ([2, 3, 4], [_S(3, 5), {"i": 0}]),
+    ([], ["..."]), ([], ["newaxis"]), ([], [{"i": 0}]),
+    ([10], [_A([0, 9, -1, 3])]), ([10], [_A([[1, 2], [3, 4]])]), ([10], [_A([10])]),
+    ([10], [_A([], "int64")]), ([10], [_A([1, 2], "int8")]), ([10], [_A([1, 2], "uint32")]),
+    ([3, 4], [_A([2, 0])]), ([3, 4], [_S(), _A([3, 0, 3])]), ([3, 4], [_A([0, 2]), _A([1, 3])]),
+    ([3, 4], [_A([[0], [2]]), _A([1, 3])]), ([3, 4], [_A([0, 1]), _A([0, 1, 2])]),
+    ([3, 4], [{"i": 1}, _A([0, 3])]), ([3, 4], [_A([1]), {"i": -1}]),
+    ([2, 3, 4], [_A([0, 1]), _S(), _A([1, 2])]), ([2, 3, 4], [_S(), _A([0, 2]), _A([1, 3])]),
+    ([2, 3, 4], [{"i": 0}, _S(), _A([1, 2])]), ([2, 3, 4], [_A([1, 0]), "...", _A([3])]),
+    ([2, 3, 4], ["newaxis", _A([1]), _S(None, None, -1), _A([0, 1])]),
+    ([2, 3, 4], [_S(1, 2), _A([[0, 1], [2, 0]])]), ([2, 3, 4], [_A([0]), "newaxis", _A([0])]),
+    ([10], [_A([True, False] * 5, "bool")]), ([10], [_A([True] * 3, "bool")]),
+    ([3, 4], [_A([True, False, True], "bool")]), ([3, 4], [_S(), _A([False] * 4, "bool")]),
+    ([3, 4], [_A([[True, False, True, False], [False] * 4, [True, True, False, True]], "bool")]),
+    ([2, 3, 4], [_A([[True, False, True], [False, True, True]], "bool"), _S(1, 3)]),
+    ([2, 3, 4], [{"i": 1}, _A([True, False, True], "bool"), _A([0, 3])]),
+    ([3, 4], [{"b": True}]), ([3, 4], [{"b": False}]), ([3, 4], [_S(), {"b": True}, {"i": 1}]),
+    ([], [{"b": True}]), ([], [_A(True, "bool")]), ([3, 4], [_A([1.0], "float64")]),
+]
+
+
+def _run_index(fn):
+    try:
+        return fn(), None
+    except IndexError:
+        return None, "IndexError"
+    except (TypeError, ValueError) as e:
+        return None, type(e).__name__
+
+
+def index_cases() -> list[dict]:
+    cases = []
+    for shape, index in INDEX_CASES:
+        src = np.arange(int(np.prod(shape)), dtype="int64").reshape(shape)
+        r, err = _run_index(lambda: src[_dec_index(index)])
+        base = {"op": "getitem", "shape": shape, "index": index}
+        if err:
+            cases.append({**base, "error": err})
+            continue
+        r = np.asarray(r)
+        cases.append({**base, "expected": describe(r), "shares": bool(np.shares_memory(src, r))})
+    # Assignment: result is the whole array after a[index] = value.
+    for dt in ("int32", "float64", "uint8", "bool"):
+        for shape, index, value in [
+            ([3, 4], [_S(), {"i": 1}], 7.9), ([3, 4], [{"i": 2}], [1, 2, 3, 4]),
+            ([3, 4], [_S(None, None, -1), _S(1, 3)], [[1, 2]]), ([10], [_A([0, 0, 5])], [1, 2, 3]),
+            ([3, 4], [_A([[True, False, True, False], [False] * 4, [True] * 4], "bool")], 5),
+            ([2, 3, 4], [{"i": 0}, _S(), _A([1, 2])], [[9, 8]] * 3), ([10], [{"b": True}], 1),
+            ([3, 4], [_S(), {"i": 1}], [1, 2]), ([10], [_A([10])], 0), ([3, 4], ["..."], -1),
+        ]:
+            a = np.arange(int(np.prod(shape))).reshape(shape).astype(dt)
+            idx = _dec_index(index)
+
+            def do(a=a, idx=idx, value=value):
+                with warnings.catch_warnings(), np.errstate(all="ignore"):
+                    warnings.simplefilter("ignore")
+                    a[idx] = np.array(value).astype(dt) if dt == "uint8" else value
+                return a
+            r, err = _run_index(do)
+            base = {"op": "setitem", "shape": shape, "dtype": dt, "index": index, "arg": value}
+            cases.append({**base, "error": err} if err else {**base, "expected": describe(r)})
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -404,6 +508,7 @@ def main() -> None:
         "shape_ops": shape_op_cases(),
         "ufuncs": ufunc_cases(),
         "promotion": promotion_cases(),
+        "indexing": index_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

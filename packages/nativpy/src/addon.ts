@@ -54,7 +54,26 @@ export interface NativeAddon {
   broadcastTo(a: NativeNDArray, shape: number[]): NativeNDArray;
   binary(op: string, a: NativeNDArray, b: NativeNDArray): NativeNDArray;
   unary(op: string, a: NativeNDArray): NativeNDArray;
+  // M6 indexing (encoding: see ndarray.ts encodeIndex)
+  getIndex(a: NativeNDArray, index: NativeIndexItem[]): NativeNDArray;
+  setIndex(a: NativeNDArray, index: NativeIndexItem[], value: NativeNDArray): void;
+  nonzero(a: NativeNDArray): NativeNDArray[];
+  take(a: NativeNDArray, indices: NativeNDArray, axis: number | null): NativeNDArray;
+  where(cond: NativeNDArray, x: NativeNDArray, y: NativeNDArray): NativeNDArray;
 }
+
+/**
+ * Wire format of one index item: number = integer, boolean = 0-d bool index,
+ * null = newaxis, "..." = ellipsis, native array = advanced index,
+ * object = slice.
+ */
+export type NativeIndexItem =
+  | number
+  | boolean
+  | null
+  | "..."
+  | NativeNDArray
+  | { start?: number | null; stop?: number | null; step?: number | null };
 
 // Resolution order (DECISIONS D-007): NATIVPY_ADDON_PATH, then the repo build.
 function candidatePaths(): string[] {
