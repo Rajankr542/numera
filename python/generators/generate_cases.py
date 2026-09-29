@@ -308,6 +308,84 @@ def shape_op_cases() -> list[dict]:
     return cases
 
 
+UFUNC_BINARY = {"add": np.add, "subtract": np.subtract, "multiply": np.multiply,
+                "divide": np.true_divide, "power": np.power, "mod": np.mod,
+                "floorDivide": np.floor_divide}
+UFUNC_UNARY = {"abs": np.abs, "negative": np.negative, "sqrt": np.sqrt,
+               "exp": np.exp, "log": np.log}
+APPROX = {"power", "sqrt", "exp", "log"}  # libm vs NumPy SIMD (D-014)
+
+
+def _operand_values(dt: str, which: int) -> list:
+    if dt == "bool":
+        return [True, False, True, True, False, True]
+    kind = np.dtype(dt).kind
+    if kind == "u":
+        return [0, 1, 2, 7, 200 if dt != "uint8" else 250, 3] if which == 0 else [1, 0, 3, 2, 5, 255]
+    if kind == "i":
+        return [-7, 0, 5, 127, -128, 3] if which == 0 else [2, 0, -3, 1, -1, 4]
+    return [-7.5, 0.0, 2.25, float("nan"), float("inf"), -0.0] if which == 0 else \
+        [2.0, 0.0, -3.0, 0.5, float("-inf"), 4.0]
+
+
+def _run(fn, *args):
+    with warnings.catch_warnings(), np.errstate(all="ignore"):
+        warnings.simplefilter("ignore")
+        try:
+            return fn(*args), None
+        except (TypeError, ValueError) as e:
+            return None, type(e).__name__
+        except OverflowError:
+            return None, "ValueError"  # D-009: nativpy raises ValueError
+
+
+def ufunc_cases() -> list[dict]:
+    cases = []
+    pairs = [(d, d) for d in REAL_DTYPES] + [
+        ("int8", "uint8"), ("int64", "uint64"), ("int32", "float32"),
+        ("uint8", "float16"), ("bool", "int16"), ("int16", "float64")]
+    for name, fn in UFUNC_BINARY.items():
+        for da, db in pairs:
+            av, bv = _operand_values(da, 0), _operand_values(db, 1)
+            if name == "power" and np.dtype(db).kind in "iu":
+                bv = [abs(x) % 5 for x in bv]  # non-negative exponents
+            a = np.array(av, dtype=da)
+            b = np.array(bv, dtype=db)
+            r, err = _run(fn, a, b)
+            base = {"op": name, "a_data": enc(av), "a_dtype": da, "b_data": enc(bv),
+                    "b_dtype": db, "approx": name in APPROX}
+            cases.append({**base, "error": err} if err else {**base, "expected": describe(r)})
+    # Broadcasting shapes (float64 and int32).
+    shapes = [((3, 1), (4,)), ((2, 3), ()), ((), (5,)), ((2, 1, 3), (4, 1)),
+              ((0, 3), (1, 3)), ((1,), (0,)), ((3,), (4,)), ((2, 3), (3, 2))]
+    for sa, sb in shapes:
+        for dt in ("float64", "int32"):
+            na, nb = int(np.prod(sa)), int(np.prod(sb))
+            a = np.arange(na, dtype=dt).reshape(sa)
+            b = (np.arange(nb, dtype=dt) + 1).reshape(sb)
+            r, err = _run(np.add, a, b)
+            base = {"op": "add_bcast", "a_shape": list(sa), "b_shape": list(sb), "dtype": dt}
+            cases.append({**base, "error": err or "BroadcastError"} if r is None
+                         else {**base, "expected": describe(r)})
+    # Non-contiguous operand (transposed view), values only.
+    a = np.arange(12.0).reshape(3, 4).T
+    cases.append({"op": "sub_transposed", "expected": describe(a - np.arange(3.0))})
+    for name, fn in UFUNC_UNARY.items():
+        for dt in REAL_DTYPES:
+            av = _operand_values(dt, 0)
+            r, err = _run(fn, np.array(av, dtype=dt))
+            base = {"op": name, "a_data": enc(av), "a_dtype": dt, "approx": name in APPROX}
+            cases.append({**base, "error": err} if err else {**base, "expected": describe(r)})
+    # NEP 50 weak scalars.
+    for dt in ("bool", "int8", "uint8", "int32", "float16", "float32", "float64"):
+        for s in (2, 2.5, 300, -1):
+            a = np.array(_operand_values(dt, 0)[:3], dtype=dt)
+            r, err = _run(np.add, a, s)
+            base = {"op": "add_scalar", "a_data": enc(a.tolist()), "a_dtype": dt, "scalar": s}
+            cases.append({**base, "error": err} if err else {**base, "expected": describe(r)})
+    return cases
+
+
 def promotion_cases() -> list[dict]:
     all_dt = REAL_DTYPES + ["complex64", "complex128"]
     return [{"op": "promote", "a": a, "b": b, "expected": str(np.promote_types(a, b))}
@@ -324,6 +402,7 @@ def main() -> None:
         "strided_reshape": strided_reshape_cases(),
         "ranges": range_cases(),
         "shape_ops": shape_op_cases(),
+        "ufuncs": ufunc_cases(),
         "promotion": promotion_cases(),
     }
     for name, cases in groups.items():

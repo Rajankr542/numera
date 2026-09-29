@@ -45,6 +45,14 @@ interface Case {
   fill?: number | boolean;
   t?: boolean;
   arg?: unknown;
+  a_data?: Encoded;
+  b_data?: Encoded;
+  a_dtype?: string;
+  b_dtype?: string;
+  a_shape?: number[];
+  b_shape?: number[];
+  approx?: boolean;
+  scalar?: number;
 }
 
 function load(group: string): { numpy_version: string; cases: Case[] } {
@@ -238,6 +246,75 @@ describe("differential: shape ops", () => {
     const r = make();
     checkArray(r, c.expected as Described);
     expect(np.mayShareMemory(r, base)).toBe(c.shares);
+  });
+});
+
+describe("differential: ufuncs + broadcasting", () => {
+  const { numpy_version, cases } = load("ufuncs");
+  type Fn = (...xs: (NDArray | number)[]) => NDArray;
+  const fns = np as unknown as Record<string, Fn>;
+  const errorClass = (e: string): typeof np.ValueError =>
+    e === "TypeError" ? np.DTypeError : np.ValueError;
+  // Elementwise closeness for libm-based functions (D-014): rtol 4 ulp-ish.
+  const close = (got: unknown, exp: unknown, rtol: number): void => {
+    if (Array.isArray(exp)) {
+      expect(Array.isArray(got)).toBe(true);
+      (exp as unknown[]).forEach((e, i) => close((got as unknown[])[i], e, rtol));
+      return;
+    }
+    const g = got as number;
+    const e = exp as number;
+    if (Number.isNaN(e) || !Number.isFinite(e) || Number.isInteger(e) || e === 0) {
+      expect(g).toEqual(e);
+    } else {
+      expect(Math.abs(g - e)).toBeLessThanOrEqual(rtol * Math.abs(e));
+    }
+  };
+  const rtolFor = (dt: string): number => (dt === "float16" ? 1e-3 : dt === "float32" ? 1e-6 : 1e-14);
+
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    let make: () => NDArray;
+    if (c.op === "add_bcast") {
+      const na = c.a_shape!.reduce((p, d) => p * d, 1);
+      const nb = c.b_shape!.reduce((p, d) => p * d, 1);
+      const a = np.arange(0, na, 1, { dtype: c.dtype! }).reshape(c.a_shape!);
+      const b = np.add(np.arange(0, nb, 1, { dtype: c.dtype! }), 1).reshape(c.b_shape!);
+      make = () => np.add(a, b);
+    } else if (c.op === "sub_transposed") {
+      make = () => np.subtract(np.arange(12).astype("float64").reshape([3, 4]).T, np.arange(3.0));
+    } else if (c.op === "add_scalar") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      make = () => np.add(a, c.scalar!);
+    } else {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      if (c.b_data === undefined) {
+        make = () => fns[c.op]!(a);
+      } else {
+        const b = np.array(decodeInput(c.b_data) as NestedArray, { dtype: c.b_dtype! });
+        make = () => fns[c.op]!(a, b);
+      }
+    }
+    if (c.error !== undefined) {
+      const expected = c.op === "add_bcast" ? np.BroadcastError : errorClass(c.error);
+      expect(make).toThrow(expected);
+      return;
+    }
+    const r = make();
+    const exp = c.expected as Described;
+    if (c.op === "sub_transposed") {
+      // D-014: results are always C-contiguous; NumPy order='K' keeps F order.
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      expect(r.flags.cContiguous).toBe(true);
+      expect(r.toArray()).toEqual(decodeExpected(exp.values!));
+    } else if (c.approx) {
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      expect(r.strides).toEqual(exp.strides);
+      close(r.toArray(), decodeExpected(exp.values!), rtolFor(exp.dtype));
+    } else {
+      checkArray(r, exp);
+    }
   });
 });
 
