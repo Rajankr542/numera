@@ -40,6 +40,11 @@ interface Case {
   new_shape?: number[];
   shares?: boolean;
   copy_strides?: number[];
+  args?: number[];
+  endpoint?: boolean;
+  fill?: number | boolean;
+  t?: boolean;
+  arg?: unknown;
 }
 
 function load(group: string): { numpy_version: string; cases: Case[] } {
@@ -165,6 +170,72 @@ describe("differential: reshape of strided views", () => {
     const base = arange(c.n!);
     const v = np.lib.stride_tricks.asStrided(base, c.shape!, c.strides!, c.offset!);
     const r = v.reshape(c.new_shape!);
+    checkArray(r, c.expected as Described);
+    expect(np.mayShareMemory(r, base)).toBe(c.shares);
+  });
+});
+
+describe("differential: ranges (ones/full/arange/linspace/eye)", () => {
+  const { numpy_version, cases } = load("ranges");
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    const opts = c.dtype === undefined ? {} : { dtype: c.dtype };
+    const a = c.args ?? [];
+    const make = (): NDArray => {
+      switch (c.op) {
+        case "ones":
+          return np.ones(c.shape!, opts);
+        case "full":
+          return np.full(c.shape!, c.fill!, opts);
+        case "arange":
+          return np.arange(a[0]!, a[1], a[2], opts);
+        case "linspace":
+          return np.linspace(a[0]!, a[1]!, a[2]!, { ...opts, endpoint: c.endpoint! });
+        case "eye":
+          return np.eye(a[0]!, a[1], { ...opts, k: a[2]! });
+        default:
+          throw new Error(`unknown op ${c.op}`);
+      }
+    };
+    if (c.error !== undefined) {
+      expect(make).toThrow(np.ValueError);
+      return;
+    }
+    checkArray(make(), c.expected as Described);
+  });
+});
+
+describe("differential: shape ops", () => {
+  const { numpy_version, cases } = load("shape_ops");
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    const size = c.shape!.reduce((p, d) => p * d, 1);
+    const base = arange(size).reshape(c.shape!);
+    const src = c.t! ? base.T : base;
+    const arg = c.arg as number[] | [number[], number[]] | null;
+    const make = (): NDArray => {
+      switch (c.op) {
+        case "transpose":
+          return np.transpose(src, arg as number[]);
+        case "squeeze":
+          return np.squeeze(src, arg === null ? undefined : (arg as number[]));
+        case "expand_dims":
+          return np.expandDims(src, arg as number[]);
+        case "swapaxes":
+          return np.swapAxes(src, (arg as number[])[0]!, (arg as number[])[1]!);
+        case "moveaxis":
+          return np.moveAxis(src, (arg as number[][])[0]!, (arg as number[][])[1]!);
+        case "ravel":
+          return src.ravel();
+        case "flatten":
+          return src.flatten();
+        default:
+          throw new Error(`unknown op ${c.op}`);
+      }
+    };
+    if (c.error !== undefined) {
+      expect(make).toThrow(c.error === "IndexError" ? np.IndexError : np.ValueError);
+      return;
+    }
+    const r = make();
     checkArray(r, c.expected as Described);
     expect(np.mayShareMemory(r, base)).toBe(c.shares);
   });

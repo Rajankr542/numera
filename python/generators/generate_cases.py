@@ -195,6 +195,119 @@ def strided_reshape_cases() -> list[dict]:
     return cases
 
 
+def range_cases() -> list[dict]:
+    """ones/full/arange/linspace/eye across dtypes (M2)."""
+    cases = []
+    for dt in REAL_DTYPES + ["complex64", "complex128"]:
+        is_cx = dt.startswith("complex")
+        cases.append({"op": "ones", "shape": [2, 3], "dtype": dt,
+                      "expected": describe(np.ones((2, 3), dtype=dt), values=not is_cx)})
+        if not is_cx:
+            cases.append({"op": "eye", "args": [3, 4, -1], "dtype": dt,
+                          "expected": describe(np.eye(3, 4, k=-1, dtype=dt))})
+    for dt in REAL_DTYPES:
+        for fill in [0, 1, 7, 2.5, -1.9, -1, 300]:
+            if dt.startswith("uint") and isinstance(fill, float) and fill < 0:
+                # D-009/D-012 divergence: NumPy casts negative floats into
+                # unsigned types without checking (platform-dependent values);
+                # nativpy raises.
+                cases.append({"op": "full", "shape": [2, 2], "fill": fill, "dtype": dt,
+                              "error": "ValueError", "divergence": "D-009"})
+                continue
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    a = np.full((2, 2), fill, dtype=dt)
+            except OverflowError:
+                cases.append({"op": "full", "shape": [2, 2], "fill": fill, "dtype": dt,
+                              "error": "ValueError"})
+                continue
+            cases.append({"op": "full", "shape": [2, 2], "fill": fill, "dtype": dt,
+                          "expected": describe(a)})
+    for fill in [5, 2.5, True]:
+        cases.append({"op": "full", "shape": [3], "fill": fill,
+                      "expected": describe(np.full(3, fill))})
+    aranges = [[5], [2, 9], [10, 0, -3], [0, 1, 0.1], [0.5, 4], [-3, 3, 0.75], [5, 0],
+               [0, 10, 3], [1e-3, 1, 0.1], [0, -1, -0.2]]
+    for args in aranges:
+        cases.append({"op": "arange", "args": args, "expected": describe(np.arange(*args))})
+        for dt in ["int8", "int32", "float16", "float32", "float64"]:
+            a = np.arange(*args, dtype=dt)
+            cases.append({"op": "arange", "args": args, "dtype": dt, "expected": describe(a)})
+    cases.append({"op": "arange", "args": [0, 5, 0], "dtype": "float64", "error": "ValueError"})
+    cases.append({"op": "arange", "args": [0, 3, 1], "dtype": "bool", "error": "ValueError"})
+    cases.append({"op": "arange", "args": [0, 2, 1], "dtype": "bool",
+                  "expected": describe(np.arange(0, 2, 1, dtype=bool))})
+    lin = [([0, 1, 5], True), ([0, 1, 5], False), ([-1, 1, 5], True), ([2, 3, 1], True),
+           ([2, 3, 0], True), ([0, 10, 7], True), ([1, -1, 9], False), ([0, 1e-10, 3], True),
+           ([3, 3, 4], True)]
+    for args, endpoint in lin:
+        for dt in ["float64", "float32", "int32", "int64"]:
+            a = np.linspace(*args, endpoint=endpoint, dtype=dt)
+            cases.append({"op": "linspace", "args": args, "endpoint": endpoint, "dtype": dt,
+                          "expected": describe(a)})
+    cases.append({"op": "linspace", "args": [0, 1, -1], "endpoint": True, "dtype": "float64",
+                  "error": "ValueError"})
+    for args in [[1, 1, 0], [2, 5, 3], [4, 2, -1], [3, 3, 5], [0, 3, 0], [3, 0, 0]]:
+        cases.append({"op": "eye", "args": args, "dtype": "float64",
+                      "expected": describe(np.eye(args[0], args[1], k=args[2]))})
+    return cases
+
+
+def _apply_shape_op(src: np.ndarray, op: str, arg):
+    if op == "transpose":
+        return src.transpose(arg) if arg else src.transpose()
+    if op == "squeeze":
+        return np.squeeze(src, axis=None if arg is None else tuple(arg))
+    if op == "expand_dims":
+        return np.expand_dims(src, tuple(arg))
+    if op == "swapaxes":
+        return np.swapaxes(src, *arg)
+    if op == "moveaxis":
+        return np.moveaxis(src, *arg)
+    return src.ravel() if op == "ravel" else src.flatten()
+
+
+def shape_op_cases() -> list[dict]:
+    """transpose/squeeze/expand_dims/swapaxes/moveaxis/ravel/flatten (M3).
+
+    Each spec runs on a C-contiguous arange and on its transpose (`t`).
+    """
+    specs = [
+        ([2, 3, 4], "transpose", []), ([2, 3, 4], "transpose", [1, 0, 2]),
+        ([2, 3, 4], "transpose", [-1, 0, 1]), ([6], "transpose", []), ([], "transpose", []),
+        ([2, 3, 4], "transpose", [0, 0, 1]), ([2, 3], "transpose", [0]),
+        ([2, 3], "transpose", [0, 2]),
+        ([1, 3, 1], "squeeze", None), ([1, 3, 1], "squeeze", [0]),
+        ([1, 3, 1], "squeeze", [-1, 0]), ([1, 3, 1], "squeeze", [1]), ([1], "squeeze", None),
+        ([2, 3], "squeeze", None), ([1, 3, 1], "squeeze", [5]),
+        ([2, 3], "expand_dims", [0]), ([2, 3], "expand_dims", [-1]),
+        ([2, 3], "expand_dims", [1]), ([2, 3], "expand_dims", [0, 3]),
+        ([2, 3], "expand_dims", [0, 0]), ([2, 3], "expand_dims", [4]), ([], "expand_dims", [0]),
+        ([2, 3, 4], "swapaxes", [0, 2]), ([2, 3, 4], "swapaxes", [-1, 1]),
+        ([2, 3, 4], "swapaxes", [0, 3]),
+        ([2, 3, 4], "moveaxis", [[0], [-1]]), ([2, 3, 4], "moveaxis", [[0, 1], [-1, -2]]),
+        ([2, 3, 4], "moveaxis", [[2], [0]]), ([2, 3, 4], "moveaxis", [[0, 0], [1, 2]]),
+        ([2, 3, 4], "ravel", None), ([2, 3, 4], "flatten", None), ([1, 4], "ravel", None),
+    ]
+    cases = []
+    for shape, op, arg in specs:
+        a = np.arange(int(np.prod(shape)), dtype=np.int64).reshape(shape)
+        for transposed in [False, True]:
+            base = {"op": op, "shape": shape, "t": transposed, "arg": arg}
+            try:
+                r = _apply_shape_op(a.T if transposed else a, op, arg)
+            except np.exceptions.AxisError:
+                cases.append({**base, "error": "IndexError"})
+                continue
+            except ValueError:
+                cases.append({**base, "error": "ValueError"})
+                continue
+            cases.append({**base, "expected": describe(r),
+                          "shares": bool(np.may_share_memory(r, a))})
+    return cases
+
+
 def promotion_cases() -> list[dict]:
     all_dt = REAL_DTYPES + ["complex64", "complex128"]
     return [{"op": "promote", "a": a, "b": b, "expected": str(np.promote_types(a, b))}
@@ -209,6 +322,8 @@ def main() -> None:
         "views": view_cases(),
         "reshape": reshape_cases(),
         "strided_reshape": strided_reshape_cases(),
+        "ranges": range_cases(),
+        "shape_ops": shape_op_cases(),
         "promotion": promotion_cases(),
     }
     for name, cases in groups.items():
