@@ -14,6 +14,10 @@ differential tests (`pnpm test:diff`).
 | strided views | `asStrided`; shape, strides, flags, values, `copy()` strides |
 | `mayShareMemory` | NumPy `may_share_memory` bounds semantics |
 | `promoteTypes` | full 14×14 table incl. complex |
+| `ones` / `full` / `eye` | all real dtypes (`ones` shape/strides also verified for complex); `full` dtype inference |
+| `arange` | int/float args, negative steps, empty ranges; int8/int32/float16/float32/float64 targets; bool ≤ 2 elements |
+| `linspace` | `endpoint`, `num` 0/1, integer targets (floor, NumPy ≥ 2) |
+| `transpose` / `squeeze` / `expandDims` / `swapAxes` / `moveAxis` / `ravel` / `flatten` | shape, strides, flags, values, view-vs-copy, error class; on contiguous and transposed inputs |
 
 ## Documented divergences
 | Behaviour | NumPy | nativpy | Decision |
@@ -26,7 +30,9 @@ differential tests (`pnpm test:diff`).
 | float→int cast out of range / NaN | platform-dependent | platform-dependent (not tested) | D-009 |
 | int64/uint64 `toArray()` | exact Python ints | JS numbers, exact only to 2^53; use `toTypedArray()` | D-005 |
 | float16 `toTypedArray()` | — | raw bits as `Uint16Array` | D-005 |
+| `full(shape, -1.5, {dtype: uint*})` | unchecked cast | `ValueError` | D-009/D-012 |
+| invalid axis | `AxisError` | `IndexError` (repeated axis: `ValueError`) | D-012 |
 
 ## Not implemented
 - Complex element read/write (`toArray`, `item`, `array([...], complex)`): `NotImplementedError` (D-008).
-- Everything from PLAN M2 onward not listed above (see ROADMAP.md).
+- Everything from PLAN M4 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.

@@ -6,12 +6,12 @@ Milestones follow `docs/plan/PLAN.md` §86. Status: ✅ done · 🟡 partial · 
 |---|-----------|--------|-------|
 | 0 | Project infrastructure | 🟡 | CMake, cmake-js addon, TS (strict, ESM), vitest, C++ test harness, ASan/UBSan, NumPy harness, CI workflow. No prebuilt binaries yet. |
 | 1 | NDArray | ✅ | MemoryBuffer (aligned, refcounted), DType (14 dtypes), shape, byte strides, offset, ownership, bounds-checked views, NumPy nocopy reshape. |
-| 2 | Creation | 🟡 | `array`, `empty`, `zeros`, `fromTypedArray` done. `asarray`, `ones`, `full`, `arange`, `linspace`, `eye` not started. |
-| 3 | Shape | 🟡 | `reshape` (view when possible, D-011). transpose/squeeze/expand_dims/concatenate/stack not started. |
-| 4–14 | Arithmetic → release | ⬜ | Blocked on M2/M3, per PLAN §92 ("only after this works reliably"). |
+| 2 | Creation | ✅ | PLAN M2 list complete: `array`, `asarray`, `zeros`, `ones`, `empty`, `full`, `arange`, `linspace`, `eye` (+ `identity`, `*Like`, `fromTypedArray`). D-012. |
+| 3 | Shape | ✅ | PLAN M3 list complete: `reshape`, `transpose`/`.T`, `squeeze`, `expandDims`, `ravel`, `flatten` (+ `swapAxes`, `moveAxis`). All views except `flatten` / non-viewable `ravel`. `concatenate`/`stack` are not in PLAN M3; they are not started. |
+| 4–14 | Arithmetic → release | ⬜ | M4 is next. |
 
 ## Next steps
-1. Finish M2 creation functions (`ones`, `full`, `arange`, `linspace`, `eye`, `asarray`), each with differential cases.
+1. M4 arithmetic (`add … log`) on a shared contiguous/strided iterator, followed by M5 broadcasting.
 2. Add basic slicing (`a.get(...)`) so views can be made without `asStrided`.
-3. M3 shape functions.
-4. Complex element conversion (currently `NotImplementedError`, D-008).
+3. Complex element conversion (currently `NotImplementedError`, D-008).
+4. Buffer pool for `copy`-heavy workloads (deferred, D-013). It needs its own decision entry.
