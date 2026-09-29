@@ -42,5 +42,23 @@ Profiling done for these changes (scratch C++ micro-benchmarks, D-013):
 Earlier versions of this file blamed `copy`'s cost on a missing `memcpy`
 path and gave the wrong reason for slow `zeros`; both are corrected above.
 
+## Ufuncs (M4/M5) (n = 1,000,000, float64, median ms, same run)
+
+| Operation | nativpy | NumPy | nativpy / NumPy |
+|-----------|--------:|------:|------:|
+| `add(a, b)` | 0.792 | 0.280 | 2.8× slower |
+| `multiply(a, 2.5)` | 0.685 | 0.175 | 3.9× slower |
+| `add(ones(1000,1000), arange(1000))` broadcast | 0.674 | 0.398 | 1.7× slower |
+| `add(a.T, a.T)` → C-order (NumPy + `ascontiguousarray`) | 1.033 | 0.699 | 1.5× slower |
+| `sqrt(a)` | 0.740 | 0.303 | 2.4× slower |
+| `exp(a)` | 2.072 | 1.883 | 1.1× slower |
+
+These have not been profiled. `add` and `multiply` land close to `copy`
+(0.62 ms), which suggests, but does not prove, that allocating and
+page-faulting the destination dominates rather than the loop itself (the
+same open question as `copy`, D-013). The loops are plain scalar C++ with no
+explicit SIMD. `exp` is compute-bound and close to parity. Profile before
+optimizing.
+
 Treat these as the baseline for the M4 kernel work (PLAN §65). Re-run and
 update this file after each optimization, and profile before claiming causes.

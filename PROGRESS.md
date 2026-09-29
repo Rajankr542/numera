@@ -1,5 +1,26 @@
 # PROGRESS
 
+## 2026-09-29 — M4 arithmetic ufuncs, M5 broadcasting
+
+Done:
+- C++ `native/core/broadcast.{hpp,cpp}`: `broadcast_shapes`, `broadcast_to`
+  (zero-stride view), `BroadcastPlan` with dim coalescing and an inner-loop
+  runner. `native/core/ufunc.{hpp,cpp}` + `ufunc_kernels.hpp`: 7 binary and 5
+  unary ops, NumPy loop-dtype resolution, and contiguous/scalar fast paths.
+  Float `mod`/`floorDivide` port `npy_divmod`. Semantics are in D-014.
+- TS `ufunc.ts`: the ops, NEP 50 number scalars, nested-list operands,
+  `broadcastShapes`, `broadcastTo`.
+- Tests: `tests/native/test_ufunc.cpp`, `packages/nativpy/test/ufunc.test.ts`,
+  and a differential `ufuncs` group (231 cases).
+- Benchmarks: ufunc cases were added to `pnpm bench` / `pnpm bench:numpy`.
+  Numbers are in PERFORMANCE.md, not profiled yet. `add` is 2.8× slower than
+  NumPy at 1M elements.
+- Verification (macOS arm64, Node 22.7, NumPy 2.5.3):
+  - `pnpm build` and `pnpm typecheck` are clean.
+  - `pnpm test:native` passes, and `pnpm test:asan` passes (ASan+UBSan clean).
+  - `pnpm test`: 47 tests pass.
+  - `pnpm test:diff`: 1115 cases pass.
+
 ## 2026-09-29 — M2 creation, M3 shape, first measured optimizations
 
 Done:
