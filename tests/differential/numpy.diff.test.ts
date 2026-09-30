@@ -817,3 +817,76 @@ describe("differential: random (M9, D-019) — bit-exact streams", () => {
   }
 });
 
+
+describe("differential: fft (M10, D-020)", () => {
+  const { numpy_version, cases } = load("fft");
+  type FIn = { data: Encoded[]; dtype: string; shape: number[] };
+  type FCase = Case & { input: FIn; expected?: { dtype: string; shape: number[]; values: Encoded[] } };
+  const F = np.fft;
+  const num = (v: Encoded): number => decodeInput(v) as number;
+
+  /** Rebuilds the input; complex data arrives as interleaved re/im. */
+  const build = (i: FIn): NDArray => {
+    const vals = i.data.map(num);
+    if (i.dtype.startsWith("complex")) {
+      const src = i.dtype === "complex64" ? Float32Array.from(vals) : Float64Array.from(vals);
+      return np.fromTypedArray(src, i.shape, { dtype: i.dtype });
+    }
+    return np.array(vals, { dtype: i.dtype }).reshape(i.shape);
+  };
+  const call = (c: FCase, x: NDArray): NDArray => {
+    const kw = c.kw ?? {};
+    const n = kw.n as number | null | undefined;
+    const axis = (kw.axis as number | undefined) ?? -1;
+    const norm = kw.norm as never;
+    const s = kw.s as number[] | null | undefined;
+    switch (c.fn) {
+      case "fft": return F.fft(x, n, axis, norm);
+      case "ifft": return F.ifft(x, n, axis, norm);
+      case "rfft": return F.rfft(x, n, axis, norm);
+      case "irfft": return F.irfft(x, n, axis, norm);
+      case "fftn": return F.fftn(x, s, kw.axes as never, norm);
+      case "ifftn": return F.ifftn(x, s, kw.axes as never, norm);
+      // Options-object form, with axes defaulted when absent (NumPy [-2, -1]).
+      case "fft2": return "axes" in kw ? F.fft2(x, s, kw.axes as never, norm) : F.fft2(x, { s, norm });
+      case "ifft2": return "axes" in kw ? F.ifft2(x, s, kw.axes as never, norm) : F.ifft2(x, { s, norm });
+      case "fftfreq": return F.fftfreq(n!, kw.d as number);
+      case "rfftfreq": return F.rfftfreq(n!, kw.d as number);
+      default: throw new Error(`unknown fft fn ${c.fn}`);
+    }
+  };
+  const errorFor = (e: string): typeof np.ValueError => {
+    if (e === "IndexError") return np.IndexError; // AxisError, D-012
+    if (e === "TypeError") return np.DTypeError; // rfft of complex, D-020
+    return np.ValueError; // ValueError; ZeroDivisionError in fftfreq (D-020)
+  };
+  /** pocketfft is shared with NumPy, but summation order differs slightly on some paths. */
+  const tolFor = (dt: string): number =>
+    dt === "float16" ? 2e-3 : dt === "float32" || dt === "complex64" ? 2e-6 : 1e-12;
+
+  const run = (_l: string, c: FCase): void => {
+    const x = build(c.input);
+    if (c.error !== undefined) {
+      expect(() => call(c, x)).toThrow(errorFor(c.error));
+      return;
+    }
+    const r = call(c, x);
+    const exp = c.expected!;
+    expect(r.dtype.name).toBe(exp.dtype);
+    expect(r.shape).toEqual(exp.shape);
+    expect(r.flags.cContiguous).toBe(true);
+    const got = exp.dtype.startsWith("complex")
+      ? Array.from(r.toTypedArray() as Float64Array)
+      : (r.astype("float64").toArray() as NestedArray[]).flat(Infinity as 1) as number[];
+    const want = exp.values.map(num);
+    expect(got.length).toBe(want.length);
+    const scale = Math.max(1, ...want.map(Math.abs));
+    const tol = tolFor(exp.dtype) * scale;
+    want.forEach((w, k) => expect(Math.abs(got[k]! - w), `index ${k}`).toBeLessThanOrEqual(tol));
+  };
+  const label = (c: FCase): string =>
+    `${c.fn}(${c.input.dtype}${JSON.stringify(c.input.shape)}, ${JSON.stringify(c.kw)})`;
+  const table = (cases as FCase[]).map((c) => [label(c), c] as const);
+  it.each(table)(`numpy ${numpy_version}: %s`, run);
+});
+

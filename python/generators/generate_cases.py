@@ -842,6 +842,110 @@ def _rand_case(api: str, seed, calls: list) -> dict:
             "calls": [_rand_call(rng, m, a, k) for m, a, k in calls]}
 
 
+def _fft_run(fn):
+    with warnings.catch_warnings(), np.errstate(all="ignore"):
+        warnings.simplefilter("ignore")
+        try:
+            return fn(), None
+        except np.exceptions.AxisError:
+            return None, "IndexError"
+        except (ValueError, TypeError, IndexError, ZeroDivisionError) as e:
+            return None, type(e).__name__
+
+
+def _flat_interleaved(a: np.ndarray) -> list:
+    """Row-major flat values; complex arrays as interleaved re/im."""
+    a = np.ascontiguousarray(a)
+    if a.dtype.kind == "c":
+        return enc(a.view(a.real.dtype).ravel().astype(np.float64).tolist())
+    return enc(a.ravel().astype(np.float64).tolist())
+
+
+def _fft_input(dt, shape, seed):
+    if dt.startswith("complex"):
+        re = _mat("float64", shape, seed)
+        im = _mat("float64", shape, seed + 50)
+        return (re + 1j * im).astype(dt)
+    return _mat(dt, shape, seed)
+
+
+def _fft_case(fn, x, kw, call):
+    r, err = _fft_run(call)
+    base = {"op": "fft", "fn": fn, "kw": kw,
+            "input": {"data": _flat_interleaved(x), "dtype": str(x.dtype), "shape": list(x.shape)}}
+    if err:
+        return {**base, "error": err}
+    return {**base, "expected": {"dtype": str(r.dtype), "shape": list(r.shape),
+                                 "values": _flat_interleaved(r)}}
+
+
+def fft_cases() -> list[dict]:
+    cases = []
+    one_d = {"fft": np.fft.fft, "ifft": np.fft.ifft, "rfft": np.fft.rfft, "irfft": np.fft.irfft}
+    dtypes = ("float64", "float32", "float16", "int32", "uint8", "bool", "complex128", "complex64")
+    for fn, f in one_d.items():
+        # dtype x length sweep (odd, even, power of two, prime, length one)
+        for i, dt in enumerate(dtypes):
+            for shape in ((7,), (8,), (1,), (13,), (3, 6)):
+                x = _fft_input(dt, shape, 30 + i)
+                cases.append(_fft_case(fn, x, {}, lambda f=f, x=x: f(x)))
+        x = _fft_input("float64", (3, 5), 40)
+        c = _fft_input("complex128", (3, 5), 41)
+        src = c if fn in ("ifft", "irfft") else x
+        for n in (None, 1, 2, 4, 5, 9, 16, 0, -1):
+            for axis in (-1, 0, 1, 2, -3):
+                kw = {"n": n, "axis": axis}
+                cases.append(_fft_case(fn, src, kw, lambda f=f, s=src, n=n, a=axis: f(s, n=n, axis=a)))
+        for norm in ("backward", "ortho", "forward", "bogus"):
+            for n in (None, 6, 11):
+                kw = {"n": n, "norm": norm}
+                cases.append(_fft_case(fn, src, kw, lambda f=f, s=src, n=n, m=norm: f(s, n=n, norm=m)))
+        # float16 computes fct in half precision (NumPy real_dtype rule)
+        h16 = _fft_input("float16", (2, 7), 46)
+        for norm in ("backward", "ortho", "forward"):
+            for n in (None, 5, 11):
+                cases.append(_fft_case(fn, h16, {"n": n, "norm": norm},
+                                       lambda f=f, s=h16, n=n, m=norm: f(s, n=n, norm=m)))
+        # zero-length transform axis, zero-size other axis, 0-d
+        for shape, axis, n in (((0,), -1, None), ((0,), -1, 4), ((4, 0), 0, None),
+                               ((0, 3), 1, None), ((2, 1), -1, None)):
+            z = np.zeros(shape)
+            cases.append(_fft_case(fn, z, {"n": n, "axis": axis},
+                                   lambda f=f, z=z, n=n, a=axis: f(z, n=n, axis=a)))
+        s0 = np.array(2.0)
+        cases.append(_fft_case(fn, s0, {}, lambda f=f, s0=s0: f(s0)))
+    # rfft rejects complex input
+    cx = _fft_input("complex128", (4,), 42)
+    cases.append(_fft_case("rfft", cx, {}, lambda: np.fft.rfft(cx)))
+    nd = {"fftn": np.fft.fftn, "ifftn": np.fft.ifftn, "fft2": np.fft.fft2, "ifft2": np.fft.ifft2}
+    x3 = _fft_input("float64", (2, 3, 4), 43)
+    c3 = _fft_input("complex64", (3, 4, 5), 44)
+    i2 = _fft_input("int16", (4, 6), 45)
+    combos = [(None, None), ([3], None), ([2, 5], None), ([-1, 6], None), (None, [0]),
+              (None, [1, 0]), (None, [-1, -1]), ([4, 4], [0, 2]), ([2], [0, 1]), (None, []),
+              ([3, 3, 3, 3], None), (None, [5]), ([0], [0]), ([-2], [0])]
+    for fn, f in nd.items():
+        for src in (x3, c3, i2):
+            for s, axes in combos:
+                kw = {"s": s, "axes": axes}
+                if fn in ("fft2", "ifft2") and axes is None:
+                    kw = {"s": s}
+                    call = (lambda f=f, x=src, s=s: f(x, s=s))
+                else:
+                    call = (lambda f=f, x=src, s=s, a=axes: f(x, s=s, axes=a))
+                cases.append(_fft_case(fn, src, kw, call))
+            for norm in ("ortho", "forward"):
+                cases.append(_fft_case(fn, src, {"norm": norm},
+                                       lambda f=f, x=src, m=norm: f(x, norm=m)))
+    for n in (1, 2, 5, 8, 0, -1, -3):
+        for d in (1.0, 0.1, 2.5, 0.0):
+            dummy = np.zeros(0)
+            for fn, f in (("fftfreq", np.fft.fftfreq), ("rfftfreq", np.fft.rfftfreq)):
+                cases.append(_fft_case(fn, dummy, {"n": n, "d": d},
+                                       lambda f=f, n=n, d=d: f(n, d)))
+    return cases
+
+
 def random_cases() -> list[dict]:
     cases = []
     gen_calls = [
@@ -902,6 +1006,7 @@ def main() -> None:
         "linalg": linalg_product_cases() + linalg_decomp_cases() + linalg_svd_qr_cases()
         + linalg_norm_cases(),
         "random": random_cases(),
+        "fft": fft_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}
