@@ -12,6 +12,7 @@
 #include "error_binding.hpp"
 #include "indexing.hpp"
 #include "ndarray_binding.hpp"
+#include "reduce.hpp"
 #include "shape_ops.hpp"
 #include "ufunc.hpp"
 
@@ -197,6 +198,38 @@ void init_ops_binding(Napi::Env env, Napi::Object exports) {
               }));
   exports.Set("where", fn(env, "where", [](Info i, Napi::Env e) {
                 return NDArrayWrap::create(e, where(arr(i, 0), arr(i, 1), arr(i, 2)));
+              }));
+  // ---- reductions (M7, D-017) ----
+  // reduce(name, a, {axis?: number[] | null, keepdims, dtype?, initial?, ddof})
+  exports.Set("reduce", fn(env, "reduce", [](Info i, Napi::Env e) {
+                const std::string name = i[0].ToString().Utf8Value();
+                std::optional<ReduceOp> op;
+                if (name == "sum") op = ReduceOp::Sum;
+                else if (name == "prod") op = ReduceOp::Prod;
+                else if (name == "min") op = ReduceOp::Min;
+                else if (name == "max") op = ReduceOp::Max;
+                else if (name == "mean") op = ReduceOp::Mean;
+                else if (name == "var") op = ReduceOp::Var;
+                else if (name == "std") op = ReduceOp::Std;
+                if (!op) throw_error(ErrorKind::Value, "unknown reduction " + name);
+                const auto o = i[2].As<Napi::Object>();
+                ReduceOptions opts;
+                const Napi::Value axis = o.Get("axis");
+                if (!axis.IsUndefined() && !axis.IsNull()) opts.axis = arg_ints(axis, "axis");
+                opts.keepdims = o.Get("keepdims").ToBoolean().Value();
+                const Napi::Value dt = o.Get("dtype");
+                if (!dt.IsUndefined() && !dt.IsNull()) opts.dtype = parse_dtype(dt);
+                const Napi::Value init = o.Get("initial");
+                if (!init.IsUndefined() && !init.IsNull()) opts.initial = arg_double(init, "initial");
+                opts.ddof = opt_int(o, "ddof").value_or(0);
+                return NDArrayWrap::create(e, reduce(*op, arr(i, 1), opts));
+              }));
+  // argReduce(isMax, a, axis | null, keepdims)
+  exports.Set("argReduce", fn(env, "argReduce", [](Info i, Napi::Env e) {
+                std::optional<std::int64_t> axis;
+                if (!i[2].IsUndefined() && !i[2].IsNull()) axis = arg_int(i[2], "axis");
+                return NDArrayWrap::create(
+                    e, arg_reduce(i[0].ToBoolean().Value(), arr(i, 1), axis, i[3].ToBoolean().Value()));
               }));
 }
 

@@ -1,5 +1,27 @@
 # PROGRESS
 
+## 2026-09-29 — M7 reductions (D-017)
+
+Done:
+- C++ `native/core/reduce.{hpp,cpp}`:
+  - `reduce` covers sum/prod/min/max/mean/var/std; `arg_reduce` covers argmin/argmax.
+  - The input is transposed so reduced axes come last, then copied
+    contiguously in the work dtype, and each row is folded.
+  - var/std use two passes with `ddof`.
+  - NaN propagates; min/max order signed zeros like NumPy.
+- Bindings: `reduce` and `argReduce` in `ops_binding.cpp`.
+- TS: `packages/nativpy/src/reduce.ts` adds `np.sum/prod/min/max/amin/amax/mean/var/std/argmin/argmax`,
+  plus the matching NDArray methods.
+- Tests:
+  - `tests/native/test_reduce.cpp` (4 cases)
+  - `packages/nativpy/test/reduce.test.ts` (6 tests)
+  - differential group `reduce` (813 cases)
+- Divergences (COMPATIBILITY.md):
+  - Float sums are sequential, where NumPy sums pairwise, so float sum/prod/mean/var/std are compared with a tolerance.
+  - Results are always C-contiguous.
+- Verification: `pnpm build`, `pnpm typecheck`, `pnpm test:native` (45 cases),
+  `pnpm test:asan` pass; `pnpm test` 60 tests; `pnpm test:diff` 2058 cases.
+
 ## 2026-09-29 — Read-only views (D-016)
 
 Fixed a bug where `set` wrote through `broadcastTo` views into the source

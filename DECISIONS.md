@@ -244,3 +244,44 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - `flags.writeable` reports the real flag. Setting the flag from JS
   (`setflags`) is not supported yet.
 
+
+## D-017 — Reductions (M7) — Accepted — 2026-09-29
+- C++ `native/core/reduce.{hpp,cpp}` provides `sum`, `prod`, `mean`, `min`,
+  `max`, `var`, `std`, `argmin` and `argmax`.
+- Options:
+  - `axis`: none, an int, or a list.
+  - `keepdims`.
+  - `dtype`: sum/prod/mean/var/std only.
+  - `initial`: sum/prod/min/max only.
+  - `ddof`: var/std only.
+  - `argmin`/`argmax` take a single int axis or none.
+- Result dtypes follow NumPy 2.5.3:
+  - sum/prod: bool and signed ints give int64, unsigned ints give uint64,
+    floats keep their dtype.
+  - mean/var/std: bool and ints give float64, floats keep their dtype.
+    float16 accumulates in float32.
+  - min/max keep the input dtype. argmin/argmax give int64.
+- Results are always an `NDArray`, 0-d when every axis is reduced; use
+  `item()` for a JS scalar.
+- Floats are summed sequentially in the accumulator type. NumPy uses pairwise
+  summation, so float sum/prod/mean/var/std can differ by a few ULP. The
+  differential tests use a relative tolerance for those five only; integer
+  results and min/max/arg* must match exactly.
+- float16 sum/prod accumulate in float32 and round once at the end.
+- Signed zero: min returns -0.0 and max returns +0.0 regardless of order
+  (matches NumPy).
+- Results are always C-contiguous (like D-014); NumPy keeps the input memory
+  order for non-contiguous inputs. Values, dtype and shape match.
+- JS API: `np.sum/prod/min/max/amin/amax/mean/var/std/argmin/argmax` and the
+  matching NDArray methods, with an options object. `var` is a reserved word,
+  so the named ESM export is `variance` (`np.var` on the default export).
+- NaN propagates through min/max. argmin/argmax return the index of the
+  first NaN. Ties return the first index.
+- Errors:
+  - Empty min/max without `initial`, and empty argmin/argmax, raise
+    `ValueError`.
+  - An out-of-range axis raises `IndexError` (D-012); a repeated axis raises
+    `ValueError`.
+  - Empty mean/var return NaN, with no warning.
+  - Complex input raises `NotImplementedError` (D-008).
+

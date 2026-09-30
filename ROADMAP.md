@@ -11,10 +11,12 @@ Milestones follow `docs/plan/PLAN.md` §86. Status: ✅ done · 🟡 partial · 
 | 4 | Arithmetic | ✅ | PLAN M4 list complete: `add`, `subtract`, `multiply`, `divide`, `power`, `mod`, `abs`, `sqrt`, `exp`, `log` (+ `floorDivide`, `negative`). All 12 real dtypes, NEP 50 scalars. D-014. |
 | 5 | Broadcasting | ✅ | Rules (`broadcastShapes`), iterator (`BroadcastPlan`, dim coalescing), tests (C++, vitest, differential); `broadcastTo` views. |
 | 6 | Indexing | ✅ | `get`/`slice`/`set`: integer, slice (negative/reverse), ellipsis, newaxis, integer-array, boolean, mixed advanced indexing; `nonzero`, `take`, `where`. D-015. |
-| 7–14 | Reductions → release | ⬜ | M7 reductions is next. |
+| 7 | Reductions | ✅ | PLAN M7 list complete: `sum`, `mean`, `min`, `max`, `argmin`, `argmax`, `prod`, `std`, `var` with `axis` (int/list/none), `keepdims`, `dtype`, `initial`, `ddof`; NDArray methods. D-017. |
+| 8–14 | Linear algebra → release | ⬜ | M8 is next. |
 
 ## Next steps
-1. M7 reductions: `sum`, `mean`, `min`, `max`, `argmin`, `argmax`, `prod`, `std`, `var` with `axis`/`keepdims`.
+1. M8 per PLAN §86.
 2. Profile ufunc and `copy` costs (destination allocation vs. loop, PERFORMANCE.md) before optimizing.
 3. Complex element conversion (currently `NotImplementedError`, D-008), which unblocks complex ufuncs.
 4. Buffer pool for `copy`-heavy workloads (deferred, D-013). It needs its own decision entry.
+5. Pairwise float summation for reductions, if exact NumPy float sums are needed (D-017).

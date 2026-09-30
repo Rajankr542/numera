@@ -65,6 +65,15 @@ export interface ArrayFlags {
   readonly writeable: boolean;
 }
 
+/** Options accepted by the NDArray reduction methods (D-017). */
+export interface MethodReduceOptions {
+  axis?: number | readonly number[] | null;
+  keepdims?: boolean;
+  dtype?: DTypeLike | null;
+  initial?: number | null;
+  ddof?: number;
+}
+
 const internal = Symbol("nativpy.internal");
 
 /**
@@ -159,6 +168,53 @@ export class NDArray {
   astype(dt: DTypeLike): NDArray {
     const target = toDType(dt);
     return wrapNative(() => NDArray._wrap(this._native.astype(target.name)));
+  }
+
+  // ---- reductions (M7, D-017); see np.sum etc. in reduce.ts ----
+  private reduce(op: string, opts: MethodReduceOptions): NDArray {
+    const axis = opts.axis ?? null;
+    return wrapNative(() =>
+      NDArray._wrap(
+        addon.reduce(op, this._native, {
+          axis: axis === null ? null : typeof axis === "number" ? [axis] : [...axis],
+          keepdims: opts.keepdims ?? false,
+          dtype: opts.dtype == null ? null : toDType(opts.dtype).name,
+          initial: opts.initial ?? null,
+          ddof: opts.ddof ?? 0,
+        }),
+      ),
+    );
+  }
+  sum(opts: MethodReduceOptions = {}): NDArray {
+    return this.reduce("sum", opts);
+  }
+  prod(opts: MethodReduceOptions = {}): NDArray {
+    return this.reduce("prod", opts);
+  }
+  min(opts: Omit<MethodReduceOptions, "dtype" | "ddof"> = {}): NDArray {
+    return this.reduce("min", opts);
+  }
+  max(opts: Omit<MethodReduceOptions, "dtype" | "ddof"> = {}): NDArray {
+    return this.reduce("max", opts);
+  }
+  mean(opts: Omit<MethodReduceOptions, "initial" | "ddof"> = {}): NDArray {
+    return this.reduce("mean", opts);
+  }
+  var(opts: Omit<MethodReduceOptions, "initial"> = {}): NDArray {
+    return this.reduce("var", opts);
+  }
+  std(opts: Omit<MethodReduceOptions, "initial"> = {}): NDArray {
+    return this.reduce("std", opts);
+  }
+  argmin(opts: { axis?: number | null; keepdims?: boolean } = {}): NDArray {
+    return wrapNative(() =>
+      NDArray._wrap(addon.argReduce(false, this._native, opts.axis ?? null, opts.keepdims ?? false)),
+    );
+  }
+  argmax(opts: { axis?: number | null; keepdims?: boolean } = {}): NDArray {
+    return wrapNative(() =>
+      NDArray._wrap(addon.argReduce(true, this._native, opts.axis ?? null, opts.keepdims ?? false)),
+    );
   }
 
   /** Scalar at a full integer index (negative allowed). With no index, the array must have size 1. */

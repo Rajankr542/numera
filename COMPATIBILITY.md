@@ -23,6 +23,7 @@ differential tests (`pnpm test:diff`).
 | broadcasting | `broadcastShapes`, `broadcastTo`, broadcast results incl. 0-d and zero-size; NEP 50 number scalars |
 | indexing (`get`/`slice`/`set`) | integer, negative, slice (incl. reverse/clamped/empty), ellipsis, newaxis, integer-array, boolean mask, 0-d bool, mixed advanced; result dtype/shape/values, view-vs-copy, basic-view strides, error class; setitem on int32/float64/uint8/bool with broadcast, cast and repeated indices (D-015) |
 | `flags.writeable` | `broadcastTo` views read-only; views inherit (basic index, transpose, expandDims, squeeze, swapAxes, moveAxis, view reshape, asStrided); copies writeable; writing a read-only view raises `ValueError` "assignment destination is read-only" (D-016) |
+| reductions (`sum`/`prod`/`min`/`max`/`mean`/`var`/`std`/`argmin`/`argmax`) | 12 real dtypes × axis none/0/1/-1/tuple/keepdims on (2,3,4); transposed inputs; NaN, signed zero, ties, empty arrays, 0-d, `initial`, `ddof`, `dtype`, bad/repeated axis. Exact dtype/shape/strides; exact values except float sum/prod/mean/var/std (relative tolerance) (D-017) |
 
 ## Documented divergences
 | Behaviour | NumPy | nativpy | Decision |
@@ -50,9 +51,15 @@ differential tests (`pnpm test:diff`).
 | `where(c, x, y)` with JS number scalars | weak (NEP 50) | inferred int64/float64 arrays | D-015 |
 | `astype` on non-C-contiguous input | keeps layout (`order='K'`) | always C-contiguous (same values) | D-011 |
 | `setflags(write=...)` | supported | not implemented; flag is read-only from JS | D-016 |
+| float `sum`/`prod`/`mean`/`var`/`std` | pairwise summation | sequential summation (may differ by a few ULP) | D-017 |
+| reduction result layout for non-C inputs | keeps input order | always C-contiguous (same values) | D-017 |
+| full reduction result | NumPy scalar | 0-d `NDArray`; `item()` for a JS scalar | D-017 |
+| empty `mean`/`var`/`std` | NaN + RuntimeWarning | NaN, no warning | D-017 |
+| `var` export name | `np.var` | `np.var` on default export; named export `variance` | D-017 |
 
 ## Not implemented
+- Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; complex reductions (`NotImplementedError`); `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
 - Complex element read/write (`toArray`, `item`, `array([...], complex)`): `NotImplementedError` (D-008). Ufuncs on complex operands raise `NotImplementedError`.
 - Ufunc keywords `out=`, `where=`, `casting=`, `dtype=`, `order=`; `NDArray` operator methods.
 - `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.
-- Everything from PLAN M7 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+- Everything from PLAN M8 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.

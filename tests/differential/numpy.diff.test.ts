@@ -61,6 +61,8 @@ interface Case {
   chain?: string[];
   writeable?: boolean;
   set_error?: string | null;
+  fn?: string;
+  kw?: Record<string, unknown>;
 }
 
 function load(group: string): { numpy_version: string; cases: Case[] } {
@@ -449,6 +451,56 @@ describe("differential: writeable flag (D-016)", () => {
     } else {
       write();
       expect(a.item(...new Array<number>(a.ndim).fill(0))).toBe(99);
+    }
+  });
+});
+
+describe("differential: reductions (M7, D-017)", () => {
+  const { numpy_version, cases } = load("reduce");
+  type RFn = (a: NDArray, opts: Record<string, unknown>) => NDArray;
+  const fns = np as unknown as Record<string, RFn>;
+  // Float sum/prod/mean/var/std: NumPy uses pairwise summation, nativpy a
+  // sequential loop (D-017), so compare with a relative tolerance.
+  const rtolFor = (dt: string): number => (dt === "float16" ? 2e-3 : dt === "float32" ? 1e-5 : 1e-12);
+  const close = (got: unknown, exp: unknown, rtol: number): void => {
+    if (Array.isArray(exp)) {
+      expect(Array.isArray(got)).toBe(true);
+      (exp as unknown[]).forEach((e, i) => close((got as unknown[])[i], e, rtol));
+      return;
+    }
+    const g = got as number;
+    const e = exp as number;
+    if (Number.isNaN(e) || !Number.isFinite(e)) expect(g).toEqual(e);
+    else expect(Math.abs(g - e)).toBeLessThanOrEqual(rtol * Math.max(Math.abs(e), 1e-300) + 1e-300);
+  };
+
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    let a = np
+      .array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! })
+      .reshape(c.a_shape!);
+    if (c.t) a = a.T;
+    const make = (): NDArray => fns[c.fn!]!(a, c.kw ?? {});
+    if (c.error !== undefined) {
+      expect(make).toThrow(c.error === "IndexError" ? np.IndexError : np.ValueError);
+      return;
+    }
+    const r = make();
+    const exp = c.expected as Described;
+    if (c.t) {
+      // D-017 (like D-014): results are always C-contiguous; NumPy keeps the
+      // input's memory order for transposed inputs.
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      expect(r.flags.cContiguous).toBe(true);
+      if (c.approx) close(r.toArray(), decodeExpected(exp.values!), rtolFor(exp.dtype));
+      else expect(r.toArray()).toEqual(decodeExpected(exp.values!));
+    } else if (c.approx) {
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      expect(r.strides).toEqual(exp.strides);
+      close(r.toArray(), decodeExpected(exp.values!), rtolFor(exp.dtype));
+    } else {
+      checkArray(r, exp);
     }
   });
 });

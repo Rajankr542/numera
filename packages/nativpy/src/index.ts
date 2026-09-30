@@ -22,6 +22,7 @@ import {
 } from "./creation.js";
 import { NDArray } from "./ndarray.js";
 import { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
+import { argmax, argmin, max, mean, min, prod, std, sum, variance } from "./reduce.js";
 import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 import {
   abs,
@@ -101,6 +102,9 @@ export {
 export type { ArrayLike } from "./ufunc.js";
 export { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
 export type { IndexSpec, SliceTuple } from "./indexing.js";
+export { argmax, argmin, max, mean, min, prod, std, sum, variance } from "./reduce.js";
+export type { ArgReduceOptions, ReduceOptions, VarOptions } from "./reduce.js";
+export type { MethodReduceOptions } from "./ndarray.js";
 /** Development instrumentation: live native buffers / bytes (PLAN §33). */
 export function memoryStats(): { buffers: number; bytes: number } {
   return addon.memoryStats();
@@ -151,6 +155,17 @@ const np = {
   nonzero,
   take,
   where,
+  sum,
+  prod,
+  min,
+  max,
+  amin: min,
+  amax: max,
+  mean,
+  var: variance,
+  std,
+  argmin,
+  argmax,
   newaxis,
   ellipsis,
   fromTypedArray,

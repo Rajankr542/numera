@@ -549,6 +549,109 @@ def writeable_cases() -> list[dict]:
     return cases
 
 
+# ---- reductions (M7, D-017) ----
+REDUCE_FNS = {
+    "sum": np.sum, "prod": np.prod, "min": np.min, "max": np.max, "mean": np.mean,
+    "var": np.var, "std": np.std, "argmin": np.argmin, "argmax": np.argmax,
+}
+# Float results of these depend on summation order (NumPy is pairwise, nativpy
+# sequential; D-017) so they are compared with a relative tolerance.
+REDUCE_APPROX = {"sum", "prod", "mean", "var", "std"}
+
+
+def _reduce_values(dt: str, n: int) -> list:
+    if dt == "bool":
+        return [i % 3 == 0 for i in range(n)]
+    kind = np.dtype(dt).kind
+    if kind == "u":
+        return [(i * 7) % 11 for i in range(n)]
+    if kind == "i":
+        return [(i * 7) % 11 - 5 for i in range(n)]
+    return [((i * 7) % 11 - 5) * 0.5 for i in range(n)]
+
+
+def _run_reduce(fn, a, kw):
+    with warnings.catch_warnings(), np.errstate(all="ignore"):
+        warnings.simplefilter("ignore")
+        try:
+            return fn(a, **kw), None
+        except np.exceptions.AxisError:
+            return None, "IndexError"  # D-012
+        except ValueError as e:
+            return None, type(e).__name__
+
+
+def _reduce_case(name, data, dt, shape, kw, transpose=False) -> dict:
+    a = np.array(data, dtype=dt).reshape(shape)
+    if transpose:
+        a = a.T
+    call_kw = {**kw, "axis": tuple(kw["axis"])} if isinstance(kw.get("axis"), list) else kw
+    r, err = _run_reduce(REDUCE_FNS[name], a, call_kw)
+    base = {"op": "reduce", "fn": name, "a_data": enc(list(data)), "a_dtype": dt,
+            "a_shape": list(shape), "kw": kw, "t": transpose}
+    if err:
+        return {**base, "error": err}
+    r = np.asarray(r)
+    base["approx"] = name in REDUCE_APPROX and r.dtype.kind == "f"
+    return {**base, "expected": describe(r)}
+
+
+def reduce_cases() -> list[dict]:
+    cases = []
+    shape = (2, 3, 4)
+    axis_kws = [{}, {"axis": 0}, {"axis": 1}, {"axis": -1}, {"axis": [0, 2]},
+                {"axis": 1, "keepdims": True}, {"keepdims": True}]
+    for dt in REAL_DTYPES:
+        data = _reduce_values(dt, 24)
+        for name in REDUCE_FNS:
+            for kw in axis_kws:
+                if name.startswith("arg") and isinstance(kw.get("axis"), list):
+                    continue
+                cases.append(_reduce_case(name, data, dt, shape, kw))
+        # Non-contiguous (transposed) input.
+        for name in ("sum", "max", "argmin", "mean"):
+            cases.append(_reduce_case(name, data, dt, shape, {"axis": 1}, transpose=True))
+    f = float("nan")
+    specials = [
+        ("max", [1.0, f, 3.0], "float64", (3,), {}),
+        ("min", [1.0, f, 3.0], "float32", (3,), {}),
+        ("argmax", [1.0, 5.0, f, f], "float64", (4,), {}),
+        ("argmin", [2.0, f, 1.0, 0.5], "float64", (2, 2), {"axis": 0}),
+        ("sum", [1.0, f], "float64", (2,), {}),
+        ("min", [0.0, -0.0], "float64", (2,), {}),
+        ("max", [-0.0, 0.0], "float64", (2,), {}),
+        ("argmax", [3, 1, 3], "int64", (3,), {}),
+        ("max", [], "float64", (0,), {}),
+        ("max", [], "float64", (0,), {"initial": -1}),
+        ("max", [], "float64", (0, 3), {"axis": 1}),
+        ("max", [], "float64", (0, 3), {"axis": 0}),
+        ("sum", [], "int32", (0, 3), {"axis": 0}),
+        ("prod", [], "float64", (0,), {}),
+        ("mean", [], "float64", (0,), {}),
+        ("var", [], "float64", (3, 0), {"axis": 1}),
+        ("argmin", [], "float64", (0,), {}),
+        ("argmin", [], "float64", (0, 3), {"axis": 1}),
+        ("sum", [1, 2, 3], "int64", (3,), {"axis": 1}),
+        ("sum", [1, 2, 3, 4], "int64", (2, 2), {"axis": [0, -2]}),
+        ("argmax", [1, 2], "int64", (2,), {"axis": 2}),
+        ("sum", [5], "int64", (), {}),
+        ("argmax", [5], "int64", (), {}),
+        ("var", [1.0, 2.0, 4.0], "float64", (3,), {"ddof": 1}),
+        ("std", [1.0, 2.0, 4.0], "float64", (3,), {"ddof": 3}),
+        ("var", [1, 2, 4, 8], "int16", (2, 2), {"axis": 0, "ddof": 1}),
+        ("sum", [100, 100, 100], "int8", (3,), {"dtype": "int8"}),
+        ("sum", [1, 2], "int32", (2,), {"dtype": "float32"}),
+        ("prod", [10, 30], "int64", (2,), {"dtype": "uint8"}),
+        ("mean", [1, 2], "int32", (2,), {"dtype": "float32"}),
+        ("sum", [1, 2, 3], "int64", (3,), {"initial": 10}),
+        ("prod", [1, 2, 3], "float64", (3,), {"initial": 0.5}),
+        ("min", [4, 5], "uint8", (2,), {"initial": 2}),
+    ]
+    for name, data, dt, shp, kw in specials:
+        cases.append(_reduce_case(name, data, dt, shp, kw))
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -563,6 +666,7 @@ def main() -> None:
         "promotion": promotion_cases(),
         "indexing": index_cases(),
         "writeable": writeable_cases(),
+        "reduce": reduce_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

@@ -60,6 +60,19 @@ export interface NativeAddon {
   nonzero(a: NativeNDArray): NativeNDArray[];
   take(a: NativeNDArray, indices: NativeNDArray, axis: number | null): NativeNDArray;
   where(cond: NativeNDArray, x: NativeNDArray, y: NativeNDArray): NativeNDArray;
+  // M7 reductions (D-017)
+  reduce(
+    op: string,
+    a: NativeNDArray,
+    opts: {
+      axis: number[] | null;
+      keepdims: boolean;
+      dtype: string | null;
+      initial: number | null;
+      ddof: number;
+    },
+  ): NativeNDArray;
+  argReduce(isMax: boolean, a: NativeNDArray, axis: number | null, keepdims: boolean): NativeNDArray;
 }
 
 /**
