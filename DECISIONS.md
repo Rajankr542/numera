@@ -563,9 +563,16 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   Node ≥ 18. The cost is that D-023's GC-time buffer release is lost in
   published builds (finalizers run after the event loop turns). Source/dev builds keep D-023.
   Verified: the stable addon passes the unit (83) and differential (3677) suites.
-- Linux prebuilds are built in Docker `node:22-bookworm` (glibc 2.36, GCC 12)
-  with `-static-libstdc++ -static-libgcc` (`NATIVPY_STATIC_RUNTIME`), so they
-  do not depend on the host's libstdc++ version. musl (Alpine) and Windows are not provided yet.
+- Linux prebuilds are built in Docker `quay.io/pypa/manylinux_2_28_{x86_64,aarch64}`
+  (AlmaLinux 8, glibc 2.28, GCC 14) with `-static-libstdc++ -static-libgcc`
+  (`NATIVPY_STATIC_RUNTIME`). They need only libc/libm (max symbol `GLIBC_2.27`),
+  so they load on Ubuntu 20.04+, Debian 10+ and RHEL 8+. A first attempt on
+  `node:22-bookworm` needed glibc 2.36 (`arc4random`, `_dl_find_object`), which
+  would have excluded Ubuntu 22.04. Its GCC 12 also hit a libstdc++ `-Wrestrict`
+  false positive (GCC PR 105329), so CMake adds `-Wno-restrict` for GCC < 13 only.
+  vitest's esbuild crashes under QEMU, so the emulated arch (linux-x64 on Apple
+  Silicon) runs only the smoke test. The native arch runs the full vitest suite.
+  musl (Alpine) and Windows are not provided yet.
 - Release: `pnpm release [patch|minor|major]` (`scripts/release.mjs`) runs locally.
   It checks npm auth (`npm login --auth-type=web` opens the browser), bumps the
   version when the current one is already on npm, builds, tests and smoke-tests

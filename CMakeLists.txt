@@ -18,6 +18,13 @@ else()
   set(NATIVPY_WARNINGS -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
 endif()
 
+# D-026: GCC 12 (Debian 12 image used for Linux prebuilds, glibc 2.36) emits
+# -Wrestrict false positives inside libstdc++'s std::string operator+
+# (GCC PR 105329, fixed in 13). Only that warning, only on GCC < 13.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13)
+  add_compile_options(-Wno-restrict)
+endif()
+
 # D-025: match how the NumPy wheels are compiled on each platform. The Linux
 # wheels do not contract a*b+c, but GCC defaults to -ffp-contract=fast (FMA on
 # aarch64), which broke bit-exact arange/linspace/random vs NumPy on Linux arm64.

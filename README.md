@@ -6,9 +6,9 @@ nativpy is an n-dimensional array library for Node.js. It follows NumPy's API
 and behaviour. The numerical work runs in a C++20 core loaded as a Node-API
 addon, and TypeScript provides a typed, NumPy-style API on top of it.
 
-> **Status: early development (`0.0.x`).** The API is incomplete and may
-> change. See [COMPATIBILITY.md](./COMPATIBILITY.md) for what is verified
-> against NumPy, and [ROADMAP.md](./ROADMAP.md) for what is planned.
+> **Status: `1.0.0`, early but usable.** Not all of NumPy is implemented yet. See
+> [COMPATIBILITY.md](./COMPATIBILITY.md) for what is verified against NumPy,
+> and [ROADMAP.md](./ROADMAP.md) for what is planned.
 
 ## Installation
 
@@ -23,7 +23,7 @@ loads the matching binary and runs the numerical work in native code.
 | Platform | Architectures | Node.js |
 | --- | --- | --- |
 | macOS | arm64 (Apple Silicon), x64 (Intel) | ≥ 18 |
-| Linux (glibc) | x64, arm64 | ≥ 18 |
+| Linux (glibc ≥ 2.28: Ubuntu 20.04+, Debian 10+, RHEL 8+) | x64, arm64 | ≥ 18 |
 
 Windows and Alpine/musl Linux have no prebuilt binaries yet. On those, use a
 [source build](#development).
@@ -225,9 +225,9 @@ pnpm bench          # benchmarks
 ### Publishing a release (maintainers)
 
 ```bash
-pnpm release              # next patch version: 0.0.1 -> 0.0.2 (same as release:patch)
-pnpm release:minor        # 0.0.x -> 0.1.0
-pnpm release:major        # 0.x.y -> 1.0.0
+pnpm release              # next patch version: 1.0.0 -> 1.0.1 (same as release:patch)
+pnpm release:minor        # 1.0.x -> 1.1.0
+pnpm release:major        # 1.x.y -> 2.0.0
 pnpm release:dry          # run every step except the actual publish
 pnpm release --push       # also git push the release commit + tag
 ```
@@ -239,9 +239,11 @@ one. Then it builds and tests the code and builds the prebuilds (macOS
 locally, Linux in Docker). It packs the tarball and smoke-tests it in a clean
 folder, runs `npm publish` (npm may open the browser again for 2FA), and
 finally commits `chore(release)` and tags `vX.Y.Z`.
-Requirements: macOS with Xcode command line tools, plus Docker Desktop
-running for the Linux binaries. `--targets darwin-arm64,darwin-x64` limits
-the build to those platforms (the table above then overstates support).
+Requirements: macOS with Xcode, plus Docker Desktop installed for the Linux
+binaries. The prebuild step starts Docker Desktop if it is not running. If the
+default SDK cannot link, it falls back to the Xcode SDK. Linux binaries are built
+in `manylinux_2_28`. `--targets darwin-arm64,darwin-x64` limits the build to
+those platforms (the table above then overstates support).
 
 Contributor rules are in [AGENTS.md](./AGENTS.md). The design is described in
 [ARCHITECTURE.md](./ARCHITECTURE.md) and [DECISIONS.md](./DECISIONS.md).

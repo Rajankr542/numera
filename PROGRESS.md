@@ -7,8 +7,14 @@
 - Prebuilds use the stable Node-API (`NATIVPY_NAPI_EXPERIMENTAL=OFF`). The
   stable addon passes 83 unit + 3677 differential tests (macOS arm64).
 - `pnpm prebuilds` (`scripts/build-prebuilds.mjs`): darwin-arm64 and darwin-x64
-  built locally and verified with `file`. linux-x64/arm64 build in Docker with
-  `NATIVPY_STATIC_RUNTIME`. **Not yet run**: Docker was not running here.
+  built locally. linux-x64/arm64 are built in Docker `manylinux_2_28` with
+  `NATIVPY_STATIC_RUNTIME` and need only glibc ≥ 2.27. linux-arm64 (native) passes
+  81 vitest tests (2 skipped). linux-x64 (QEMU, where esbuild crashes) passes the smoke test.
+  The linux-arm64 prebuild also passed the smoke test on Debian 11/Node 18 and Debian 12/Node 20.
+  Fixed along the way: GCC 12 `-Wrestrict` false positive (`-Wno-restrict`
+  on GCC < 13), stale corepack keys (install pnpm via npm), and the build script
+  now auto-starts Docker Desktop and falls back to the Xcode SDK.
+- Package version set to 1.0.0.
 - `pnpm release` (`scripts/release.mjs`): npm web login → version bump →
   build/test → prebuilds → pack + smoke test → publish → commit + tag.
   Not run end-to-end here, because it needs the maintainer's npm login.
