@@ -1,5 +1,17 @@
 # PROGRESS
 
+## 2026-09-30 — npm name `@cyfora/numera` (D-028)
+
+Done:
+- npm rejected the unscoped `numera` as well ("too similar"). The npm package
+  is now **`@cyfora/numera`**, published under the `cyfora` npm org.
+  GitHub Packages stays `@rajankr542/numera`. The workflow now strips the npm
+  scope before adding the owner scope.
+- `pnpm release` checks up front, before the build, that the logged-in npm user
+  belongs to the `@cyfora` org. At the time of this change the `cyfora` scope did
+  **not exist on npm** (registry: "Scope not found"), so it must be created at
+  npmjs.com/org/create before the first publish.
+
 ## 2026-09-30 — GitHub Packages + manual GitHub Actions release (D-027)
 
 Done:

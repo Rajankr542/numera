@@ -13,7 +13,7 @@ addon, and TypeScript provides a typed, NumPy-style API on top of it.
 ## Installation
 
 ```bash
-npm install numera        # or: pnpm add numera / yarn add numera
+npm install @cyfora/numera   # or: pnpm add @cyfora/numera / yarn add @cyfora/numera
 ```
 
 It's also published to
@@ -30,7 +30,7 @@ there, add this to your project's `.npmrc`. GitHub Packages needs a token with
 and then run `npm install @rajankr542/numera`.
 
 That's all. The package ships a precompiled C++ addon for your platform, so you
-**don't** need a compiler, CMake or Python. When you `import "numera"`, it
+**don't** need a compiler, CMake or Python. When you `import "@cyfora/numera"`, it
 loads the matching binary and runs the numerical work in native code.
 
 | Platform | Architectures | Node.js |
@@ -44,7 +44,7 @@ Windows and Alpine/musl Linux have no prebuilt binaries yet. On those, use a
 ## Quick start
 
 ```ts
-import np from "numera";
+import np from "@cyfora/numera";
 
 const a = np.array([[1, 2, 3], [4, 5, 6]]);
 a.shape;          // [2, 3]
@@ -57,7 +57,7 @@ a.sum({ axis: 0 }).toArray();      // [5, 7, 9]
 np.mean(a, { axis: 1 }).toArray(); // [2, 5]
 ```
 
-Named imports also work, e.g. `import { array, zeros, linalg } from "numera";`.
+Named imports also work, e.g. `import { array, zeros, linalg } from "@cyfora/numera";`.
 
 ## Samples
 
@@ -262,9 +262,13 @@ that point. Run it in an interactive terminal. A code passed in advance
 (`-- --otp <code>` or `NPM_OTP`) usually expires during the ~10 minute build.
 Last, it commits `chore(release)` and tags `vX.Y.Z`. Push them with
 `git push --follow-tags`, or pass `--push`.
-If npm rejects the name as "too similar to an existing package", the script
-says so and suggests the scoped name `@<your-npm-user>/numera`, which is always
-accepted.
+If npm rejects an unscoped name as "too similar to an existing package", the
+script says so and suggests a scoped name. The package is published as
+`@cyfora/numera`, so your npm user must be a member of the
+[`cyfora` npm org](https://www.npmjs.com/org/cyfora). `pnpm release` checks
+this before it starts building and tells you how to fix it if not (create the
+org at <https://www.npmjs.com/org/create>, which is free for public packages, or
+ask an org owner to add you).
 
 Requirements: macOS with Xcode, plus Docker Desktop installed for the Linux
 binaries. The prebuild step starts Docker Desktop if it is not running. If the

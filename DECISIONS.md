@@ -616,3 +616,24 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   marked *latest* with the tarball attached and generated notes.
 - A version whose tag already exists is rejected, never overwritten.
 
+
+## D-028 — npm package name `@cyfora/numera` (M13) — Accepted — 2026-09-30
+- npm rejected the unscoped `numera` too (E403 "too similar to existing
+  package", as anticipated in D-027). The npm package is now **`@cyfora/numera`**.
+  npm does not apply its similarity check to scoped names. The scope is the `cyfora`
+  npm organization, which is chosen over the personal `@rajankr542` so the package
+  name is not tied to one account. Publishing requires that the org exists
+  and that the publishing user is a member with publish rights.
+  `publishConfig.access: "public"` keeps it free and public.
+- The import specifier becomes `@cyfora/numera`; the API is unchanged. The
+  directory stays `packages/numera`. The root workspace package (private) stays
+  `numera`.
+- `scripts/release.mjs` checks the scope before building. If the scope is not the
+  logged-in user, `npm org ls <scope> <user>` must succeed and show a
+  membership. Otherwise the release stops at once with instructions to create
+  the org or ask for an invite, instead of failing at `npm publish` after
+  the full build.
+- GitHub Packages still requires the repo-owner scope. The workflow strips any
+  existing scope before adding the owner's, so the name is `@rajankr542/numera`, not
+  `@rajankr542/@cyfora/numera`. This supersedes the npm name in D-027.
+

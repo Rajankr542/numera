@@ -1,6 +1,6 @@
 # Manually triggered release (DECISIONS D-027).
 # Actions → Release → Run workflow. Builds the 4 prebuilds, smoke-tests the
-# packed tarball, publishes numera to npmjs.org and/or @rajankr542/numera to
+# packed tarball, publishes @cyfora/numera to npmjs.org and/or @rajankr542/numera to
 # GitHub Packages, then commits the version, tags vX.Y.Z and creates a
 # GitHub Release (marked latest) with the tarball attached.
 name: Release
@@ -168,8 +168,9 @@ jobs:
       - name: Package names
         run: |
           echo "NPM_NAME=$(node -p "require('./packages/numera/package.json').name")" >> "$GITHUB_ENV"
-          # GitHub Packages only accepts names scoped to the repo owner (D-027).
-          echo "GPR_NAME=@$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/$(node -p "require('./packages/numera/package.json').name")" >> "$GITHUB_ENV"
+          # GitHub Packages only accepts names scoped to the repo owner (D-027):
+          # replace any npm scope (@cyfora/numera -> @<owner>/numera, D-028).
+          echo "GPR_NAME=@$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/$(node -p "require('./packages/numera/package.json').name.replace(/^@[^/]+\//, '')")" >> "$GITHUB_ENV"
       - name: Pack + smoke-test for npmjs.org
         if: env.REGISTRY != 'github'
         run: node scripts/ci-pack.mjs "$RUNNER_TEMP/pkg/npm"

@@ -71,6 +71,30 @@ if (!user) {
 }
 console.log(`Logged in to npm as: ${user}`);
 
+// 2b. Scoped name (D-028): publishing @scope/name needs the scope to be your
+// user or an npm org you belong to. Check now, not after the ~10 min build.
+const pkgName = JSON.parse(readFileSync(pkgJsonPath, "utf8")).name;
+const scope = pkgName.startsWith("@") ? pkgName.slice(1, pkgName.indexOf("/")) : null;
+if (scope && scope !== user) {
+  let membership = null;
+  let reason = "";
+  try {
+    membership = capture("npm", ["org", "ls", scope, user, "--json"]);
+  } catch (err) {
+    reason = String(err.stderr ?? err.message).split("\n").find((l) => /E\d{3}|not found|forbidden/i.test(l)) ?? "";
+  }
+  const role = membership ? JSON.parse(membership)[user] : undefined;
+  if (!role) {
+    throw new Error(
+      `Cannot publish ${pkgName}: npm user "${user}" is not a member of the "@${scope}" npm organization.` +
+        (reason ? `\n(${reason.trim()})` : "") +
+        `\nCreate the org (free for public packages) at https://www.npmjs.com/org/create with the name "${scope}",` +
+        `\nor ask an owner of @${scope} to add you (npm org set ${scope} ${user} developer), then re-run pnpm release.`,
+    );
+  }
+  console.log(`Member of @${scope} (role: ${role})`);
+}
+
 // 3. Version: publish the current version if it is not on npm yet, otherwise bump.
 step("Choosing version");
 const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
@@ -129,7 +153,7 @@ try {
       if (/too similar to existing package/i.test(stderr)) {
         console.error(
           `\nnpm rejected the name "${pkg.name}" as too similar to an existing package.` +
-            `\nUse the scoped name instead, which is always accepted: set "name" in` +
+            `\nUse a scoped name instead (npm skips this check for scopes): set "name" in` +
             `\n${pkgJsonPath} to "@${user}/${pkg.name.replace(/^@[^/]+\//, "")}" and re-run pnpm release.`,
         );
         throw err;
