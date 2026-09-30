@@ -423,3 +423,43 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - `rfftn`/`irfftn`/`hfft`/`ihfft`/`fftshift`/`out=` are follow-ups; they
   are not in PLAN §24/M10.
 
+
+## D-021 — Reduction kernels (M11) — Accepted — 2026-09-29
+- Motivation: PERFORMANCE.md "M11 baseline", finding 3. In the kernel alone,
+  `sum`/`max` over 1e6 float64 are 5–14× slower than NumPy.
+- No input copy when possible. If the reduced axes are already the
+  trailing axes, the input is C-contiguous and no cast is needed, the rows are
+  read in place. Only other layouts materialize the rearranged copy, as before.
+- Float `sum` (and `mean`, `var`/`std` accumulation) uses NumPy's pairwise
+  summation (`pairwise_sum` in `loops_utils.h.src`). Blocks of < 8 are
+  sequential; blocks of ≤ 128 use 8 interleaved partial sums combined as
+  `((r0+r1)+(r2+r3))+((r4+r5)+(r6+r7))`; larger blocks split at
+  `n/2` rounded down to a multiple of 8. Verified to match `np.sum` bit-for-bit
+  on contiguous float64 input (sizes 5 to 1e5). This replaces D-017's
+  sequential sum and improves accuracy. The differential tolerance for float
+  sums is unchanged; it is not tightened in this step.
+- Integer sums are exact and unchanged. `prod` stays sequential.
+- `min`/`max` use a branch-free multi-lane loop for float/int types that
+  keeps NaN propagation and the signed-zero rule (-0.0 < +0.0) from D-017.
+- The public API, result dtypes and error behavior are unchanged.
+- Amendments during implementation, each measured or verified against NumPy 2.5.3:
+  - **Leading-axis order.** NumPy sums pairwise only along the inner loop.
+    When reducing over leading axes (e.g. `axis=0` of a C-contiguous matrix)
+    it accumulates sequentially, row by row. Pairwise is therefore applied only
+    when the reduced axes are the trailing axes. Otherwise `sum`/`mean`/`var`/`std`
+    stay sequential, and the result is bit-exact in both cases.
+  - **Column sweep.** When all reduced axes are leading, `sum`/`prod`/`min`/`max`/
+    `mean`/`var`/`std` read the untransposed input as `n × rows` and stream each
+    line into per-output accumulators. This has the same per-output order as
+    before, without the transposed copy. `argmin`/`argmax` keep the old path.
+  - **min/max NaN detection.** A `bool` flag in the lane loop blocked
+    vectorization (428 µs vs 87 µs at 1e6 f64 in a probe). Lanes instead
+    accumulate `v - v`, which is NaN for NaN or ±inf input. A hit triggers an exact
+    rescan that returns the first NaN; ±inf-only input just costs one extra
+    pass. The signed-zero rule is applied by a rescan only when the result is 0.
+  - **Contraction.** The code is written so that `d*d` in the variance is rounded
+    separately, matching NumPy. This is verified bit-exact on AArch64 with the
+    default `-ffp-contract=on`.
+- Verification: 77 exact (not tolerance-based) differential cases in
+  `d021_cases()`. Pre-D-021 code fails 34 of them.
+
