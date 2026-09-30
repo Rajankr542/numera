@@ -1,8 +1,8 @@
-# nativpy
+# numera
 
 **NumPy semantics. Native performance. JavaScript/TypeScript API.**
 
-nativpy is an n-dimensional array library for Node.js. It follows NumPy's API
+numera is an n-dimensional array library for Node.js. It follows NumPy's API
 and behaviour. The numerical work runs in a C++20 core loaded as a Node-API
 addon, and TypeScript provides a typed, NumPy-style API on top of it.
 
@@ -150,7 +150,7 @@ np.random.seed(0);              // legacy RandomState API
 np.random.rand(2, 3);
 ```
 
-For the same seed, nativpy produces the same numbers as NumPy's
+For the same seed, numera produces the same numbers as NumPy's
 `default_rng(42)` (PCG64) and `np.random.seed` (MT19937). This is verified
 bit-for-bit by the differential tests.
 
@@ -203,7 +203,7 @@ Node-API, which frees memory sooner (D-023).
 
 ## Differences from NumPy
 
-nativpy aims to match NumPy, but some behaviour differs because of
+numera aims to match NumPy, but some behaviour differs because of
 JavaScript. For example, a full integer index returns a 0-d array (call
 `.item()` to get a number), and 64-bit integers are only exact up to 2^53 in
 `toArray()` (use `toTypedArray()` for full precision). Every difference is
@@ -217,7 +217,7 @@ single local runs and are not general claims.
 
 ## Development
 
-Only needed if you want to **work on nativpy itself**, or use it on a platform
+Only needed if you want to **work on numera itself**, or use it on a platform
 without a prebuild. Python is used here only to install `cmake` and `ninja`
 through pip, and to generate the NumPy reference cases for the differential
 tests. Users of the npm package never need it.
