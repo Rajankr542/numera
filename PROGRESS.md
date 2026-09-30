@@ -1,5 +1,28 @@
 # PROGRESS
 
+## 2026-09-29 — M8 linear algebra (D-018)
+
+Done:
+- C++ `native/linalg/` (a separate static library, `nativpy_linalg`; core does not depend on it):
+  - `backend.hpp`: the `Backend`/`Routines<T>` interface.
+  - `fallback_backend.cpp`: portable GEMM, LU, Householder QR, Jacobi eigh/SVD, and Hessenberg + shifted-QR eig.
+  - `accelerate_backend.cpp`: Accelerate BLAS/LAPACK (`ACCELERATE_NEW_LAPACK`), with workspace queries and 32-bit dimension checks.
+  - `linalg.{hpp,cpp}`: NDArray-level `matmul`/`dot`/`inner`/`outer`/`det`/`inv`/`solve`/`eig`/`eigh`/`svd`/`qr`/`lstsq`/`norm`. These handle batching, dtype rules and column-major conversion.
+- CMake: `NATIVPY_LINALG_BACKEND=auto|accelerate|fallback`; links `-framework Accelerate` on macOS.
+- Bindings: `native/bindings/linalg_binding.cpp` exposes `exports.linalg`, plus an internal `_setBackend` test hook.
+- TS: `src/linalg.ts` exports top-level `matmul`/`dot`/`inner`/`outer` and the `np.linalg` namespace (plus `eigvals`, `eigvalsh`, `backend()`, `LinAlgError`).
+- Tests:
+  - `tests/native/test_linalg.cpp` runs every case on both backends.
+  - `packages/nativpy/test/linalg.test.ts`.
+  - The new differential group `linalg` (408 cases) runs on both backends.
+- Verification (macOS arm64, NumPy 2.5.3):
+  - `pnpm build` passes.
+  - `pnpm test:native` and `pnpm test:asan` pass (50 cases, ASan+UBSan clean).
+  - A `-DNATIVPY_LINALG_BACKEND=fallback` build passes and links no LAPACK symbols.
+  - `pnpm test`: 66 tests pass.
+  - `pnpm test:diff`: 2875 pass, including 408 linalg cases × 2 backends.
+- Not done: no benchmarks yet, so no performance claims. Complex linalg is not implemented. Divergences are listed in COMPATIBILITY.md.
+
 ## 2026-09-29 — M7 reductions (D-017)
 
 Done:

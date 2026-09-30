@@ -24,6 +24,8 @@ differential tests (`pnpm test:diff`).
 | indexing (`get`/`slice`/`set`) | integer, negative, slice (incl. reverse/clamped/empty), ellipsis, newaxis, integer-array, boolean mask, 0-d bool, mixed advanced; result dtype/shape/values, view-vs-copy, basic-view strides, error class; setitem on int32/float64/uint8/bool with broadcast, cast and repeated indices (D-015) |
 | `flags.writeable` | `broadcastTo` views read-only; views inherit (basic index, transpose, expandDims, squeeze, swapAxes, moveAxis, view reshape, asStrided); copies writeable; writing a read-only view raises `ValueError` "assignment destination is read-only" (D-016) |
 | reductions (`sum`/`prod`/`min`/`max`/`mean`/`var`/`std`/`argmin`/`argmax`) | 12 real dtypes × axis none/0/1/-1/tuple/keepdims on (2,3,4); transposed inputs; NaN, signed zero, ties, empty arrays, 0-d, `initial`, `ddof`, `dtype`, bad/repeated axis. Exact dtype/shape/strides; exact values except float sum/prod/mean/var/std (relative tolerance) (D-017) |
+| `matmul`/`dot`/`inner`/`outer` | float64/float32/int32/int8/uint16/bool (plus mixed int/float, float16, int8 wraparound) × 1-D/2-D/batched/broadcast/empty/mismatched shapes. Exact values for integer and bool; relative tolerance for floats (D-018) |
+| `linalg.det`/`inv`/`solve`/`eig`/`eigh`/`svd`/`qr`/`lstsq`/`norm` | float64/float32/int/bool inputs, batched stacks, singular and empty matrices, rectangular and rank-deficient matrices, NaN input to `eig`, float16 and non-square errors; every `norm` ord and axis/keepdims. dtype and shape exact. Values checked by tolerance (det, inv, solve, eigenvalues, S, lstsq, norm). Vectors checked by reconstruction and orthogonality: A·V=V·Λ, U·S·Vh=A, Q·R=A with upper-triangular R. Run on **both** Accelerate and fallback backends (D-018) |
 
 ## Documented divergences
 | Behaviour | NumPy | nativpy | Decision |
@@ -56,10 +58,17 @@ differential tests (`pnpm test:diff`).
 | full reduction result | NumPy scalar | 0-d `NDArray`; `item()` for a JS scalar | D-017 |
 | empty `mean`/`var`/`std` | NaN + RuntimeWarning | NaN, no warning | D-017 |
 | `var` export name | `np.var` | `np.var` on default export; named export `variance` | D-017 |
+| matmul/dot/inner/solve core-dimension mismatch | `ValueError` | `ShapeError` (batch mismatch: `BroadcastError`) | D-018 |
+| linalg on float16 | `TypeError` | `DTypeError` | D-018 |
+| eigenvector / singular-vector signs and phases | LAPACK (OpenBLAS) | backend-dependent (Accelerate or fallback); same subspaces | D-018 |
+| decomposition result | named tuple | plain object (`{eigenvalues, eigenvectors}`, `{U, S, Vh}`, `{Q, R}`, `{x, residuals, rank, s}`) | D-018 |
+| `svd`/`qr` options | `full_matrices=`, `compute_uv=`, `mode=` | `{fullMatrices, computeUV}`, `qr(a, mode)` | D-018 |
+| float matmul / decompositions | OpenBLAS | Accelerate or fallback loops; may differ by rounding | D-018 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; complex reductions (`NotImplementedError`); `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
 - Complex element read/write (`toArray`, `item`, `array([...], complex)`): `NotImplementedError` (D-008). Ufuncs on complex operands raise `NotImplementedError`.
+- Linalg: complex inputs (`NotImplementedError`); `pinv`, `matrix_rank`, `matrix_power`, `cholesky`, `slogdet`, `cond`, `tensordot`, `einsum`, `vdot`, `kron`; batched `lstsq`; `out=` parameters; `eigh(UPLO='U')` (only the lower triangle is used). The `@` operator is not available in JS; use `np.matmul`.
 - Ufunc keywords `out=`, `where=`, `casting=`, `dtype=`, `order=`; `NDArray` operator methods.
 - `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.
 - Everything from PLAN M8 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
