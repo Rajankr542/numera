@@ -7,7 +7,9 @@
 #include "backend.hpp"
 #include "creation.hpp"
 #include "error.hpp"
+#include "indexing.hpp"
 #include "linalg.hpp"
+#include "shape_ops.hpp"
 #include "test_harness.hpp"
 
 using namespace nativpy;
@@ -80,6 +82,42 @@ TEST_CASE("linalg: matmul shapes, dtypes and values") {
     const NDArray e = matmul(NDArray::zeros({2, 0}, DType::Float64), NDArray::zeros({0, 3}, DType::Float64));
     CHECK(e.shape() == Shape({2, 3}));
     CHECK(near(e.get_double(5), 0.0));
+  });
+}
+
+TEST_CASE("linalg: matmul in-place operands and uninitialized output (D-022)") {
+  each_backend([] {
+    // Contiguous view with a nonzero offset: rows 1..2 of a 3x3 matrix.
+    const NDArray big = arange(0, 9, 1, DType::Float64).reshape({3, 3});
+    const NDArray rows = get_index(big, {IndexItem::slice(1, std::nullopt, std::nullopt)});
+    CHECK(rows.is_c_contiguous());
+    CHECK(rows.offset() != 0);
+    const NDArray id = eye(3, 3, 0, DType::Float64);
+    CHECK(all_near(matmul(rows, id), mat(2, 3, {3, 4, 5, 6, 7, 8})));
+    // Non-contiguous (transposed) operand still takes the copy path.
+    const NDArray t = transpose(big, {1, 0});
+    CHECK(all_near(matmul(t, id), transpose2(big)));
+    // Broadcast batch operand: (2,2,3) @ (3,2) with b shared across the batch.
+    const NDArray b = mat(3, 2, {1, 0, 0, 1, 1, 1});
+    const NDArray bat = arange(0, 12, 1, DType::Float64).reshape({2, 2, 3});
+    const NDArray r = matmul(bat, b);
+    CHECK(all_near(r, mat(4, 2, {2, 3, 8, 9, 14, 15, 20, 21}).reshape({2, 2, 2})));
+    // Output starts as `empty`: repeat on dirty heap memory, ints and floats.
+    for (int rep = 0; rep < 8; ++rep) {
+      { NDArray junk = NDArray::empty({64, 64}, DType::Float64); for (std::int64_t i = 0; i < junk.size(); ++i) junk.set_double(i, 1e300); }
+      const NDArray z = matmul(NDArray::zeros({64, 5}, DType::Float64), NDArray::zeros({5, 64}, DType::Float64));
+      bool zero = true;
+      for (std::int64_t i = 0; i < z.size(); ++i) zero = zero && z.get_double(i) == 0.0;
+      CHECK(zero);
+      const NDArray zi = matmul(NDArray::zeros({64, 5}, DType::Int32), NDArray::zeros({5, 64}, DType::Int32));
+      bool zeroi = true;
+      for (std::int64_t i = 0; i < zi.size(); ++i) zeroi = zeroi && zi.get_int64(i) == 0;
+      CHECK(zeroi);
+      const NDArray zk = matmul(NDArray::zeros({64, 0}, DType::Float32), NDArray::zeros({0, 64}, DType::Float32));
+      bool zerok = true;
+      for (std::int64_t i = 0; i < zk.size(); ++i) zerok = zerok && zk.get_double(i) == 0.0;
+      CHECK(zerok);
+    }
   });
 }
 

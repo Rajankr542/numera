@@ -181,3 +181,24 @@ for the first index. Same filter and method as step 1:
 Reduction geo-mean (29 cases) went from 0.950 to **1.131** (16 faster, 13 slower).
 The 18 new exact differential cases (ties, NaN, ±0, ±inf, axis=0/1) all pass.
 
+## M11 step 2: matmul wrapper copies (D-022)
+
+The baseline row `matmul f32 128²` (0.339 ms, "66× slower") **did not reproduce**.
+A matmul-only suite run before this change gave 0.014 ms (NumPy 0.005). The cause
+of the baseline outlier was not identified; the most likely candidate is interference
+from earlier cases in the full run (deferred buffer release, finding 2), but that
+is unverified. C++ probe at 128² f32: `cblas_sgemm` 5.6 µs, `linalg::matmul`
+9.3 µs before and 4.9 µs after. `NATIVPY_BENCH_FILTER=matmul` suite (median ms):
+
+| Case | before | after | NumPy |
+|---|---:|---:|---:|
+| f32 32² | 3.56e-3 | 2.40e-3 | 1.14e-3 |
+| f32 128² | 0.014 | 0.011 | 5.24e-3 |
+| f64 128² | 0.030 | 0.025 | 0.015 |
+| f32 512² | 0.290 | 0.200 | 0.124 |
+| f64 1024² | 4.993 | 4.187 | 3.405 |
+
+Matmul geo-mean (11 cases) went from 0.561 to 0.679. At 512² f32 JS takes 200 µs while the C++
+wrapper takes 107 µs; the rest is consistent with fresh-buffer page faults
+(finding 2), which is not yet fixed.
+

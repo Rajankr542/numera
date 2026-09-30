@@ -470,3 +470,16 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - Verification: 77 exact (not tolerance-based) differential cases in
   `d021_cases()`. Pre-D-021 code fails 34 of them.
 
+## D-022 — matmul wrapper copies (M11) — Accepted — 2026-09-29
+- Evidence: the baseline `matmul f32 128²` figure (0.339 ms, "66×") did not
+  reproduce. A matmul-only suite run gives 0.014 ms (NumPy 0.005). A C++ probe
+  measured `cblas_sgemm` at 5.6 µs and `linalg::matmul` at 9.3 µs. The gap is
+  wrapper work: both operands always went through `astype` (a full copy) and
+  the output was `zeros` although gemm overwrites every element.
+- Change: an operand that is already C-contiguous, of the loop dtype and not
+  broadcast is passed to gemm in place (the NDArray shares the buffer, which is
+  read-only here). The output is `empty`: Accelerate gemm (β=0), the fallback
+  gemm (fills first), the k=0 path (fills) and `loop_gemm` (assigns) all write
+  every element. `m*n == 0` returns before any kernel runs.
+- Results are unchanged: the same kernel sees the same data.
+

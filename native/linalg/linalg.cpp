@@ -140,9 +140,16 @@ NDArray matmul_2d(const NDArray& a, const NDArray& b) {
   }
   const Shape batch = broadcast_shapes({batch_of(as, 2), batch_of(bs, 2)});
   const DType dt = promote_types(a.dtype(), b.dtype());
-  const NDArray ac = broadcast_to(a, concat(batch, {m, k})).astype(dt);
-  const NDArray bc = broadcast_to(b, concat(batch, {k, n})).astype(dt);
-  NDArray out = NDArray::zeros(concat(batch, {m, n}), dt);
+  // D-022: use an operand in place when it already has the loop layout.
+  const auto operand = [&batch, dt](const NDArray& x, const Shape& core) {
+    const Shape full = concat(batch, core);
+    if (x.dtype() == dt && x.shape() == full && x.is_c_contiguous()) return x;
+    return broadcast_to(x, full).astype(dt);
+  };
+  const NDArray ac = operand(a, {m, k});
+  const NDArray bc = operand(b, {k, n});
+  // Every kernel below writes all m*n outputs (D-022), so no zero fill.
+  NDArray out = NDArray::empty(concat(batch, {m, n}), dt);
   const idx nb = shape_size(batch);
   if (m * n == 0) return out;
   dispatch_dtype(dt, [&](auto tag) {

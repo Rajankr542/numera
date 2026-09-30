@@ -1,5 +1,14 @@
 # PROGRESS
 
+## 2026-09-29 — M11 step 2: matmul wrapper copies (D-022)
+
+Done:
+- `matmul_2d` uses contiguous, same-dtype, non-broadcast operands in place, and the output is `empty` instead of `zeros`.
+- The baseline "matmul f32 128² 66× slower" figure did not reproduce (0.014 ms in isolation). This is recorded in PERFORMANCE.md.
+- New native test (D-022): an offset view, a transposed operand, a broadcast batch and dirty-heap `empty` output for float/int/k=0, run on both backends.
+- Verification: native tests 67 pass; ASan clean; `pnpm test` 81 pass; `pnpm test:diff` 3677 pass.
+- Matmul geo-mean went from 0.561 to 0.679. f32 128² went from 0.014 to 0.011 ms (NumPy 0.005).
+
 ## 2026-09-29 — M11 step 1: reduction kernels (D-021)
 
 Done:
