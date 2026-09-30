@@ -10,7 +10,7 @@ import np, {
   type IndexSpec,
   type NDArray,
   type NestedArray,
-} from "../../packages/nativpy/src/index.js";
+} from "../../packages/numera/src/index.js";
 
 const casesDir = join(dirname(fileURLToPath(import.meta.url)), "cases");
 

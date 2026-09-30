@@ -1,4 +1,4 @@
-// Build stable-ABI prebuilt addons into packages/nativpy/prebuilds/ (D-026).
+// Build stable-ABI prebuilt addons into packages/numera/prebuilds/ (D-026).
 // Usage: node scripts/build-prebuilds.mjs [--targets darwin-arm64,darwin-x64,linux-x64,linux-arm64]
 // macOS targets build locally (cross-arch via cmake-js --arch). Linux targets
 // build in Docker (manylinux_2_28, glibc 2.28) with a statically linked C++ runtime.
@@ -9,7 +9,7 @@ import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const outRoot = join(root, "packages/nativpy/prebuilds");
+const outRoot = join(root, "packages/numera/prebuilds");
 // Dev tools (cmake, ninja) come from the repo venv, if present (AGENTS.md setup).
 const venvBin = join(root, ".venv/bin");
 if (existsSync(venvBin)) process.env.PATH = `${venvBin}${delimiter}${process.env.PATH}`;
@@ -119,7 +119,7 @@ function buildLinux(arch) {
     "pnpm build:ts >/dev/null",
     `export NATIVPY_ADDON_PATH=/w/${out}/Release/nativpy.node`,
     ...(native ? ["npx vitest run"] : ["echo 'emulated container: skipping vitest, running smoke test only'"]),
-    "node scripts/smoke-test.mjs ./packages/nativpy/dist/index.js",
+    "node scripts/smoke-test.mjs ./packages/numera/dist/index.js",
     `echo \"max glibc: $(objdump -T ${out}/Release/nativpy.node | grep -oE 'GLIBC_[0-9.]+' | sort -uV | tail -1)\"`,
     `mkdir -p /src/${out}/Release && cp /w/${out}/Release/nativpy.node /src/${out}/Release/`,
   ].join(" && ");

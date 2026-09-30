@@ -1,7 +1,7 @@
 # Manually triggered release (DECISIONS D-027).
 # Actions → Release → Run workflow. Builds the 4 prebuilds, smoke-tests the
-# packed tarball, publishes @rajankr542/nativpy to GitHub Packages and/or
-# npmjs.org, then commits the version, tags vX.Y.Z and creates a
+# packed tarball, publishes numera to npmjs.org and/or @rajankr542/numera to
+# GitHub Packages, then commits the version, tags vX.Y.Z and creates a
 # GitHub Release (marked latest) with the tarball attached.
 name: Release
 
@@ -53,7 +53,7 @@ jobs:
         env:
           BUMP: ${{ inputs.bump }}
         run: |
-          current=$(node -p "require('./packages/nativpy/package.json').version")
+          current=$(node -p "require('./packages/numera/package.json').version")
           # shellcheck disable=SC2016 # single quotes hold a JS program
           version=$(node -e '
             const [a, b, c] = process.argv[1].split(".").map(Number);
@@ -87,7 +87,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: prebuild-${{ matrix.target }}
-          path: packages/nativpy/prebuilds
+          path: packages/numera/prebuilds
           if-no-files-found: error
 
   prebuild-macos:
@@ -113,15 +113,15 @@ jobs:
       - run: node scripts/build-prebuilds.mjs --targets darwin-arm64,darwin-x64
       - name: Test the arm64 prebuild (x64 is cross-compiled and not executed)
         env:
-          NATIVPY_ADDON_PATH: ${{ github.workspace }}/packages/nativpy/prebuilds/darwin-arm64/nativpy.node
+          NATIVPY_ADDON_PATH: ${{ github.workspace }}/packages/numera/prebuilds/darwin-arm64/nativpy.node
         run: |
           pnpm build:ts
           pnpm test
-          node scripts/smoke-test.mjs ./packages/nativpy/dist/index.js
+          node scripts/smoke-test.mjs ./packages/numera/dist/index.js
       - uses: actions/upload-artifact@v4
         with:
           name: prebuild-darwin
-          path: packages/nativpy/prebuilds
+          path: packages/numera/prebuilds
           if-no-files-found: error
 
 
@@ -149,24 +149,33 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: prebuild-*
-          path: packages/nativpy/prebuilds
+          path: packages/numera/prebuilds
           merge-multiple: true
       - name: Check all four prebuilds are present
         run: |
           for t in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
-            test -f "packages/nativpy/prebuilds/$t/nativpy.node" || { echo "::error::missing prebuild $t"; exit 1; }
+            test -f "packages/numera/prebuilds/$t/nativpy.node" || { echo "::error::missing prebuild $t"; exit 1; }
           done
-          file packages/nativpy/prebuilds/*/nativpy.node
+          file packages/numera/prebuilds/*/nativpy.node
       - run: pnpm install --frozen-lockfile
       - name: Build TypeScript and stage package files
         run: |
           pnpm build:ts
-          cp README.md LICENSE packages/nativpy/
+          cp README.md LICENSE packages/numera/
       - name: Set version
-        working-directory: packages/nativpy
+        working-directory: packages/numera
         run: npm version "$VERSION" --no-git-tag-version --allow-same-version
-      - name: Pack + smoke-test the tarball
-        run: node scripts/ci-pack.mjs "$RUNNER_TEMP/pkg"
+      - name: Package names
+        run: |
+          echo "NPM_NAME=$(node -p "require('./packages/numera/package.json').name")" >> "$GITHUB_ENV"
+          # GitHub Packages only accepts names scoped to the repo owner (D-027).
+          echo "GPR_NAME=@$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/$(node -p "require('./packages/numera/package.json').name")" >> "$GITHUB_ENV"
+      - name: Pack + smoke-test for npmjs.org
+        if: env.REGISTRY != 'github'
+        run: node scripts/ci-pack.mjs "$RUNNER_TEMP/pkg/npm"
+      - name: Pack + smoke-test for GitHub Packages
+        if: env.REGISTRY != 'npm'
+        run: node scripts/ci-pack.mjs "$RUNNER_TEMP/pkg/github" --name "$GPR_NAME"
 
       - name: Publish to GitHub Packages
         if: env.REGISTRY != 'npm' && env.DRY_RUN != 'true'
@@ -174,7 +183,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "//npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN" > "$RUNNER_TEMP/npmrc-gpr"
-          npm publish "$RUNNER_TEMP"/pkg/*.tgz \
+          npm publish "$RUNNER_TEMP"/pkg/github/*.tgz \
             --registry https://npm.pkg.github.com --userconfig "$RUNNER_TEMP/npmrc-gpr"
       - name: Publish to npmjs.org
         if: env.REGISTRY != 'github' && env.DRY_RUN != 'true'
@@ -183,7 +192,7 @@ jobs:
         run: |
           test -n "$NODE_AUTH_TOKEN" || { echo "::error::Add an NPM_TOKEN repository secret (npm granular access token with publish rights)"; exit 1; }
           echo "//registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN" > "$RUNNER_TEMP/npmrc-npm"
-          npm publish "$RUNNER_TEMP"/pkg/*.tgz --access public \
+          npm publish "$RUNNER_TEMP"/pkg/npm/*.tgz --access public \
             --registry https://registry.npmjs.org --userconfig "$RUNNER_TEMP/npmrc-npm"
 
       - name: Commit version, tag and push
@@ -191,21 +200,22 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add packages/nativpy/package.json
-          git diff --cached --quiet || git commit -m "chore(release): nativpy@$VERSION"
-          git tag -a "v$VERSION" -m "nativpy@$VERSION"
+          git add packages/numera/package.json
+          git diff --cached --quiet || git commit -m "chore(release): $NPM_NAME@$VERSION"
+          git tag -a "v$VERSION" -m "$NPM_NAME@$VERSION"
           git push origin HEAD:main "v$VERSION"
       - name: Write release notes
         run: |
-          name=$(node -p "require('./packages/nativpy/package.json').name")
-          scope=${name%%/*}
           # shellcheck disable=SC2016 # backticks are Markdown, not shell
           {
             echo "## Install"
-            if [ "$REGISTRY" != npm ]; then
-              printf '\nFrom GitHub Packages (add `%s:registry=https://npm.pkg.github.com` to `.npmrc`):\n' "$scope"
+            if [ "$REGISTRY" != github ]; then
+              printf '\nFrom npm:\n\n```bash\nnpm install %s@%s\n```\n' "$NPM_NAME" "$VERSION"
             fi
-            printf '\n```bash\nnpm install %s@%s\n```\n' "$name" "$VERSION"
+            if [ "$REGISTRY" != npm ]; then
+              printf '\nFrom GitHub Packages (add `%s:registry=https://npm.pkg.github.com` to `.npmrc`):\n' "${GPR_NAME%%/*}"
+              printf '\n```bash\nnpm install %s@%s\n```\n' "$GPR_NAME" "$VERSION"
+            fi
             printf '\nPrebuilt for macOS arm64/x64 (13.3+) and Linux x64/arm64 (glibc 2.28+), Node >= 18.\n'
           } > "$RUNNER_TEMP/notes.md"
           cat "$RUNNER_TEMP/notes.md"
@@ -214,8 +224,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v$VERSION" "$RUNNER_TEMP"/pkg/*.tgz \
-            --title "nativpy $VERSION" --notes-file "$RUNNER_TEMP/notes.md" \
+          gh release create "v$VERSION" "$RUNNER_TEMP"/pkg/*/*.tgz \
+            --title "$NPM_NAME $VERSION" --notes-file "$RUNNER_TEMP/notes.md" \
             --generate-notes --latest --verify-tag
       - name: Keep the tarballs of a dry run
         if: env.DRY_RUN == 'true'

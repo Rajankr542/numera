@@ -9,7 +9,7 @@ import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const pkgDir = join(root, "packages/nativpy");
+const pkgDir = join(root, "packages/numera");
 const pkgJsonPath = join(pkgDir, "package.json");
 // Dev tools (cmake, ninja) come from the repo venv, if present (AGENTS.md setup).
 const venvBin = join(root, ".venv/bin");
@@ -107,7 +107,7 @@ try {
   run("npm", ["install", "--no-audit", "--no-fund", join(tmp, packed[0].filename)], { cwd: tmp });
   const env = { ...process.env };
   delete env.NATIVPY_ADDON_PATH;
-  // Run from inside the temp project so the bare "nativpy" import resolves there.
+  // Run from inside the temp project so the bare package-name import resolves there.
   copyFileSync(join(root, "scripts/smoke-test.mjs"), join(tmp, "smoke-test.mjs"));
   run("node", ["smoke-test.mjs", pkg.name], { cwd: tmp, env });
   rmSync(tmp, { recursive: true, force: true });

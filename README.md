@@ -13,21 +13,24 @@ addon, and TypeScript provides a typed, NumPy-style API on top of it.
 ## Installation
 
 ```bash
-npm install @rajankr542/nativpy     # or: pnpm add / yarn add @rajankr542/nativpy
+npm install numera        # or: pnpm add numera / yarn add numera
 ```
 
-The package is published to
-[GitHub Packages](https://github.com/Rajankr542/nativpy/packages). To install
-from there, point the `@rajankr542` scope at it in your project's `.npmrc`.
-GitHub Packages needs a token with `read:packages` even for reads:
+It's also published to
+[GitHub Packages](https://github.com/Rajankr542/nativpy/packages) as
+`@rajankr542/numera` (GitHub requires the owner scope there). To install from
+there, add this to your project's `.npmrc`. GitHub Packages needs a token with
+`read:packages` even for reads:
 
 ```ini
 @rajankr542:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 ```
 
+and then run `npm install @rajankr542/numera`.
+
 That's all. The package ships a precompiled C++ addon for your platform, so you
-**don't** need a compiler, CMake or Python. When you `import "nativpy"`, it
+**don't** need a compiler, CMake or Python. When you `import "numera"`, it
 loads the matching binary and runs the numerical work in native code.
 
 | Platform | Architectures | Node.js |
@@ -41,7 +44,7 @@ Windows and Alpine/musl Linux have no prebuilt binaries yet. On those, use a
 ## Quick start
 
 ```ts
-import np from "@rajankr542/nativpy";
+import np from "numera";
 
 const a = np.array([[1, 2, 3], [4, 5, 6]]);
 a.shape;          // [2, 3]
@@ -54,7 +57,7 @@ a.sum({ axis: 0 }).toArray();      // [5, 7, 9]
 np.mean(a, { axis: 1 }).toArray(); // [2, 5]
 ```
 
-Named imports also work, e.g. `import { array, zeros, linalg } from "@rajankr542/nativpy";`.
+Named imports also work, e.g. `import { array, zeros, linalg } from "numera";`.
 
 ## Samples
 

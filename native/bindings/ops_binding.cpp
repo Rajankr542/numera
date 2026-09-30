@@ -63,7 +63,7 @@ std::optional<std::int64_t> opt_int(const Napi::Object& o, const char* key) {
   return arg_int(v, key);
 }
 
-// Decodes the JS index encoding produced by packages/nativpy/src/indexing.ts.
+// Decodes the JS index encoding produced by packages/numera/src/indexing.ts.
 std::vector<IndexItem> arg_index(const Napi::Value& v) {
   if (!v.IsArray()) throw_error(ErrorKind::Index, "index must be an array");
   const auto a = v.As<Napi::Array>();

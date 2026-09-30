@@ -3,7 +3,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import np from "../../packages/nativpy/dist/index.js";
+import np from "../../packages/numera/dist/index.js";
 
 const SIZES = [1_000, 100_000, 1_000_000];
 const REPEATS = 7;

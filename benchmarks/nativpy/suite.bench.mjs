@@ -7,7 +7,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import np from "../../packages/nativpy/dist/index.js";
+import np from "../../packages/numera/dist/index.js";
 
 const LARGE = process.env.NATIVPY_BENCH_LARGE === "1";
 const FILTER = process.env.NATIVPY_BENCH_FILTER ?? "";

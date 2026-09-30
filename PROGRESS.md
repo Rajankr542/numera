@@ -4,20 +4,23 @@
 
 Done:
 - `npm publish nativpy` was rejected by npm with E403: "Package name too similar
-  to existing package natives; try renaming your package to '@rajankr542/nativpy'".
-  GitHub Packages also requires the owner scope. The package is now
-  **`@rajankr542/nativpy`** (import name changes, API does not).
+  to existing package natives". The npm package is now **`numera`**. It is
+  published to GitHub Packages as **`@rajankr542/numera`**, because the owner
+  scope is required there. The import name changes; the API does not. `numera`
+  may still hit npm's similarity check (close to the popular `numeral`). The
+  fallback is `@rajankr542/numera` on npm too (D-027).
 - `.github/workflows/release.yml` (manual `workflow_dispatch`, `main` only):
-  prebuilds on native runners, pack + smoke test (`scripts/ci-pack.mjs`),
-  publish to GitHub Packages and/or npmjs.org, commit + tag `vX.Y.Z`, and a
-  GitHub Release marked latest with the tarball attached.
+  prebuilds on native runners, pack + smoke test (`scripts/ci-pack.mjs`, with
+  `--name` to pack under the scoped name for GitHub Packages), publish to
+  GitHub Packages and/or npmjs.org, commit + tag `vX.Y.Z`, and a GitHub Release
+  marked latest with the tarballs attached.
 - macOS prebuilds now pin `MACOSX_DEPLOYMENT_TARGET=13.3`. The earlier ones
   required the build host's macOS 26.5. 13.3 is the floor set by the
   `ACCELERATE_NEW_LAPACK` symbols.
 - Verified locally: actionlint clean; `ci-pack.mjs` packs all 4 prebuilds
-  (2.55 MB, 46 files) and the installed `@rajankr542/nativpy` passes the smoke
-  test; `npm publish --dry-run` targets `npm.pkg.github.com`; typecheck and 83
-  unit tests pass. The workflow itself has not run on GitHub yet.
+  for both `numera` and `@rajankr542/numera`, and each installed package passes
+  the smoke test; typecheck and 83 unit tests pass. The workflow itself has not
+  run on GitHub yet, and `numera` has not yet been accepted by npm.
 
 
 ## 2026-09-30 — npm packaging and local release command (D-026)

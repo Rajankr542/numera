@@ -579,13 +579,19 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   the tarball, publishes, then commits and tags `vX.Y.Z`.
 
 
-## D-027 — Package `@rajankr542/nativpy`; CI release to GitHub Packages + GitHub Release (M13) — Accepted — 2026-09-30
-- Package name: **`@rajankr542/nativpy`** on every registry. npm rejected the
-  unscoped `nativpy` (E403 "too similar to existing package natives"), and GitHub
-  Packages' npm registry accepts only packages scoped to the repository owner.
-  One name keeps the import path the same on both registries. The repo,
-  addon file (`nativpy.node`) and API names are unchanged. This supersedes the
-  `nativpy` name in D-026.
+## D-027 — Package `numera` (`@rajankr542/numera` on GitHub Packages); CI release to GitHub Packages + GitHub Release (M13) — Accepted — 2026-09-30
+- npm name: **`numera`**. npm rejected the unscoped `nativpy` (E403 "too
+  similar to existing package natives"). `numera` was unregistered at the time of
+  this decision, but it is close to the popular `numeral`, so npm's
+  similarity check may reject it too. In that case the fallback is to publish
+  `@rajankr542/numera` on npm as well, which always passes. The package directory
+  moved from `packages/nativpy` to `packages/numera`. The repo, addon file
+  (`nativpy.node`), `NATIVPY_*` env vars and API names are unchanged. This
+  supersedes the `nativpy` name in D-026.
+- GitHub Packages name: **`@rajankr542/numera`**. Its npm registry accepts only
+  names scoped to the repository owner. `scripts/ci-pack.mjs --name` packs the
+  scoped variant. It rewrites `name` only for the duration of `npm pack` and
+  always restores `package.json`, so the committed name stays `numera`.
 - A manually triggered workflow (`.github/workflows/release.yml`, `workflow_dispatch`)
   builds, publishes and marks releases. It runs only on `main`. Inputs: `bump`
   (`current|patch|minor|major`), `registry` (`github|npm|both`, default `github`)
