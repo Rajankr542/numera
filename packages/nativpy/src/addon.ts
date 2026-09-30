@@ -148,12 +148,17 @@ export type NativeIndexItem =
   | NativeNDArray
   | { start?: number | null; stop?: number | null; step?: number | null };
 
-// Resolution order (DECISIONS D-007): NATIVPY_ADDON_PATH, then the repo build.
+// Resolution order (DECISIONS D-007, D-026): NATIVPY_ADDON_PATH, then the
+// prebuild bundled in the npm package, then the repo build.
 function candidatePaths(): string[] {
   const here = dirname(fileURLToPath(import.meta.url));
   const paths: string[] = [];
   const env = process.env["NATIVPY_ADDON_PATH"];
   if (env) paths.push(resolve(env));
+  // dist/ -> package root -> prebuilds/<platform>-<arch>/
+  paths.push(
+    resolve(here, "../prebuilds", `${process.platform}-${process.arch}`, "nativpy.node"),
+  );
   // src/ or dist/ -> packages/nativpy -> repo root
   paths.push(resolve(here, "../../../build/Release/nativpy.node"));
   paths.push(resolve(here, "../../../build/Debug/nativpy.node"));
@@ -167,8 +172,9 @@ function loadAddon(): NativeAddon {
     if (existsSync(p)) return require(p) as NativeAddon;
   }
   throw new Error(
-    "nativpy: native addon not found. Build it with `pnpm build:native` " +
-      "(requires CMake, Ninja and a C++20 compiler). Tried:\n  " +
+    `nativpy: no prebuilt native addon for ${process.platform}-${process.arch}. ` +
+      "Supported prebuilds are listed in the README; otherwise build from source " +
+      "with `pnpm build:native` (requires CMake, Ninja and a C++20 compiler). Tried:\n  " +
       tried.join("\n  "),
   );
 }

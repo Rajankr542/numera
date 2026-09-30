@@ -12,20 +12,21 @@ addon, and TypeScript provides a typed, NumPy-style API on top of it.
 
 ## Installation
 
-> **Prebuilt binaries are not available yet** (roadmap milestone M13). Until
-> then, nativpy has to be built from source, which needs a C++20 compiler,
-> CMake and Ninja.
-
 ```bash
-git clone https://github.com/Rajankr542/nativpy.git
-cd nativpy
-python3 -m venv .venv && .venv/bin/pip install -r python/requirements.txt
-export PATH="$PWD/.venv/bin:$PATH"   # provides cmake, ninja, numpy
-pnpm install
-pnpm build                            # C++ addon + TypeScript
+npm install nativpy        # or: pnpm add nativpy / yarn add nativpy
 ```
 
-Requirements: Node.js ≥ 18, and macOS or Linux (the CI covers both).
+That's all. The package ships a precompiled C++ addon for your platform, so you
+**don't** need a compiler, CMake or Python. When you `import "nativpy"`, it
+loads the matching binary and runs the numerical work in native code.
+
+| Platform | Architectures | Node.js |
+| --- | --- | --- |
+| macOS | arm64 (Apple Silicon), x64 (Intel) | ≥ 18 |
+| Linux (glibc) | x64, arm64 | ≥ 18 |
+
+Windows and Alpine/musl Linux have no prebuilt binaries yet. On those, use a
+[source build](#development).
 
 ## Quick start
 
@@ -180,9 +181,12 @@ your code ──► TypeScript API (validation, NumPy-style ergonomics)
 
 Array data lives in native memory, and the JavaScript side holds handles to
 it. Calls such as `np.add` or `np.linalg.solve` run as loops in C++, not as
-per-element JavaScript. The addon file (`build/Release/nativpy.node`) is found
-automatically. To use one from somewhere else, set
-`NATIVPY_ADDON_PATH=/path/to/nativpy.node` (D-007).
+per-element JavaScript. The addon is found automatically, in this order:
+`NATIVPY_ADDON_PATH`, then the prebuild bundled in the package
+(`prebuilds/<platform>-<arch>/nativpy.node`), then a local source build in
+`build/Release/` (D-007, D-026). Published prebuilds use the stable Node-API,
+so one binary works on every Node ≥ 18. Source builds use experimental
+Node-API, which frees memory sooner (D-023).
 
 ## Differences from NumPy
 
@@ -200,7 +204,16 @@ single local runs and are not general claims.
 
 ## Development
 
+Only needed if you want to **work on nativpy itself**, or use it on a platform
+without a prebuild. Python is used here only to install `cmake` and `ninja`
+through pip, and to generate the NumPy reference cases for the differential
+tests. Users of the npm package never need it.
+
 ```bash
+git clone https://github.com/Rajankr542/nativpy.git && cd nativpy
+python3 -m venv .venv && .venv/bin/pip install -r python/requirements.txt
+export PATH="$PWD/.venv/bin:$PATH"   # cmake, ninja, numpy (dev only)
+pnpm install
 pnpm build          # native (cmake-js) + TypeScript
 pnpm test           # unit/integration tests (vitest)
 pnpm test:native    # C++ unit tests (CTest)
@@ -208,6 +221,26 @@ pnpm test:diff      # NumPy differential tests (requires numpy)
 pnpm test:asan      # C++ tests under ASan + UBSan
 pnpm bench          # benchmarks
 ```
+
+### Publishing a release (maintainers)
+
+```bash
+pnpm release              # next patch version: 0.0.1 -> 0.0.2
+pnpm release minor        # 0.1.0,  pnpm release major -> 1.0.0
+pnpm release:dry          # run every step except the actual publish
+pnpm release --push       # also git push the release commit + tag
+```
+
+`pnpm release` checks that the git tree is clean. If you are not logged in,
+it runs `npm login --auth-type=web`, which **opens the browser** to
+authenticate. If the current version is already on npm it bumps to the next
+one. Then it builds and tests the code and builds the prebuilds (macOS
+locally, Linux in Docker). It packs the tarball and smoke-tests it in a clean
+folder, runs `npm publish` (npm may open the browser again for 2FA), and
+finally commits `chore(release)` and tags `vX.Y.Z`.
+Requirements: macOS with Xcode command line tools, plus Docker Desktop
+running for the Linux binaries. `--targets darwin-arm64,darwin-x64` limits
+the build to those platforms (the table above then overstates support).
 
 Contributor rules are in [AGENTS.md](./AGENTS.md). The design is described in
 [ARCHITECTURE.md](./ARCHITECTURE.md) and [DECISIONS.md](./DECISIONS.md).

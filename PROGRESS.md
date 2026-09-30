@@ -1,5 +1,23 @@
 # PROGRESS
 
+## 2026-09-30 — npm packaging and local release command (D-026)
+- `packages/nativpy` ships `dist/` + `prebuilds/<platform>-<arch>/nativpy.node`.
+  The loader checks the bundled prebuild before the repo build. Keywords,
+  repository metadata, LICENSE and README are included in the package.
+- Prebuilds use the stable Node-API (`NATIVPY_NAPI_EXPERIMENTAL=OFF`). The
+  stable addon passes 83 unit + 3677 differential tests (macOS arm64).
+- `pnpm prebuilds` (`scripts/build-prebuilds.mjs`): darwin-arm64 and darwin-x64
+  built locally and verified with `file`. linux-x64/arm64 build in Docker with
+  `NATIVPY_STATIC_RUNTIME`. **Not yet run**: Docker was not running here.
+- `pnpm release` (`scripts/release.mjs`): npm web login → version bump →
+  build/test → prebuilds → pack + smoke test → publish → commit + tag.
+  Not run end-to-end here, because it needs the maintainer's npm login.
+- Verified: an `npm pack` tarball (1.15 MB) installed into a clean folder and
+  passed `scripts/smoke-test.mjs` on Node 18.20, 20.20, 22.7 and 24.21 (darwin-arm64).
+- Local toolchain note: on this machine a fresh CMake configure selects the
+  CommandLineTools MacOSX27.0 SDK, and the linker rejects it
+  ("unknown architecture arm64e.x1"). `SDKROOT=<Xcode MacOSX26.5.sdk>` works around it.
+
 ## 2026-09-29 — M11 step 4: per-call overhead (D-024, partial)
 
 Done:

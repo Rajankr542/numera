@@ -140,6 +140,11 @@ if(NATIVPY_BUILD_ADDON AND CMAKE_JS_VERSION)
   # Node/N-API headers are not -Wconversion clean; keep warnings on our code only.
   target_compile_options(nativpy_addon PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror>)
+  # D-026: Linux prebuilds must not depend on the host's libstdc++ version.
+  option(NATIVPY_STATIC_RUNTIME "Statically link libstdc++/libgcc into the addon (Linux prebuilds)" OFF)
+  if(NATIVPY_STATIC_RUNTIME AND NOT APPLE AND NOT MSVC)
+    target_link_options(nativpy_addon PRIVATE -static-libstdc++ -static-libgcc)
+  endif()
   target_link_libraries(nativpy_addon PRIVATE nativpy_fft nativpy_random nativpy_linalg nativpy_core ${CMAKE_JS_LIB})
   if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
     execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF}

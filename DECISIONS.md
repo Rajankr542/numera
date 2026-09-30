@@ -52,7 +52,7 @@ property; TS re-exports matching `instanceof`-able classes (`errors.ts`).
 Single public package `packages/nativpy` (PLAN §49), ESM output. CommonJS is
 deferred (PLAN §50 "where practical"). The addon loader resolves, in order:
 `NATIVPY_ADDON_PATH`, then the repo-local `build/Release/nativpy.node`.
-Prebuilt platform packages come in M13.
+Prebuilt platform packages come in M13 (superseded in part by D-026: bundled prebuilds).
 
 ## D-008 — Complex dtypes in M1 — Accepted — 2026-09-29
 complex64/complex128 exist in the dtype system (size, alignment, promotion
@@ -548,4 +548,26 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   on its SIMD path (x86 baseline differs from AVX2/NEON). Those cases (`zero_rule`)
   assert the D-017 rule (min -> -0.0, max -> +0.0), not the host NumPy's bits.
 - Verified: macOS arm64 (Clang), plus Docker ubuntu:24.04 arm64 and amd64 (emulated) with GCC 13.3.
+
+## D-026 — npm distribution: bundled stable-ABI prebuilds + local release command (M13) — Accepted — 2026-09-30
+- Goal: `npm install nativpy` works without a compiler, CMake, Ninja or Python.
+  Python/NumPy are development-only (differential tests; pip supplies cmake/ninja).
+- Layout: one package `nativpy` that ships `dist/` plus
+  `prebuilds/<process.platform>-<process.arch>/nativpy.node`. The loader (D-007)
+  now resolves: `NATIVPY_ADDON_PATH` → bundled prebuild → repo `build/{Release,Debug}`.
+  Per-platform `optionalDependencies` packages were considered. They make the
+  install smaller, but every release has to publish N packages in lockstep, which
+  is harder to do from one local command. We can revisit this if the package grows too large.
+- ABI: published prebuilds are built with `NATIVPY_NAPI_EXPERIMENTAL=OFF`
+  (stable `NAPI_VERSION=8`). One binary per platform then loads on every
+  Node ≥ 18. The cost is that D-023's GC-time buffer release is lost in
+  published builds (finalizers run after the event loop turns). Source/dev builds keep D-023.
+  Verified: the stable addon passes the unit (83) and differential (3677) suites.
+- Linux prebuilds are built in Docker `node:22-bookworm` (glibc 2.36, GCC 12)
+  with `-static-libstdc++ -static-libgcc` (`NATIVPY_STATIC_RUNTIME`), so they
+  do not depend on the host's libstdc++ version. musl (Alpine) and Windows are not provided yet.
+- Release: `pnpm release [patch|minor|major]` (`scripts/release.mjs`) runs locally.
+  It checks npm auth (`npm login --auth-type=web` opens the browser), bumps the
+  version when the current one is already on npm, builds, tests and smoke-tests
+  the tarball, publishes, then commits and tags `vX.Y.Z`.
 
