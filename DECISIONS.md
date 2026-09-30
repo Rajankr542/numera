@@ -368,3 +368,47 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - An unseeded `RandomState` is array-seeded with 624 words of OS entropy. The
   stream isn't reproducible, the same as in NumPy.
 
+## D-020 — FFT module (M10) — Accepted — 2026-09-29
+- Backend: vendored header-only pocketfft (C++ branch, BSD-3), pinned to
+  commit `33ae5dc9`, which is the one NumPy 2.x vendors. It lives in
+  `third_party/pocketfft/` with its LICENSE.
+  - Built with `POCKETFFT_NO_MULTITHREADING`, like NumPy (threading is M11).
+  - Code is in `native/fft/` as the `nativpy_fft` static lib, which depends
+    on core.
+  - The 1-D loops mirror NumPy's `_pocketfft_umath.cpp`: per-lane plan exec
+    with zero-pad or truncate to `n`, and FFTpack packing for rfft/irfft.
+    Results are therefore expected to match NumPy to within rounding.
+- API:
+  - `np.fft.fft/ifft/rfft/irfft(a, n?, axis=-1, norm?)`.
+  - `fft2/ifft2(a, s?, axes=[-2,-1], norm?)`.
+  - `fftn/ifftn(a, s?, axes?, norm?)`.
+  - `fftfreq(n, d=1)` and `rfftfreq(n, d=1)`.
+  - Parameters can be passed positionally or as a trailing options object
+    `{n|s, axis|axes, norm}`.
+  - Multi-axis transforms apply 1-D transforms from the last axis in `axes`
+    to the first, like NumPy's `_raw_fftnd`.
+- Dtypes (NumPy 2):
+  - float16/float32/complex64 compute in float32; everything else computes
+    in float64.
+  - `fft`/`ifft`/`rfft` return complex64 or complex128.
+  - `irfft` returns the real compute dtype (float16 input → float16, as
+    NumPy does).
+  - `rfft` on complex input raises `DTypeError` (NumPy: `TypeError`).
+- `norm`: `"backward"` (default, also null/undefined), `"ortho"`,
+  `"forward"`. The factor is computed in the real compute dtype. Any other
+  value raises `ValueError`.
+- Errors:
+  - `n < 1`, or a zero-length transform axis with default `n`, raises
+    `ValueError` "Invalid number of FFT data points (n) specified."
+  - An out-of-range axis raises `IndexError` (D-012).
+  - `s` and `axes` of different lengths raise `ValueError`.
+  - `s` without `axes` uses the last `len(s)` axes. NumPy deprecates this
+    and warns; we accept it without a warning.
+  - `s[i] = -1` means "use the input length".
+  - Repeated axes are allowed; the axis is transformed twice, as in NumPy.
+- Results are new C-contiguous arrays. Complex values are read through
+  `toTypedArray()` (interleaved re/im) until D-008 is lifted; complex
+  input is built with `fromTypedArray(..., {dtype: "complex128"})`.
+- `rfftn`/`irfftn`/`hfft`/`ihfft`/`fftshift`/`out=` are follow-ups; they
+  are not in PLAN §24/M10.
+
