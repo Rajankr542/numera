@@ -25,6 +25,7 @@ import { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
 import { argmax, argmin, max, mean, min, prod, std, sum, variance } from "./reduce.js";
 import { dot, inner, linalg, matmul, outer } from "./linalg.js";
 import { random } from "./random.js";
+import { fftModule } from "./fft.js";
 import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 import {
   abs,
@@ -119,6 +120,8 @@ export type {
 } from "./linalg.js";
 export { defaultRng, Generator, random, RandomState } from "./random.js";
 export type { Seed, Size } from "./random.js";
+export { fftModule as fft } from "./fft.js";
+export type { FftNOptions, FftNorm, FftOptions } from "./fft.js";
 export type { MethodReduceOptions } from "./ndarray.js";
 /** Development instrumentation: live native buffers / bytes (PLAN §33). */
 export function memoryStats(): { buffers: number; bytes: number } {
@@ -187,6 +190,7 @@ const np = {
   outer,
   linalg,
   random,
+  fft: fftModule,
   newaxis,
   ellipsis,
   fromTypedArray,

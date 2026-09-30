@@ -77,6 +77,20 @@ export interface NativeAddon {
   linalg: NativeLinalg;
   // M9 random (D-019)
   random: { BitGenerator: NativeBitGeneratorCtor };
+  // M10 FFT (D-020)
+  fft: NativeFft;
+}
+
+export type FftNorm = "backward" | "ortho" | "forward";
+export interface NativeFft {
+  fft(a: NativeNDArray, n: number | null, axis: number, norm: string | null): NativeNDArray;
+  ifft(a: NativeNDArray, n: number | null, axis: number, norm: string | null): NativeNDArray;
+  rfft(a: NativeNDArray, n: number | null, axis: number, norm: string | null): NativeNDArray;
+  irfft(a: NativeNDArray, n: number | null, axis: number, norm: string | null): NativeNDArray;
+  fftn(a: NativeNDArray, s: number[] | null, axes: number[] | null, norm: string | null): NativeNDArray;
+  ifftn(a: NativeNDArray, s: number[] | null, axes: number[] | null, norm: string | null): NativeNDArray;
+  fftfreq(n: number, d: number): NativeNDArray;
+  rfftfreq(n: number, d: number): NativeNDArray;
 }
 
 type N = NativeNDArray;
