@@ -742,3 +742,78 @@ describe("differential: linalg (M8, D-018)", () => {
   });
 });
 
+
+describe("differential: random (M9, D-019) — bit-exact streams", () => {
+  const { cases } = load("random");
+  type Res = { scalar?: Encoded; error?: string; dtype?: string; shape?: number[]; values?: Encoded };
+  type Call = { m: string; args: Encoded[]; kw: Record<string, unknown>; result: Res };
+  type RC = Case & { api: string; seed: Encoded; calls: Call[] };
+  const R = np.random;
+
+  const call = (rng: InstanceType<typeof R.Generator> | InstanceType<typeof R.RandomState>, c: Call): unknown => {
+    const a = c.args.map((v) => decodeInput(v)) as unknown as [never, never, never];
+    const kw = c.kw as Record<string, never>;
+    const gen = rng instanceof R.Generator;
+    switch (c.m) {
+      case "random":
+        return gen ? rng.random({ size: a[0], dtype: kw.dtype }) : rng.random(a[0]);
+      case "standard_normal":
+        return gen ? rng.standardNormal({ size: a[0], dtype: kw.dtype }) : rng.standardNormal(a[0]);
+      case "normal":
+        return rng.normal(a[0], a[1], a[2]);
+      case "uniform":
+        return rng.uniform(a[0], a[1], a[2]);
+      case "integers":
+        return (rng as InstanceType<typeof R.Generator>).integers(
+          a[0], a[1] ?? null, a[2], kw.dtype ?? "int64", kw.endpoint ?? false);
+      case "randint":
+        return (rng as InstanceType<typeof R.RandomState>).randint(a[0], a[1] ?? null, a[2], kw.dtype ?? "int64");
+      case "choice":
+        return gen
+          ? rng.choice(a[0], { size: a[1], replace: kw.replace ?? true, shuffle: kw.shuffle ?? true })
+          : rng.choice(a[0], { size: a[1], replace: kw.replace ?? true });
+      case "permutation":
+        return rng.permutation(a[0]);
+      case "shuffle": {
+        const shape = a[0] as unknown as number[];
+        const x = np.arange(shape.reduce((p, d) => p * d, 1)).reshape(shape);
+        if (gen) rng.shuffle(x, kw.axis ?? 0);
+        else rng.shuffle(x);
+        return x;
+      }
+      case "rand":
+        return (rng as InstanceType<typeof R.RandomState>).rand(...(a as number[]));
+      case "randn":
+        return (rng as InstanceType<typeof R.RandomState>).randn(...(a as number[]));
+      case "random_sample":
+        return (rng as InstanceType<typeof R.RandomState>).randomSample(a[0]);
+      default:
+        throw new Error(`unknown random method ${c.m}`);
+    }
+  };
+
+  for (const rc of cases as RC[]) {
+    it(`${rc.api} seed=${JSON.stringify(rc.seed)}`, () => {
+      const seed = decodeInput(rc.seed) as never;
+      const rng = rc.api === "gen" ? R.defaultRng(seed) : new R.RandomState(seed);
+      for (const c of rc.calls) {
+        const where = `${c.m}(${JSON.stringify(c.args)}, ${JSON.stringify(c.kw)})`;
+        if (c.result.error !== undefined) {
+          expect(() => call(rng, c), where).toThrow(np.ValueError);
+          continue;
+        }
+        const r = call(rng, c);
+        if (c.result.scalar !== undefined) {
+          expect(r, where).toEqual(decodeExpected(c.result.scalar));
+          continue;
+        }
+        const arr = r as NDArray;
+        expect(arr.dtype.name, where).toBe(c.result.dtype);
+        expect(arr.shape, where).toEqual(c.result.shape);
+        // Exact equality: the streams must be bit-identical to NumPy.
+        expect(arr.toArray(), where).toEqual(decodeExpected(c.result.values!));
+      }
+    });
+  }
+});
+

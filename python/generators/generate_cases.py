@@ -808,6 +808,82 @@ def linalg_norm_cases() -> list[dict]:
     return cases
 
 
+def _rand_result(v) -> dict:
+    if isinstance(v, np.ndarray):
+        return {"dtype": str(v.dtype), "shape": list(v.shape), "values": enc(v.tolist())}
+    if isinstance(v, np.generic):
+        v = v.item()
+    return {"scalar": enc(v)}
+
+
+def _rand_call(rng, m: str, args: list, kw: dict) -> dict:
+    """Runs one call; `shuffle` operates on arange(prod(shape)).reshape(shape)."""
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if m == "shuffle":
+                x = np.arange(int(np.prod(args[0]))).reshape(args[0])
+                rng.shuffle(x, **kw)
+                r = x
+            else:
+                r = getattr(rng, m)(*args, **kw)
+        res = _rand_result(r)
+    except (TypeError, ValueError) as e:
+        res = {"error": type(e).__name__}
+    return {"m": m, "args": enc(list(args)), "kw": kw, "result": res}
+
+
+def _rand_case(api: str, seed, calls: list) -> dict:
+    s = seed
+    if isinstance(seed, dict):  # {"bigint": "..."} tag for large ints
+        s = int(seed["bigint"])
+    rng = np.random.default_rng(s) if api == "gen" else np.random.RandomState(s)
+    return {"op": "random", "api": api, "seed": enc(s) if not isinstance(s, list) else enc(s),
+            "calls": [_rand_call(rng, m, a, k) for m, a, k in calls]}
+
+
+def random_cases() -> list[dict]:
+    cases = []
+    gen_calls = [
+        ("random", [], {}), ("random", [5], {}), ("random", [[2, 3]], {"dtype": "float32"}),
+        ("standard_normal", [7], {}), ("standard_normal", [4], {"dtype": "float32"}),
+        ("normal", [3.0, 2.5, [2, 2]], {}), ("uniform", [-1.0, 4.0, 6], {}),
+        ("integers", [10], {}), ("integers", [0, 10, 12], {}),
+        ("integers", [-5, 5, 9], {"dtype": "int8"}), ("integers", [0, 2, 20], {"dtype": "bool"}),
+        ("integers", [0, 255, 10], {"dtype": "uint8", "endpoint": True}),
+        ("integers", [-1000, 1000, 10], {"dtype": "int16"}),
+        ("integers", [0, 2**31, 10], {"dtype": "uint32"}),
+        ("integers", [-(2**40), 2**40, 8], {}),
+        ("integers", [0, 2**53, 6], {"dtype": "uint64"}),
+        ("integers", [5, 5], {}), ("integers", [0, 300, 3], {"dtype": "uint8"}),
+        ("choice", [10, 5], {}), ("choice", [10, 5], {"replace": False}),
+        ("choice", [100000, 4], {"replace": False}),
+        ("choice", [10, [2, 3]], {"replace": False, "shuffle": False}),
+        ("choice", [[5, 6, 7, 8], 3], {}), ("choice", [3, 5], {"replace": False}),
+        ("permutation", [10], {}), ("permutation", [[1, 2, 3, 4, 5]], {}),
+        ("shuffle", [[6]], {}), ("shuffle", [[3, 4]], {}), ("shuffle", [[3, 4]], {"axis": 1}),
+        ("normal", [0.0, -1.0], {}),
+    ]
+    for seed in (0, 42, 12345, 2**32 + 5, {"bigint": str(2**100 + 7)}, [1, 2, 3]):
+        cases.append(_rand_case("gen", seed, gen_calls))
+    legacy_calls = [
+        ("rand", [], {}), ("rand", [3, 2], {}), ("randn", [5], {}), ("randn", [], {}),
+        ("random_sample", [4], {}), ("standard_normal", [3], {}),
+        ("normal", [1.0, 3.0, 4], {}), ("uniform", [2.0, 5.0, 3], {}),
+        ("randint", [10], {}), ("randint", [0, 10, 12], {}),
+        ("randint", [-5, 5, 9], {"dtype": "int8"}), ("randint", [0, 2, 10], {"dtype": "bool"}),
+        ("randint", [0, 2**31, 10], {"dtype": "uint32"}),
+        ("randint", [-(2**40), 2**40, 8], {}),
+        ("choice", [10, 5], {}), ("choice", [10, 5], {"replace": False}),
+        ("choice", [[5, 6, 7, 8], 3], {}),
+        ("permutation", [10], {}), ("shuffle", [[3, 4]], {}), ("shuffle", [[7]], {}),
+        ("randint", [5, 5], {}),
+    ]
+    for seed in (0, 42, 2**32 - 1, [1, 2, 3]):
+        cases.append(_rand_case("legacy", seed, legacy_calls))
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -825,6 +901,7 @@ def main() -> None:
         "reduce": reduce_cases(),
         "linalg": linalg_product_cases() + linalg_decomp_cases() + linalg_svd_qr_cases()
         + linalg_norm_cases(),
+        "random": random_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}
