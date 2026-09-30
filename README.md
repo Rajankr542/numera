@@ -237,8 +237,11 @@ it runs `npm login --auth-type=web`, which **opens the browser** to
 authenticate. If the current version is already on npm it bumps to the next
 one. Then it builds and tests the code and builds the prebuilds (macOS
 locally, Linux in Docker). It packs the tarball and smoke-tests it in a clean
-folder, runs `npm publish` (npm may open the browser again for 2FA), and
-finally commits `chore(release)` and tags `vX.Y.Z`.
+folder, then runs `npm publish`. If your npm account uses 2FA, the script
+**pauses and asks for the one-time password** from your authenticator app at
+that point. Run it in an interactive terminal. A code passed in advance
+(`-- --otp <code>` or `NPM_OTP`) usually expires during the ~10 minute build.
+Last, it commits `chore(release)` and tags `vX.Y.Z`.
 Requirements: macOS with Xcode, plus Docker Desktop installed for the Linux
 binaries. The prebuild step starts Docker Desktop if it is not running. If the
 default SDK cannot link, it falls back to the Xcode SDK. Linux binaries are built

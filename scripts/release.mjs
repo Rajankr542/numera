@@ -1,10 +1,11 @@
-// Local release: `pnpm release [patch|minor|major] [--dry-run] [--targets a,b] [--allow-dirty] [--push]`
+// Local release: `pnpm release [patch|minor|major] [--dry-run] [--targets a,b] [--otp code] [--allow-dirty] [--push]`
 // (DECISIONS D-026). Steps: npm auth (browser login) -> pick version -> test ->
 // prebuilds -> pack + smoke test the tarball -> npm publish -> commit + tag.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -20,6 +21,8 @@ const bumpType = args.find((a) => ["patch", "minor", "major"].includes(a)) ?? "p
 const dryRun = opt("--dry-run");
 const targetsIdx = args.indexOf("--targets");
 const targets = targetsIdx >= 0 ? args[targetsIdx + 1] : null;
+const otpIdx = args.indexOf("--otp");
+const otpArg = otpIdx >= 0 ? args[otpIdx + 1] : null;
 
 function run(cmd, cmdArgs, opts = {}) {
   console.log(`\n$ ${cmd} ${cmdArgs.join(" ")}`);
@@ -109,9 +112,30 @@ try {
   run("node", ["smoke-test.mjs"], { cwd: tmp, env });
   rmSync(tmp, { recursive: true, force: true });
 
-  // 6. Publish. npm may open the browser again for 2FA confirmation.
+  // 6. Publish. With 2FA ("auth-and-writes") npm needs a one-time password:
+  // pass --otp <code> / NPM_OTP, or type it when prompted (interactive only).
+  // An EOTP failure re-prompts instead of discarding the build.
   step(dryRun ? "Publishing (dry run)" : "Publishing to npm");
-  run("npm", ["publish", ...(dryRun ? ["--dry-run"] : [])], { cwd: pkgDir });
+  let otp = otpArg ?? process.env.NPM_OTP ?? null;
+  for (let attempt = 1; ; attempt++) {
+    const publishArgs = ["publish", ...(dryRun ? ["--dry-run"] : []), ...(otp ? [`--otp=${otp}`] : [])];
+    try {
+      console.log(`\n$ npm ${publishArgs.map((a) => (a.startsWith("--otp=") ? "--otp=******" : a)).join(" ")}`);
+      execFileSync("npm", publishArgs, { stdio: ["inherit", "inherit", "pipe"], cwd: pkgDir, encoding: "utf8" });
+      break;
+    } catch (err) {
+      const stderr = String(err.stderr ?? "");
+      process.stderr.write(stderr);
+      const needsOtp = /EOTP|one-time password/i.test(stderr);
+      if (!needsOtp || attempt >= 3 || !process.stdin.isTTY) {
+        if (needsOtp) console.error("\nnpm needs a 2FA one-time password. Re-run with: pnpm release -- --otp <code>");
+        throw err;
+      }
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      otp = (await rl.question("npm one-time password (authenticator app): ")).trim();
+      rl.close();
+    }
+  }
 } catch (err) {
   if (version !== JSON.parse(originalJson).version) writeFileSync(pkgJsonPath, originalJson);
   console.error(`\nRelease aborted; ${pkgJsonPath} restored.`);
