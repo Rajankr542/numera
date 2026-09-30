@@ -2,17 +2,23 @@
 // The npm package is public but the repository is private, so everything the
 // package refers to must ship inside it: this writes a user-facing README.md
 // (install, samples, API notes; no development/release sections or repo
-// links), COMPATIBILITY.md (without the internal decision column) and LICENSE,
-// and removes references to repo-only documents (PLAN §N, D-0NN, DECISIONS,
+// links), COMPATIBILITY.md (without the internal decision column), LICENSE
+// and the API reference docs/index.html (D-030, served by unpkg as the npm
+// homepage), and removes references to repo-only documents (PLAN §N, D-0NN, DECISIONS,
 // ROADMAP) from the compiled dist/ files. Source maps are excluded via
-// package.json "files". Run after `pnpm build:ts`; used by scripts/release.mjs
-// and .github/workflows/release.yml.
+// package.json "files". Run after `pnpm build:ts`; used by scripts/release.mjs.
 import { copyFileSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildDocs } from "./build-docs.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pkgDir = join(root, "packages/numera");
+
+/** npm homepage: the API reference shipped in this exact version's tarball (D-030). */
+export function docsHomepage(name, version) {
+  return `https://unpkg.com/${name}@${version}/docs/index.html`;
+}
 
 /** Removes references to internal design documents (not shipped, repo is private). */
 export function stripInternalRefs(text) {
@@ -47,7 +53,6 @@ function dropLastColumn(md, heading) {
 
 export function packageReadme(readme) {
   let md = readme.slice(0, readme.indexOf("\n## Development"));
-  md = md.replace(/\nIt's also published to\n\[GitHub Packages\][\s\S]*?npm install @rajankr542\/numera`\.\n/, "\n");
   md = md.replace(
     /> \*\*Status: ([^*]+)\*\* Not all of NumPy is implemented yet\. See\n> \[COMPATIBILITY\.md\]\(\.\/COMPATIBILITY\.md\) for what is verified against NumPy,\n> and \[ROADMAP\.md\]\(\.\/ROADMAP\.md\) for what is planned\./,
     "> **Status: $1** Not all of NumPy is implemented yet. See\n> [COMPATIBILITY.md](./COMPATIBILITY.md) (included in this package) for what is\n> verified against NumPy and what is not implemented.",
@@ -115,7 +120,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   writeFileSync(join(pkgDir, "COMPATIBILITY.md"), packageCompatibility(readFileSync(join(root, "COMPATIBILITY.md"), "utf8")));
   copyFileSync(join(root, "LICENSE"), join(pkgDir, "LICENSE"));
   stageDist(join(pkgDir, "dist"));
-  const staged = ["README.md", "COMPATIBILITY.md", ...listDist(join(pkgDir, "dist")).map((p) => p.slice(pkgDir.length + 1))];
+  buildDocs(join(pkgDir, "docs"));
+  const staged = [
+    "README.md",
+    "COMPATIBILITY.md",
+    "docs/index.html",
+    ...listDist(join(pkgDir, "dist")).map((p) => p.slice(pkgDir.length + 1)),
+  ];
   assertSelfContained(staged.map((f) => [f, readFileSync(join(pkgDir, f), "utf8")]));
-  console.log(`Staged and checked ${staged.length} files in packages/numera (README.md, COMPATIBILITY.md, LICENSE, dist/)`);
+  console.log(`Staged and checked ${staged.length} files in packages/numera (README.md, COMPATIBILITY.md, LICENSE, docs/, dist/)`);
 }

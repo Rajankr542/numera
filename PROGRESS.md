@@ -1,5 +1,48 @@
 # PROGRESS
 
+## 2026-09-30 — Manual releases only; release workflow removed (D-031)
+
+Done:
+- Deleted `.github/workflows/release.yml` and the files only it used:
+  `scripts/ci-pack.mjs`, `scripts/next-version.mjs` and
+  `test/release_version.test.ts`. `ci.yml` (tests on push/PR) is kept.
+- The tarball checks from `ci-pack.mjs` now run in `scripts/release.mjs`
+  (`checkTarball`), before the smoke test and the publish:
+  - prebuilds;
+  - README/LICENSE/COMPATIBILITY/`docs/index.html`;
+  - no `.map` files;
+  - no `repository`/`bugs`;
+  - the exact unpkg `homepage`.
+- README "Publishing a release" now describes the manual `pnpm release` flow
+  only. `release_stage.test.ts` checks that the workflow is gone and that the
+  README has no workflow/`NPM_TOKEN` instructions.
+
+Not verified: a real `pnpm release` / `release:dry` run after this change (needs
+Docker and npm login). The `checkTarball` logic is the same as the
+`ci-pack.mjs` checks that passed earlier today.
+
+## 2026-09-30 — API reference site as npm homepage; npm-only publishing (D-030)
+
+Done:
+- Lodash-style API reference: `docs/site/api.mjs` (75 entries in 12 categories:
+  signature, arguments, returns, example) rendered by `scripts/build-docs.mjs`
+  (`pnpm docs`) into one self-contained `packages/numera/docs/index.html`
+  (~97 KB, no external requests, sidebar search with `/` shortcut, dark mode,
+  mobile menu). Staged by `stage-package.mjs` and shipped via `files: ["docs"]`.
+- Deploy sets `homepage` to `https://unpkg.com/<name>@<version>/docs/index.html`
+  (`scripts/set-homepage.mjs` → `npm pkg set`) in `release.yml` and
+  `scripts/release.mjs`; not committed. `ci-pack.mjs` requires exactly that URL
+  and `docs/index.html` in the tarball.
+- Removed GitHub Packages publishing (workflow `registry` input, GPR pack/publish,
+  `packages: write`, `ci-pack.mjs --name`) and the README `.npmrc` section.
+- `test/docs_site.test.ts` runs every example against the addon and checks each
+  `// =>` result; also checks every public function is documented. A deliberately
+  wrong result (det 5 → 6) fails it.
+
+Verified: `pnpm typecheck`; `pnpm test` 174/174; staged `npm pack --dry-run`
+includes `docs/index.html` and the homepage; headless Chrome render.
+Not verified: live unpkg serving of this package (only after the next publish).
+
 ## 2026-09-30 — Automatic branch-channel releases; self-contained package (D-029)
 
 Done:

@@ -684,3 +684,74 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   "no prebuild" error no longer tells users to run `pnpm build:native`.
 - `scripts/release.mjs` (local, interactive fallback) uses the same staging.
 
+
+## D-030 — API reference site shipped in the package as the npm homepage; npm-only publishing (M13) — Accepted — 2026-09-30
+- **What.** A single-page, lodash-style API reference: a sidebar with search
+  and categories, and for each function its signature, arguments, return value
+  and an example. Source: `docs/site/api.mjs` (content) and
+  `scripts/build-docs.mjs` (renderer). `pnpm docs` writes
+  `packages/numera/docs/index.html`, one self-contained HTML file with no
+  external requests (no fonts or scripts from a CDN). It is generated and
+  gitignored, like the staged README.
+- **Hosting.** The repository is private and there is no GitHub Pages, so the
+  page ships inside the npm tarball (`files` includes `docs`) and is served by
+  unpkg. unpkg serves `.html` as `text/html`; jsDelivr serves it as
+  `text/plain`, so it can't be used. At deploy time
+  `scripts/set-homepage.mjs` runs `npm pkg set homepage=...` with
+  `https://unpkg.com/<name>@<version>/docs/index.html`, so each npm version
+  links to the docs for that version. Both `release.yml` and
+  `scripts/release.mjs` call it. `ci-pack.mjs` allows `homepage` only when it
+  is exactly that URL; `repository` and `bugs` are still rejected (D-029).
+- **Examples are tested.** `test/docs_site.test.ts` runs every documented
+  example against the real addon and checks each `// => value` result comment.
+  It also checks that every function on the default export is documented, so
+  the docs can't drift from the API.
+- **npm only.** GitHub Packages publishing (D-027) is removed. There is no
+  `registry` workflow input, no `@rajankr542/numera` pack/publish steps, no
+  `.npmrc` instructions in the README, and no `ci-pack.mjs --name`. GitHub
+  Releases (tag + tarballs) remain.
+
+
+## D-031 — Manual releases only; GitHub Actions release workflow removed (M13) — Accepted — 2026-09-30
+- **Decision.** Releases are run by hand from the maintainer's machine with
+  `pnpm release` / `release:minor` / `release:major` / `release:dry`
+  (`scripts/release.mjs`, D-026). `.github/workflows/release.yml` is deleted,
+  and so is everything that only it used:
+  - `scripts/ci-pack.mjs`;
+  - `scripts/next-version.mjs`, which computed the version from Conventional
+    Commits;
+  - `test/release_version.test.ts`, its unit tests.
+
+  The test workflow `.github/workflows/ci.yml` stays.
+- **Supersedes** the CI parts of D-027 (the manual `workflow_dispatch` release)
+  and D-029:
+  - the branch-channel trigger (`main`/`beta`/`alpha` → `latest`/`beta`/`alpha`);
+  - versions from Conventional Commits;
+  - the `NPM_TOKEN` secret;
+  - prebuilds on native runners;
+  - GitHub Releases created by the bot.
+
+  It also supersedes the `release.yml` mention in D-030.
+- **What changes for releases.**
+  - Only the `latest` dist-tag. No beta/alpha channels.
+  - The version is a patch/minor/major bump chosen on the command line. If the
+    current version isn't on npm yet, it is published as is.
+  - Auth is `npm login` in the browser, plus a 2FA OTP prompt or `--otp`.
+  - All four prebuilds are built on the maintainer's Mac: darwin locally, and
+    Linux in `manylinux_2_28` Docker.
+  - No GitHub Release is created. The `vX.Y.Z` tag is pushed with `--push` or
+    `git push --follow-tags`.
+- **Checks kept.** The self-contained tarball checks from `ci-pack.mjs` (D-029,
+  D-030) moved into `release.mjs` (`checkTarball`). Before publishing, it checks
+  that the tarball has:
+  - every built prebuild;
+  - README/LICENSE/COMPATIBILITY and `docs/index.html`;
+  - no source maps;
+  - no `repository`/`bugs`;
+  - `homepage` exactly `https://unpkg.com/<name>@<version>/docs/index.html`.
+
+  The smoke test in a clean project still runs. `stage-package.mjs` and
+  `set-homepage.mjs` are unchanged.
+- **Why.** The maintainer chose to release manually. The workflow never ran on
+  GitHub, and it needed a long-lived npm write token that bypasses 2FA.
+

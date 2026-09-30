@@ -1,13 +1,16 @@
-// Local release: `pnpm release [patch|minor|major] [--dry-run] [--targets a,b] [--otp code] [--allow-dirty] [--push]`
-// (DECISIONS D-026). Steps: npm auth (browser login) -> pick version -> test ->
-// prebuilds -> pack + smoke test the tarball -> npm publish -> commit + tag.
+// Release: `pnpm release [patch|minor|major] [--dry-run] [--targets a,b] [--otp code] [--allow-dirty] [--push]`
+// (DECISIONS D-026, D-031: the only release path; there is no CI release workflow).
+// Steps: npm auth (browser login) -> pick version -> test -> prebuilds ->
+// pack + check + smoke test the tarball -> npm publish -> commit + tag.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
+import { docsHomepage } from "./stage-package.mjs";
 
+const PREBUILD_TARGETS = ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64"];
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pkgDir = join(root, "packages/numera");
 const pkgJsonPath = join(pkgDir, "package.json");
@@ -47,8 +50,31 @@ function bump(version, type) {
 function step(title) {
   console.log(`\n━━ ${title} ━━`);
 }
+// Checks on the packed tarball before it is published. The repo is private, so
+// the package must be self-contained (D-029): it ships the docs its README links
+// to, has no source maps and no repository/bugs links, and its only homepage is
+// this version's shipped API reference on unpkg (D-030).
+function checkTarball(packed, pkgJson, prebuildTargets) {
+  const has = (p) => packed.files.some((f) => f.path === p);
+  if (packed.name !== pkgJson.name) throw new Error(`packed name ${packed.name}, expected ${pkgJson.name}`);
+  for (const t of prebuildTargets) {
+    if (!has(`prebuilds/${t}/nativpy.node`)) throw new Error(`tarball is missing prebuilds/${t}/nativpy.node`);
+  }
+  for (const f of ["README.md", "LICENSE", "COMPATIBILITY.md", "docs/index.html"]) {
+    if (!has(f)) throw new Error(`tarball is missing ${f} (run scripts/stage-package.mjs)`);
+  }
+  const maps = packed.files.filter((f) => f.path.endsWith(".map"));
+  if (maps.length) throw new Error(`tarball contains source maps: ${maps.map((f) => f.path).join(", ")}`);
+  for (const k of ["repository", "bugs"]) {
+    if (k in pkgJson) throw new Error(`package.json has "${k}"; it would point users at the private repo`);
+  }
+  const homepage = docsHomepage(pkgJson.name, pkgJson.version);
+  if (pkgJson.homepage !== homepage) {
+    throw new Error(`package.json homepage is ${JSON.stringify(pkgJson.homepage)}, expected ${homepage} (run scripts/set-homepage.mjs)`);
+  }
+}
 function cleanArtifacts() {
-  for (const p of ["prebuilds", "README.md", "LICENSE", "COMPATIBILITY.md"]) {
+  for (const p of ["prebuilds", "README.md", "LICENSE", "COMPATIBILITY.md", "docs"]) {
     rmSync(join(pkgDir, p), { recursive: true, force: true });
   }
 }
@@ -119,14 +145,18 @@ try {
   run("pnpm", ["test"]);
   step("Building prebuilds");
   run("node", ["scripts/build-prebuilds.mjs", ...(targets ? ["--targets", targets] : [])]);
-  // Self-contained package contents: the repo is private (D-029).
+  // Self-contained package contents (README, COMPATIBILITY, LICENSE, docs/):
+  // the repo is private (D-029). Then pin the npm homepage to this version's
+  // shipped API reference on unpkg (D-030); stripped again before committing.
   run("node", ["scripts/stage-package.mjs"]);
+  run("node", ["scripts/set-homepage.mjs"]);
 
   // 5. Pack and smoke-test the real tarball in a clean project (no repo build visible).
   step("Packing and smoke-testing the tarball");
   const tmp = mkdtempSync(join(tmpdir(), "nativpy-release-"));
   const packed = JSON.parse(capture("npm", ["pack", "--json", "--pack-destination", tmp], { cwd: pkgDir }));
   console.log(`Tarball: ${packed[0].filename} (${(packed[0].size / 1024).toFixed(0)} kB, ${packed[0].files.length} files)`);
+  checkTarball(packed[0], JSON.parse(readFileSync(pkgJsonPath, "utf8")), targets ? targets.split(",") : PREBUILD_TARGETS);
   writeFileSync(join(tmp, "package.json"), '{"name":"smoke","private":true,"type":"module"}\n');
   run("npm", ["install", "--no-audit", "--no-fund", join(tmp, packed[0].filename)], { cwd: tmp });
   const env = { ...process.env };
@@ -184,6 +214,12 @@ try {
 } finally {
   // Generated, gitignored files; removing them keeps dev runs on build/Release.
   cleanArtifacts();
+  // The pinned homepage is publish-time only (D-030); keep it out of git.
+  const cur = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
+  if ("homepage" in cur && !("homepage" in JSON.parse(originalJson))) {
+    delete cur.homepage;
+    writeFileSync(pkgJsonPath, JSON.stringify(cur, null, 2) + "\n");
+  }
 }
 
 // 7. Record the release in git.

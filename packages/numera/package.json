@@ -45,9 +45,21 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "!dist/**/*.map", "prebuilds", "COMPATIBILITY.md"],
-  "os": ["darwin", "linux"],
-  "cpu": ["arm64", "x64"],
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "prebuilds",
+    "COMPATIBILITY.md",
+    "docs"
+  ],
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "cpu": [
+    "arm64",
+    "x64"
+  ],
   "engines": {
     "node": ">=18"
   },

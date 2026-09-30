@@ -16,18 +16,10 @@ addon, and TypeScript provides a typed, NumPy-style API on top of it.
 npm install @cyfora/numera   # or: pnpm add @cyfora/numera / yarn add @cyfora/numera
 ```
 
-It's also published to
-[GitHub Packages](https://github.com/Rajankr542/numera/packages) as
-`@rajankr542/numera` (GitHub requires the owner scope there). To install from
-there, add this to your project's `.npmrc`. GitHub Packages needs a token with
-`read:packages` even for reads:
-
-```ini
-@rajankr542:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
-```
-
-and then run `npm install @rajankr542/numera`.
+**API reference:** [unpkg.com/@cyfora/numera/docs/index.html](https://unpkg.com/@cyfora/numera/docs/index.html).
+It documents every function with its arguments, return value and an example,
+in the same style as the lodash docs. The page ships inside the package
+(`docs/index.html`) and each release's npm homepage links to its own version.
 
 That's all. The package ships a precompiled C++ addon for your platform, so you
 **don't** need a compiler, CMake or Python. When you `import "@cyfora/numera"`, it
@@ -237,68 +229,47 @@ pnpm bench          # benchmarks
 
 ### Publishing a release (maintainers)
 
-Releases are **automatic from GitHub Actions** (D-029). Push to a release
-branch and the workflow publishes `@cyfora/numera` to npm, with no prompts:
+Releases are **manual**, run by a maintainer from their own machine (D-031).
+There is no release workflow in GitHub Actions. `@cyfora/numera` is published
+to npmjs.org only, under the `latest` dist-tag.
 
-| Branch | Version | npm dist-tag | Install |
-|--------|---------|--------------|---------|
-| `main` | `X.Y.Z` | `latest` | `npm install @cyfora/numera` |
-| `beta` | `X.Y.Z-beta.N` | `beta` | `npm install @cyfora/numera@beta` |
-| `alpha` | `X.Y.Z-alpha.N` | `alpha` | `npm install @cyfora/numera@alpha` |
+```bash
+pnpm release:dry      # rehearse everything; nothing is published, committed or tagged
+pnpm release          # patch bump (1.0.0 → 1.0.1), or publish the current version if it is not on npm yet
+pnpm release:minor    # 1.0.0 → 1.1.0
+pnpm release:major    # 1.0.0 → 2.0.0
+```
 
-The version comes from the [Conventional Commits](https://www.conventionalcommits.org)
-since the last stable tag:
+Options (after `--`, e.g. `pnpm release -- --otp 123456 --push`):
+- `--otp <code>`: npm 2FA one-time password (or set `NPM_OTP`). Without it
+  you're prompted when npm asks.
+- `--push`: push the release commit and tag (`git push --follow-tags`).
+- `--targets darwin-arm64,linux-x64`: build only these prebuilds. The tarball
+  check then expects only these, so use it only for rehearsals.
+- `--allow-dirty`: skip the clean-working-tree check.
 
-| Commits since the last `vX.Y.Z` | Next version |
-|---------------------------------|--------------|
-| `fix:` / `perf:` / `revert:` | patch (`1.0.0` → `1.0.1`) |
-| `feat:` | minor (`1.0.0` → `1.1.0`) |
-| `feat!:`, `fix!:`, or a `BREAKING CHANGE:` footer | major (`1.0.0` → `2.0.0`) |
-| only `docs:` / `chore:` / `test:` / `ci:` / `build:` / `refactor:` / `style:` | **no release** |
-
-A push that only changes `*.md`, `docs/` or `benchmarks/` does not start the
-workflow. Run `node scripts/next-version.mjs latest` (or `beta` / `alpha`) to
-see what the next push would release.
-
-Each release builds all four prebuilds on native runners, runs the unit tests,
-and smoke-tests the packed tarball in a clean project. Then it publishes with
-`--tag <channel>` and pushes tag `vX.Y.Z[-channel.N]`, and creates a GitHub
-Release: marked latest for `main`, a pre-release for `beta`/`alpha`. A stable
-release also commits the new version to `package.json` (`chore(release): …`).
-Prereleases only tag, so `package.json` on `main` stays at the last stable
-version.
-
-**One-time setup:**
-
-1. On npmjs.com (as `cyfora`), go to *Access Tokens → Generate New Token →
-   Granular Access Token*. Give it **Read and write** on `@cyfora/numera`, tick
-   **Bypass two-factor authentication**, and set an expiry. Renew the token
-   before it expires.
-2. In the GitHub repo, go to *Settings → Secrets and variables → Actions → New
-   repository secret*. Name it **`NPM_TOKEN`** and paste the token.
-3. Create the prerelease branches: `git push origin main:beta main:alpha`.
-
-**Manual run:** Actions → **Release** → *Run workflow* on a release branch.
-Inputs:
-- `bump`: `auto` (from the commits), or force `patch` / `minor` / `major`.
-- `registry`: `npm` (default), `github` (`@rajankr542/numera` on GitHub
-  Packages) or `both`.
-- `dry_run`: build and test everything, but don't publish, push or create a release.
+`pnpm release` checks that the git tree is clean. If you're not logged in to
+npm, it opens `npm login` in the browser. It checks that your npm user can
+publish to `@cyfora`. It then chooses the version and runs build, typecheck and
+unit tests. It builds all four prebuilds: macOS locally, and Linux in
+`manylinux_2_28` Docker. So you need macOS with Xcode, and Docker Desktop.
+Next it packs the tarball and checks it: all prebuilds, the docs, no source
+maps, and the pinned `homepage`. It smoke-tests the tarball in a clean project
+and publishes with `--access public`. Finally it commits
+`chore(release): @cyfora/numera@X.Y.Z` and tags `vX.Y.Z`. If any step fails,
+`package.json` is restored.
 
 **What ships.** The repository is private, so the package must stand on its
 own. `scripts/stage-package.mjs` writes a package README (this file up to
 "Development", with no links into the repo) and a `COMPATIBILITY.md` without
-decision IDs. It also strips PLAN/DECISIONS references from `dist/` comments.
-It fails if anything repo-only is left. Source maps are excluded, and
-`package.json` has no `repository`/`homepage`/`bugs`.
-
-**Locally (fallback):** `pnpm release:dry` rehearses the whole release.
-`pnpm release` / `release:minor` / `release:major` publish from your machine to
-`@latest`. This path opens `npm login` in the browser and prompts for the 2FA
-code if your account uses 2FA. It needs macOS with Xcode, and Docker Desktop
-for the Linux binaries, which are built in `manylinux_2_28`. It commits
-`chore(release)` and tags `vX.Y.Z`; push with `git push --follow-tags` or pass
-`--push`. The CI then skips that commit.
+decision IDs. It builds the API reference `docs/index.html` from
+`docs/site/api.mjs`; run `pnpm docs` to preview it. It also strips
+PLAN/DECISIONS references from `dist/` comments, and it fails if anything
+repo-only is left. Source maps are excluded. `package.json` has no
+`repository`/`bugs`. At publish time, `scripts/set-homepage.mjs` sets
+`homepage` to `https://unpkg.com/@cyfora/numera@<version>/docs/index.html`,
+the shipped API reference for that version. That value is not committed.
+Every documented example is executed by `test/docs_site.test.ts`.
 
 Contributor rules are in [AGENTS.md](./AGENTS.md). The design is described in
 [ARCHITECTURE.md](./ARCHITECTURE.md) and [DECISIONS.md](./DECISIONS.md).
