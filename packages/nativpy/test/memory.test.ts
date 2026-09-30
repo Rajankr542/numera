@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,5 +28,15 @@ describe("buffer release (D-023)", () => {
     // `base` (and at most one temporary still referenced) remains live.
     expect(afterGc).toBeLessThanOrEqual(2);
     expect(beforeGc).toBeGreaterThanOrEqual(afterGc);
+  });
+});
+
+describe("native handle construction guard", () => {
+  it.runIf(existsSync(addonPath))("rejects direct JS construction of NativeNDArray", () => {
+    const req = createRequire(import.meta.url);
+    const native = req(addonPath) as { NativeNDArray: new (...args: unknown[]) => unknown };
+    for (const arg of [undefined, "__nativpy_internal__", {}, null]) {
+      expect(() => new native.NativeNDArray(arg)).toThrow(/cannot be constructed directly/);
+    }
   });
 });

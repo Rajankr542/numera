@@ -511,3 +511,22 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - Scope: memory is still released only when V8 collects the wrapper. This is
   not deterministic release.
 
+## D-024 — Per-call binding overhead (M11) — Accepted (partial) — 2026-09-29
+- Evidence (`sample` of a `transpose` 32² loop, Node 22.7, experimental N-API):
+  - core `transpose` alone takes 374 ns and the JS call about 1.18 µs.
+  - Of the native samples, about 700 ns sits under `NDArrayWrap::create` → `napi_new_instance` →
+    `ObjectWrap` ctor/`napi_wrap`. The GC side (`Reference::WeakCallback`,
+    `GlobalHandles::Release`, `~ObjectWrap`) is also visible.
+  - Argument conversion (`arg_ints`, `napi_get_array_length`) is small.
+  - The TS layer adds ≈0 (`np` A.T vs raw addon).
+- Change: the construction guard was a string tag (a new JS string per call, plus
+  `Utf8Value()` copy and compare). It is now a per-env token object checked by
+  identity (`StrictEquals`). Direct JS construction is still rejected, including
+  with the old tag string, and a test covers this. Measured: transpose 1185 → ~1035 ns,
+  reshape view 1196 → ~1100 ns.
+- Not done: the remaining cost is intrinsic to one `ObjectWrap` (constructor call,
+  wrap, weak ref) per result. Going below it would need a different handle model,
+  for example `napi_create_external` handles with a plain JS prototype, or batching
+  many ops per native call. That changes the binding architecture and needs its own
+  decision and prototype. Deferred; it is recorded in ROADMAP.
+

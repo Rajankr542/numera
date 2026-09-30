@@ -145,6 +145,9 @@ Napi::Value load_element(Napi::Env env, DType dt, const std::byte* p) {
 // ---- Per-environment state (no globals; PLAN §61) --------------------------
 struct AddonData {
   Napi::FunctionReference ndarray_ctor;
+  // Unique object passed to the constructor by create(). The identity check
+  // replaces a per-construction string build, UTF-8 copy and compare.
+  Napi::ObjectReference construct_token;
 };
 
 namespace {
@@ -153,16 +156,13 @@ AddonData& addon_data(Napi::Env env) {
   if (d == nullptr) throw_error(ErrorKind::Value, "nativpy addon not initialized");
   return *d;
 }
-
-// Tag used to prevent construction of NDArrayWrap from JS code directly.
-constexpr const char* kInternalTag = "__nativpy_internal__";
 }  // namespace
 
 // ---- NDArrayWrap ------------------------------------------------------------
 
 NDArrayWrap::NDArrayWrap(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NDArrayWrap>(info) {
-  if (info.Length() != 1 || !info[0].IsString() ||
-      info[0].As<Napi::String>().Utf8Value() != kInternalTag) {
+  if (info.Length() != 1 || !info[0].IsObject() ||
+      !info[0].StrictEquals(addon_data(info.Env()).construct_token.Value())) {
     throw_js_error(info.Env(), "ValueError",
                    "native NDArray handles cannot be constructed directly; use np.array()");
   }
@@ -184,7 +184,8 @@ const NDArray& NDArrayWrap::array() const {
 }
 
 Napi::Object NDArrayWrap::create(Napi::Env env, NDArray array) {
-  Napi::Object obj = addon_data(env).ndarray_ctor.New({Napi::String::New(env, kInternalTag)});
+  AddonData& d = addon_data(env);
+  Napi::Object obj = d.ndarray_ctor.New({d.construct_token.Value()});
   NDArrayWrap* w = NDArrayWrap::Unwrap(obj);
   // Only the allocating handle reports memory to V8 so GC pressure is correct.
   if (array.owns_data()) {
@@ -338,7 +339,8 @@ void NDArrayWrap::init(Napi::Env env, Napi::Object exports) {
           InstanceMethod<&NDArrayWrap::shares_memory>("sharesMemory"),
           InstanceMethod<&NDArrayWrap::get_item>("getItem"),
       });
-  auto data = std::make_unique<AddonData>(AddonData{Napi::Persistent(ctor)});
+  auto data = std::make_unique<AddonData>(
+      AddonData{Napi::Persistent(ctor), Napi::Persistent(Napi::Object::New(env))});
   env.SetInstanceData<AddonData>(data.release());  // env owns it; deleted on teardown
   exports.Set("NativeNDArray", ctor);
 }

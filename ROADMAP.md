@@ -19,7 +19,7 @@ Milestones follow `docs/plan/PLAN.md` §86. Status: ✅ done · 🟡 partial · 
 
 ## Next steps
 1. M11 per PLAN §86. Next targets, from PERFORMANCE.md findings:
-   - Per-call binding overhead (1e3/view cases at 0.1–0.3 of NumPy).
+   - Per-call binding overhead: the construction-guard fix is done (D-024, about 13%). The remaining ~700 ns per result is ObjectWrap construction. Evaluate `napi_create_external` handles (needs a decision).
    - `zeros 1e6` regression after D-023 (calloc on reused memory).
    - `max` at 2× NumPy (NEON would need a decision).
    - Node 18/20 are slower than 22 in the release probe. Profile them before claiming anything.

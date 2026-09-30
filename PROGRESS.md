@@ -1,5 +1,13 @@
 # PROGRESS
 
+## 2026-09-29 — M11 step 4: per-call overhead (D-024, partial)
+
+Done:
+- The native construction guard now uses an identity token instead of a string tag. transpose 32² went from 1185 to ~1035 ns and reshape view from 1196 to ~1100 ns.
+- New test: direct `new NativeNDArray(...)` is rejected, including with the old tag string.
+- Profiled with `sample`: the remaining ~700 ns per result is `napi_new_instance`, `napi_wrap` and weak refs. The handle-model change is deferred (D-024).
+- Verification: `pnpm test` 83 pass; `pnpm test:diff` 3677 pass; native 67 pass; ASan clean.
+
 ## 2026-09-29 — M11 step 3: GC-time buffer release (D-023)
 
 Done:
