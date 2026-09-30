@@ -55,7 +55,7 @@ differential tests (`pnpm test:diff`).
 | `where(c, x, y)` with JS number scalars | weak (NEP 50) | inferred int64/float64 arrays | D-015 |
 | `astype` on non-C-contiguous input | keeps layout (`order='K'`) | always C-contiguous (same values) | D-011 |
 | `setflags(write=...)` | supported | not implemented; flag is read-only from JS | D-016 |
-| float `sum`/`prod`/`mean`/`var`/`std` | pairwise summation | sequential summation (may differ by a few ULP) | D-017 |
+| float `sum`/`prod`/`mean`/`var`/`std` | pairwise summation | Bit-exact with NumPy for C-contiguous float32/float64 input, with no cast and no `initial`, when the reduced axes are all trailing (pairwise) or all leading (sequential). Verified on AArch64. Other cases may differ by a few ULP: float16, dtype casts, `initial`, mixed/middle axes and non-contiguous input. `prod` is sequential on both sides. | D-017, D-021 |
 | reduction result layout for non-C inputs | keeps input order | always C-contiguous (same values) | D-017 |
 | full reduction result | NumPy scalar | 0-d `NDArray`; `item()` for a JS scalar | D-017 |
 | empty `mean`/`var`/`std` | NaN + RuntimeWarning | NaN, no warning | D-017 |

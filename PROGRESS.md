@@ -1,5 +1,35 @@
 # PROGRESS
 
+## 2026-09-29 — M11 step 1: reduction kernels (D-021)
+
+Done:
+- Benchmark suite, NumPy mirror and comparison report added (committed separately). Baseline is recorded in PERFORMANCE.md.
+- `native/core/reduce.cpp`:
+  - No input copy for C-contiguous input when the reduced axes trail.
+  - Column sweep, with no transpose, when the reduced axes lead.
+  - NumPy pairwise float sum; `mean`/`var`/`std` use it too.
+  - 16-lane vectorizable `min`/`max` with NaN and signed-zero rescans.
+  - Op dispatch moved out of the element loops.
+- Tests:
+  - New native test case "D-021 fast paths": NaN at lane seed, body and tail; ±inf; signed zero; int lanes; pairwise block regimes; column sweep vs. transposed path for all ops.
+  - 77 new exact differential cases (`d021_cases()` in the generator). The pre-change kernel fails 34 of them.
+  - Long differential labels are now truncated and hashed.
+- Results (see PERFORMANCE.md "M11 step 1"):
+  - Reduction geo-mean went from 0.237 to 0.950 of NumPy speed.
+  - `sum f64` 1e6: 1.114 → 0.110 ms (NumPy 0.174).
+  - `max f64` 1e6: 1.315 → 0.186 ms (NumPy 0.093).
+  - `sum axis=0` 1024²: 3.056 → 0.154 ms (NumPy 0.160).
+- Verification (macOS arm64, NumPy 2.5.3):
+  - Native build passes.
+  - `pnpm build:ts` passes.
+  - `pnpm test:native` and `pnpm test:asan` pass (66 cases, ASan+UBSan clean).
+  - `pnpm test`: 81 tests pass.
+  - `pnpm test:diff`: 3659 tests pass.
+
+Notes:
+- Environment: a fresh cmake-js configure picked up a broken CommandLineTools 27.0 SDK and failed to link. The build works when `--CDCMAKE_OSX_SYSROOT=<Xcode MacOSX26.5.sdk>` is passed. This is local to this machine; no repo change was made.
+- Not done: `argmin`/`argmax` (still copy plus scalar); `max` is 2× NumPy.
+
 ## 2026-09-29 — M10 FFT (D-020)
 
 Done:
