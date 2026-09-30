@@ -14,13 +14,15 @@ Milestones follow `docs/plan/PLAN.md` §86. Status: ✅ done · 🟡 partial · 
 | 7 | Reductions | ✅ | PLAN M7 list complete: `sum`, `mean`, `min`, `max`, `argmin`, `argmax`, `prod`, `std`, `var` with `axis` (int/list/none), `keepdims`, `dtype`, `initial`, `ddof`; NDArray methods. D-017. |
 | 8 | Linear algebra | ✅ | `matmul`, `dot`, `inner`, `outer`; `linalg.det`/`inv`/`solve`/`eig`/`eigh`/`eigvals`/`eigvalsh`/`svd`/`qr`/`lstsq`/`norm`. Batched. Accelerate backend on macOS, portable fallback elsewhere; both tested. D-018. |
 | 9 | Random | ✅ | Bit-exact with NumPy: `defaultRng` (PCG64 + SeedSequence) Generator and the legacy MT19937 `RandomState`/global functions: `rand`, `randn`, `random`, `uniform`, `normal`, `randint`/`integers`, `choice`, `shuffle`, `permutation`. Scalar parameters only. D-019. |
-| 10–14 | → release | ⬜ | M10 is next. |
+| 10 | FFT | ✅ | PLAN M10 list complete: `np.fft.fft`/`ifft`/`fft2`/`ifft2`/`fftn`/`ifftn`/`rfft`/`irfft` (+ `fftfreq`/`rfftfreq`), backed by vendored pocketfft (NumPy's pinned commit). Verified against NumPy within tolerance. Not in PLAN M10 and not started: `rfftn`/`irfftn`/`hfft`/`fftshift`/`out=`. D-020. |
+| 11–14 | → release | ⬜ | M11 is next. |
 
 ## Next steps
-1. M10 per PLAN §86.
-2. Random follow-ups: `choice(p=...)`, broadcast array parameters, more distributions (D-019).
-3. Complex element conversion (D-008). This unblocks complex ufuncs and complex linalg.
-4. Benchmark matmul/solve/svd across the Accelerate and fallback backends and NumPy before making any performance claims (PERFORMANCE.md).
-5. Profile ufunc and `copy` costs (destination allocation vs. loop, PERFORMANCE.md) before optimizing.
-6. Buffer pool for `copy`-heavy workloads (deferred, D-013). It needs its own decision entry.
-7. Pairwise float summation for reductions, if exact NumPy float sums are needed (D-017).
+1. M11 per PLAN §86.
+2. FFT follow-ups: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift` (D-020). Benchmark against NumPy before making any FFT performance claims.
+3. Random follow-ups: `choice(p=...)`, broadcast array parameters, more distributions (D-019).
+4. Complex element conversion (D-008). This unblocks complex ufuncs and complex linalg.
+5. Benchmark matmul/solve/svd across the Accelerate and fallback backends and NumPy before making any performance claims (PERFORMANCE.md).
+6. Profile ufunc and `copy` costs (destination allocation vs. loop, PERFORMANCE.md) before optimizing.
+7. Buffer pool for `copy`-heavy workloads (deferred, D-013). It needs its own decision entry.
+8. Pairwise float summation for reductions, if exact NumPy float sums are needed (D-017).

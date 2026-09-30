@@ -1,5 +1,32 @@
 # PROGRESS
 
+## 2026-09-29 — M10 FFT (D-020)
+
+Done:
+- Vendored pocketfft (`third_party/pocketfft/`, BSD-3), pinned to the same commit NumPy 2.x uses (`33ae5dc9`).
+- C++ `native/fft/` (static lib `nativpy_fft`):
+  - `fft.{hpp,cpp}`: per-lane c2c/r2c/c2r loops ported from NumPy's `_pocketfft_umath.cpp` (zero-pad/truncate to `n`, FFTpack packing for rfft/irfft).
+  - N-D composition following `_raw_fftnd`/`_cook_nd_args`; NumPy's dtype, `norm` factor and error rules, including float16 factors rounded to half precision.
+  - `fftfreq`/`rfftfreq`.
+- Bindings: `native/bindings/fft_binding.cpp` exposes `exports.fft`.
+- TS: `src/fft.ts` provides `np.fft.{fft,ifft,rfft,irfft,fft2,ifft2,fftn,ifftn,fftfreq,rfftfreq}`. Arguments can be positional (NumPy order) or a trailing options object. Also available as the named export `fft`.
+- Tests:
+  - `tests/native/test_fft.cpp` (7 cases vs. a naive DFT: pad/truncate, norms, even/odd rfft/irfft, dtypes, axes, strided input, fftn, errors, freqs).
+  - `packages/nativpy/test/fft.test.ts` (7 tests).
+  - A new differential group `fft` with 697 cases.
+- Differential tests found two bugs, both now fixed:
+  - Error precedence: NumPy checks an explicit `n` before the axis.
+  - float16 `ortho`/`forward` factors: NumPy computes them in half precision.
+- Verification (macOS arm64, NumPy 2.5.3):
+  - `pnpm build` passes.
+  - `pnpm typecheck` is clean.
+  - `pnpm test:native` and `pnpm test:asan` pass (65 cases, ASan+UBSan clean).
+  - `pnpm test`: 81 tests pass.
+  - `pnpm test:diff`: 3582 tests pass.
+- Not done (see COMPATIBILITY.md):
+  - `rfftn`/`irfftn`, `hfft`, `fftshift` and `out=`.
+  - No FFT benchmarks, so no performance claims.
+
 ## 2026-09-29 — M9 random (D-019)
 
 Done:

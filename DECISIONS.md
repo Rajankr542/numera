@@ -395,8 +395,19 @@ Found by the NumPy differential tests (NumPy 2.5.3):
     NumPy does).
   - `rfft` on complex input raises `DTypeError` (NumPy: `TypeError`).
 - `norm`: `"backward"` (default, also null/undefined), `"ortho"`,
-  `"forward"`. The factor is computed in the real compute dtype. Any other
-  value raises `ValueError`.
+  `"forward"`. The factor is computed as NumPy does, in
+  `result_type(a.real.dtype, 1.0)`. For float16 input, `n`, the `sqrt` and
+  the reciprocal are therefore each rounded to float16, and the transform
+  itself still runs in float32. Any other value raises `ValueError`.
+- Validation order follows NumPy: an explicit `n < 1` is reported before a
+  bad axis.
+- `fftfreq`/`rfftfreq`:
+  - Return float64.
+  - `n == 0` or `d == 0` raises `ValueError` (NumPy: `ZeroDivisionError`).
+  - `fftfreq` with negative `n` raises `ValueError`.
+  - `rfftfreq` with negative `n` returns an empty array, as NumPy does.
+- `fftn(a, axes=[])` returns the input array unchanged. It is the same
+  native array, although the JS wrapper may be a different object.
 - Errors:
   - `n < 1`, or a zero-length transform axis with default `n`, raises
     `ValueError` "Invalid number of FFT data points (n) specified."

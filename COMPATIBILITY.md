@@ -27,6 +27,7 @@ differential tests (`pnpm test:diff`).
 | `matmul`/`dot`/`inner`/`outer` | float64/float32/int32/int8/uint16/bool (plus mixed int/float, float16, int8 wraparound) × 1-D/2-D/batched/broadcast/empty/mismatched shapes. Exact values for integer and bool; relative tolerance for floats (D-018) |
 | `linalg.det`/`inv`/`solve`/`eig`/`eigh`/`svd`/`qr`/`lstsq`/`norm` | float64/float32/int/bool inputs, batched stacks, singular and empty matrices, rectangular and rank-deficient matrices, NaN input to `eig`, float16 and non-square errors; every `norm` ord and axis/keepdims. dtype and shape exact. Values checked by tolerance (det, inv, solve, eigenvalues, S, lstsq, norm). Vectors checked by reconstruction and orthogonality: A·V=V·Λ, U·S·Vh=A, Q·R=A with upper-triangular R. Run on **both** Accelerate and fallback backends (D-018) |
 | random: `defaultRng` Generator (`random`, `uniform`, `standardNormal`, `normal`, `integers`, `choice`, `shuffle`, `permutation`) and legacy `seed`/`RandomState` (`rand`, `randn`, `random`/`randomSample`, `standardNormal`, `normal`, `uniform`, `randint`, `choice`, `shuffle`, `permutation`) | **Bit-exact** streams (exact equality) for int, bigint and array seeds, including chained calls that continue one stream; float32; int8/int16/uint8/uint32/int64/uint64/bool `integers`/`randint`; `endpoint`; choice with and without replacement (Floyd, partial-shuffle and `shuffle=False` paths); array populations; 1-D and 2-D shuffle, including Generator `axis=1`; bound/size/scale errors (D-019) |
+| `fft.fft`/`ifft`/`rfft`/`irfft`/`fft2`/`ifft2`/`fftn`/`ifftn`/`fftfreq`/`rfftfreq` | 697 cases: float64/float32/float16/int32/uint8/bool/complex128/complex64 inputs; lengths 1, odd, even, prime and power of two; `n` pad/truncate/0/-1; every axis incl. out of range; all three `norm` values plus a bad one, including float16 half-precision factors; zero-size and 0-d inputs; `s`/`axes` combinations (-1 entries, repeated axes, empty `axes`, `s` without `axes`, length mismatch). dtype and shape exact; values within 1e-12 (float64), 2e-6 (float32) and 2e-3 (float16) relative to max\|x\| (D-020) |
 
 ## Documented divergences
 | Behaviour | NumPy | nativpy | Decision |
@@ -68,6 +69,10 @@ differential tests (`pnpm test:diff`).
 | random with no seed | OS entropy via SeedSequence | OS entropy (`crypto.getRandomValues`); the legacy global state is array-seeded with 624 entropy words (not reproducible either way) | D-019 |
 | random distribution parameters | broadcast array `loc`/`scale`/`low`/`high` | scalars only; arrays raise `NotImplementedError` | D-019 |
 | random scalar results | NumPy scalar | JS number/boolean (D-005 applies to int64 > 2^53) | D-019 |
+| `rfft` on complex input | `TypeError` | `DTypeError` | D-020 |
+| `fftfreq`/`rfftfreq` with `n == 0` or `d == 0` | `ZeroDivisionError` | `ValueError` | D-020 |
+| `fftn` with `s` but no `axes` | `DeprecationWarning` | accepted silently (same result) | D-020 |
+| FFT complex results | complex ndarray | complex64/complex128 NDArray; read with `toTypedArray()` (interleaved re/im) until D-008 | D-020 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; complex reductions (`NotImplementedError`); `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
@@ -76,4 +81,5 @@ differential tests (`pnpm test:diff`).
 - Ufunc keywords `out=`, `where=`, `casting=`, `dtype=`, `order=`; `NDArray` operator methods.
 - `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.
 - Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
-- Everything from PLAN M10 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+- FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
+- Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
