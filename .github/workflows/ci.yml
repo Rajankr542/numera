@@ -35,6 +35,8 @@ jobs:
       - run: pnpm test:native
       - run: pnpm test
       - run: pnpm test:diff
+      - name: NumPy API + benchmark coverage (D-032)
+        run: pnpm api:check
       - name: Sanitizers (ASan + UBSan)
         if: matrix.node == 22
         run: pnpm test:asan

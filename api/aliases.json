@@ -1,0 +1,10 @@
+{
+ "_doc": "NumPy name -> numera export name, only for names that do NOT already match after ignoring case and '_' (D-032). scripts/api-coverage.mjs --check fails if a target is not exported.",
+ "np": {},
+ "linalg": {},
+ "fft": {},
+ "random": {},
+ "Generator": {},
+ "RandomState": {},
+ "ndarray": {}
+}

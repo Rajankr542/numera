@@ -755,3 +755,45 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - **Why.** The maintainer chose to release manually. The workflow never ran on
   GitHub, and it needed a long-lived npm write token that bypasses 2FA.
 
+## D-032 — NumPy parity programme P0–P15 and its scope — Accepted — 2026-09-30
+- **Decision.** The function-completion milestones in `docs/plan/NUMPY_PARITY.md`
+  (P0–P15) run before the rest of M11–M14. Every function follows that
+  document's section 2 Definition of Done, which includes a benchmark case in
+  **both** `benchmarks/nativpy/suite.bench.mjs` and `benchmarks/numpy/suite_bench.py`.
+- **Scope defaults** (the maintainer said "start working on everything" without
+  answering the open questions, so these are the proposed defaults; they can be
+  revisited):
+  - a. No `object_` dtype. `vectorize`/`frompyfunc` will wrap JS callbacks
+    (a slow path, documented as such).
+  - b. `longdouble`/`clongdouble` will alias float64/complex128, as on MSVC.
+    This is a documented divergence.
+  - c. Deprecated APIs (`matrix`, `bmat`, `asmatrix`, `char.chararray`, `rec`)
+    are implemented last (P15), or not at all.
+  - d. Build/introspection/Python-only names (`show_config`, `show_runtime`,
+    `get_include`, `f2py`, `ctypeslib`, `test`, `info`, `typing`,
+    `from_dlpack`, `frompyfunc` objects, `nested_iters` …) are excluded from the
+    coverage denominator. Each exclusion and its reason is listed in
+    `api/exclusions.json`.
+- **Coverage tool (P0, PLAN §37).**
+  - `python/api_inventory.py` writes `api/numpy-api.json`. This is the public
+    NumPy surface of the pinned reference version, grouped by surface: `np`,
+    `linalg`, `fft`, `random`, `Generator`, `RandomState`, `ndarray`, `ma`,
+    `polynomial`, `strings`, `emath`, `testing`, `rec`, `char`. The file is
+    checked in, so coverage does not change when the local NumPy changes.
+  - `scripts/api-coverage.mjs` loads the built package and matches names
+    ignoring case and `_`, so `floor_divide` matches `floorDivide` and
+    `moveaxis` matches `moveAxis`. It writes `api/coverage.json` and prints
+    per-surface percentages.
+  - **Benchmark coverage** is found statically. Each suite is scanned for call
+    sites: `np.<name>(`, `np.linalg.<name>(`, `np.fft.<name>(`,
+    `rng.<name>(`/`rs.<name>(`, and `.<method>(` for ndarray methods. An
+    implemented name counts as benchmarked only when **both** suites reference
+    it. This is a heuristic; it is documented and cheap.
+  - `--check` (run in CI) fails in any of these cases:
+    - API coverage falls below `api/coverage-baseline.json`;
+    - an implemented name lacks a benchmark on either side and is not in the
+      baseline's `benchIgnore` list, which must only shrink;
+    - an alias in `api/aliases.json` points to a name numera doesn't export.
+- **Aliases.** Names that JS can't use, or that numera spells differently, are
+  mapped explicitly in `api/aliases.json`, e.g. `ix_` → `ix`, `r_` → `r`.
+

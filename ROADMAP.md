@@ -17,6 +17,17 @@ Milestones follow `docs/plan/PLAN.md` §86. Status: ✅ done · 🟡 partial · 
 | 10 | FFT | ✅ | PLAN M10 list complete: `np.fft.fft`/`ifft`/`fft2`/`ifft2`/`fftn`/`ifftn`/`rfft`/`irfft` (+ `fftfreq`/`rfftfreq`), backed by vendored pocketfft (NumPy's pinned commit). Verified against NumPy within tolerance. Not in PLAN M10 and not started: `rfftn`/`irfftn`/`hfft`/`fftshift`/`out=`. D-020. |
 | 11–14 | → release | 🟡 | M11 in progress: benchmark suite and baseline done. D-021 reductions (incl. argmin/argmax), D-022 matmul copies and D-023 GC-time buffer release are done. Suite geo-mean went from 0.285 to 0.628 of NumPy speed. See PERFORMANCE.md. |
 
+## NumPy parity (D-032, runs before the rest of M11–M14)
+The full function list and order are in `docs/plan/NUMPY_PARITY.md`, milestones P0–P15.
+Every function needs a native kernel, unit and edge tests, NumPy differential cases,
+and a benchmark case in both suites.
+
+| Milestone | Status |
+|---|---|
+| P0 coverage tooling (`pnpm api:coverage` / `api:check` in CI) | ✅ API coverage is 14.9% (158/1060), and every implemented callable is benchmarked in both suites |
+| P1 complex numbers (D-008) | ⬜ next |
+| P2–P15 | ⬜ |
+
 ## Next steps
 1. M11 per PLAN §86. Next targets, from PERFORMANCE.md findings:
    - Per-call binding overhead: the construction-guard fix is done (D-024, about 13%). The remaining ~700 ns per result is ObjectWrap construction. Evaluate `napi_create_external` handles (needs a decision).

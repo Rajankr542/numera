@@ -157,6 +157,122 @@ for (const m of DECOMP) {
   if (m <= 512) run("linalg", "eig", s, () => np.linalg.eig(A));
 }
 
+// ---- api coverage (D-032): every implemented callable timed at a small size ----
+{
+  const n = 1_000;
+  const v = rng.random([n]);
+  const w = rng.random([n]);
+  const M = np.add(rng.random([32, 32]), np.multiply(np.eye(32), 32));
+  const S = np.add(M, M.T);
+  const bvec = rng.random([32]);
+  const vs = [n];
+  const ms = [32, 32];
+  const rs = new np.random.RandomState(1);
+  np.random.seed(1);
+  const api = (name, shape, fn) => run("api", name, shape, fn);
+
+  api("asarray", vs, () => np.asarray(v));
+  api("full", vs, () => np.full([n], 2.5));
+  api("fullLike", vs, () => np.fullLike(v, 2.5));
+  api("zerosLike", vs, () => np.zerosLike(v));
+  api("onesLike", vs, () => np.onesLike(v));
+  api("emptyLike", vs, () => np.emptyLike(v));
+  api("identity", ms, () => np.identity(32));
+  api("linspace", vs, () => np.linspace(0, 1, n));
+  api("mayShareMemory", vs, () => np.mayShareMemory(v, w));
+  api("promoteTypes", [], () => np.promoteTypes("int32", "float32"));
+  api("broadcastShapes", [], () => np.broadcastShapes([32, 1], [1, 32]));
+  api("broadcastTo", ms, () => np.broadcastTo(bvec, [32, 32]));
+  api("subtract", vs, () => np.subtract(v, w));
+  api("power", vs, () => np.power(v, 2.0));
+  api("mod", vs, () => np.mod(v, 0.3));
+  api("floorDivide", vs, () => np.floorDivide(v, 0.3));
+  api("negative", vs, () => np.negative(v));
+  api("reshape", vs, () => np.reshape(v, [10, 100]));
+  api("ravel", ms, () => np.ravel(M));
+  api("squeeze", vs, () => np.squeeze(np.reshape(v, [1, n])));
+  api("expandDims", vs, () => np.expandDims(v, 0));
+  api("transpose", ms, () => np.transpose(M));
+  api("swapaxes", ms, () => np.swapAxes(M, 0, 1));
+  api("moveaxis", ms, () => np.moveAxis(M, 0, 1));
+  api("where", vs, () => np.where(v, v, w));
+  api("nonzero", vs, () => np.nonzero(v));
+  api("min", vs, () => np.min(v));
+  api("amin", vs, () => np.amin(v));
+  api("amax", vs, () => np.amax(v));
+  api("argmin", vs, () => np.argmin(v));
+  api("prod", vs, () => np.prod(v));
+  api("var", vs, () => np.var(v));
+  api("dot", vs, () => np.dot(v, w));
+  api("inner", vs, () => np.inner(v, w));
+  api("outer", [100, 100], () => np.outer(v.slice([[0, 100]]), w.slice([[0, 100]])));
+
+  api("ndarray.argmin", vs, () => v.argmin());
+  api("ndarray.min", vs, () => v.min());
+  api("ndarray.prod", vs, () => v.prod());
+  api("ndarray.var", vs, () => v.var());
+  api("ndarray.flatten", ms, () => M.flatten());
+  api("ndarray.ravel", ms, () => M.ravel());
+  api("ndarray.item", [], () => v.item(0));
+  api("ndarray.squeeze", vs, () => np.reshape(v, [1, n]).squeeze());
+  api("ndarray.sum", vs, () => v.sum());
+  api("ndarray.mean", vs, () => v.mean());
+  api("ndarray.std", vs, () => v.std());
+  api("ndarray.max", vs, () => v.max());
+  api("ndarray.argmax", vs, () => v.argmax());
+  const B1 = np.reshape(v, [1, n]);
+  api("ndarray.squeeze (view)", vs, () => B1.squeeze());
+  api("ndarray.swapaxes", ms, () => M.swapAxes(0, 1));
+  api("ndarray.transpose", ms, () => M.transpose());
+
+  api("linalg.matmul", ms, () => np.linalg.matmul(M, M));
+  api("linalg.norm", ms, () => np.linalg.norm(M));
+  api("linalg.eigvals", ms, () => np.linalg.eigvals(M));
+  api("linalg.eigvalsh", ms, () => np.linalg.eigvalsh(S));
+  api("linalg.lstsq", ms, () => np.linalg.lstsq(M, bvec));
+
+  const V = np.fft.fft(v);
+  api("fft.ifft", vs, () => np.fft.ifft(V));
+  api("fft.irfft", vs, () => np.fft.irfft(np.fft.rfft(v)));
+  api("fft.fftn", ms, () => np.fft.fftn(M));
+  api("fft.ifftn", ms, () => np.fft.ifftn(M));
+  api("fft.ifft2", ms, () => np.fft.ifft2(M));
+  api("fft.fftfreq", vs, () => np.fft.fftfreq(n));
+  api("fft.rfftfreq", vs, () => np.fft.rfftfreq(n));
+
+  api("rng.uniform", vs, () => rng.uniform(0, 1, [n]));
+  api("rng.normal", vs, () => rng.normal(0, 1, [n]));
+  api("rng.choice", vs, () => rng.choice(n, [n]));
+  api("rng.permutation", vs, () => rng.permutation(n));
+  api("rng.shuffle", vs, () => rng.shuffle(v));
+
+  api("rs.seed", [], () => rs.seed(1));
+  api("rs.random", vs, () => rs.random([n]));
+  api("rs.random_sample", vs, () => rs.randomSample([n]));
+  api("rs.rand", vs, () => rs.rand(n));
+  api("rs.randn", vs, () => rs.randn(n));
+  api("rs.standard_normal", vs, () => rs.standardNormal([n]));
+  api("rs.normal", vs, () => rs.normal(0, 1, [n]));
+  api("rs.uniform", vs, () => rs.uniform(0, 1, [n]));
+  api("rs.randint", vs, () => rs.randint(0, 1000, [n]));
+  api("rs.choice", vs, () => rs.choice(n, [n]));
+  api("rs.permutation", vs, () => rs.permutation(n));
+  api("rs.shuffle", vs, () => rs.shuffle(w));
+
+  api("np.random.seed", [], () => np.random.seed(1));
+  api("np.random.random", vs, () => np.random.random([n]));
+  api("np.random.random_sample", vs, () => np.random.randomSample([n]));
+  api("np.random.rand", vs, () => np.random.rand(n));
+  api("np.random.randn", vs, () => np.random.randn(n));
+  api("np.random.standard_normal", vs, () => np.random.standardNormal([n]));
+  api("np.random.normal", vs, () => np.random.normal(0, 1, [n]));
+  api("np.random.uniform", vs, () => np.random.uniform(0, 1, [n]));
+  api("np.random.randint", vs, () => np.random.randint(0, 1000, [n]));
+  api("np.random.choice", vs, () => np.random.choice(n, [n]));
+  api("np.random.permutation", vs, () => np.random.permutation(n));
+  api("np.random.shuffle", vs, () => np.random.shuffle(w));
+}
+
 const out = join(dirname(fileURLToPath(import.meta.url)), "..", "reports", "nativpy-suite.json");
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(

@@ -1,5 +1,41 @@
 # PROGRESS
 
+## 2026-09-30 — P0 NumPy API coverage tooling (D-032)
+
+Done:
+- **D-032 recorded.** It covers the parity programme and scope defaults a–d:
+  - no `object_` dtype;
+  - `longdouble` aliases float64;
+  - deprecated APIs go last;
+  - build/introspection names are excluded, each with a reason.
+- **`python/api_inventory.py`** writes the checked-in `api/numpy-api.json`
+  (NumPy 2.5.3, 1168 names across 14 surfaces).
+- **Exclusions and aliases.** `api/exclusions.json` has 91 entries, each with a
+  reason. Two of them are wildcards for `testing` constants and classes, so 108
+  names are excluded in total. `api/aliases.json` is empty: matching ignores
+  case and `_`.
+- **Coverage tool.** `scripts/api-coverage.mjs` and `scripts/api-coverage-lib.mjs`
+  measure API coverage against the built package. They also check benchmark
+  coverage by scanning both suites for call sites.
+  - `--check` fails if the implemented count drops, if a new callable lacks a
+    benchmark in either suite, or if an alias target is missing.
+  - It runs in CI as `pnpm api:check`.
+- **Benchmarks.** An `api` category was added to both suites. It covers 92
+  cases, so all 158 implemented names are benchmarked; `benchIgnore` is empty.
+- **Bug fix.** `benchmarks/compare.mjs` read `packages/nativpy/package.json`,
+  which the rename had removed. It now reads `packages/numera`.
+
+Verification:
+- `pnpm test`: 173 tests pass, including 5 new ones in `api_coverage.test.ts`.
+- `pnpm typecheck` passes.
+- `pnpm api:check` passes.
+- Both suites ran with `NATIVPY_BENCH_FILTER=api/`, and `compare.mjs` paired all
+  92 `api/*` rows.
+
+Measured: API coverage is **14.9% (158/1060)** after 108 exclusions.
+
+Next: P1, complex numbers (D-008).
+
 ## 2026-09-30 — Manual releases only; release workflow removed (D-031)
 
 Done:

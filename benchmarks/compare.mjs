@@ -27,7 +27,7 @@ const env = {
   numpy: npy.numpy,
   numpy_blas: npy.blas,
   nativpy_linalg_backend: nat.linalg_backend,
-  nativpy: JSON.parse(readFileSync(join(dir, "..", "..", "packages", "nativpy", "package.json"), "utf8")).version,
+  nativpy: JSON.parse(readFileSync(join(dir, "..", "..", "packages", "numera", "package.json"), "utf8")).version,
   method: `median of ${nat.repeats} samples, each >= ${nat.min_sample_ms} ms of repeated calls`,
 };
 
