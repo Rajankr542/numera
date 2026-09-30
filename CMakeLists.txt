@@ -18,6 +18,14 @@ else()
   set(NATIVPY_WARNINGS -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
 endif()
 
+# D-025: match how the NumPy wheels are compiled on each platform. The Linux
+# wheels do not contract a*b+c, but GCC defaults to -ffp-contract=fast (FMA on
+# aarch64), which broke bit-exact arange/linspace/random vs NumPy on Linux arm64.
+# The macOS wheels use Clang's default (-ffp-contract=on), so Apple keeps it.
+if(NOT MSVC AND NOT APPLE)
+  add_compile_options(-ffp-contract=off)
+endif()
+
 if(NATIVPY_SANITIZE AND NOT MSVC)
   add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer
                       -fno-sanitize-recover=undefined)

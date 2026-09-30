@@ -530,3 +530,22 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   many ops per native call. That changes the binding architecture and needs its own
   decision and prototype. Deferred; it is recorded in ROADMAP.
 
+
+## D-025 — Portable CI: FP contraction and platform-dependent references — Accepted — 2026-09-30
+- Context: the first Linux CI run (GCC 13, ubuntu-latest) found issues that macOS/Clang did not show.
+- Build: GCC `-Wshadow` flagged the `ErrorKind::Shape` enumerator against `using Shape`.
+  `shape.hpp` now includes `error.hpp` before declaring `Shape`. GCC `-Wconversion`
+  flagged `pairwise_sum` instantiated for small ints; that path is now `if constexpr` float-only.
+- FP contraction: GCC defaults to `-ffp-contract=fast` and fused `a*b+c` into FMA on
+  aarch64. That broke bit-exact arange/linspace/random against NumPy's Linux wheels.
+  Non-Apple, non-MSVC builds now use `-ffp-contract=off` globally. Apple keeps Clang's
+  default (`on`), which matches the macOS wheels. Forcing `off` on macOS broke 9
+  arange/random cases. `reduce.cpp` stays `off` everywhere (D-021).
+- eig differential test: the real parts of conjugate pairs are equal only up to
+  rounding. Sorting by the exact real part could swap the pairs. The sort key now
+  compares real parts within the test tolerance first. The eigenvalues were already correct.
+- min/max signed zero: when the input has both +0 and -0, the sign NumPy returns depends
+  on its SIMD path (x86 baseline differs from AVX2/NEON). Those cases (`zero_rule`)
+  assert the D-017 rule (min -> -0.0, max -> +0.0), not the host NumPy's bits.
+- Verified: macOS arm64 (Clang), plus Docker ubuntu:24.04 arm64 and amd64 (emulated) with GCC 13.3.
+

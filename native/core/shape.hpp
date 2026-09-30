@@ -4,6 +4,10 @@
 #include <string>
 #include <vector>
 
+// Must precede `using Shape`: GCC 13 -Wshadow flags the ErrorKind::Shape
+// enumerator when it is declared after a namespace-scope `Shape` (CI, Ubuntu).
+#include "error.hpp"
+
 namespace nativpy {
 
 using Shape = std::vector<std::int64_t>;

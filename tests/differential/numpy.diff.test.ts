@@ -56,6 +56,7 @@ interface Case {
   a_shape?: number[];
   b_shape?: number[];
   approx?: boolean;
+  zero_rule?: boolean;
   scalar?: number;
   index?: unknown[];
   chain?: string[];
@@ -492,6 +493,13 @@ describe("differential: reductions (M7, D-017)", () => {
     }
     const r = make();
     const exp = c.expected as Described;
+    if (c.zero_rule) {
+      // D-025: NumPy's sign here is SIMD-path dependent; assert the D-017 rule.
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      expect(r.toArray()).toEqual(c.fn === "min" ? -0 : 0);
+      return;
+    }
     if (c.t) {
       // D-017 (like D-014): results are always C-contiguous; NumPy keeps the
       // input's memory order for transposed inputs.
@@ -630,8 +638,13 @@ describe("differential: linalg (M8, D-018)", () => {
         meta(res.eigenvalues, w!);
         meta(res.eigenvectors, V!);
         const [wr, wi] = complexParts(res.eigenvalues);
+        // Conjugate pairs share a real part that differs only by rounding
+        // (platform/compiler dependent), so compare real parts with a tolerance
+        // before ordering by the imaginary part; otherwise pairs can swap.
+        const keyTol = tol(w!.dtype) * Math.max(1, ...flat(decodeExpected(w!.values!)).map(Math.abs));
         const key = (re: number[], im: number[]): number[][] =>
-          re.map((x, i) => [x, im[i]!]).sort((p, q) => p[0]! - q[0]! || p[1]! - q[1]!);
+          re.map((x, i) => [x, im[i]!]).sort((p, q) =>
+            Math.abs(p[0]! - q[0]!) > keyTol ? p[0]! - q[0]! : p[1]! - q[1]!);
         const n = A.shape[A.shape.length - 1]!;
         for (let t = 0; t * n < wr.length; t++) {
           const g = key(wr.slice(t * n, t * n + n), wi.slice(t * n, t * n + n));

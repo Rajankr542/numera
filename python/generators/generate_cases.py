@@ -594,6 +594,13 @@ def _reduce_case(name, data, dt, shape, kw, transpose=False) -> dict:
         return {**base, "error": err}
     r = np.asarray(r)
     base["approx"] = name in REDUCE_APPROX and r.dtype.kind == "f"
+    # D-025: NumPy's min/max sign of zero depends on its SIMD path (x86 baseline
+    # vs AVX2/NEON disagree when both +0 and -0 are present). Such cases check
+    # the D-017 rule (min -> -0.0, max -> +0.0) instead of the platform result.
+    if (name in ("min", "max") and r.ndim == 0 and r.dtype.kind == "f" and r == 0
+            and any(v == 0 and math.copysign(1.0, v) < 0 for v in data)
+            and any(v == 0 and math.copysign(1.0, v) > 0 for v in data)):
+        base["zero_rule"] = True
     return {**base, "expected": describe(r)}
 
 

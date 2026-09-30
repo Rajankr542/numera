@@ -259,10 +259,14 @@ void fold_rows(ReduceOp op, const Work& w, const std::optional<double>& initial,
       const auto* x = reinterpret_cast<const W*>(row);
       // NumPy sums pairwise only along the inner loop; reductions over leading
       // axes accumulate sequentially (verified bit-exact), so keep that order.
-      if (!initial && w.trailing && op == ReduceOp::Sum && std::is_floating_point_v<W>) {
-        const C s = pairwise_sum<C>([x](std::int64_t i) { return static_cast<C>(x[i]); }, 0, w.n);
-        store<W>(dst + static_cast<std::size_t>(r) * isz, cast_value<W>(C{0} + s));
-        continue;
+      // `if constexpr`: only instantiate for floats (small ints promote to int
+      // inside pairwise_sum and would narrow; GCC -Wconversion).
+      if constexpr (std::is_floating_point_v<W>) {
+        if (!initial && w.trailing && op == ReduceOp::Sum) {
+          const C s = pairwise_sum<C>([x](std::int64_t i) { return static_cast<C>(x[i]); }, 0, w.n);
+          store<W>(dst + static_cast<std::size_t>(r) * isz, cast_value<W>(C{0} + s));
+          continue;
+        }
       }
       if (!initial && w.n > 0 && (op == ReduceOp::Min || op == ReduceOp::Max)) {
         std::byte* o = dst + static_cast<std::size_t>(r) * isz;
