@@ -328,3 +328,43 @@ Found by the NumPy differential tests (NumPy 2.5.3):
     gives float64.
 - Complex *input* to linalg raises `NotImplementedError` (D-008).
 
+## D-019 — Random module (M9) — Accepted — 2026-09-29
+- Code lives in `native/random/` as the `nativpy_random` static lib, which
+  depends on core. The algorithms are ported from the NumPy 2.x sources
+  (BSD-3):
+  - `SeedSequence`.
+  - `PCG64`: XSL-RR 128/64, needs `__uint128_t`.
+  - `MT19937`: legacy integer and array seeding.
+- Goal: bit-exact streams vs. NumPy for the implemented methods. Every
+  claimed method is checked by differential tests.
+- `np.random.defaultRng(seed)` is `Generator(PCG64(SeedSequence(seed)))`.
+  - The seed can be a non-negative integer (number or bigint) or an array of
+    them.
+  - An omitted seed means OS entropy (128 bits from `crypto.getRandomValues`).
+- `Generator` methods use NumPy's algorithms:
+  - `random`: 53-bit double, or 24-bit float32.
+  - `uniform`.
+  - `standardNormal` / `normal`: ziggurat.
+  - `integers`: Lemire rejection, buffered 8/16-bit draws, `endpoint`.
+  - `choice`, `shuffle`, `permutation`.
+- The legacy global `np.random.*` functions use a `RandomState(MT19937)`
+  singleton, as in NumPy:
+  - `seed`, `rand`, `randn`, `random` / `randomSample`, `uniform`.
+  - `normal`: polar Box–Muller with the cached second gauss.
+  - `randint`: masked rejection, default dtype int64.
+  - `choice`, `shuffle`, `permutation`.
+- Signatures follow NumPy's positional order, e.g.
+  `normal(loc?, scale?, size?)`. A single options object also works:
+  `normal({loc, scale, size})`. Without `size`, a scalar comes back as a JS
+  number (int64/uint64 follow D-005).
+- In M9, distribution parameters are scalars only. Array (broadcast)
+  parameters raise `NotImplementedError`.
+- `shuffle` works in place on a writeable NDArray: axis 0 for `RandomState`,
+  any `axis` for `Generator`. `permutation` returns a new array.
+- Invalid arguments raise `ValueError` with NumPy's messages where practical.
+- Float32 output is only available through `standardNormal`, as in NumPy.
+  Asking native `normal` for float32 with a non-default loc/scale raises
+  `ValueError`; it never silently drops the parameters.
+- An unseeded `RandomState` is array-seeded with 624 words of OS entropy. The
+  stream isn't reproducible, the same as in NumPy.
+
