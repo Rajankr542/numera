@@ -126,6 +126,14 @@ try {
     } catch (err) {
       const stderr = String(err.stderr ?? "");
       process.stderr.write(stderr);
+      if (/too similar to existing package/i.test(stderr)) {
+        console.error(
+          `\nnpm rejected the name "${pkg.name}" as too similar to an existing package.` +
+            `\nUse the scoped name instead, which is always accepted: set "name" in` +
+            `\n${pkgJsonPath} to "@${user}/${pkg.name.replace(/^@[^/]+\//, "")}" and re-run pnpm release.`,
+        );
+        throw err;
+      }
       const needsOtp = /EOTP|one-time password/i.test(stderr);
       if (!needsOtp || attempt >= 3 || !process.stdin.isTTY) {
         if (needsOtp) console.error("\nnpm needs a 2FA one-time password. Re-run with: pnpm release -- --otp <code>");

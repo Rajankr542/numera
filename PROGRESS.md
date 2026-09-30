@@ -9,6 +9,11 @@ Done:
   scope is required there. The import name changes; the API does not. `numera`
   may still hit npm's similarity check (close to the popular `numeral`). The
   fallback is `@rajankr542/numera` on npm too (D-027).
+- Release path: npm releases are published **manually from the local machine**
+  with `pnpm release`. The Actions workflow is optional (GitHub Packages +
+  GitHub Release). `release.mjs` now explains npm's "too similar" E403 and
+  points to the scoped name. `package.json` repository URLs point to
+  `Rajankr542/numera` (the GitHub repo was renamed).
 - `.github/workflows/release.yml` (manual `workflow_dispatch`, `main` only):
   prebuilds on native runners, pack + smoke test (`scripts/ci-pack.mjs`, with
   `--name` to pack under the scoped name for GitHub Packages), publish to

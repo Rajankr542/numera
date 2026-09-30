@@ -4,14 +4,14 @@
   "description": "NumPy for JavaScript/TypeScript: n-dimensional arrays, broadcasting, linear algebra, random and FFT backed by a native C++ core.",
   "license": "MIT",
   "author": "Rajan Kumar",
-  "homepage": "https://github.com/Rajankr542/nativpy#readme",
+  "homepage": "https://github.com/Rajankr542/numera#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Rajankr542/nativpy.git",
-    "directory": "packages/nativpy"
+    "url": "git+https://github.com/Rajankr542/numera.git",
+    "directory": "packages/numera"
   },
   "bugs": {
-    "url": "https://github.com/Rajankr542/nativpy/issues"
+    "url": "https://github.com/Rajankr542/numera/issues"
   },
   "keywords": [
     "numera",

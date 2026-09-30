@@ -593,7 +593,11 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   scoped variant. It rewrites `name` only for the duration of `npm pack` and
   always restores `package.json`, so the committed name stays `numera`.
 - A manually triggered workflow (`.github/workflows/release.yml`, `workflow_dispatch`)
-  builds, publishes and marks releases. It runs only on `main`. Inputs: `bump`
+  builds, publishes and marks releases. It is **optional**. The maintainer's
+  primary path for npmjs.org is the local `pnpm release` (D-026), run by hand
+  from their own machine with browser login and a 2FA prompt. The local script
+  also detects npm's "too similar" E403 and prints the scoped-name fix. The
+  workflow runs only on `main`. Inputs: `bump`
   (`current|patch|minor|major`), `registry` (`github|npm|both`, default `github`)
   and `dry_run`. GitHub Packages uses the built-in `GITHUB_TOKEN`
   (`packages: write`). npmjs.org needs an `NPM_TOKEN` secret (granular access

@@ -17,7 +17,7 @@ npm install numera        # or: pnpm add numera / yarn add numera
 ```
 
 It's also published to
-[GitHub Packages](https://github.com/Rajankr542/nativpy/packages) as
+[GitHub Packages](https://github.com/Rajankr542/numera/packages) as
 `@rajankr542/numera` (GitHub requires the owner scope there). To install from
 there, add this to your project's `.npmrc`. GitHub Packages needs a token with
 `read:packages` even for reads:
@@ -223,7 +223,7 @@ through pip, and to generate the NumPy reference cases for the differential
 tests. Users of the npm package never need it.
 
 ```bash
-git clone https://github.com/Rajankr542/nativpy.git && cd nativpy
+git clone https://github.com/Rajankr542/numera.git && cd numera
 python3 -m venv .venv && .venv/bin/pip install -r python/requirements.txt
 export PATH="$PWD/.venv/bin:$PATH"   # cmake, ninja, numpy (dev only)
 pnpm install
@@ -237,28 +237,17 @@ pnpm bench          # benchmarks
 
 ### Publishing a release (maintainers)
 
-**From GitHub (recommended):** Actions → **Release** → *Run workflow* on `main`.
-Choose:
+npm releases are published **manually from your own machine** with
+`pnpm release`. The GitHub Actions workflow below is optional.
 
-- `bump`: `current` publishes the version in `package.json` as-is (use this for
-  the first `1.0.0`); `patch` / `minor` / `major` bump it first.
-- `registry`: `github` (GitHub Packages, default), `npm` or `both`. npmjs.org
-  needs an `NPM_TOKEN` repository secret (npm granular access token).
-- `dry_run`: build and test everything, but don't publish, push or create a release.
-
-The workflow builds all four prebuilds on native runners (Linux in
-`manylinux_2_28` Docker) and runs the unit tests against them. It packs the
-tarball and smoke-tests it in a clean project, then publishes it. Last, it commits
-the version, tags `vX.Y.Z` and creates a **GitHub Release marked latest** with
-the tarball attached. A version whose tag already exists is refused.
-
-**Locally** (publishes to npmjs.org):
+**Locally, to npmjs.org (primary):**
 
 ```bash
-pnpm release              # next patch version: 1.0.0 -> 1.0.1 (same as release:patch)
+npm whoami                # check you're logged in (pnpm release logs you in otherwise)
+pnpm release:dry          # full rehearsal: build, test, prebuilds, pack, smoke test, no publish
+pnpm release              # publish: first run publishes 1.0.0; later runs bump the patch version
 pnpm release:minor        # 1.0.x -> 1.1.0
 pnpm release:major        # 1.x.y -> 2.0.0
-pnpm release:dry          # run every step except the actual publish
 pnpm release --push       # also git push the release commit + tag
 ```
 
@@ -271,12 +260,32 @@ folder, then runs `npm publish`. If your npm account uses 2FA, the script
 **pauses and asks for the one-time password** from your authenticator app at
 that point. Run it in an interactive terminal. A code passed in advance
 (`-- --otp <code>` or `NPM_OTP`) usually expires during the ~10 minute build.
-Last, it commits `chore(release)` and tags `vX.Y.Z`.
+Last, it commits `chore(release)` and tags `vX.Y.Z`. Push them with
+`git push --follow-tags`, or pass `--push`.
+If npm rejects the name as "too similar to an existing package", the script
+says so and suggests the scoped name `@<your-npm-user>/numera`, which is always
+accepted.
+
 Requirements: macOS with Xcode, plus Docker Desktop installed for the Linux
 binaries. The prebuild step starts Docker Desktop if it is not running. If the
 default SDK cannot link, it falls back to the Xcode SDK. Linux binaries are built
 in `manylinux_2_28`. `--targets darwin-arm64,darwin-x64` limits the build to
 those platforms (the table above then overstates support).
+
+**From GitHub Actions (optional):** Actions → **Release** → *Run workflow* on
+`main`. It defaults to GitHub Packages (`@rajankr542/numera`) and creates a
+**GitHub Release marked latest** with the tarball attached. Inputs:
+
+- `bump`: `current` publishes the version in `package.json` as-is;
+  `patch` / `minor` / `major` bump it first.
+- `registry`: `github` (default), `npm` or `both`. npmjs.org from CI needs an
+  `NPM_TOKEN` repository secret. It isn't needed if you publish npm locally.
+- `dry_run`: build and test everything, but don't publish, push or create a release.
+
+The workflow builds all four prebuilds on native runners, runs the unit tests,
+and smoke-tests the packed tarball in a clean project before publishing. It
+refuses a version whose tag `vX.Y.Z` already exists. So after a local
+`pnpm release` of 1.0.0 (which tags `v1.0.0`), a CI run must use a bump.
 
 Contributor rules are in [AGENTS.md](./AGENTS.md). The design is described in
 [ARCHITECTURE.md](./ARCHITECTURE.md) and [DECISIONS.md](./DECISIONS.md).
