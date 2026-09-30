@@ -36,5 +36,5 @@ pnpm test:asan      # C++ tests under ASan+UBSan
 
 ## Code conventions
 - C++20, RAII, no raw ownership, const-correct, `-Wall -Wextra -Wpedantic -Werror`.
-- Namespace `nativpy`; headers `.hpp`; files snake_case.
+- Namespace `numera`; headers `.hpp`; files snake_case.
 - TypeScript strict mode, ESM output; camelCase API names mirroring NumPy (PLAN §76).
