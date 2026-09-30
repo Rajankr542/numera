@@ -20,6 +20,9 @@
     "test:diff": "python3 python/generators/generate_cases.py && vitest run --config vitest.diff.config.ts",
     "bench": "node --expose-gc benchmarks/nativpy/creation.bench.mjs",
     "bench:numpy": "python3 benchmarks/numpy/creation_bench.py",
+    "bench:suite": "node --expose-gc benchmarks/nativpy/suite.bench.mjs",
+    "bench:suite:numpy": "python3 benchmarks/numpy/suite_bench.py",
+    "bench:compare": "node benchmarks/compare.mjs",
     "typecheck": "tsc -p packages/nativpy/tsconfig.json --noEmit"
   },
   "devDependencies": {
