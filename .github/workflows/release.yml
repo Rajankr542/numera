@@ -1,0 +1,226 @@
+# Manually triggered release (DECISIONS D-027).
+# Actions → Release → Run workflow. Builds the 4 prebuilds, smoke-tests the
+# packed tarball, publishes @rajankr542/nativpy to GitHub Packages and/or
+# npmjs.org, then commits the version, tags vX.Y.Z and creates a
+# GitHub Release (marked latest) with the tarball attached.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version: current = package.json as-is (e.g. first 1.0.0), else bump it"
+        type: choice
+        options: [current, patch, minor, major]
+        default: current
+      registry:
+        description: "Where to publish (npm needs the NPM_TOKEN secret)"
+        type: choice
+        options: [github, npm, both]
+        default: github
+      dry_run:
+        description: "Build and test everything but do not publish, push or release"
+        type: boolean
+        default: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "8.7.6"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - name: Refuse non-main branches
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run the release from main (got ${{ github.ref }})"
+          exit 1
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: v
+        name: Choose version
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          current=$(node -p "require('./packages/nativpy/package.json').version")
+          # shellcheck disable=SC2016 # single quotes hold a JS program
+          version=$(node -e '
+            const [a, b, c] = process.argv[1].split(".").map(Number);
+            const t = process.env.BUMP;
+            console.log(t === "major" ? `${a + 1}.0.0` : t === "minor" ? `${a}.${b + 1}.0` : t === "patch" ? `${a}.${b}.${c + 1}` : process.argv[1]);
+          ' "$current")
+          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+            echo "::error::Tag v$version already exists. Choose bump=patch/minor/major."
+            exit 1
+          fi
+          echo "Releasing $current -> $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  prebuild-linux:
+    needs: prepare
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { target: linux-x64, runner: ubuntu-24.04 }
+          - { target: linux-arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      # Builds in manylinux_2_28 Docker on a native-arch runner, so the full
+      # vitest suite and the smoke test run against the fresh addon (D-026).
+      - run: node scripts/build-prebuilds.mjs --targets ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-${{ matrix.target }}
+          path: packages/nativpy/prebuilds
+          if-no-files-found: error
+
+  prebuild-macos:
+    needs: prepare
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build tools (cmake, ninja)
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -q cmake ninja
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/build-prebuilds.mjs --targets darwin-arm64,darwin-x64
+      - name: Test the arm64 prebuild (x64 is cross-compiled and not executed)
+        env:
+          NATIVPY_ADDON_PATH: ${{ github.workspace }}/packages/nativpy/prebuilds/darwin-arm64/nativpy.node
+        run: |
+          pnpm build:ts
+          pnpm test
+          node scripts/smoke-test.mjs ./packages/nativpy/dist/index.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-darwin
+          path: packages/nativpy/prebuilds
+          if-no-files-found: error
+
+
+  publish:
+    needs: [prepare, prebuild-linux, prebuild-macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # version commit, tag, GitHub Release
+      packages: write # GitHub Packages npm registry
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      REGISTRY: ${{ inputs.registry }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: prebuild-*
+          path: packages/nativpy/prebuilds
+          merge-multiple: true
+      - name: Check all four prebuilds are present
+        run: |
+          for t in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
+            test -f "packages/nativpy/prebuilds/$t/nativpy.node" || { echo "::error::missing prebuild $t"; exit 1; }
+          done
+          file packages/nativpy/prebuilds/*/nativpy.node
+      - run: pnpm install --frozen-lockfile
+      - name: Build TypeScript and stage package files
+        run: |
+          pnpm build:ts
+          cp README.md LICENSE packages/nativpy/
+      - name: Set version
+        working-directory: packages/nativpy
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
+      - name: Pack + smoke-test the tarball
+        run: node scripts/ci-pack.mjs "$RUNNER_TEMP/pkg"
+
+      - name: Publish to GitHub Packages
+        if: env.REGISTRY != 'npm' && env.DRY_RUN != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN" > "$RUNNER_TEMP/npmrc-gpr"
+          npm publish "$RUNNER_TEMP"/pkg/*.tgz \
+            --registry https://npm.pkg.github.com --userconfig "$RUNNER_TEMP/npmrc-gpr"
+      - name: Publish to npmjs.org
+        if: env.REGISTRY != 'github' && env.DRY_RUN != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          test -n "$NODE_AUTH_TOKEN" || { echo "::error::Add an NPM_TOKEN repository secret (npm granular access token with publish rights)"; exit 1; }
+          echo "//registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN" > "$RUNNER_TEMP/npmrc-npm"
+          npm publish "$RUNNER_TEMP"/pkg/*.tgz --access public \
+            --registry https://registry.npmjs.org --userconfig "$RUNNER_TEMP/npmrc-npm"
+
+      - name: Commit version, tag and push
+        if: env.DRY_RUN != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/nativpy/package.json
+          git diff --cached --quiet || git commit -m "chore(release): nativpy@$VERSION"
+          git tag -a "v$VERSION" -m "nativpy@$VERSION"
+          git push origin HEAD:main "v$VERSION"
+      - name: Write release notes
+        run: |
+          name=$(node -p "require('./packages/nativpy/package.json').name")
+          scope=${name%%/*}
+          # shellcheck disable=SC2016 # backticks are Markdown, not shell
+          {
+            echo "## Install"
+            if [ "$REGISTRY" != npm ]; then
+              printf '\nFrom GitHub Packages (add `%s:registry=https://npm.pkg.github.com` to `.npmrc`):\n' "$scope"
+            fi
+            printf '\n```bash\nnpm install %s@%s\n```\n' "$name" "$VERSION"
+            printf '\nPrebuilt for macOS arm64/x64 (13.3+) and Linux x64/arm64 (glibc 2.28+), Node >= 18.\n'
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+      - name: Create GitHub Release (marked latest)
+        if: env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v$VERSION" "$RUNNER_TEMP"/pkg/*.tgz \
+            --title "nativpy $VERSION" --notes-file "$RUNNER_TEMP/notes.md" \
+            --generate-notes --latest --verify-tag
+      - name: Keep the tarballs of a dry run
+        if: env.DRY_RUN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarballs-dry-run
+          path: ${{ runner.temp }}/pkg
+

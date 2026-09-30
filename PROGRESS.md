@@ -1,5 +1,25 @@
 # PROGRESS
 
+## 2026-09-30 — GitHub Packages + manual GitHub Actions release (D-027)
+
+Done:
+- `npm publish nativpy` was rejected by npm with E403: "Package name too similar
+  to existing package natives; try renaming your package to '@rajankr542/nativpy'".
+  GitHub Packages also requires the owner scope. The package is now
+  **`@rajankr542/nativpy`** (import name changes, API does not).
+- `.github/workflows/release.yml` (manual `workflow_dispatch`, `main` only):
+  prebuilds on native runners, pack + smoke test (`scripts/ci-pack.mjs`),
+  publish to GitHub Packages and/or npmjs.org, commit + tag `vX.Y.Z`, and a
+  GitHub Release marked latest with the tarball attached.
+- macOS prebuilds now pin `MACOSX_DEPLOYMENT_TARGET=13.3`. The earlier ones
+  required the build host's macOS 26.5. 13.3 is the floor set by the
+  `ACCELERATE_NEW_LAPACK` symbols.
+- Verified locally: actionlint clean; `ci-pack.mjs` packs all 4 prebuilds
+  (2.55 MB, 46 files) and the installed `@rajankr542/nativpy` passes the smoke
+  test; `npm publish --dry-run` targets `npm.pkg.github.com`; typecheck and 83
+  unit tests pass. The workflow itself has not run on GitHub yet.
+
+
 ## 2026-09-30 — npm packaging and local release command (D-026)
 - `packages/nativpy` ships `dist/` + `prebuilds/<platform>-<arch>/nativpy.node`.
   The loader checks the bundled prebuild before the repo build. Keywords,

@@ -15,6 +15,8 @@ const venvBin = join(root, ".venv/bin");
 if (existsSync(venvBin)) process.env.PATH = `${venvBin}${delimiter}${process.env.PATH}`;
 const ALL = ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64"];
 const pnpmVersion = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).packageManager.split("@")[1];
+// ACCELERATE_NEW_LAPACK (cblas_new.h / lapack.h) is introduced in macOS 13.3.
+const MACOS_MIN = "13.3";
 const STABLE = ["--CDNATIVPY_BUILD_TESTS=OFF", "--CDNATIVPY_NAPI_EXPERIMENTAL=OFF"];
 
 function run(cmd, args, opts = {}) {
@@ -83,7 +85,10 @@ function place(target, builtFile) {
 function buildDarwin(arch) {
   const out = `build-prebuild-darwin-${arch}`;
   rmSync(join(root, out), { recursive: true, force: true });
-  run("npx", ["cmake-js", "compile", "--arch", arch, "--out", out, ...STABLE]);
+  // Without a deployment target the binary requires the build host's macOS
+  // (seen: minos 26.5). Pin the minimum so it loads on older macOS too.
+  const env = { ...process.env, MACOSX_DEPLOYMENT_TARGET: process.env.MACOSX_DEPLOYMENT_TARGET ?? MACOS_MIN };
+  run("npx", ["cmake-js", "compile", "--arch", arch, "--out", out, ...STABLE], { env });
   place(`darwin-${arch}`, join(root, out, "Release/nativpy.node"));
 }
 

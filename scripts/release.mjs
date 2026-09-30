@@ -109,7 +109,7 @@ try {
   delete env.NATIVPY_ADDON_PATH;
   // Run from inside the temp project so the bare "nativpy" import resolves there.
   copyFileSync(join(root, "scripts/smoke-test.mjs"), join(tmp, "smoke-test.mjs"));
-  run("node", ["smoke-test.mjs"], { cwd: tmp, env });
+  run("node", ["smoke-test.mjs", pkg.name], { cwd: tmp, env });
   rmSync(tmp, { recursive: true, force: true });
 
   // 6. Publish. With 2FA ("auth-and-writes") npm needs a one-time password:

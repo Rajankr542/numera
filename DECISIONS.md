@@ -578,3 +578,31 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   version when the current one is already on npm, builds, tests and smoke-tests
   the tarball, publishes, then commits and tags `vX.Y.Z`.
 
+
+## D-027 — Package `@rajankr542/nativpy`; CI release to GitHub Packages + GitHub Release (M13) — Accepted — 2026-09-30
+- Package name: **`@rajankr542/nativpy`** on every registry. npm rejected the
+  unscoped `nativpy` (E403 "too similar to existing package natives"), and GitHub
+  Packages' npm registry accepts only packages scoped to the repository owner.
+  One name keeps the import path the same on both registries. The repo,
+  addon file (`nativpy.node`) and API names are unchanged. This supersedes the
+  `nativpy` name in D-026.
+- A manually triggered workflow (`.github/workflows/release.yml`, `workflow_dispatch`)
+  builds, publishes and marks releases. It runs only on `main`. Inputs: `bump`
+  (`current|patch|minor|major`), `registry` (`github|npm|both`, default `github`)
+  and `dry_run`. GitHub Packages uses the built-in `GITHUB_TOKEN`
+  (`packages: write`). npmjs.org needs an `NPM_TOKEN` secret (granular access
+  token, so no 2FA prompt). The local `pnpm release` (D-026) stays available.
+- Prebuilds come from native runners, one job per platform: `ubuntu-24.04`
+  (linux-x64) and `ubuntu-24.04-arm` (linux-arm64) each run the existing
+  `scripts/build-prebuilds.mjs` in manylinux_2_28 Docker, with the full vitest suite
+  running natively. `macos-14` builds darwin-arm64 (unit + smoke tested) and
+  darwin-x64 (cross-compiled, not executed in CI). macOS prebuilds pin
+  `MACOSX_DEPLOYMENT_TARGET=13.3`, the minimum for the `ACCELERATE_NEW_LAPACK`
+  symbols. Without it the binary required the build host's macOS.
+- One publish job assembles all four prebuilds. `scripts/ci-pack.mjs` packs the
+  tarball, checks that it holds all four prebuilds, installs it into a clean project
+  and runs the smoke test on linux-x64. The job then publishes, commits the version
+  as `github-actions[bot]`, tags `vX.Y.Z`, pushes, and creates a GitHub Release
+  marked *latest* with the tarball attached and generated notes.
+- A version whose tag already exists is rejected, never overwritten.
+

@@ -13,7 +13,17 @@ addon, and TypeScript provides a typed, NumPy-style API on top of it.
 ## Installation
 
 ```bash
-npm install nativpy        # or: pnpm add nativpy / yarn add nativpy
+npm install @rajankr542/nativpy     # or: pnpm add / yarn add @rajankr542/nativpy
+```
+
+The package is published to
+[GitHub Packages](https://github.com/Rajankr542/nativpy/packages). To install
+from there, point the `@rajankr542` scope at it in your project's `.npmrc`.
+GitHub Packages needs a token with `read:packages` even for reads:
+
+```ini
+@rajankr542:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 ```
 
 That's all. The package ships a precompiled C++ addon for your platform, so you
@@ -22,7 +32,7 @@ loads the matching binary and runs the numerical work in native code.
 
 | Platform | Architectures | Node.js |
 | --- | --- | --- |
-| macOS | arm64 (Apple Silicon), x64 (Intel) | ≥ 18 |
+| macOS 13.3+ | arm64 (Apple Silicon), x64 (Intel) | ≥ 18 |
 | Linux (glibc ≥ 2.28: Ubuntu 20.04+, Debian 10+, RHEL 8+) | x64, arm64 | ≥ 18 |
 
 Windows and Alpine/musl Linux have no prebuilt binaries yet. On those, use a
@@ -31,7 +41,7 @@ Windows and Alpine/musl Linux have no prebuilt binaries yet. On those, use a
 ## Quick start
 
 ```ts
-import np from "nativpy";
+import np from "@rajankr542/nativpy";
 
 const a = np.array([[1, 2, 3], [4, 5, 6]]);
 a.shape;          // [2, 3]
@@ -44,7 +54,7 @@ a.sum({ axis: 0 }).toArray();      // [5, 7, 9]
 np.mean(a, { axis: 1 }).toArray(); // [2, 5]
 ```
 
-Named imports also work, e.g. `import { array, zeros, linalg } from "nativpy";`.
+Named imports also work, e.g. `import { array, zeros, linalg } from "@rajankr542/nativpy";`.
 
 ## Samples
 
@@ -223,6 +233,23 @@ pnpm bench          # benchmarks
 ```
 
 ### Publishing a release (maintainers)
+
+**From GitHub (recommended):** Actions → **Release** → *Run workflow* on `main`.
+Choose:
+
+- `bump`: `current` publishes the version in `package.json` as-is (use this for
+  the first `1.0.0`); `patch` / `minor` / `major` bump it first.
+- `registry`: `github` (GitHub Packages, default), `npm` or `both`. npmjs.org
+  needs an `NPM_TOKEN` repository secret (npm granular access token).
+- `dry_run`: build and test everything, but don't publish, push or create a release.
+
+The workflow builds all four prebuilds on native runners (Linux in
+`manylinux_2_28` Docker) and runs the unit tests against them. It packs the
+tarball and smoke-tests it in a clean project, then publishes it. Last, it commits
+the version, tags `vX.Y.Z` and creates a **GitHub Release marked latest** with
+the tarball attached. A version whose tag already exists is refused.
+
+**Locally** (publishes to npmjs.org):
 
 ```bash
 pnpm release              # next patch version: 1.0.0 -> 1.0.1 (same as release:patch)

@@ -1,10 +1,10 @@
 // Minimal end-to-end check of an installed/packed nativpy (D-026).
 // Usage: node scripts/smoke-test.mjs [module-specifier-or-path]
-// Default specifier is "nativpy" (resolved from the current directory).
+// Default specifier is "@rajankr542/nativpy" (resolved from the current directory).
 import { pathToFileURL } from "node:url";
 import { isAbsolute, resolve } from "node:path";
 
-const arg = process.argv[2] ?? "nativpy";
+const arg = process.argv[2] ?? "@rajankr542/nativpy";
 const spec = arg.startsWith(".") || isAbsolute(arg) ? pathToFileURL(resolve(arg)).href : arg;
 const { default: np } = await import(spec);
 
