@@ -177,6 +177,13 @@ void init_ops_binding(Napi::Env env, Napi::Object exports) {
                 return NDArrayWrap::create(e, unary(*op, arr(i, 1)));
               }));
   // ---- indexing (M6) ----
+  exports.Set("complexPart", fn(env, "complexPart", [](Info i, Napi::Env e) {
+                return NDArrayWrap::create(e, complex_part(arr(i, 0), i[1].ToBoolean().Value()));
+              }));
+  exports.Set("isComplexElementwise", fn(env, "isComplexElementwise", [](Info i, Napi::Env e) {
+                return NDArrayWrap::create(
+                    e, is_complex_elementwise(arr(i, 0), i[1].ToBoolean().Value()));
+              }));
   exports.Set("getIndex", fn(env, "getIndex", [](Info i, Napi::Env e) {
                 return NDArrayWrap::create(e, get_index(arr(i, 0), arg_index(i[1])));
               }));

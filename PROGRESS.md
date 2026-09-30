@@ -1,5 +1,50 @@
 # PROGRESS
 
+## 2026-09-30 — P1 step 2: complex ufuncs (D-033)
+
+Done:
+- **Kernels** in the new `native/core/complex_kernels.hpp`, following NumPy's
+  algorithms:
+  - `cdiv` uses Smith's algorithm (`nc_quot`);
+  - `cpow` ports `npy_cpow`, with exact small-integer powers and `0^b` rules;
+  - `cabs` uses the SIMD `cabsolute` formula;
+  - `csqrt` ports msun `npy_csqrt`;
+  - `clog` ports CPython `npy_clog`.
+  `exp` uses `std::exp`.
+- **Ufuncs.** `add`, `subtract`, `multiply`, `divide`, `power`, `negative`,
+  `sqrt`, `exp` and `log` now work on complex64 and complex128.
+  - `abs` and the new `angle` return the real dtype.
+  - `mod` and `floorDivide` raise `DTypeError`.
+- **New API** (+10 names): `np.real`, `np.imag`, `np.conj`, `np.conjugate`,
+  `np.angle(z, deg)`, `np.iscomplex`, `np.isreal`, `np.iscomplexobj`,
+  `np.isrealobj`, plus `NDArray.real`, `.imag` and `.conj()`.
+  - `real` and `imag` are strided views that share the buffer and can be
+    written through.
+  - For a real array, `imag` is a read-only zeros array, as in NumPy.
+- **Weak complex scalars (NEP 50).** A JS `{re, im}` operand gives complex64
+  with float16, float32 and complex64 arrays, and complex128 otherwise.
+- Updated existing tests that expected complex ufuncs to throw
+  `NotImplementedError`. They now check the supported behaviour and the
+  `DTypeError` for `mod` and `floorDivide`.
+
+Verification:
+- `pnpm test`: 192 tests pass.
+- `pnpm test:diff`: 3801 cases pass, including 79 new `complex_ufuncs` cases.
+  - They are exact for add, subtract, negative, conjugate, real, imag and the
+    predicates.
+  - The libm-based ops use rtol 1e-14 for complex128 and 1e-6 for complex64.
+  - inf, nan and signed-zero categories must match exactly.
+- `pnpm test:native`: 71 cases pass, including 4 new ones in
+  `test_complex.cpp`.
+- `pnpm test:asan` (ASan + UBSan) passes.
+- `pnpm typecheck` and `pnpm api:check` pass. API coverage is 16%
+  (170/1060), and every callable is benchmarked in both suites.
+- Build note: this machine's Command Line Tools SDK is broken (`tapi`
+  "unknown architecture"). Builds were run with
+  `SDKROOT=$(xcrun --show-sdk-path)` pointing at the Xcode SDK.
+
+Next: P1 step 3, complex reductions.
+
 ## 2026-09-30 — P0 NumPy API coverage tooling (D-032)
 
 Done:

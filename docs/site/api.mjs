@@ -460,11 +460,28 @@ np.power(2, [0.5, -1]).toArray()[1]; // => 0.5`,
       {
         name: "abs",
         sig: "np.abs(a) · np.negative(a)",
-        desc: "Absolute value and negation. Complex inputs are not supported yet and throw `NotImplementedError`.",
+        desc: "Absolute value and negation. For complex input `abs` returns the magnitude in the matching real dtype (`complex128` → `float64`).",
         args: [arrayArg()],
         returns: "NDArray",
         example: `np.abs([-1, 2, -3]);  // => [1, 2, 3]
-np.negative([1, -2]); // => [-1, 2]`,
+np.negative([1, -2]); // => [-1, 2]
+np.abs([np.complex(3, 4)]); // => [5]`,
+      },
+      {
+        name: "real",
+        sig: "np.real(a) · np.imag(a) · np.conj(a) · np.conjugate(a) · np.angle(z, deg?) · np.iscomplex(a) · np.isreal(a) · np.iscomplexobj(a) · np.isrealobj(a)",
+        desc: "Complex helpers. `real` and `imag` return views of the components (also available as `a.real` and `a.imag`), so writing to them changes `a`. For real input, `real` is `a` itself and `imag` is read-only zeros. `conj` negates the imaginary part. `angle` is `atan2(im, re)`, in degrees if `deg` is true. `iscomplex` and `isreal` test `imag != 0` element by element. `iscomplexobj` and `isrealobj` test the dtype.",
+        args: [arrayArg(), { name: "[deg]", type: "boolean", desc: "`angle` only: return degrees. Default `false`." }],
+        returns: "NDArray (boolean for iscomplexobj / isrealobj)",
+        example: `const z = np.array([np.complex(1, 2), np.complex(3, -4)]);
+np.real(z);     // => [1, 3]
+np.imag(z);     // => [2, -4]
+np.imag(np.conj(z)); // => [-2, 4]
+np.angle([np.complex(0, 1)], true); // => [90]
+np.iscomplex([np.complex(1, 0), np.complex(1, 1)]); // => [false, true]
+np.isreal([1, 2]);     // => [true, true]
+np.iscomplexobj(z);    // => true
+np.isrealobj([1, 2]);  // => true`,
       },
       {
         name: "sqrt",

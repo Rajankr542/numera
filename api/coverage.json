@@ -1,9 +1,9 @@
 {
  "numpy_version": "2.5.3",
  "totals": {
-  "implemented": 158,
+  "implemented": 170,
   "total": 1060,
-  "coverage": 14.9
+  "coverage": 16
  },
  "surfaces": {
   "Generator": {
@@ -449,8 +449,8 @@
   },
   "ndarray": {
    "total": 62,
-   "implemented": 27,
-   "coverage": 43.5,
+   "implemented": 30,
+   "coverage": 48.4,
    "excluded": 8,
    "missing": [
     "all",
@@ -462,7 +462,6 @@
     "choose",
     "clip",
     "compress",
-    "conj",
     "conjugate",
     "cumprod",
     "cumsum",
@@ -470,12 +469,10 @@
     "dot",
     "fill",
     "flat",
-    "imag",
     "mT",
     "nonzero",
     "partition",
     "put",
-    "real",
     "repeat",
     "resize",
     "round",
@@ -492,8 +489,8 @@
   },
   "np": {
    "total": 435,
-   "implemented": 73,
-   "coverage": 16.8,
+   "implemented": 82,
+   "coverage": 18.9,
    "excluded": 42,
    "missing": [
     "False_",
@@ -503,7 +500,6 @@
     "acosh",
     "all",
     "allclose",
-    "angle",
     "any",
     "append",
     "apply_along_axis",
@@ -572,8 +568,6 @@
     "compress",
     "concat",
     "concatenate",
-    "conj",
-    "conjugate",
     "convolve",
     "copy",
     "copysign",
@@ -659,7 +653,6 @@
     "hypot",
     "i0",
     "iinfo",
-    "imag",
     "index_exp",
     "indices",
     "inf",
@@ -672,8 +665,6 @@
     "invert",
     "is_busday",
     "isclose",
-    "iscomplex",
-    "iscomplexobj",
     "isdtype",
     "isfinite",
     "isfortran",
@@ -683,8 +674,6 @@
     "isnat",
     "isneginf",
     "isposinf",
-    "isreal",
-    "isrealobj",
     "isscalar",
     "issubdtype",
     "ix_",
@@ -773,7 +762,6 @@
     "rad2deg",
     "radians",
     "ravel_multi_index",
-    "real",
     "real_if_close",
     "recarray",
     "reciprocal",

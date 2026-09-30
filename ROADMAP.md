@@ -25,7 +25,7 @@ and a benchmark case in both suites.
 | Milestone | Status |
 |---|---|
 | P0 coverage tooling (`pnpm api:coverage` / `api:check` in CI) | ✅ API coverage is 14.9% (158/1060), and every implemented callable is benchmarked in both suites |
-| P1 complex numbers (D-008) | ⬜ next |
+| P1 complex numbers (D-008, D-033) | 🟡 in progress. Steps 1 (conversion) and 2 (ufuncs plus `real`/`imag`/`conj`/`angle`/`iscomplex*`/`isreal*`) are done. Still to do: reductions, matmul and linalg. |
 | P2–P15 | ⬜ |
 
 ## Next steps

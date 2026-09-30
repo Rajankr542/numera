@@ -273,6 +273,26 @@ api("np.random.randint", vs, lambda: np.random.randint(0, 1000, n))
 api("np.random.choice", vs, lambda: np.random.choice(n, n))
 api("np.random.permutation", vs, lambda: np.random.permutation(n))
 api("np.random.shuffle", vs, lambda: np.random.shuffle(w))
+# P1 complex (D-033): a = v + i*w
+a = v + w * 1j
+api("complex.add", vs, lambda: np.add(a, a))
+api("complex.multiply", vs, lambda: np.multiply(a, a))
+api("complex.divide", vs, lambda: np.divide(a, a))
+api("complex.abs", vs, lambda: np.abs(a))
+api("complex.sqrt", vs, lambda: np.sqrt(a))
+api("complex.exp", vs, lambda: np.exp(a))
+api("complex.log", vs, lambda: np.log(a))
+api("complex.power", vs, lambda: np.power(a, 3))
+api("real", vs, lambda: np.real(a))
+api("imag", vs, lambda: np.imag(a))
+api("conj", vs, lambda: np.conj(a))
+api("conjugate", vs, lambda: np.conjugate(a))
+api("ndarray.conj", vs, lambda: a.conj())
+api("angle", vs, lambda: np.angle(a))
+api("iscomplex", vs, lambda: np.iscomplex(a))
+api("isreal", vs, lambda: np.isreal(a))
+api("iscomplexobj", vs, lambda: np.iscomplexobj(a))
+api("isrealobj", vs, lambda: np.isrealobj(a))
 
 
 def blas_name():

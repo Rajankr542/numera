@@ -1100,6 +1100,57 @@ def complex_cases() -> list[dict]:
     return cases
 
 
+def complex_ufunc_cases() -> list[dict]:
+    """P1 step 2 / D-033: complex ufuncs and real/imag/conj/angle/iscomplex."""
+    inf, nan = float("inf"), float("nan")
+    A = [1 + 2j, -3 + 0.5j, 0j, complex(-0.0, 0.0), 1e300 + 1e300j, complex(inf, 1),
+         complex(nan, 1), 2 + 0j, -1 + 0j, 1e-310 + 1e-310j, 0.3 - 0.7j, complex(-inf, 0)]
+    B = [2 - 1j, 0j, 1 + 1j, 1e300 - 1e300j, complex(3, -0.0), complex(1, inf),
+         1 + 1j, -2 + 0j, 0.5 + 0j, 1e-310 + 0j, 3 + 0j, 2 + 0j]
+    exact = {"add", "subtract", "negative", "conjugate", "real", "imag", "iscomplex", "isreal"}
+    cases = []
+
+    def add(op, args, r, kw=None):
+        c = {"op": op, "args": args, "approx": op not in exact, "expected": describe(np.asarray(r))}
+        if kw:
+            c["kw"] = kw
+        cases.append(c)
+
+    with warnings.catch_warnings(), np.errstate(all="ignore"):
+        warnings.simplefilter("ignore")
+        for dt in ["complex64", "complex128"]:
+            a, b = np.array(A, dtype=dt), np.array(B, dtype=dt)
+            ea = {"data": enc(a.tolist()), "dtype": dt}
+            eb = {"data": enc(b.tolist()), "dtype": dt}
+            for op in ["add", "subtract", "multiply", "divide", "power"]:
+                add(op, [ea, eb], getattr(np, op)(a, b))
+            for op in ["negative", "conjugate", "abs", "sqrt", "exp", "log", "angle",
+                       "real", "imag", "iscomplex", "isreal"]:
+                add(op, [ea], getattr(np, op)(a))
+            add("angle", [ea], np.angle(a, deg=True), {"deg": True})
+            for p in [-3, 0, 1, 2, 3, 7, 0.5]:
+                add("power", [ea, {"data": enc(p)}], np.power(a, p))
+        # Mixed real/complex promotion and broadcasting.
+        z = np.array([[1 + 1j], [2 - 3j]])
+        for rdt in ["int8", "float32", "float64", "bool"]:
+            r = np.array([1, 0, 1], dtype=rdt)
+            er = {"data": enc(r.tolist()), "dtype": rdt}
+            ez = {"data": enc(z.tolist()), "dtype": "complex128"}
+            for op in ["add", "multiply", "divide"]:
+                add(op, [ez, er], getattr(np, op)(z, r))
+            add("real", [er], np.real(r))
+            add("iscomplex", [er], np.iscomplex(r))
+            add("angle", [er], np.angle(r))
+            add("conjugate", [er], np.conjugate(r))
+        c64 = np.array([1 + 2j, 3 - 4j], dtype="complex64")
+        e64 = {"data": enc(c64.tolist()), "dtype": "complex64"}
+        add("add", [e64, {"data": enc(1.5)}], c64 + 1.5)
+        add("multiply", [e64, {"data": enc(2j)}], c64 * 2j)
+        f32 = np.array([1, 2], dtype="float32")
+        add("add", [{"data": enc(f32.tolist()), "dtype": "float32"}, {"data": enc(1j)}], f32 + 1j)
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -1120,6 +1171,7 @@ def main() -> None:
         "random": random_cases(),
         "fft": fft_cases(),
         "complex": complex_cases(),
+        "complex_ufuncs": complex_ufunc_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

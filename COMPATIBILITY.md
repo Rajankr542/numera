@@ -75,10 +75,13 @@ differential tests (`pnpm test:diff`).
 | FFT complex results | complex ndarray | complex64/complex128 NDArray; elements read as `np.Complex` | D-020, D-033 |
 | complex scalars | Python `complex` | frozen `np.Complex {re, im}`; `{re, im}` objects accepted as input | D-033 |
 | complex value into a real array | `TypeError` (int) / `ComplexWarning`, imag dropped (float) | `DTypeError` for every real dtype (`astype` still drops imag, like NumPy) | D-033 |
+| `mod` / `floorDivide` on complex | `TypeError` | `DTypeError` | D-033 |
+| complex `sqrt`/`exp`/`log`/`power`/`abs`/`angle` | platform libm / npymath | NumPy's npymath algorithms (`npy_csqrt`, `npy_clog`, `npy_cpow`, SIMD `cabsolute`); `exp`, `pow` and `atan2` come from the C++ library; libm results may differ by a few ULP | D-014, D-033 |
+| `imag` of a real array | read-only zeros array | same (read-only zeros) | D-033 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; complex reductions (`NotImplementedError`); `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
-- Ufuncs on complex operands raise `NotImplementedError` (P1 step 2, D-033).
+- Complex ufuncs beyond `add`, `subtract`, `multiply`, `divide`, `power`, `negative`, `abs`, `sqrt`, `exp`, `log`, `conjugate` and `angle`. There are no complex trig functions or comparison ufuncs yet (P1 step 2, D-033).
 - Linalg: complex inputs (`NotImplementedError`); `pinv`, `matrix_rank`, `matrix_power`, `cholesky`, `slogdet`, `cond`, `tensordot`, `einsum`, `vdot`, `kron`; batched `lstsq`; `out=` parameters; `eigh(UPLO='U')` (only the lower triangle is used). The `@` operator is not available in JS; use `np.matmul`.
 - Ufunc keywords `out=`, `where=`, `casting=`, `dtype=`, `order=`; `NDArray` operator methods.
 - `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.

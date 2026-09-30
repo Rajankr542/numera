@@ -55,6 +55,9 @@ export interface NativeAddon {
   broadcastTo(a: NativeNDArray, shape: number[]): NativeNDArray;
   binary(op: string, a: NativeNDArray, b: NativeNDArray): NativeNDArray;
   unary(op: string, a: NativeNDArray): NativeNDArray;
+  // P1 complex helpers (D-033)
+  complexPart(a: NativeNDArray, imag: boolean): NativeNDArray;
+  isComplexElementwise(a: NativeNDArray, wantComplex: boolean): NativeNDArray;
   // M6 indexing (encoding: see ndarray.ts encodeIndex)
   getIndex(a: NativeNDArray, index: NativeIndexItem[]): NativeNDArray;
   setIndex(a: NativeNDArray, index: NativeIndexItem[], value: NativeNDArray): void;

@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import np, {
+  Complex,
   type IndexSpec,
   type NDArray,
   type NestedArray,
@@ -931,4 +932,51 @@ describe("differential: complex conversion (P1, D-033)", () => {
       checkArray(np.array(decodeInput(c.data!), opts), c.expected as Described);
     }
   });
+});
+
+describe("differential: complex ufuncs (P1 step 2, D-033)", () => {
+  interface CUArg { data: Encoded; dtype?: string }
+  interface CUCase { op: string; args: CUArg[]; kw?: { deg?: boolean }; approx: boolean; expected: Described }
+  const { numpy_version, cases } = load("complex_ufuncs") as unknown as { numpy_version: string; cases: CUCase[] };
+  // Scalars stay JS scalars (weak NEP 50 operands); arrays keep NumPy's dtype.
+  const operand = (x: CUArg): NDArray | number | Complex => {
+    const v = decodeInput(x.data);
+    return x.dtype === undefined ? (v as number | Complex) : np.array(v as NestedArray, { dtype: x.dtype });
+  };
+  // Libm-based results (sqrt/exp/log/pow/abs/angle, D-014/D-033): relative
+  // closeness per component; inf/nan/signed-zero categories must still match.
+  const rtol = (dt: string): number => (dt === "complex64" || dt === "float32" ? 1e-6 : 1e-14);
+  const near = (g: number, e: number, tol: number): boolean => {
+    if (Number.isNaN(e) || !Number.isFinite(e) || e === 0) return Object.is(g, e) || (e === 0 && g === 0 && Math.abs(g) <= tol);
+    return Math.abs(g - e) <= tol * Math.abs(e);
+  };
+  const flat = (v: unknown): unknown[] => (Array.isArray(v) ? v.flatMap(flat) : [v]);
+  const run = (_l: string, c: CUCase): void => {
+    const [x, y] = c.args.map(operand);
+    const ufuncs = np as unknown as Record<string, (...a: unknown[]) => NDArray>;
+    const r = c.op === "angle" ? np.angle(x as NDArray, c.kw?.deg ?? false) : y === undefined ? ufuncs[c.op](x) : ufuncs[c.op](x, y);
+    const exp = c.expected;
+    expect(r.dtype.name).toBe(exp.dtype);
+    expect(r.shape).toEqual(exp.shape);
+    const want = decodeExpected(exp.values!);
+    if (!c.approx) {
+      expect(r.toArray()).toEqual(want);
+      return;
+    }
+    const tol = rtol(exp.dtype);
+    const got = flat(r.toArray());
+    flat(want).forEach((e, i) => {
+      const g = got[i];
+      const pairs: [number, number][] = e instanceof Complex
+        ? [[(g as Complex).re, e.re], [(g as Complex).im, e.im]]
+        : [[g as number, e as number]];
+      for (const [gv, ev] of pairs) {
+        expect(near(gv, ev, tol), `[${i}] got ${String(g)} want ${String(e)}`).toBe(true);
+      }
+    });
+  };
+  it.each(cases.map((c) => [JSON.stringify({ op: c.op, args: c.args, kw: c.kw }).slice(0, 300), c] as const))(
+    `numpy ${numpy_version}: %s`,
+    run,
+  );
 });

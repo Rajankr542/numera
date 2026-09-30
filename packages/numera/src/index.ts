@@ -43,6 +43,15 @@ import {
   power,
   sqrt,
   subtract,
+  angle,
+  conj,
+  conjugate,
+  imag,
+  iscomplex,
+  iscomplexobj,
+  isreal,
+  isrealobj,
+  real,
 } from "./ufunc.js";
 export { DType, dtype, promoteTypes } from "./dtype.js";
 export type { DTypeLike, DTypeName } from "./dtype.js";
@@ -104,8 +113,17 @@ export {
   power,
   sqrt,
   subtract,
+  angle,
+  conj,
+  conjugate,
+  imag,
+  iscomplex,
+  iscomplexobj,
+  isreal,
+  isrealobj,
+  real,
 } from "./ufunc.js";
-export type { ArrayLike } from "./ufunc.js";
+export type { ArrayLike, Operand } from "./ufunc.js";
 export { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
 export type { IndexSpec, SliceTuple } from "./indexing.js";
 export { argmax, argmin, max, mean, min, prod, std, sum, variance } from "./reduce.js";
@@ -173,6 +191,15 @@ const np = {
   sqrt,
   exp,
   log,
+  angle,
+  conj,
+  conjugate,
+  imag,
+  iscomplex,
+  iscomplexobj,
+  isreal,
+  isrealobj,
+  real,
   broadcastShapes,
   broadcastTo,
   nonzero,

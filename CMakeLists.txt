@@ -170,6 +170,7 @@ if(NATIVPY_BUILD_TESTS)
     tests/native/test_ndarray.cpp
     tests/native/test_creation_shape.cpp
     tests/native/test_ufunc.cpp
+    tests/native/test_complex.cpp
     tests/native/test_indexing.cpp
     tests/native/test_reduce.cpp
     tests/native/test_linalg.cpp

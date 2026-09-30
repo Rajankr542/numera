@@ -816,10 +816,15 @@ Found by the NumPy differential tests (NumPy 2.5.3):
     error so that data is never lost silently.
 - **Kernels** follow NumPy's complex loops, using `std::complex` with the
   formulas NumPy uses where they differ from the C++ library:
-  - `abs` returns the real dtype and uses `hypot`.
+  - `abs` returns the real dtype. It uses NumPy's SIMD `cabsolute` formula:
+    inf wins over nan, then `max * sqrt(fma(min/max, min/max, 1))`. This is
+    the path NumPy takes on NEON/AVX, so results match bit-for-bit.
   - `divide` uses Smith's algorithm, as in NumPy's `nc_quot`.
-  - `sqrt`, `exp` and `log` use `std::sqrt`, `std::exp` and `std::log`. libm
-    may differ by a few ULP (D-014 tolerance).
+  - `sqrt` and `log` are ports of NumPy's npymath `npy_csqrt` (msun,
+    Algorithm 312) and `npy_clog` (CPython). A libc++ `std::sqrt(-1+0j)`
+    returns `6e-17+1j` rather than `1j`, which a relative tolerance cannot
+    absorb. `exp` uses `std::exp`. Libm results may still differ by a few ULP
+    (D-014 tolerance), e.g. when a platform's NumPy uses the system `csqrt`.
   - `power` with a complex exponent uses `std::pow`. Integer exponents are
     squared repeatedly, as NumPy does for small integers.
   - `mod` and `floorDivide` raise `DTypeError`, as NumPy raises `TypeError`.

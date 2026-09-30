@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import np, { BroadcastError, DTypeError, NotImplementedError, ValueError } from "../src/index.js";
+import np, { BroadcastError, DTypeError, ValueError } from "../src/index.js";
 
 describe("ufuncs (M4) + broadcasting (M5)", () => {
   it("broadcasts per PLAN §14/§54", () => {
@@ -33,7 +33,9 @@ describe("ufuncs (M4) + broadcasting (M5)", () => {
     expect(() => np.subtract([true], [false])).toThrow(DTypeError);
     expect(() => np.negative([true])).toThrow(DTypeError);
     expect(() => np.power([2], [-1])).toThrow(ValueError);
-    expect(() => np.add(np.zeros(2, { dtype: "complex128" }), 1)).toThrow(NotImplementedError);
+    // P1 (D-033): complex arithmetic is supported; complex mod has no loop.
+    expect(() => np.mod(np.zeros(2, { dtype: "complex128" }), 1)).toThrow(DTypeError);
+    expect(() => np.floorDivide(np.zeros(2, { dtype: "complex64" }), 1)).toThrow(DTypeError);
   });
 
   it("works on non-contiguous inputs and returns C-contiguous results", () => {

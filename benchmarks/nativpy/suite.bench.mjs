@@ -271,6 +271,28 @@ for (const m of DECOMP) {
   api("np.random.choice", vs, () => np.random.choice(n, [n]));
   api("np.random.permutation", vs, () => np.random.permutation(n));
   api("np.random.shuffle", vs, () => np.random.shuffle(w));
+  // P1 complex (D-033): a = v + i*w
+  {
+    const a = np.add(v, np.multiply(w, np.complex(0, 1)));
+    api("complex.add", vs, () => np.add(a, a));
+    api("complex.multiply", vs, () => np.multiply(a, a));
+    api("complex.divide", vs, () => np.divide(a, a));
+    api("complex.abs", vs, () => np.abs(a));
+    api("complex.sqrt", vs, () => np.sqrt(a));
+    api("complex.exp", vs, () => np.exp(a));
+    api("complex.log", vs, () => np.log(a));
+    api("complex.power", vs, () => np.power(a, 3));
+    api("real", vs, () => np.real(a));
+    api("imag", vs, () => np.imag(a));
+    api("conj", vs, () => np.conj(a));
+    api("conjugate", vs, () => np.conjugate(a));
+    api("ndarray.conj", vs, () => a.conj());
+    api("angle", vs, () => np.angle(a));
+    api("iscomplex", vs, () => np.iscomplex(a));
+    api("isreal", vs, () => np.isreal(a));
+    api("iscomplexobj", vs, () => np.iscomplexobj(a));
+    api("isrealobj", vs, () => np.isrealobj(a));
+  }
 }
 
 const out = join(dirname(fileURLToPath(import.meta.url)), "..", "reports", "nativpy-suite.json");

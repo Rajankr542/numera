@@ -63,8 +63,11 @@ TEST_CASE("ufunc: result dtypes") {
   CHECK(binary_result_dtype(BinaryOp::Add, DType::Bool, DType::Bool) == DType::Bool);
   CHECK(binary_result_dtype(BinaryOp::Add, DType::Int64, DType::UInt64) == DType::Float64);
   CHECK_THROWS_KIND(binary_result_dtype(BinaryOp::Subtract, DType::Bool, DType::Bool), ErrorKind::DType);
-  CHECK_THROWS_KIND(binary_result_dtype(BinaryOp::Add, DType::Complex64, DType::Float32),
-                    ErrorKind::NotImplemented);
+  // P1 (D-033): complex loops exist; complex mod/floorDivide have none.
+  CHECK(binary_result_dtype(BinaryOp::Add, DType::Complex64, DType::Float32) == DType::Complex64);
+  CHECK(binary_result_dtype(BinaryOp::Divide, DType::Complex64, DType::Float64) == DType::Complex128);
+  CHECK_THROWS_KIND(binary_result_dtype(BinaryOp::FloorDivide, DType::Complex64, DType::Float32),
+                    ErrorKind::DType);
   CHECK(unary_result_dtype(UnaryOp::Sqrt, DType::UInt8) == DType::Float16);
   CHECK(unary_result_dtype(UnaryOp::Sqrt, DType::Int16) == DType::Float32);
   CHECK(unary_result_dtype(UnaryOp::Log, DType::Int32) == DType::Float64);

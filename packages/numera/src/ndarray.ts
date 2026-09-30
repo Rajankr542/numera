@@ -145,6 +145,21 @@ export class NDArray {
     return this.transpose();
   }
 
+  /** Real part (NumPy `a.real`): a view; the array itself for real dtypes (D-033). */
+  get real(): NDArray {
+    return wrapNative(() => NDArray._wrap(addon.complexPart(this._native, false)));
+  }
+
+  /** Imaginary part (NumPy `a.imag`): a view; read-only zeros for real dtypes (D-033). */
+  get imag(): NDArray {
+    return wrapNative(() => NDArray._wrap(addon.complexPart(this._native, true)));
+  }
+
+  /** Complex conjugate (NumPy `a.conj()`); a copy for real dtypes. */
+  conj(): NDArray {
+    return wrapNative(() => NDArray._wrap(addon.unary("conjugate", this._native)));
+  }
+
   /** Removes size-1 axes (all, or the given ones). Always a view. */
   squeeze(axis?: number | readonly number[]): NDArray {
     const axes = axis === undefined ? undefined : typeof axis === "number" ? [axis] : [...axis];
