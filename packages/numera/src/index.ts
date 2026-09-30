@@ -21,6 +21,7 @@ import {
   zerosLike,
 } from "./creation.js";
 import { NDArray } from "./ndarray.js";
+import { Complex, complex } from "./complex.js";
 import { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
 import { argmax, argmin, max, mean, min, prod, std, sum, variance } from "./reduce.js";
 import { dot, inner, linalg, matmul, outer } from "./linalg.js";
@@ -63,6 +64,8 @@ export {
 } from "./dtype.js";
 export * from "./errors.js";
 export { NDArray } from "./ndarray.js";
+export { Complex, complex } from "./complex.js";
+export type { ComplexLike } from "./complex.js";
 export type { ArrayFlags, NestedArray, Shape } from "./ndarray.js";
 export {
   arange,
@@ -132,6 +135,8 @@ const lib = { stride_tricks: { asStrided } } as const;
 
 const np = {
   NDArray,
+  Complex,
+  complex,
   DType: dtypes.DType,
   dtype: dtypes.dtype,
   promoteTypes: dtypes.promoteTypes,

@@ -1,6 +1,7 @@
 import { addon } from "./addon.js";
 import { dtype as toDType, type DType, type DTypeLike } from "./dtype.js";
 import { ValueError, wrapNative } from "./errors.js";
+import { isComplexLike, type ComplexLike } from "./complex.js";
 import { NDArray, type NestedArray, type Shape } from "./ndarray.js";
 
 export interface ArrayOptions {
@@ -12,6 +13,7 @@ export function inferDType(data: unknown): DType {
   let sawBool = false;
   let sawInt = false;
   let sawFloat = false;
+  let sawComplex = false;
   const visit = (v: unknown): void => {
     if (Array.isArray(v)) {
       for (const x of v) visit(x);
@@ -22,11 +24,14 @@ export function inferDType(data: unknown): DType {
     else if (typeof v === "number") {
       if (Number.isSafeInteger(v) && !Object.is(v, -0)) sawInt = true;
       else sawFloat = true;
+    } else if (isComplexLike(v)) {
+      sawComplex = true;
     } else {
       throw new ValueError(`unsupported array element type: ${typeof v}`);
     }
   };
   visit(data);
+  if (sawComplex) return toDType("complex128");
   if (sawFloat) return toDType("float64");
   if (sawInt) return toDType("int64");
   if (sawBool) return toDType("bool");
@@ -122,7 +127,7 @@ export function ones(shape: Shape | number, options: ArrayOptions = {}): NDArray
  */
 export function full(
   shape: Shape | number,
-  fillValue: number | boolean | bigint,
+  fillValue: number | boolean | bigint | ComplexLike,
   options: ArrayOptions = {},
 ): NDArray {
   const value = array(fillValue, options);
@@ -141,7 +146,7 @@ export function emptyLike(a: NDArray, options: ArrayOptions = {}): NDArray {
 }
 export function fullLike(
   a: NDArray,
-  fillValue: number | boolean | bigint,
+  fillValue: number | boolean | bigint | ComplexLike,
   options: ArrayOptions = {},
 ): NDArray {
   return full(a.shape, fillValue, { dtype: options.dtype ?? a.dtype });

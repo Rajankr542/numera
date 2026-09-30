@@ -74,14 +74,39 @@ inline void store_number(std::byte* p, double d) {
   }
 }
 
-// Stores one JS scalar into an element of dtype T following D-009.
+// A JS complex value is any object with a numeric `re` field (D-033).
+bool is_js_complex(const Napi::Value& v) {
+  if (!v.IsObject() || v.IsArray()) return false;
+  return v.As<Napi::Object>().Get("re").IsNumber();
+}
+
+double js_real_part(const Napi::Value& v) {
+  if (v.IsBoolean()) return v.As<Napi::Boolean>().Value() ? 1.0 : 0.0;
+  if (v.IsNumber()) return v.As<Napi::Number>().DoubleValue();
+  if (v.IsBigInt()) {
+    bool lossless = false;
+    return static_cast<double>(v.As<Napi::BigInt>().Int64Value(&lossless));
+  }
+  throw_error(ErrorKind::Value, "array elements must be numbers, bigints, booleans or complex values");
+}
+
+// Stores one JS scalar into an element of dtype T following D-009 / D-033.
 template <typename T>
 void store_js_scalar(std::byte* p, const Napi::Value& v) {
   if constexpr (is_complex_v<T>) {
-    (void)p;
-    (void)v;
-    throw_error(ErrorKind::NotImplemented, "complex element conversion from JS (D-008)");
+    using R = typename T::value_type;
+    if (is_js_complex(v)) {
+      const Napi::Object o = v.As<Napi::Object>();
+      const Napi::Value im = o.Get("im");
+      const double i = im.IsUndefined() ? 0.0 : js_real_part(im);
+      store<T>(p, T(static_cast<R>(o.Get("re").As<Napi::Number>().DoubleValue()), static_cast<R>(i)));
+      return;
+    }
+    store<T>(p, T(static_cast<R>(js_real_part(v)), R{0}));
   } else {
+    if (is_js_complex(v)) {
+      throw_error(ErrorKind::DType, "cannot store a complex value in a real array (D-033)");
+    }
     if (v.IsBoolean()) {
       store<T>(p, cast_value<T>(v.As<Napi::Boolean>().Value()));
       return;
@@ -121,12 +146,14 @@ void store_js_scalar(std::byte* p, const Napi::Value& v) {
   }
 }
 
+Napi::Value make_js_complex(Napi::Env env, double re, double im);
+
 // Reads one element as a JS value (D-005: 64-bit ints become numbers).
 template <typename T>
 Napi::Value load_js_scalar(Napi::Env env, const std::byte* p) {
   if constexpr (is_complex_v<T>) {
-    (void)p;
-    throw_error(ErrorKind::NotImplemented, "complex element conversion to JS (D-008)");
+    const T z = load<T>(p);
+    return make_js_complex(env, static_cast<double>(z.real()), static_cast<double>(z.imag()));
   } else if constexpr (std::is_same_v<T, bool>) {
     return Napi::Boolean::New(env, load<bool>(p));
   } else {
@@ -148,6 +175,8 @@ struct AddonData {
   // Unique object passed to the constructor by create(). The identity check
   // replaces a per-construction string build, UTF-8 copy and compare.
   Napi::ObjectReference construct_token;
+  // np.Complex, registered by the TS layer (D-033). Empty until then.
+  Napi::FunctionReference complex_ctor;
 };
 
 namespace {
@@ -155,6 +184,17 @@ AddonData& addon_data(Napi::Env env) {
   AddonData* d = env.GetInstanceData<AddonData>();
   if (d == nullptr) throw_error(ErrorKind::Value, "nativpy addon not initialized");
   return *d;
+}
+
+Napi::Value make_js_complex(Napi::Env env, double re, double im) {
+  AddonData& d = addon_data(env);
+  const Napi::Value r = Napi::Number::New(env, re);
+  const Napi::Value i = Napi::Number::New(env, im);
+  if (!d.complex_ctor.IsEmpty()) return d.complex_ctor.New({r, i});
+  Napi::Object o = Napi::Object::New(env);
+  o.Set("re", r);
+  o.Set("im", i);
+  return o;
 }
 }  // namespace
 
@@ -340,7 +380,7 @@ void NDArrayWrap::init(Napi::Env env, Napi::Object exports) {
           InstanceMethod<&NDArrayWrap::get_item>("getItem"),
       });
   auto data = std::make_unique<AddonData>(
-      AddonData{Napi::Persistent(ctor), Napi::Persistent(Napi::Object::New(env))});
+      AddonData{Napi::Persistent(ctor), Napi::Persistent(Napi::Object::New(env)), Napi::FunctionReference()});
   env.SetInstanceData<AddonData>(data.release());  // env owns it; deleted on teardown
   exports.Set("NativeNDArray", ctor);
 }
@@ -432,7 +472,9 @@ Napi::Value js_from_float64(const Napi::CallbackInfo& info) {
     dispatch_dtype(dt, [&](auto tag) {
       using T = dtype_t<decltype(tag)::value>;
       if constexpr (is_complex_v<T>) {
-        throw_error(ErrorKind::NotImplemented, "complex element conversion from JS (D-008)");
+        using R = typename T::value_type;
+        std::byte* out = a.data();
+        for (std::size_t i = 0; i < n; ++i) store<T>(out + i * sizeof(T), T(static_cast<R>(in[i]), R{0}));
       } else if constexpr (std::is_same_v<T, double>) {
         if (n > 0) std::memcpy(a.data(), in, n * sizeof(double));
       } else {
@@ -474,10 +516,21 @@ Napi::Value js_live_buffers(const Napi::CallbackInfo& info) {
   return o;
 }
 
+// setComplexClass(ctor): the TS np.Complex class used for complex elements (D-033).
+Napi::Value js_set_complex_class(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  return translate_errors(env, [&]() -> Napi::Value {
+    if (!info[0].IsFunction()) throw_error(ErrorKind::Value, "setComplexClass expects a constructor");
+    addon_data(env).complex_ctor = Napi::Persistent(info[0].As<Napi::Function>());
+    return env.Undefined();
+  });
+}
+
 }  // namespace
 
 void init_ndarray_binding(Napi::Env env, Napi::Object exports) {
   NDArrayWrap::init(env, exports);
+  exports.Set("setComplexClass", Napi::Function::New(env, js_set_complex_class, "setComplexClass"));
   exports.Set("empty", Napi::Function::New(env, js_empty, "empty"));
   exports.Set("zeros", Napi::Function::New(env, js_zeros, "zeros"));
   exports.Set("fromNested", Napi::Function::New(env, js_from_nested, "fromNested"));

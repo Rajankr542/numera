@@ -1,9 +1,10 @@
 import { addon, type NativeIndexItem, type NativeNDArray } from "./addon.js";
 import { dtype as toDType, type DType, type DTypeLike } from "./dtype.js";
 import { IndexError, ValueError, wrapNative } from "./errors.js";
+import type { Complex, ComplexLike } from "./complex.js";
 
 export type Shape = readonly number[];
-export type NestedArray = number | boolean | bigint | readonly NestedArray[];
+export type NestedArray = number | boolean | bigint | ComplexLike | readonly NestedArray[];
 
 /**
  * Per-axis index spec (PLAN §13, D-015), mirroring NumPy's `a[...]` elements:
@@ -218,15 +219,15 @@ export class NDArray {
   }
 
   /** Scalar at a full integer index (negative allowed). With no index, the array must have size 1. */
-  item(...index: number[]): number | boolean {
+  item(...index: number[]): number | boolean | Complex {
     return wrapNative(() => {
       if (index.length === 0) {
         if (this.size !== 1) {
           throw new ValueError("can only convert an array of size 1 to a scalar");
         }
-        return this._native.getItem(new Array<number>(this.ndim).fill(0));
+        return this._native.getItem(new Array<number>(this.ndim).fill(0)) as number | boolean | Complex;
       }
-      return this._native.getItem(index);
+      return this._native.getItem(index) as number | boolean | Complex;
     });
   }
 

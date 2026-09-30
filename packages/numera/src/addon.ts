@@ -21,7 +21,7 @@ export interface NativeNDArray {
   copy(): NativeNDArray;
   astype(dtype: string): NativeNDArray;
   sharesMemory(other: NativeNDArray): boolean;
-  getItem(index: number[]): number | boolean;
+  getItem(index: number[]): number | boolean | { re: number; im: number };
 }
 
 export interface NativeAddon {
@@ -35,6 +35,7 @@ export interface NativeAddon {
   fromTypedArray(data: ArrayBufferView, shape: number[], dtype: string): NativeNDArray;
   fromFloat64(data: Float64Array, shape: number[], dtype: string): NativeNDArray;
   memoryStats(): { buffers: number; bytes: number };
+  setComplexClass(ctor: new (re: number, im: number) => unknown): void;
   // M2 creation
   full(shape: number[], value: NativeNDArray): NativeNDArray;
   ones(shape: number[], dtype: string): NativeNDArray;

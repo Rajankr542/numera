@@ -14,7 +14,13 @@ import np, {
 
 const casesDir = join(dirname(fileURLToPath(import.meta.url)), "cases");
 
-type Encoded = number | boolean | { float: string } | { bigint: string } | Encoded[];
+type Encoded =
+  | number
+  | boolean
+  | { float: string }
+  | { bigint: string }
+  | { re: Encoded; im: Encoded }
+  | Encoded[];
 
 interface Described {
   dtype: string;
@@ -78,6 +84,7 @@ function load(group: string): { numpy_version: string; cases: Case[] } {
 function decodeInput(v: Encoded): NestedArray {
   if (Array.isArray(v)) return v.map(decodeInput);
   if (typeof v === "object") {
+    if ("re" in v) return np.complex(decodeExpected(v.re) as number, decodeExpected(v.im) as number);
     if ("bigint" in v) return BigInt(v.bigint);
     return decodeFloat(v.float);
   }
@@ -103,6 +110,7 @@ function decodeFloat(tag: string): number {
 function decodeExpected(v: Encoded): unknown {
   if (Array.isArray(v)) return v.map(decodeExpected);
   if (typeof v === "object") {
+    if ("re" in v) return np.complex(decodeExpected(v.re) as number, decodeExpected(v.im) as number);
     if ("bigint" in v) return Number(BigInt(v.bigint));
     return decodeFloat(v.float);
   }
@@ -909,3 +917,18 @@ describe("differential: fft (M10, D-020)", () => {
   it.each(table)(`numpy ${numpy_version}: %s`, run);
 });
 
+
+describe("differential: complex conversion (P1, D-033)", () => {
+  const { numpy_version, cases } = load("complex");
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    if (c.op === "zeros") {
+      checkArray(np.zeros(c.shape!, { dtype: c.dtype! }), c.expected as Described);
+    } else if (c.op === "astype") {
+      const src = np.array(decodeInput(c.data!), { dtype: c.src_dtype! });
+      checkArray(src.astype(c.dtype!), c.expected as Described);
+    } else {
+      const opts = c.dtype === undefined ? {} : { dtype: c.dtype };
+      checkArray(np.array(decodeInput(c.data!), opts), c.expected as Described);
+    }
+  });
+});

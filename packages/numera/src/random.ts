@@ -7,6 +7,7 @@ import { NotImplementedError, ValueError, wrapNative } from "./errors.js";
 import { take } from "./indexing.js";
 import { NDArray } from "./ndarray.js";
 import type { NestedArray } from "./ndarray.js";
+import type { Complex } from "./complex.js";
 
 /**
  * Random sampling (PLAN M9, DECISIONS D-019). Bit-exact with NumPy for the
@@ -94,11 +95,11 @@ function isOptions(v: unknown): v is Record<string, unknown> {
 }
 
 /** Returns a JS scalar when `size` was omitted (D-005), else the array. */
-function finish(out: NDArray, scalar: boolean): NDArray | number | boolean {
+function finish(out: NDArray, scalar: boolean): Out {
   return scalar ? out.item() : out;
 }
 
-type Out = NDArray | number | boolean;
+type Out = NDArray | number | boolean | Complex;
 type Population = number | bigint | NDArray | NestedArray;
 
 function populationOf(a: Population): { pop: number; arr: NDArray | null } {

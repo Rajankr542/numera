@@ -76,11 +76,11 @@ describe("explicit dtypes", () => {
     expect(h.toTypedArray()).toEqual(new Uint16Array([0x3e00, 0x7bff, 0x7c00, 0x8000]));
   });
 
-  it("complex arrays allocate but element conversion is not implemented (D-008)", () => {
+  it("complex arrays allocate and convert elements to np.Complex (D-008, D-033)", () => {
     const z = np.zeros([2], { dtype: np.complex128 });
     expect(z.itemSize).toBe(16);
     expect(z.toTypedArray()).toEqual(new Float64Array(4));
-    expect(() => z.toArray()).toThrow(np.NotImplementedError);
+    expect(z.toArray()).toEqual([np.complex(0, 0), np.complex(0, 0)]);
   });
 });
 

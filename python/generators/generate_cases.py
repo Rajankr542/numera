@@ -30,6 +30,8 @@ def enc(v):
         return [enc(x) for x in v]
     if isinstance(v, bool):
         return v
+    if isinstance(v, complex):
+        return {"re": enc(v.real), "im": enc(v.imag)}
     if isinstance(v, int):
         return v if abs(v) <= 2**53 else {"bigint": str(v)}
     if isinstance(v, float):
@@ -1059,6 +1061,45 @@ def random_cases() -> list[dict]:
     return cases
 
 
+def complex_cases() -> list[dict]:
+    """P1 / D-033: complex conversion from/to JS and astype to/from complex."""
+    cases = []
+    inputs = [
+        [1 + 2j, 3, -1.5 - 0j], [[1j, 2], [3, 4 - 1j]], [complex(float("nan"), 1), complex(1, float("inf"))],
+        [complex(-0.0, -0.0), 0j], [True, 1j], [1e300 + 1e-300j],
+    ]
+    for data in inputs:
+        cases.append({"op": "array", "data": enc(data), "expected": describe(np.array(data))})
+        for dt in ["complex64", "complex128"]:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                a = np.array(data, dtype=dt)
+            cases.append({"op": "array", "data": enc(data), "dtype": dt, "expected": describe(a)})
+    for data in [[1, 2.5, -3], [True, False], [[0.5], [-0.0]]]:
+        for dt in ["complex64", "complex128"]:
+            cases.append({"op": "array", "data": enc(data), "dtype": dt,
+                          "expected": describe(np.array(data, dtype=dt))})
+    # Real -> complex and complex -> complex/real astype (complex -> real drops imag).
+    src = [1.5 - 2j, -0.0 + 0j, 3 + 4j, complex(float("inf"), -1)]
+    for s in ["complex64", "complex128"]:
+        for dt in ["float16", "float32", "float64", "complex64", "complex128"]:
+            # Integer casts of inf are platform-dependent, so only float targets.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                r = np.array(src, dtype=s).astype(dt)
+            cases.append({"op": "astype", "data": enc(src), "src_dtype": s, "dtype": dt,
+                          "expected": describe(r)})
+    for s in ["int8", "uint64", "float16", "float32", "bool"]:
+        for dt in ["complex64", "complex128"]:
+            data = [0, 1, 5] if s != "bool" else [True, False]
+            r = np.array(data, dtype=s).astype(dt)
+            cases.append({"op": "astype", "data": enc(data), "src_dtype": s, "dtype": dt,
+                          "expected": describe(r)})
+    cases.append({"op": "zeros", "shape": [2, 2], "dtype": "complex64",
+                  "expected": describe(np.zeros((2, 2), dtype="complex64"))})
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -1078,6 +1119,7 @@ def main() -> None:
         + linalg_norm_cases(),
         "random": random_cases(),
         "fft": fft_cases(),
+        "complex": complex_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

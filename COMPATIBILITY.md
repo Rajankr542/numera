@@ -72,11 +72,13 @@ differential tests (`pnpm test:diff`).
 | `rfft` on complex input | `TypeError` | `DTypeError` | D-020 |
 | `fftfreq`/`rfftfreq` with `n == 0` or `d == 0` | `ZeroDivisionError` | `ValueError` | D-020 |
 | `fftn` with `s` but no `axes` | `DeprecationWarning` | accepted silently (same result) | D-020 |
-| FFT complex results | complex ndarray | complex64/complex128 NDArray; read with `toTypedArray()` (interleaved re/im) until D-008 | D-020 |
+| FFT complex results | complex ndarray | complex64/complex128 NDArray; elements read as `np.Complex` | D-020, D-033 |
+| complex scalars | Python `complex` | frozen `np.Complex {re, im}`; `{re, im}` objects accepted as input | D-033 |
+| complex value into a real array | `TypeError` (int) / `ComplexWarning`, imag dropped (float) | `DTypeError` for every real dtype (`astype` still drops imag, like NumPy) | D-033 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; complex reductions (`NotImplementedError`); `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
-- Complex element read/write (`toArray`, `item`, `array([...], complex)`): `NotImplementedError` (D-008). Ufuncs on complex operands raise `NotImplementedError`.
+- Ufuncs on complex operands raise `NotImplementedError` (P1 step 2, D-033).
 - Linalg: complex inputs (`NotImplementedError`); `pinv`, `matrix_rank`, `matrix_power`, `cholesky`, `slogdet`, `cond`, `tensordot`, `einsum`, `vdot`, `kron`; batched `lstsq`; `out=` parameters; `eigh(UPLO='U')` (only the lower triangle is used). The `@` operator is not available in JS; use `np.matmul`.
 - Ufunc keywords `out=`, `where=`, `casting=`, `dtype=`, `order=`; `NDArray` operator methods.
 - `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.

@@ -797,3 +797,42 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - **Aliases.** Names that JS can't use, or that numera spells differently, are
   mapped explicitly in `api/aliases.json`, e.g. `ix_` → `ix`, `r_` → `r`.
 
+
+
+## D-033 — JS representation of complex numbers (P1, supersedes the open part of D-008) — Accepted — 2026-09-30
+- **Value type.** `np.Complex` is a frozen class with `re` and `im` number fields.
+  - `np.complex(re, im = 0)` is the factory.
+  - `toArray()`, `item()` and `toString()` on complex64/complex128 arrays return
+    `Complex` instances. complex64 values are widened to double, like float32.
+- **Input.** `np.array`, `np.full` and `set` accept `Complex` instances and plain
+  `{re, im}` objects as elements.
+  - Inference: any complex element makes the array complex128 (NumPy: Python
+    `complex` → complex128).
+  - Real numbers, bools and bigints stored into a complex dtype get `im = 0`.
+  - Storing a complex element into a real dtype raises `DTypeError` (numera's
+    `TypeError`). This is
+    stricter than NumPy, which raises `TypeError` for `complex` → `int` but
+    only warns (ComplexWarning) for `complex` → `float`. numera chooses the
+    error so that data is never lost silently.
+- **Kernels** follow NumPy's complex loops, using `std::complex` with the
+  formulas NumPy uses where they differ from the C++ library:
+  - `abs` returns the real dtype and uses `hypot`.
+  - `divide` uses Smith's algorithm, as in NumPy's `nc_quot`.
+  - `sqrt`, `exp` and `log` use `std::sqrt`, `std::exp` and `std::log`. libm
+    may differ by a few ULP (D-014 tolerance).
+  - `power` with a complex exponent uses `std::pow`. Integer exponents are
+    squared repeatedly, as NumPy does for small integers.
+  - `mod` and `floorDivide` raise `DTypeError`, as NumPy raises `TypeError`.
+- **Reductions.** `sum`, `prod` and `mean` support complex. `min`, `max`,
+  `argmin` and `argmax` use NumPy's lexicographic order (re first, then im;
+  NaN propagates). `var` and `std` return real values: the mean of
+  `|x - mean|²`.
+- **Staging.** P1 lands in this order:
+  1. conversion;
+  2. ufuncs plus `real`, `imag`, `conj`, `angle`, `iscomplex`, `isreal`,
+     `iscomplexobj`, `isrealobj`;
+  3. reductions;
+  4. matmul;
+  5. complex linalg.
+  Each step is tested against NumPy before the next one starts. Any path that
+  isn't done yet keeps raising `NotImplementedError`, never a wrong value.
