@@ -75,9 +75,34 @@ export interface NativeAddon {
   argReduce(isMax: boolean, a: NativeNDArray, axis: number | null, keepdims: boolean): NativeNDArray;
   // M8 linear algebra (D-018)
   linalg: NativeLinalg;
+  // M9 random (D-019)
+  random: { BitGenerator: NativeBitGeneratorCtor };
 }
 
 type N = NativeNDArray;
+export type SeedMode = "seedseq" | "int" | "array";
+export interface NativeBitGenerator {
+  reseed(mode: SeedMode, words: number[]): void;
+  random(size: number[], dtype: string): N;
+  uniform(low: number, high: number, size: number[]): N;
+  normal(loc: number, scale: number, size: number[], dtype: string): N;
+  legacyNormal(loc: number, scale: number, size: number[]): N;
+  integers(
+    low: number | bigint,
+    high: number | bigint,
+    closed: boolean,
+    size: number[],
+    dtype: string,
+    masked: boolean,
+  ): N;
+  shuffle(a: N): void;
+  choiceIndices(popSize: number, size: number[], replace: boolean, shuffle: boolean): N;
+}
+export type NativeBitGeneratorCtor = new (
+  kind: "pcg64" | "mt19937",
+  mode: SeedMode,
+  words: number[],
+) => NativeBitGenerator;
 export interface NativeLinalg {
   matmul(a: N, b: N): N;
   dot(a: N, b: N): N;
