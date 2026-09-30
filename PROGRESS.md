@@ -1,5 +1,18 @@
 # PROGRESS
 
+## 2026-09-29 — M11 step 3: GC-time buffer release (D-023)
+
+Done:
+- Addon built with `NAPI_EXPERIMENTAL` + `NODE_ADDON_API_REQUIRE_BASIC_FINALIZERS` (CMake option `NATIVPY_NAPI_EXPERIMENTAL`, default ON). `~NDArrayWrap` now runs synchronously during GC.
+- New test `packages/nativpy/test/memory.test.ts`: a child process with `--expose-gc` runs 1000 sync adds, then `gc()`, and expects ≤ 2 live buffers. Verified to **fail** on the stable build (1001 live) and pass on the experimental one.
+- Stress probe with views outliving parents, temporaries and forced GC: values stay valid, and live buffers drop to 0 after release.
+- Full suite geo-mean went from 0.285 to 0.628 vs NumPy (D-021..D-023 combined). See PERFORMANCE.md "M11 step 3". Known regression: `zeros 1e6` went from 0.049 to 0.104 ms.
+- Verification: `pnpm test` 82 pass; `pnpm test:diff` 3677 pass; native 67 cases pass; ASan clean.
+
+Notes:
+- cmake-js `--CD...` flags did not reconfigure an existing `build/` cache. Toggling the option needs `cmake -S . -B build -DNATIVPY_NAPI_EXPERIMENTAL=OFF`.
+- Experimental Node-API is not ABI-stable. Prebuilds (M13) must be tested per Node major.
+
 ## 2026-09-29 — M11 step 2: matmul wrapper copies (D-022)
 
 Done:

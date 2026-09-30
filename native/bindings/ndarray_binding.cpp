@@ -171,6 +171,8 @@ NDArrayWrap::NDArrayWrap(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NDAr
 NDArrayWrap::~NDArrayWrap() {
   // Buffer memory is owned by the shared_ptr in array_; it is released when the
   // last view (JS or C++) drops. External memory accounting is advisory only.
+  // D-023: this runs synchronously inside GC, so it must stay basic-env safe
+  // (AdjustExternalMemory takes a BasicEnv and never throws).
   if (reported_bytes_ != 0) {
     Napi::MemoryManagement::AdjustExternalMemory(Env(), -reported_bytes_);
   }

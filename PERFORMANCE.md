@@ -202,3 +202,36 @@ Matmul geo-mean (11 cases) went from 0.561 to 0.679. At 512² f32 JS takes 200 �
 wrapper takes 107 µs; the rest is consistent with fresh-buffer page faults
 (finding 2), which is not yet fixed.
 
+## M11 step 3: GC-time buffer release (D-023)
+
+The addon is now built with `NAPI_EXPERIMENTAL`, so Node runs our basic
+finalizer synchronously during GC instead of in a later event-loop task
+(finding 2). Probe (`packages/nativpy/test/memory.test.ts` scenario): 1000 sync `add` 1e5 then `gc()`: live buffers
+**1001 → 1** (the stable build, checked with `-DNATIVPY_NAPI_EXPERIMENTAL=OFF`,
+still shows 1001). Probe on Node 22.7, median µs per call:
+
+| Case | stable N-API | experimental | page faults/call |
+|---|---:|---:|---:|
+| add 1e5 | 67–85 | 20–23 | 49 → 5 |
+| copy 1e5 | 62–80 | 13 | |
+| add 1e6 | 1007–1121 | 273–304 | 490 → 25 |
+
+Node 18.20 / 20.17 runs of the same probe were ~2.5× slower than Node 22 (add 1e5 68 µs)
+even with fewer faults. The synchronous-finalizer gain is therefore
+Node-version dependent. Only Node 22 is measured in the suite.
+
+Full suite (170 comparable cases, same machine, Node 22.7), geo-mean
+`numpy_ms / nativpy_ms` went from **0.285 to 0.628** (60 faster, 110 slower). This includes D-021/D-022.
+By category (baseline → now): reduction 0.237 → 1.179, broadcast 0.180 → 1.076,
+matmul 0.319 → 0.874, elementwise 0.194 → 0.608, memory 0.167 → 0.463,
+creation 0.239 → 0.398, transpose 0.196 → 0.260, slicing 0.145 → 0.153,
+view 0.096 → 0.098, fft 0.757 → 0.903, linalg 0.963 → 0.995, random 0.774 → 0.925.
+
+Regression: `creation/zeros 1e6` went from 0.049 to 0.104 ms (NumPy 0.065). The likely cause
+(unverified): before, freed memory was never reused within the loop, so `calloc`
+always got fresh, lazily zeroed OS pages. Now it reuses freed memory and must
+zero it. `ones 1e6` improved from 0.601 to 0.176 ms for the same reason in reverse.
+
+Still slow: 1e3 and view/slicing cases (0.1–0.3), which are dominated by fixed
+per-call cost (finding 5).
+

@@ -483,3 +483,31 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   every element. `m*n == 0` returns before any kernel runs.
 - Results are unchanged: the same kernel sees the same data.
 
+## D-023 — Synchronous (GC-time) buffer release via experimental N-API (M11) — Accepted — 2026-09-29
+- Problem: PERFORMANCE.md finding 2. Node-API addons built for a stable
+  `NAPI_VERSION` have their finalizers deferred to a later event-loop task. A
+  synchronous loop keeps every result buffer alive (1000 × `add` 1e5 left 1002
+  buffers live), so each new result is fresh OS memory: 49 page faults per call
+  at 1e5.
+- Options considered:
+  1. Caching buffer pool (D-013 deferred it). It hides faults but keeps memory
+     V8 does not track, and it does not fix the deferred frees.
+  2. Explicit `dispose()`. This changes the API and does nothing for code that
+     does not call it. It may be added later as an extra.
+  3. **Chosen:** build the addon with `NAPI_EXPERIMENTAL`. For modules that
+     declare the experimental API version, Node (≥ 18.x/20.x, fully in 22) runs
+     *basic* finalizers synchronously inside GC, so the buffer is freed right away
+     and malloc reuses it.
+- Safety: our only finalizer is `~NDArrayWrap`. It frees the `shared_ptr` and
+  calls `napi_adjust_external_memory`, which takes a `node_api_basic_env` and
+  is allowed during GC. `NODE_ADDON_API_REQUIRE_BASIC_FINALIZERS` is defined,
+  so node-addon-api fails the build (`static_assert`) if a finalizer ever needs
+  a full env.
+- Cost / risk: the addon depends on experimental Node-API. Its ABI is not
+  covered by Node-API stability guarantees, so prebuilt binaries (M13) must be
+  tested per supported Node major. The CMake option `NATIVPY_NAPI_EXPERIMENTAL`
+  (default ON) builds the stable `NAPI_VERSION=8` addon when OFF. Node 16 loads
+  the module but gains nothing (outside `engines >= 18`).
+- Scope: memory is still released only when V8 collects the wrapper. This is
+  not deterministic release.
+

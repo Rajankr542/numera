@@ -10,6 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(NATIVPY_BUILD_ADDON "Build the Node-API addon (requires cmake-js)" ON)
 option(NATIVPY_BUILD_TESTS "Build C++ unit tests" OFF)
 option(NATIVPY_SANITIZE "Enable AddressSanitizer + UndefinedBehaviorSanitizer" OFF)
+option(NATIVPY_NAPI_EXPERIMENTAL "Build against experimental Node-API: GC-time buffer release (D-023)" ON)
 
 if(MSVC)
   set(NATIVPY_WARNINGS /W4 /WX /permissive-)
@@ -118,7 +119,16 @@ if(NATIVPY_BUILD_ADDON AND CMAKE_JS_VERSION)
   target_include_directories(nativpy_addon PRIVATE
     ${CMAKE_JS_INC} ${NODE_ADDON_API_DIR} native/bindings)
   target_compile_definitions(nativpy_addon PRIVATE
-    NAPI_VERSION=8 NODE_ADDON_API_CPP_EXCEPTIONS NODE_ADDON_API_DISABLE_DEPRECATED)
+    NODE_ADDON_API_CPP_EXCEPTIONS NODE_ADDON_API_DISABLE_DEPRECATED)
+  if(NATIVPY_NAPI_EXPERIMENTAL)
+    # D-023: experimental Node-API runs basic finalizers synchronously in GC,
+    # so result buffers are freed immediately instead of after the event loop.
+    # REQUIRE_BASIC_FINALIZERS makes any non-basic finalizer a compile error.
+    target_compile_definitions(nativpy_addon PRIVATE
+      NAPI_EXPERIMENTAL NODE_ADDON_API_REQUIRE_BASIC_FINALIZERS)
+  else()
+    target_compile_definitions(nativpy_addon PRIVATE NAPI_VERSION=8)
+  endif()
   # Node/N-API headers are not -Wconversion clean; keep warnings on our code only.
   target_compile_options(nativpy_addon PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror>)

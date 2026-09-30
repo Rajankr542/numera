@@ -34,7 +34,10 @@ Future: `native/kernels`, `native/linalg`, `native/random`, `native/fft`,
 
 ## Binding (native/bindings)
 - `NDArrayWrap` (`Napi::ObjectWrap`) owns an `NDArray` by value; JS GC of the
-  wrapper drops one buffer reference.
+  wrapper drops one buffer reference. The addon is built with `NAPI_EXPERIMENTAL`
+  (CMake `NATIVPY_NAPI_EXPERIMENTAL`, D-023), so this basic finalizer runs
+  synchronously inside GC. It must stay basic: no JS calls and no allocation of
+  JS values. `NODE_ADDON_API_REQUIRE_BASIC_FINALIZERS` enforces this at compile time.
 - Functions exported: `empty/zeros/fromData`, properties, `toList`,
   `toTypedArray`, `view`, `reshape`, `copy`, `astype`, `sharesMemory`.
 - All entry points wrap with `translate_errors` → typed JS errors.
