@@ -285,3 +285,46 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   - Empty mean/var return NaN, with no warning.
   - Complex input raises `NotImplementedError` (D-008).
 
+## D-018 — Linear algebra backend and semantics (M8) — Accepted — 2026-09-29
+- Code in `native/linalg/`, behind the `LinalgBackend` interface
+  (`backend.hpp`, PLAN §20/§45). `native/core` does not depend on it.
+  - macOS: `AccelerateBackend` (Accelerate BLAS/LAPACK, `ACCELERATE_NEW_LAPACK`).
+  - Everywhere else: `FallbackBackend`, portable C++ (GEMM loop, partial-pivot
+    LU, Householder QR, Jacobi eigh/SVD, Hessenberg + shifted QR for eig).
+  - OpenBLAS/MKL backends are M11 work.
+  - CMake option `NATIVPY_LINALG_BACKEND=auto|accelerate|fallback`.
+  - The C++ tests run both backends. JS tests switch backends through the
+    internal `np.linalg._setBackend("fallback" | "default")` hook (not public
+    API) and run the differential cases on both.
+- `matmul`/`dot`/`inner`/`outer`:
+  - Result dtype comes from `promote_types`. Shapes follow the NumPy gufunc
+    `(n?,k),(k,m?)->(n?,m?)` with broadcast batch dims; `dot` sums over the
+    last axis of `a` and the second-to-last axis of `b`.
+  - float32/float64 use backend GEMM. Integer/bool/float16 use an exact loop
+    in the result dtype (integers wrap, bool is an OR of ANDs, float16
+    accumulates in float32).
+  - A shape mismatch raises `ShapeError` (NumPy: `ValueError`). A mismatch in
+    the batch dimensions raises `BroadcastError` (D-014).
+- `det`/`inv`/`solve`/`eig`/`eigh`/`svd`/`qr`/`lstsq`:
+  - float32 stays float32; bool and integer inputs compute in float64.
+  - float16 raises `DTypeError` (NumPy: `TypeError`).
+  - Leading dimensions are batched.
+  - Singular matrices, non-convergence, NaN/inf input to eig, and
+    non-square or <2-D input raise `LinAlgError` (new `ErrorKind::LinAlg`,
+    matching `numpy.linalg.LinAlgError`).
+- `eig` always returns complex eigenvalues and eigenvectors (NumPy 2):
+  complex64 for float32 input, otherwise complex128. Read them with
+  `toTypedArray()` (interleaved re/im) until complex element conversion lands
+  (D-008).
+- Decompositions return plain objects: `{eigenvalues, eigenvectors}`,
+  `{U, S, Vh}`, `{Q, R}`, `{x, residuals, rank, s}`.
+  - Signs and phases of eigenvectors and singular vectors depend on the
+    backend (as in LAPACK). Tests check reconstruction and orthogonality,
+    not raw vectors.
+- `norm`:
+  - `ord`: none, 'fro', 'nuc', ±Infinity, ±1, ±2, or any p for vectors.
+  - `axis`: an int or a pair; `keepdims` is supported.
+  - Result dtype: float32/float16 inputs keep their dtype; everything else
+    gives float64.
+- Complex *input* to linalg raises `NotImplementedError` (D-008).
+

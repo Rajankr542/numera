@@ -13,6 +13,7 @@ enum class ErrorKind {
   Value,
   Memory,
   NotImplemented,
+  LinAlg,  // numpy.linalg.LinAlgError (D-018)
 };
 
 const char* error_kind_name(ErrorKind kind) noexcept;

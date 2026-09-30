@@ -18,6 +18,8 @@ const char* error_kind_name(ErrorKind kind) noexcept {
       return "MemoryError";
     case ErrorKind::NotImplemented:
       return "NotImplementedError";
+    case ErrorKind::LinAlg:
+      return "LinAlgError";
   }
   return "NativpyError";
 }

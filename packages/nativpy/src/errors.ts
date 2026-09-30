@@ -19,6 +19,8 @@ export class BroadcastError extends NativpyError {}
 export class ValueError extends NativpyError {}
 export class MemoryError extends NativpyError {}
 export class NotImplementedError extends NativpyError {}
+/** numpy.linalg.LinAlgError (DECISIONS D-018). */
+export class LinAlgError extends NativpyError {}
 
 const byName: Record<string, new (message: string, code?: string) => NativpyError> = {
   ShapeError,
@@ -28,6 +30,7 @@ const byName: Record<string, new (message: string, code?: string) => NativpyErro
   ValueError,
   MemoryError,
   NotImplementedError,
+  LinAlgError,
   NativpyError,
 };
 
