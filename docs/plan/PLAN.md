@@ -958,13 +958,13 @@ Example:
 ```ts
 const rng = np.random.defaultRng(42);
 
-const a = rng.normal([1000]);
-const b = rng.uniform([1000]);
+const a = rng.normal({ size: [1000] });
+const b = rng.uniform({ size: [1000] });
 ```
 
 The initial goal is deterministic reproducibility within nativpy.
 
-Do not claim bit-for-bit NumPy RNG compatibility unless specifically implemented and verified.
+Do not claim bit-for-bit NumPy RNG compatibility unless specifically implemented and verified. (Implemented and verified for the D-019 method set; see DECISIONS.md.)
 
 ---
 
@@ -1719,8 +1719,8 @@ Output:
 Provide:
 
 ```ts
-const X = np.random.normal([1000, 10]);
-const weights = np.random.normal([10, 1]);
+const X = np.random.normal({ size: [1000, 10] });
+const weights = np.random.normal({ size: [10, 1] });
 
 const predictions = np.matmul(X, weights);
 
@@ -1750,7 +1750,7 @@ result.shape === [1000, 3]
 # 55. Statistics Example
 
 ```ts
-const data = np.random.normal([1_000_000]);
+const data = np.random.normal({ size: [1_000_000] });
 
 console.log("mean:", np.mean(data));
 console.log("std:", np.std(data));
@@ -2777,9 +2777,9 @@ Do not claim 100% compatibility until it has actually been demonstrated.
 ```ts
 import np from "nativpy";
 
-const X = np.random.normal([10_000, 100]);
+const X = np.random.normal({ size: [10_000, 100] });
 
-const weights = np.random.normal([100, 10]);
+const weights = np.random.normal({ size: [100, 10] });
 
 const bias = np.zeros([10]);
 
@@ -2946,8 +2946,8 @@ and then:
 ```ts
 import np from "nativpy";
 
-const A = np.random.normal([2000, 2000]);
-const B = np.random.normal([2000, 2000]);
+const A = np.random.normal({ size: [2000, 2000] });
+const B = np.random.normal({ size: [2000, 2000] });
 
 const C = np.matmul(A, B);
 

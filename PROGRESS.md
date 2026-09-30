@@ -1,5 +1,35 @@
 # PROGRESS
 
+## 2026-09-29 — M9 random (D-019)
+
+Done:
+- C++ `native/random/` (its own static lib, `nativpy_random`):
+  - `bitgen.{hpp,cpp}`: `SeedSequence`, `PCG64`, and `MT19937` with legacy integer and array seeding.
+  - `distributions.{hpp,cpp}`: 53-bit and 24-bit floats, ziggurat normal (float64/float32), and the legacy polar gauss with its cache.
+  - Also in `distributions`: Lemire and masked bounded integers with NumPy's buffered 8/16/32-bit draws and bool bit-buffering; `shuffle`; and Generator `choice` indices (Floyd + hash set, partial tail shuffle).
+- Bindings: `native/bindings/random_binding.cpp` exposes `exports.random.BitGenerator`.
+- TS: `src/random.ts` provides `defaultRng`/`Generator`, `RandomState`, and the `np.random` namespace with the legacy global functions. Positional NumPy argument order or an options object both work.
+- Fixed: float32 `normal` silently ignored `loc`/`scale`. It now raises `ValueError` for non-default values; NumPy only exposes float32 through `standard_normal`.
+- PLAN examples `normal([n])` changed to `normal({ size: [n] })`. In NumPy order the first positional argument is `loc`.
+- Tests:
+  - `tests/native/test_random.cpp` (8 cases, NumPy reference values).
+  - `packages/nativpy/test/random.test.ts`.
+  - A new differential group `random`: 10 seeded streams, 30 or 21 chained calls each. The test requires **exact** equality.
+- Verification (macOS arm64, NumPy 2.5.3):
+  - `pnpm build` passes.
+  - `pnpm typecheck` is clean.
+  - `pnpm test:native` and `pnpm test:asan` pass (58 cases, ASan+UBSan clean).
+  - `pnpm test`: 74 tests pass.
+  - `pnpm test:diff`: 2885 tests pass.
+- Build note: on this machine cmake-js needs
+  `SDKROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk`
+  and `.venv/bin` on `PATH`.
+- Not done (see COMPATIBILITY.md):
+  - `choice(p=...)`.
+  - Broadcast array parameters.
+  - Other distributions.
+  - No benchmarks, so no performance claims.
+
 ## 2026-09-29 — M8 linear algebra (D-018)
 
 Done:

@@ -13,12 +13,14 @@ Milestones follow `docs/plan/PLAN.md` §86. Status: ✅ done · 🟡 partial · 
 | 6 | Indexing | ✅ | `get`/`slice`/`set`: integer, slice (negative/reverse), ellipsis, newaxis, integer-array, boolean, mixed advanced indexing; `nonzero`, `take`, `where`. D-015. |
 | 7 | Reductions | ✅ | PLAN M7 list complete: `sum`, `mean`, `min`, `max`, `argmin`, `argmax`, `prod`, `std`, `var` with `axis` (int/list/none), `keepdims`, `dtype`, `initial`, `ddof`; NDArray methods. D-017. |
 | 8 | Linear algebra | ✅ | `matmul`, `dot`, `inner`, `outer`; `linalg.det`/`inv`/`solve`/`eig`/`eigh`/`eigvals`/`eigvalsh`/`svd`/`qr`/`lstsq`/`norm`. Batched. Accelerate backend on macOS, portable fallback elsewhere; both tested. D-018. |
-| 9–14 | → release | ⬜ | M9 is next. |
+| 9 | Random | ✅ | Bit-exact with NumPy: `defaultRng` (PCG64 + SeedSequence) Generator and the legacy MT19937 `RandomState`/global functions: `rand`, `randn`, `random`, `uniform`, `normal`, `randint`/`integers`, `choice`, `shuffle`, `permutation`. Scalar parameters only. D-019. |
+| 10–14 | → release | ⬜ | M10 is next. |
 
 ## Next steps
-1. M9 per PLAN §86.
-2. Complex element conversion (D-008). This unblocks complex ufuncs and complex linalg.
-3. Benchmark matmul/solve/svd across the Accelerate and fallback backends and NumPy before making any performance claims (PERFORMANCE.md).
-4. Profile ufunc and `copy` costs (destination allocation vs. loop, PERFORMANCE.md) before optimizing.
-5. Buffer pool for `copy`-heavy workloads (deferred, D-013). It needs its own decision entry.
-6. Pairwise float summation for reductions, if exact NumPy float sums are needed (D-017).
+1. M10 per PLAN §86.
+2. Random follow-ups: `choice(p=...)`, broadcast array parameters, more distributions (D-019).
+3. Complex element conversion (D-008). This unblocks complex ufuncs and complex linalg.
+4. Benchmark matmul/solve/svd across the Accelerate and fallback backends and NumPy before making any performance claims (PERFORMANCE.md).
+5. Profile ufunc and `copy` costs (destination allocation vs. loop, PERFORMANCE.md) before optimizing.
+6. Buffer pool for `copy`-heavy workloads (deferred, D-013). It needs its own decision entry.
+7. Pairwise float summation for reductions, if exact NumPy float sums are needed (D-017).

@@ -26,6 +26,7 @@ differential tests (`pnpm test:diff`).
 | reductions (`sum`/`prod`/`min`/`max`/`mean`/`var`/`std`/`argmin`/`argmax`) | 12 real dtypes × axis none/0/1/-1/tuple/keepdims on (2,3,4); transposed inputs; NaN, signed zero, ties, empty arrays, 0-d, `initial`, `ddof`, `dtype`, bad/repeated axis. Exact dtype/shape/strides; exact values except float sum/prod/mean/var/std (relative tolerance) (D-017) |
 | `matmul`/`dot`/`inner`/`outer` | float64/float32/int32/int8/uint16/bool (plus mixed int/float, float16, int8 wraparound) × 1-D/2-D/batched/broadcast/empty/mismatched shapes. Exact values for integer and bool; relative tolerance for floats (D-018) |
 | `linalg.det`/`inv`/`solve`/`eig`/`eigh`/`svd`/`qr`/`lstsq`/`norm` | float64/float32/int/bool inputs, batched stacks, singular and empty matrices, rectangular and rank-deficient matrices, NaN input to `eig`, float16 and non-square errors; every `norm` ord and axis/keepdims. dtype and shape exact. Values checked by tolerance (det, inv, solve, eigenvalues, S, lstsq, norm). Vectors checked by reconstruction and orthogonality: A·V=V·Λ, U·S·Vh=A, Q·R=A with upper-triangular R. Run on **both** Accelerate and fallback backends (D-018) |
+| random: `defaultRng` Generator (`random`, `uniform`, `standardNormal`, `normal`, `integers`, `choice`, `shuffle`, `permutation`) and legacy `seed`/`RandomState` (`rand`, `randn`, `random`/`randomSample`, `standardNormal`, `normal`, `uniform`, `randint`, `choice`, `shuffle`, `permutation`) | **Bit-exact** streams (exact equality) for int, bigint and array seeds, including chained calls that continue one stream; float32; int8/int16/uint8/uint32/int64/uint64/bool `integers`/`randint`; `endpoint`; choice with and without replacement (Floyd, partial-shuffle and `shuffle=False` paths); array populations; 1-D and 2-D shuffle, including Generator `axis=1`; bound/size/scale errors (D-019) |
 
 ## Documented divergences
 | Behaviour | NumPy | nativpy | Decision |
@@ -64,6 +65,9 @@ differential tests (`pnpm test:diff`).
 | decomposition result | named tuple | plain object (`{eigenvalues, eigenvectors}`, `{U, S, Vh}`, `{Q, R}`, `{x, residuals, rank, s}`) | D-018 |
 | `svd`/`qr` options | `full_matrices=`, `compute_uv=`, `mode=` | `{fullMatrices, computeUV}`, `qr(a, mode)` | D-018 |
 | float matmul / decompositions | OpenBLAS | Accelerate or fallback loops; may differ by rounding | D-018 |
+| random with no seed | OS entropy via SeedSequence | OS entropy (`crypto.getRandomValues`); the legacy global state is array-seeded with 624 entropy words (not reproducible either way) | D-019 |
+| random distribution parameters | broadcast array `loc`/`scale`/`low`/`high` | scalars only; arrays raise `NotImplementedError` | D-019 |
+| random scalar results | NumPy scalar | JS number/boolean (D-005 applies to int64 > 2^53) | D-019 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; complex reductions (`NotImplementedError`); `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
@@ -71,4 +75,5 @@ differential tests (`pnpm test:diff`).
 - Linalg: complex inputs (`NotImplementedError`); `pinv`, `matrix_rank`, `matrix_power`, `cholesky`, `slogdet`, `cond`, `tensordot`, `einsum`, `vdot`, `kron`; batched `lstsq`; `out=` parameters; `eigh(UPLO='U')` (only the lower triangle is used). The `@` operator is not available in JS; use `np.matmul`.
 - Ufunc keywords `out=`, `where=`, `casting=`, `dtype=`, `order=`; `NDArray` operator methods.
 - `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.
-- Everything from PLAN M8 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+- Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
+- Everything from PLAN M10 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
