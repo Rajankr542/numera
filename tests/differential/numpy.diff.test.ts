@@ -119,7 +119,13 @@ function checkArray(actual: NDArray, exp: Described): void {
 }
 
 function label(c: Case): string {
-  return JSON.stringify({ ...c, expected: undefined, reshape_flat: undefined });
+  const s = JSON.stringify({ ...c, expected: undefined, reshape_flat: undefined });
+  if (s.length <= 400) return s;
+  // Large generated inputs (e.g. D-021 cases): keep test names readable but
+  // unique (FNV-1a hash of the full label).
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193) >>> 0;
+  return `${s.slice(0, 360)}…#${h.toString(16)}`;
 }
 
 function arange(n: number): NDArray {
@@ -459,8 +465,8 @@ describe("differential: reductions (M7, D-017)", () => {
   const { numpy_version, cases } = load("reduce");
   type RFn = (a: NDArray, opts: Record<string, unknown>) => NDArray;
   const fns = np as unknown as Record<string, RFn>;
-  // Float sum/prod/mean/var/std: NumPy uses pairwise summation, nativpy a
-  // sequential loop (D-017), so compare with a relative tolerance.
+  // Float sum/prod/mean/var/std on the small generic cases are compared with a
+  // relative tolerance (D-017); D-021 cases (approx=false) are checked exactly.
   const rtolFor = (dt: string): number => (dt === "float16" ? 2e-3 : dt === "float32" ? 1e-5 : 1e-12);
   const close = (got: unknown, exp: unknown, rtol: number): void => {
     if (Array.isArray(exp)) {

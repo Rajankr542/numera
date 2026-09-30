@@ -554,8 +554,9 @@ REDUCE_FNS = {
     "sum": np.sum, "prod": np.prod, "min": np.min, "max": np.max, "mean": np.mean,
     "var": np.var, "std": np.std, "argmin": np.argmin, "argmax": np.argmax,
 }
-# Float results of these depend on summation order (NumPy is pairwise, nativpy
-# sequential; D-017) so they are compared with a relative tolerance.
+# Float results of these depend on summation order, so the generic cases keep a
+# relative tolerance (D-017). Since D-021 nativpy matches NumPy's order on
+# contiguous input; d021_cases() checks that exactly.
 REDUCE_APPROX = {"sum", "prod", "mean", "var", "std"}
 
 
@@ -649,6 +650,51 @@ def reduce_cases() -> list[dict]:
     ]
     for name, data, dt, shp, kw in specials:
         cases.append(_reduce_case(name, data, dt, shp, kw))
+    cases.extend(d021_cases())
+    return cases
+
+
+def d021_cases() -> list[dict]:
+    """D-021: contiguous float sum/mean/var/std match NumPy bit-for-bit
+    (pairwise along the trailing axes, sequential down leading axes), and the
+    lane min/max keeps NaN/signed-zero semantics. Compared exactly."""
+    rng = np.random.default_rng(21)
+    cases = []
+
+    def add(name, arr, kw):
+        arr = np.asarray(arr)
+        c = _reduce_case(name, [float(v) for v in arr.ravel()], str(arr.dtype), arr.shape, kw)
+        c["approx"] = False
+        cases.append(c)
+
+    for n in (7, 8, 9, 127, 128, 129, 1000, 4099):
+        x = rng.standard_normal(n) * 100
+        for name in ("sum", "mean", "var", "std", "min", "max"):
+            add(name, x, {})
+    add("sum", rng.standard_normal(1000).astype(np.float32), {})
+    m = rng.standard_normal((300, 37))
+    for name in ("sum", "mean", "std", "max"):
+        add(name, m, {"axis": 0})
+        add(name, m, {"axis": 1})
+    add("sum", rng.standard_normal((4, 50, 3)), {"axis": [0, 1]})
+    add("sum", rng.standard_normal((4, 50, 3)), {"axis": [1, 2]})
+    for name in ("min", "max"):
+        y = rng.standard_normal(1000)
+        y[0] = np.nan
+        add(name, y, {})
+        y = rng.standard_normal(1000)
+        y[5], y[900] = np.inf, np.nan
+        add(name, y, {})
+        add(name, np.array([np.inf, -np.inf] * 100), {})
+        add(name, np.array([-0.0] * 100 + [0.0] + [-0.0] * 99), {})
+        add(name, np.array([0.0] * 100 + [-0.0] + [0.0] * 99), {})
+        add(name, np.array([0.0, -1.0] * 100 + [-0.0]), {})
+        z = rng.standard_normal((20, 50))
+        z[3, 7] = z[11, 40] = np.nan
+        add(name, z, {"axis": 1})
+        add(name, z, {"axis": 0})
+    add("sum", np.array([-0.0] * 3), {})
+    add("sum", np.array([-0.0] * 300), {})
     return cases
 
 

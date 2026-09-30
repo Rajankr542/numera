@@ -99,3 +99,73 @@ TEST_CASE("reduce: mean/var/std and argmin/argmax") {
   CHECK_EQ(arg_reduce(false, a, std::nullopt, false).get_int64(0), 0);
   CHECK(arg_reduce(false, a, std::nullopt, true).shape() == Shape({1, 1}));
 }
+
+TEST_CASE("reduce: D-021 fast paths (lanes, pairwise, column sweep)") {
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+  const double inf = std::numeric_limits<double>::infinity();
+  // Long rows take the multi-lane min/max path; the NaN is at each position
+  // class (lane seed, lane body, scalar tail).
+  for (const std::int64_t pos : {0LL, 5LL, 16LL, 500LL, 998LL}) {
+    NDArray x = arange(0, 999, 1, DType::Float64);
+    x.set_double(pos, nan);
+    CHECK(std::isnan(reduce(ReduceOp::Max, x, {}).get_double(0)));
+    CHECK(std::isnan(reduce(ReduceOp::Min, x, {}).get_double(0)));
+  }
+  // ±inf without NaN: the v - v NaN probe fires, the rescan must not.
+  NDArray f = arange(0, 100, 1, DType::Float64);
+  f.set_double(3, inf);
+  f.set_double(70, -inf);
+  CHECK_EQ(reduce(ReduceOp::Max, f, {}).get_double(0), inf);
+  CHECK_EQ(reduce(ReduceOp::Min, f, {}).get_double(0), -inf);
+  // Signed zero across lanes: -0.0 < +0.0 regardless of position.
+  NDArray z = NDArray::zeros({200}, DType::Float64);
+  for (std::int64_t i = 0; i < 200; ++i) z.set_double(i, -0.0);
+  z.set_double(150, 0.0);
+  CHECK(!std::signbit(reduce(ReduceOp::Max, z, {}).get_double(0)));
+  CHECK(std::signbit(reduce(ReduceOp::Min, z, {}).get_double(0)));
+  // Integer lanes.
+  NDArray iv = arange(0, 1000, 1, DType::Int32);
+  iv.set_double(637, -5);
+  CHECK_EQ(reduce(ReduceOp::Min, iv, {}).get_int64(0), -5);
+  CHECK_EQ(reduce(ReduceOp::Max, iv, {}).get_int64(0), 999);
+  // Pairwise sum: exact on integers-as-floats for every block-size regime,
+  // and -0.0 only sums to +0.0 (0 + pairwise, as NumPy).
+  for (const std::int64_t n : {3LL, 8LL, 128LL, 129LL, 5000LL}) {
+    const double expect = static_cast<double>(n) * static_cast<double>(n - 1) / 2;
+    CHECK_EQ(reduce(ReduceOp::Sum, arange(0, static_cast<double>(n), 1, DType::Float64), {}).get_double(0),
+             expect);
+  }
+  NDArray nz = NDArray::zeros({300}, DType::Float64);
+  for (std::int64_t i = 0; i < 300; ++i) nz.set_double(i, -0.0);
+  CHECK(!std::signbit(reduce(ReduceOp::Sum, nz, {}).get_double(0)));
+  // Column sweep (leading-axis reduction without a transpose copy) agrees
+  // with the transposed-input path for every op, including initial and NaN.
+  NDArray m = arange(0, 60, 1, DType::Float64).reshape({12, 5});
+  m.set_double(17, nan);
+  const NDArray mt = m.view({5, 12}, {8, 40}, 0);  // m.T, non-contiguous
+  for (const ReduceOp op : {ReduceOp::Sum, ReduceOp::Prod, ReduceOp::Min, ReduceOp::Max,
+                            ReduceOp::Mean, ReduceOp::Var, ReduceOp::Std}) {
+    const NDArray c = reduce(op, m, ax({0}));
+    const NDArray r = reduce(op, mt, ax({1}));
+    CHECK(c.shape() == Shape({5}));
+    for (std::int64_t j = 0; j < 5; ++j) {
+      const double a = c.get_double(j);
+      const double b = r.get_double(j);
+      CHECK((std::isnan(a) && std::isnan(b)) || a == b);
+    }
+  }
+  CHECK(std::isnan(reduce(ReduceOp::Max, m, ax({0})).get_double(2)));
+  CHECK_EQ(reduce(ReduceOp::Max, m, ax({0})).get_double(1), 56.0);
+  ReduceOptions init = ax({0});
+  init.initial = 1000;
+  CHECK_EQ(reduce(ReduceOp::Min, arange(0, 12, 1, DType::Int64).reshape({4, 3}), init).get_int64(0), 0);
+  CHECK_EQ(reduce(ReduceOp::Sum, arange(0, 12, 1, DType::Int64).reshape({4, 3}), init).get_int64(2), 1026);
+  // Bool column sweep and 3-d leading axes.
+  NDArray bm = NDArray::zeros({3, 2}, DType::Bool);
+  bm.set_double(2, 1);
+  CHECK_EQ(reduce(ReduceOp::Max, bm, ax({0})).get_int64(0), 1);
+  CHECK_EQ(reduce(ReduceOp::Max, bm, ax({0})).get_int64(1), 0);
+  const NDArray s3 = reduce(ReduceOp::Sum, arange(0, 24, 1, DType::Int64).reshape({2, 3, 4}), ax({0, 1}));
+  CHECK(s3.shape() == Shape({4}));
+  CHECK_EQ(s3.get_int64(0), 60);
+}

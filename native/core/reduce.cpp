@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include "cast.hpp"
 #include "error.hpp"
@@ -37,16 +39,19 @@ bool sign_bit(T v) noexcept {
   else return false;
 }
 
-// Input rearranged so that reduced axes are last and C-contiguous.
+// Input rearranged so that reduced axes are last and C-contiguous, or (cols)
+// the untransposed input when the reduced axes are the leading axes (D-021).
 struct Work {
-  NDArray data;       // shape = kept dims + reduced dims, C-contiguous
+  NDArray data;       // rows: kept dims + reduced dims; cols: n × rows; C-contiguous
   Shape out_shape;    // kept dims (keepdims applied)
   std::int64_t rows;  // number of output elements
   std::int64_t n;     // elements reduced per output
+  bool trailing;      // reduced axes were already the trailing axes (D-021)
+  bool cols;          // data is laid out n × rows (reduce down columns)
 };
 
 Work prepare(const NDArray& a, const std::optional<std::vector<std::int64_t>>& axis,
-             bool keepdims, DType work_dtype) {
+             bool keepdims, DType work_dtype, bool allow_cols = false) {
   const auto nd = static_cast<std::int64_t>(a.ndim());
   std::vector<bool> red(static_cast<std::size_t>(nd), !axis.has_value());
   if (axis) {
@@ -70,8 +75,110 @@ Work prepare(const NDArray& a, const std::optional<std::vector<std::int64_t>>& a
   for (std::int64_t d = 0; d < nd; ++d) {
     if (red[static_cast<std::size_t>(d)]) perm.push_back(d);
   }
+  bool trailing = true;
+  for (std::int64_t d = 0; d < nd; ++d) trailing = trailing && perm[static_cast<std::size_t>(d)] == d;
+  // Reduced axes all leading (e.g. axis=0 of a matrix): the untransposed input
+  // is already n × rows, so callers that support it reduce down columns
+  // instead of materializing a transposed copy.
+  if (allow_cols && !trailing && nd > 0) {
+    // Leading iff red = [true × k, false × (nd - k)] for some k.
+    const auto kept = static_cast<std::int64_t>(std::count(red.begin(), red.end(), false));
+    bool leading = true;
+    for (std::int64_t d = 0; d < nd; ++d) {
+      leading = leading && red[static_cast<std::size_t>(d)] == (d < nd - kept);
+    }
+    if (leading && rows > 1 && n > 1) {
+      const NDArray c = (a.dtype() == work_dtype && a.is_c_contiguous()) ? a : a.astype(work_dtype);
+      return {c, std::move(out_shape), rows, n, false, true};
+    }
+  }
   const NDArray t = nd == 0 ? a : transpose(a, perm);
-  return {t.astype(work_dtype), std::move(out_shape), rows, n};
+  // D-021: read in place when the rearranged view is already C-contiguous
+  // (reduced axes trailing) and no cast is needed. NDArray shares the buffer.
+  if (t.dtype() == work_dtype && t.is_c_contiguous()) {
+    return {t, std::move(out_shape), rows, n, trailing, false};
+  }
+  return {t.astype(work_dtype), std::move(out_shape), rows, n, trailing, false};
+}
+
+// NumPy pairwise summation (loops_utils.h.src, D-021) of get(lo..lo+n-1).
+template <typename C, typename F>
+C pairwise_sum(const F& get, std::int64_t lo, std::int64_t n) {
+  if (n < 8) {
+    C s = C(-0.0);  // NumPy's seed; callers add 0 so an all -0.0 sum is +0.0
+    for (std::int64_t i = 0; i < n; ++i) s += get(lo + i);
+    return s;
+  }
+  if (n <= 128) {
+    C r[8];
+    for (int j = 0; j < 8; ++j) r[j] = get(lo + j);
+    std::int64_t i = 8;
+    for (; i < n - (n % 8); i += 8) {
+      for (int j = 0; j < 8; ++j) r[j] += get(lo + i + j);
+    }
+    C res = ((r[0] + r[1]) + (r[2] + r[3])) + ((r[4] + r[5]) + (r[6] + r[7]));
+    for (; i < n; ++i) res += get(lo + i);
+    return res;
+  }
+  std::int64_t n2 = n / 2;
+  n2 -= n2 % 8;
+  return pairwise_sum<C>(get, lo, n2) + pairwise_sum<C>(get, lo + n2, n - n2);
+}
+
+// min/max of a contiguous, non-empty row with D-017 NaN/signed-zero rules.
+// Lanes use a plain compare-select; NaN is detected by accumulating `v - v`
+// (NaN for NaN or ±inf input, so hits are confirmed by an exact rescan). A bool
+// flag in the loop blocks vectorization (probe: 428 µs vs 87 µs at 1e6 f64).
+// The D-017 signed-zero rule is applied by a rescan only when the result is 0.
+template <typename T, bool IsMax>
+T minmax_row(const T* x, std::int64_t n) {
+  constexpr auto pick = [](T v, T acc) { return (IsMax ? v > acc : v < acc) ? v : acc; };
+  constexpr int L = 16;
+  T acc;
+  T poison = T(0);
+  std::int64_t i;
+  if (n < 2 * L) {
+    acc = x[0];
+    for (i = 0; i < n; ++i) {
+      if constexpr (std::is_floating_point_v<T>) poison += x[i] - x[i];
+      acc = pick(x[i], acc);
+    }
+  } else {
+    T lane[L];
+    T pz[L] = {};
+    for (int j = 0; j < L; ++j) lane[j] = x[j];
+    for (i = L; i + L <= n; i += L) {
+      for (int j = 0; j < L; ++j) {
+        const T v = x[i + j];
+        if constexpr (std::is_floating_point_v<T>) pz[j] += v - v;
+        lane[j] = pick(v, lane[j]);
+      }
+    }
+    acc = lane[0];
+    for (int j = 1; j < L; ++j) acc = pick(lane[j], acc);
+    if constexpr (std::is_floating_point_v<T>) {
+      for (int j = 0; j < L; ++j) poison += pz[j] + (lane[j] - lane[j]);
+    }
+    // Scalar tail kept out of the lane loop so the lane loop stays vectorizable.
+    for (; i < n; ++i) {
+      if constexpr (std::is_floating_point_v<T>) poison += x[i] - x[i];
+      acc = pick(x[i], acc);
+    }
+  }
+  if constexpr (std::is_floating_point_v<T>) {
+    if (poison != poison) {
+      for (std::int64_t k = 0; k < n; ++k) {
+        if (x[k] != x[k]) return x[k];  // first NaN (keeps its payload)
+      }
+    }
+    if (acc == T(0)) {
+      // max prefers +0.0, min prefers -0.0 (NumPy, D-017).
+      for (std::int64_t k = 0; k < n; ++k) {
+        if (x[k] == T(0) && std::signbit(x[k]) != IsMax) return x[k];
+      }
+    }
+  }
+  return acc;
 }
 
 void reject_complex(DType dt) {
@@ -101,8 +208,68 @@ void fold_rows(ReduceOp op, const Work& w, const std::optional<double>& initial,
     throw_error(ErrorKind::Value, std::string("zero-size array to reduction operation ") +
                                       op_name(op) + " which has no identity");
   }
+  const auto step = [op](C acc, C v) {
+    switch (op) {
+      case ReduceOp::Sum: return kernels::add<C>(acc, v);
+      case ReduceOp::Prod: return kernels::mul<C>(acc, v);
+      case ReduceOp::Min:
+        return (!is_nan(acc) && (is_nan(v) || v < acc || (v == acc && sign_bit(v)))) ? v : acc;
+      case ReduceOp::Max:
+        return (!is_nan(acc) && (is_nan(v) || v > acc || (v == acc && !sign_bit(v)))) ? v : acc;
+      default: return acc;
+    }
+  };
+  if (w.cols) {
+    // n × rows input: stream whole rows into per-output accumulators. Same
+    // per-output order as the row path (sequential), without a transpose copy.
+    // unique_ptr<C[]> rather than std::vector<C>: avoids the vector<bool> proxy.
+    const auto acc = std::make_unique<C[]>(static_cast<std::size_t>(w.rows));
+    std::int64_t start = 0;
+    if (initial || op == ReduceOp::Sum || op == ReduceOp::Prod) {
+      const C init = initial ? cast_value<C>(*initial) : (op == ReduceOp::Prod ? C{1} : C{0});
+      std::fill(acc.get(), acc.get() + w.rows, init);
+    } else {
+      for (std::int64_t r = 0; r < w.rows; ++r) acc[static_cast<std::size_t>(r)] = ld<W>(src + static_cast<std::size_t>(r) * isz);
+      start = 1;
+    }
+    for (std::int64_t i = start; i < w.n; ++i) {
+      const std::byte* line = src + static_cast<std::size_t>(i * w.rows) * isz;
+      // Op dispatched outside the inner loop so it can vectorize.
+      const auto sweep = [&](auto f) {
+        for (std::int64_t r = 0; r < w.rows; ++r) {
+          auto& a = acc[static_cast<std::size_t>(r)];
+          a = f(a, ld<W>(line + static_cast<std::size_t>(r) * isz));
+        }
+      };
+      switch (op) {
+        case ReduceOp::Sum: sweep([](C a, C v) { return kernels::add<C>(a, v); }); break;
+        case ReduceOp::Prod: sweep([](C a, C v) { return kernels::mul<C>(a, v); }); break;
+        default: sweep(step); break;
+      }
+    }
+    for (std::int64_t r = 0; r < w.rows; ++r) {
+      store<W>(dst + static_cast<std::size_t>(r) * isz, cast_value<W>(acc[static_cast<std::size_t>(r)]));
+    }
+    return;
+  }
   for (std::int64_t r = 0; r < w.rows; ++r) {
     const std::byte* row = src + static_cast<std::size_t>(r * w.n) * isz;
+    // D-021 fast paths (no `initial`): pairwise float sum, lane min/max.
+    if constexpr (std::is_arithmetic_v<W> && !std::is_same_v<W, bool>) {
+      const auto* x = reinterpret_cast<const W*>(row);
+      // NumPy sums pairwise only along the inner loop; reductions over leading
+      // axes accumulate sequentially (verified bit-exact), so keep that order.
+      if (!initial && w.trailing && op == ReduceOp::Sum && std::is_floating_point_v<W>) {
+        const C s = pairwise_sum<C>([x](std::int64_t i) { return static_cast<C>(x[i]); }, 0, w.n);
+        store<W>(dst + static_cast<std::size_t>(r) * isz, cast_value<W>(C{0} + s));
+        continue;
+      }
+      if (!initial && w.n > 0 && (op == ReduceOp::Min || op == ReduceOp::Max)) {
+        std::byte* o = dst + static_cast<std::size_t>(r) * isz;
+        store<W>(o, op == ReduceOp::Max ? minmax_row<W, true>(x, w.n) : minmax_row<W, false>(x, w.n));
+        continue;
+      }
+    }
     C acc{};
     std::int64_t start = 0;
     if (initial) {
@@ -115,19 +282,15 @@ void fold_rows(ReduceOp op, const Work& w, const std::optional<double>& initial,
       acc = ld<W>(row);
       start = 1;
     }
-    for (std::int64_t i = start; i < w.n; ++i) {
-      const C v = ld<W>(row + static_cast<std::size_t>(i) * isz);
-      switch (op) {
-        case ReduceOp::Sum: acc = kernels::add<C>(acc, v); break;
-        case ReduceOp::Prod: acc = kernels::mul<C>(acc, v); break;
-        case ReduceOp::Min:
-          if (!is_nan(acc) && (is_nan(v) || v < acc || (v == acc && sign_bit(v)))) acc = v;
-          break;
-        case ReduceOp::Max:
-          if (!is_nan(acc) && (is_nan(v) || v > acc || (v == acc && !sign_bit(v)))) acc = v;
-          break;
-        default: break;
-      }
+    // Op dispatched outside the element loop (a switch inside it defeats
+    // unswitching/vectorization; measured 3.6× slower on int sums).
+    const auto run = [&](auto f) {
+      for (std::int64_t i = start; i < w.n; ++i) acc = f(acc, ld<W>(row + static_cast<std::size_t>(i) * isz));
+    };
+    switch (op) {
+      case ReduceOp::Sum: run([](C a, C v) { return kernels::add<C>(a, v); }); break;
+      case ReduceOp::Prod: run([](C a, C v) { return kernels::mul<C>(a, v); }); break;
+      default: run(step); break;
     }
     store<W>(dst + static_cast<std::size_t>(r) * isz, cast_value<W>(acc));
   }
@@ -139,18 +302,52 @@ void moment_rows(ReduceOp op, const Work& w, std::int64_t ddof, NDArray& out) {
   const auto* src = reinterpret_cast<const W*>(w.data.data());
   std::byte* dst = out.data();
   const W count = static_cast<W>(w.n);
+  if (w.cols) {
+    // n × rows input (leading-axis reduction): NumPy's sequential order.
+    std::vector<W> s(static_cast<std::size_t>(w.rows), W{0});
+    for (std::int64_t i = 0; i < w.n; ++i) {
+      const W* line = src + i * w.rows;
+      for (std::int64_t r = 0; r < w.rows; ++r) s[static_cast<std::size_t>(r)] += line[r];
+    }
+    for (auto& v : s) v /= count;
+    if (op != ReduceOp::Mean) {
+      std::vector<W> ss(static_cast<std::size_t>(w.rows), W{0});
+      for (std::int64_t i = 0; i < w.n; ++i) {
+        const W* line = src + i * w.rows;
+        for (std::int64_t r = 0; r < w.rows; ++r) {
+          const W d = line[r] - s[static_cast<std::size_t>(r)];
+          const W sq = d * d;  // separate statement: no FMA contraction (NumPy rounds d*d)
+          ss[static_cast<std::size_t>(r)] += sq;
+        }
+      }
+      const W denom = static_cast<W>(std::max<std::int64_t>(w.n - ddof, 0));
+      for (std::int64_t r = 0; r < w.rows; ++r) {
+        W v = ss[static_cast<std::size_t>(r)] / denom;
+        if (op == ReduceOp::Std) v = std::sqrt(v);
+        s[static_cast<std::size_t>(r)] = v;
+      }
+    }
+    for (std::int64_t r = 0; r < w.rows; ++r) {
+      store<W>(dst + static_cast<std::size_t>(r) * sizeof(W), s[static_cast<std::size_t>(r)]);
+    }
+    return;
+  }
   for (std::int64_t r = 0; r < w.rows; ++r) {
     const W* row = src + r * w.n;
-    W s = 0;
-    for (std::int64_t i = 0; i < w.n; ++i) s += row[i];
+    const auto sum_of = [&w](const auto& get) {
+      if (w.trailing) return W{0} + pairwise_sum<W>(get, 0, w.n);
+      W s = 0;  // leading-axis reductions: NumPy's sequential order
+      for (std::int64_t i = 0; i < w.n; ++i) s += get(i);
+      return s;
+    };
+    const W s = sum_of([row](std::int64_t i) { return row[i]; });
     W res = s / count;  // empty -> NaN (D-017)
     if (op != ReduceOp::Mean) {
       const W mean = res;
-      W ss = 0;
-      for (std::int64_t i = 0; i < w.n; ++i) {
+      const W ss = sum_of([row, mean](std::int64_t i) {
         const W d = row[i] - mean;
-        ss += d * d;
-      }
+        return d * d;
+      });
       const W denom = static_cast<W>(std::max<std::int64_t>(w.n - ddof, 0));
       res = ss / denom;
       if (op == ReduceOp::Std) res = std::sqrt(res);
@@ -181,7 +378,7 @@ NDArray reduce(ReduceOp op, const NDArray& a, const ReduceOptions& opts) {
   reject_complex(rdt);
   if (op == ReduceOp::Min || op == ReduceOp::Max || op == ReduceOp::Sum ||
       op == ReduceOp::Prod) {
-    const Work w = prepare(a, opts.axis, opts.keepdims, rdt);
+    const Work w = prepare(a, opts.axis, opts.keepdims, rdt, /*allow_cols=*/true);
     NDArray out = NDArray::empty(w.out_shape, rdt);
     dispatch_dtype(rdt, [&](auto tag) {
       using W = dtype_t<decltype(tag)::value>;
@@ -193,7 +390,7 @@ NDArray reduce(ReduceOp op, const NDArray& a, const ReduceOptions& opts) {
   // results (NumPy keeps float32 and upcasts float16 to float32).
   const DType acc = (rdt == DType::Float16 || rdt == DType::Float32) ? DType::Float32
                                                                       : DType::Float64;
-  const Work w = prepare(a, opts.axis, opts.keepdims, acc);
+  const Work w = prepare(a, opts.axis, opts.keepdims, acc, /*allow_cols=*/true);
   NDArray tmp = NDArray::empty(w.out_shape, acc);
   if (acc == DType::Float32) moment_rows<float>(op, w, opts.ddof, tmp);
   else moment_rows<double>(op, w, opts.ddof, tmp);
