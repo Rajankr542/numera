@@ -172,9 +172,9 @@ function loadAddon(): NativeAddon {
     if (existsSync(p)) return require(p) as NativeAddon;
   }
   throw new Error(
-    `nativpy: no prebuilt native addon for ${process.platform}-${process.arch}. ` +
-      "Supported prebuilds are listed in the README; otherwise build from source " +
-      "with `pnpm build:native` (requires CMake, Ninja and a C++20 compiler). Tried:\n  " +
+    `numera: no prebuilt native addon for ${process.platform}-${process.arch}. ` +
+      "Prebuilds ship for darwin-arm64, darwin-x64, linux-x64 and linux-arm64 (glibc >= 2.28); " +
+      "elsewhere set NATIVPY_ADDON_PATH to a nativpy.node built for this platform. Tried:\n  " +
       tried.join("\n  "),
   );
 }

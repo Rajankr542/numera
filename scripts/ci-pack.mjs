@@ -45,6 +45,16 @@ for (const t of ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64"]) {
     throw new Error(`tarball is missing prebuilds/${t}/nativpy.node`);
   }
 }
+// Self-contained (D-029): the repo is private, so ship the docs the README
+// links to, no source maps, and no repository/homepage/bugs links.
+for (const f of ["README.md", "LICENSE", "COMPATIBILITY.md"]) {
+  if (!packed.files.some((p) => p.path === f)) throw new Error(`tarball is missing ${f} (run scripts/stage-package.mjs)`);
+}
+const maps = packed.files.filter((p) => p.path.endsWith(".map"));
+if (maps.length) throw new Error(`tarball contains source maps: ${maps.map((p) => p.path).join(", ")}`);
+for (const k of ["repository", "homepage", "bugs"]) {
+  if (k in pkg) throw new Error(`package.json has "${k}"; it would point users at the private repo`);
+}
 
 // Install the tarball in a clean project (no repo build visible) and import it by name.
 const smoke = `${outDir}-smoke`;

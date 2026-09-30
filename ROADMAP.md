@@ -4,7 +4,7 @@ Milestones follow `docs/plan/PLAN.md` §86. Status: ✅ done · 🟡 partial · 
 
 | # | Milestone | Status | Notes |
 |---|-----------|--------|-------|
-| 0 | Project infrastructure | 🟡 | CMake, cmake-js addon, TS (strict, ESM), vitest, C++ test harness, ASan/UBSan, NumPy harness, CI workflow. npm packaging + `pnpm release` added (D-026). Published as `@cyfora/numera@1.0.0` on npm (D-028). |
+| 0 | Project infrastructure | 🟡 | CMake, cmake-js addon, TS (strict, ESM), vitest, C++ test harness, ASan/UBSan, NumPy harness, CI workflow. npm packaging + `pnpm release` added (D-026). Published as `@cyfora/numera@1.0.0` on npm (D-028). Automatic releases from `main`/`beta`/`alpha` → `latest`/`beta`/`alpha` (D-029). |
 | 1 | NDArray | ✅ | MemoryBuffer (aligned, refcounted), DType (14 dtypes), shape, byte strides, offset, ownership, bounds-checked views, NumPy nocopy reshape. |
 | 2 | Creation | ✅ | PLAN M2 list complete: `array`, `asarray`, `zeros`, `ones`, `empty`, `full`, `arange`, `linspace`, `eye` (+ `identity`, `*Like`, `fromTypedArray`). D-012. |
 | 3 | Shape | ✅ | PLAN M3 list complete: `reshape`, `transpose`/`.T`, `squeeze`, `expandDims`, `ravel`, `flatten` (+ `swapAxes`, `moveAxis`). All views except `flatten` / non-viewable `ravel`. `concatenate`/`stack` are not in PLAN M3; they are not started. |

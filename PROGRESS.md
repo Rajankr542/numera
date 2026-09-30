@@ -1,5 +1,31 @@
 # PROGRESS
 
+## 2026-09-30 — Automatic branch-channel releases; self-contained package (D-029)
+
+Done:
+- `.github/workflows/release.yml` runs on push to `main` / `beta` / `alpha`,
+  publishing to npm dist-tag `latest` / `beta` / `alpha` with the `NPM_TOKEN`
+  secret (no prompts). The version comes from Conventional Commits
+  (`scripts/next-version.mjs`); docs/chore/test-only pushes skip the build and
+  publish. Prereleases are `X.Y.Z-<channel>.N` with N past every git tag and npm
+  version already taken. Stable releases commit `package.json`; prereleases
+  only tag. GitHub Release: latest vs pre-release.
+- Self-contained tarball: `scripts/stage-package.mjs` writes the package README,
+  COMPATIBILITY.md and LICENSE, and strips PLAN/DECISIONS references from dist
+  comments. It fails on leftovers. Source maps are excluded, and `package.json`
+  has no repository/homepage/bugs. `ci-pack.mjs` checks the packed tarball.
+  The addon's "no prebuild" error no longer tells users to run `pnpm build:native`.
+- Verified locally: 11 new vitest cases (`release_version`, `release_stage`) pass.
+  actionlint (with shellcheck) on the workflows passes. `npm pack --dry-run` gives
+  30 files, 0 `.map`, with README/LICENSE/COMPATIBILITY. Staged dist passes
+  `node --check` and the smoke test. `next-version.mjs` against the real repo:
+  no release (only docs/chore since `v1.0.0`).
+
+Not verified: the workflow has not run on GitHub yet. It needs the `NPM_TOKEN`
+secret and the `beta`/`alpha` branches. The linux-arm64 job's `ubuntu-24.04-arm`
+runner must be available to this private repo; if not, that job fails before
+anything is published.
+
 ## 2026-09-30 — First npm release: `@cyfora/numera@1.0.0`
 
 Done:

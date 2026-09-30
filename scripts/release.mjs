@@ -48,7 +48,7 @@ function step(title) {
   console.log(`\n━━ ${title} ━━`);
 }
 function cleanArtifacts() {
-  for (const p of ["prebuilds", "README.md", "LICENSE"]) {
+  for (const p of ["prebuilds", "README.md", "LICENSE", "COMPATIBILITY.md"]) {
     rmSync(join(pkgDir, p), { recursive: true, force: true });
   }
 }
@@ -119,8 +119,8 @@ try {
   run("pnpm", ["test"]);
   step("Building prebuilds");
   run("node", ["scripts/build-prebuilds.mjs", ...(targets ? ["--targets", targets] : [])]);
-  copyFileSync(join(root, "README.md"), join(pkgDir, "README.md"));
-  copyFileSync(join(root, "LICENSE"), join(pkgDir, "LICENSE"));
+  // Self-contained package contents: the repo is private (D-029).
+  run("node", ["scripts/stage-package.mjs"]);
 
   // 5. Pack and smoke-test the real tarball in a clean project (no repo build visible).
   step("Packing and smoke-testing the tarball");

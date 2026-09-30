@@ -14,3 +14,4 @@ benchmarks/reports/*.json
 packages/numera/prebuilds/
 packages/numera/README.md
 packages/numera/LICENSE
+packages/numera/COMPATIBILITY.md

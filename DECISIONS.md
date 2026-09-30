@@ -641,3 +641,46 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   The scope equals the logged-in user, so the org preflight is skipped; it still
   applies if someone else publishes. Tag `v1.0.0` is on `3d98b89`.
 
+
+## D-029 — Automatic branch-channel releases; self-contained npm package (M13) — Accepted — 2026-09-30
+- **Trigger.** `.github/workflows/release.yml` runs on every push to `main`,
+  `beta` and `alpha` (Markdown/docs/benchmarks-only pushes are ignored), plus
+  `workflow_dispatch` with `bump=auto|patch|minor|major`, `registry` and
+  `dry_run`. Channel = branch: `main` → npm dist-tag `latest`, `beta` → `beta`,
+  `alpha` → `alpha`. Concurrency is one run per branch, queued rather than
+  cancelled.
+- **Version from Conventional Commits** (`scripts/next-version.mjs`, unit
+  tested). It looks at the commits since the newest stable tag `vX.Y.Z` merged into HEAD.
+  `type!:` or a `BREAKING CHANGE:` footer → major, `feat` → minor,
+  `fix`/`perf`/`revert` → patch. Anything else (docs, chore, test, ci, build,
+  refactor, style, merge commits, `chore(release)`) → **no release**; the
+  prebuild and publish jobs are skipped. `latest` publishes `X.Y.Z`. beta/alpha
+  publish `X.Y.Z-<channel>.N`, where N is one past the highest number already
+  used in git tags (all branches) or on npm for that base, so numbers are
+  never reused even after a failed run.
+- **Publishing auth:** repository secret `NPM_TOKEN`, an npm granular access
+  token with read+write on `@cyfora/numera` and "bypass 2FA", so CI never
+  prompts. npm trusted publishing (OIDC) was not chosen: it requires
+  `repository.url` to match the (private) GitHub repo, and that conflicts
+  with the self-contained rule below. Granular write tokens expire; renewing
+  the secret is a maintainer task. `npm publish --access public --tag <channel>`.
+- **Git state:** a stable release commits the version to `package.json`
+  (`chore(release): …`, skipped by the workflow's `if`) and pushes it with tag
+  `vX.Y.Z`. Prereleases push only the tag, so `package.json` on `main` always
+  shows the last stable version and beta/alpha never diverge from it. A GitHub
+  Release is created with the tarballs: `--latest` for main, `--prerelease`
+  for beta/alpha. GitHub Packages is opt-in (`registry` input), no longer the default.
+- **Self-contained package.** The repository is private but the package is
+  public, so the tarball must not point at anything a user cannot open.
+  `scripts/stage-package.mjs` writes a package README (the root README up to
+  "Development", without the GitHub Packages, ROADMAP, source-build and
+  PERFORMANCE parts), a `COMPATIBILITY.md` without the internal "Decision"
+  column, and `LICENSE`. It also rewrites dist comments that cite
+  PLAN/DECISIONS. Then it **fails** if anything repo-only is left (D-NNN,
+  PLAN, ROADMAP, github.com, `pnpm` dev commands, "source build").
+  `package.json` has no `repository`/`homepage`/`bugs`. `files` excludes
+  `dist/**/*.map`, since the maps point at `src/`, which is not shipped.
+  `scripts/ci-pack.mjs` checks all of this on the packed tarball. The addon's
+  "no prebuild" error no longer tells users to run `pnpm build:native`.
+- `scripts/release.mjs` (local, interactive fallback) uses the same staging.
+
