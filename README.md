@@ -265,11 +265,9 @@ Last, it commits `chore(release)` and tags `vX.Y.Z`. Push them with
 `git push --follow-tags`, or pass `--push`.
 If npm rejects an unscoped name as "too similar to an existing package", the
 script says so and suggests a scoped name. The package is published as
-`@cyfora/numera`, so your npm user must be a member of the
-[`cyfora` npm org](https://www.npmjs.com/org/cyfora). `pnpm release` checks
-this before it starts building and tells you how to fix it if not (create the
-org at <https://www.npmjs.com/org/create>, which is free for public packages, or
-ask an org owner to add you).
+`@cyfora/numera`, so you must be logged in to npm as `cyfora` (the scope's owner)
+or as a member of a `cyfora` org with publish rights. `pnpm release` checks this
+before it starts building and stops with instructions if not.
 
 Requirements: macOS with Xcode, plus Docker Desktop installed for the Linux
 binaries. The prebuild step starts Docker Desktop if it is not running. If the

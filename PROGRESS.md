@@ -1,5 +1,21 @@
 # PROGRESS
 
+## 2026-09-30 — First npm release: `@cyfora/numera@1.0.0`
+
+Done:
+- **Published** `@cyfora/numera@1.0.0` to npmjs.org (public, `latest`) with the
+  local `pnpm release`, by npm account `cyfora`. Tag `v1.0.0` (on `3d98b89`) is
+  pushed to `origin`.
+- Verified from the registry: the tarball has 46 files, 7.1 MB unpacked, with all four
+  prebuilds (darwin-arm64/x64, linux-x64/arm64). `npm install @cyfora/numera@1.0.0`
+  in a clean project imports it and passes the smoke test on darwin-arm64 (Node
+  22.7.0). `linalg.inv` / `det` run there too. The Linux and darwin-x64 prebuilds
+  were tested at build time (Docker / packing) and have not been checked from
+  the published package on those platforms.
+- Not done: no GitHub Release or GitHub Packages publish yet. The optional
+  workflow has never run. The next CI release must use `bump=patch` or higher,
+  because `v1.0.0` exists.
+
 ## 2026-09-30 — npm name `@cyfora/numera` (D-028)
 
 Done:
@@ -8,9 +24,8 @@ Done:
   GitHub Packages stays `@rajankr542/numera`. The workflow now strips the npm
   scope before adding the owner scope.
 - `pnpm release` checks up front, before the build, that the logged-in npm user
-  belongs to the `@cyfora` org. At the time of this change the `cyfora` scope did
-  **not exist on npm** (registry: "Scope not found"), so it must be created at
-  npmjs.com/org/create before the first publish.
+  belongs to the package's scope (or that the scope is the user's own). The
+  first publish was done as npm user `cyfora`, the scope owner.
 
 ## 2026-09-30 — GitHub Packages + manual GitHub Actions release (D-027)
 

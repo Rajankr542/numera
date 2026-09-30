@@ -636,4 +636,8 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - GitHub Packages still requires the repo-owner scope. The workflow strips any
   existing scope before adding the owner's, so the name is `@rajankr542/numera`, not
   `@rajankr542/@cyfora/numera`. This supersedes the npm name in D-027.
+- Outcome (2026-09-30): `@cyfora/numera@1.0.0` was published publicly from the
+  local `pnpm release`, by npm account `cyfora`, which owns the `@cyfora` scope.
+  The scope equals the logged-in user, so the org preflight is skipped; it still
+  applies if someone else publishes. Tag `v1.0.0` is on `3d98b89`.
 
