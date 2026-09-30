@@ -1,5 +1,5 @@
 {
-  "name": "nativpy-monorepo",
+  "name": "nativpy",
   "private": true,
   "version": "0.0.0",
   "description": "NumPy semantics. Native performance. JavaScript/TypeScript API.",
