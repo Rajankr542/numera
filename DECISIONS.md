@@ -462,6 +462,11 @@ Found by the NumPy differential tests (NumPy 2.5.3):
     which changes the bits. `CMakeLists.txt` therefore compiles `reduce.cpp` with
     `-ffp-contract=off` (GCC/Clang). MSVC builds are not covered and not verified.
     This was verified bit-exact with no kernel slowdown.
+  - **argmin/argmax.** Contiguous rows reuse the vectorized `minmax_row` to
+    find the extreme value, then run a second scan for its first index (the
+    first NaN if the value is NaN). `==` treats ±0.0 as equal, so the first
+    zero of either sign wins, the same as NumPy's first-strictly-better scan.
+    Cost: at most two passes over the row. bool and float16 keep the scalar loop.
 - Verification: 77 exact (not tolerance-based) differential cases in
   `d021_cases()`. Pre-D-021 code fails 34 of them.
 

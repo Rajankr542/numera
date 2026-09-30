@@ -424,6 +424,22 @@ NDArray arg_reduce(bool is_max, const NDArray& a, std::optional<std::int64_t> ax
       const std::byte* src = w.data.data();
       for (std::int64_t r = 0; r < w.rows; ++r) {
         const std::byte* row = src + static_cast<std::size_t>(r * w.n) * sizeof(S);
+        if constexpr (std::is_arithmetic_v<S> && !std::is_same_v<S, bool>) {
+          // D-021: vectorized extreme value, then the first index holding it.
+          // NaN: minmax_row returns a NaN, so find the first NaN. Otherwise
+          // `==` treats -0.0 and +0.0 as equal, so the first zero of either
+          // sign wins, exactly like NumPy's first-strictly-better scan.
+          const auto* x = reinterpret_cast<const S*>(row);
+          const S m = is_max ? minmax_row<S, true>(x, w.n) : minmax_row<S, false>(x, w.n);
+          std::int64_t k = 0;
+          if (is_nan(m)) {
+            while (!is_nan(x[k])) ++k;
+          } else {
+            while (x[k] != m) ++k;
+          }
+          dst[r] = k;
+          continue;
+        }
         C best = ld<S>(row);
         std::int64_t bi = 0;
         for (std::int64_t i = 1; i < w.n && !is_nan(best); ++i) {

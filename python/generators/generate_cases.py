@@ -695,6 +695,24 @@ def d021_cases() -> list[dict]:
         add(name, z, {"axis": 0})
     add("sum", np.array([-0.0] * 3), {})
     add("sum", np.array([-0.0] * 300), {})
+    # argmin/argmax: vectorized value search + first-index scan (D-021).
+    for name in ("argmin", "argmax"):
+        add(name, rng.standard_normal(1000), {})
+        add(name, rng.integers(0, 5, 1000).astype(np.float64), {})  # many ties
+        add(name, rng.integers(-9, 9, 777).astype(np.int32), {})
+        y = rng.standard_normal(1000)
+        y[640], y[900] = np.nan, np.nan
+        add(name, y, {})
+        add(name, np.array([0.0, -0.0] * 200), {})
+        add(name, np.array([-0.0, 0.0] * 200), {})
+        y = rng.standard_normal(300)
+        y[250] = np.inf
+        y[260] = -np.inf
+        add(name, y, {})
+        z = rng.standard_normal((20, 50))
+        z[3, 7] = np.nan
+        add(name, z, {"axis": 1})
+        add(name, z, {"axis": 0})
     return cases
 
 

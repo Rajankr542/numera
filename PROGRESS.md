@@ -28,7 +28,8 @@ Done:
 
 Notes:
 - Environment: a fresh cmake-js configure picked up a broken CommandLineTools 27.0 SDK and failed to link. The build works when `--CDCMAKE_OSX_SYSROOT=<Xcode MacOSX26.5.sdk>` is passed. This is local to this machine; no repo change was made.
-- Not done: `argmin`/`argmax` (still copy plus scalar); `max` is 2× NumPy.
+- Not done: `max` is 2× NumPy.
+- Step 1b: `argmin`/`argmax` reuse the vectorized value search. 1e6 f64 went from 4.015 to 0.363 ms (NumPy 0.645). 18 new exact diff cases; `pnpm test:diff` 3677 pass; native, ASan and unit tests pass.
 
 ## 2026-09-29 — M10 FFT (D-020)
 

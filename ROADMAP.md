@@ -22,7 +22,6 @@ Milestones follow `docs/plan/PLAN.md` §86. Status: ✅ done · 🟡 partial · 
    - Buffer release and page faults for elementwise ops. Needs a decision first: pool, dispose or post-finalizer (D-013).
    - `matmul f32` at small sizes.
    - Per-call binding overhead.
-   - `argmin`/`argmax` (6× slower).
    - `max` at 2× NumPy (NEON would need a decision).
 2. FFT follow-ups: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift` (D-020). Benchmark against NumPy before making any FFT performance claims.
 3. Random follow-ups: `choice(p=...)`, broadcast array parameters, more distributions (D-019).

@@ -137,7 +137,7 @@ differential cases.
 | `sum i32` | 1e6 | 0.235 | 0.207 | 0.194 | 1.1× |
 | `sum axis=0` | 1024² | 3.056 | 0.154 | 0.160 | 19.8× |
 | `sum axis=1` | 1024² | 0.944 | 0.116 | 0.186 | 8.1× |
-| `argmax f64` | 1e6 | 4.312 | 4.015 | 0.635 | unchanged (not in scope) |
+| `argmax f64` | 1e6 | 4.312 | 0.363 | 0.645 | 11.9× (step 1b, below) |
 
 Where the time went:
 
@@ -163,7 +163,21 @@ Remaining gaps, with profiling evidence still needed before claiming causes:
 - `max f64` is 2× NumPy, which likely uses dedicated NEON `fmax` kernels. Not yet
   attempted, since the code base has no SIMD intrinsics and that would need a
   decision.
-- `argmax` is 6.3× slower. It still uses the copy plus scalar path.
+- `argmax` was 6.3× slower (copy plus scalar path). Fixed in step 1b.
 - 1e3 cases are 1.2–1.7× slower, which is consistent with finding 5
   (per-call overhead).
+
+### M11 step 1b: argmin/argmax (D-021)
+
+Contiguous rows now use the vectorized `minmax_row` value search, then scan
+for the first index. Same filter and method as step 1:
+
+| Shape | before (ms) | after (ms) | NumPy (ms) |
+|---|---:|---:|---:|
+| 1e3 | — | 1.41e-3 | 1.24e-3 |
+| 1e5 | — | 0.048 | 0.064 |
+| 1e6 | 4.015 | 0.363 | 0.645 |
+
+Reduction geo-mean (29 cases) went from 0.950 to **1.131** (16 faster, 13 slower).
+The 18 new exact differential cases (ties, NaN, ±0, ±inf, axis=0/1) all pass.
 
