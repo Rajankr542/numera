@@ -225,8 +225,9 @@ pnpm bench          # benchmarks
 ### Publishing a release (maintainers)
 
 ```bash
-pnpm release              # next patch version: 0.0.1 -> 0.0.2
-pnpm release minor        # 0.1.0,  pnpm release major -> 1.0.0
+pnpm release              # next patch version: 0.0.1 -> 0.0.2 (same as release:patch)
+pnpm release:minor        # 0.0.x -> 0.1.0
+pnpm release:major        # 0.x.y -> 1.0.0
 pnpm release:dry          # run every step except the actual publish
 pnpm release --push       # also git push the release commit + tag
 ```

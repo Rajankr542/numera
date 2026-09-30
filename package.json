@@ -26,6 +26,9 @@
     "typecheck": "tsc -p packages/nativpy/tsconfig.json --noEmit",
     "prebuilds": "node scripts/build-prebuilds.mjs",
     "release": "node scripts/release.mjs",
+    "release:patch": "node scripts/release.mjs patch",
+    "release:minor": "node scripts/release.mjs minor",
+    "release:major": "node scripts/release.mjs major",
     "release:dry": "node scripts/release.mjs --dry-run"
   },
   "devDependencies": {
