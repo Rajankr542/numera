@@ -23,6 +23,7 @@ import {
 import { NDArray } from "./ndarray.js";
 import { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
 import { argmax, argmin, max, mean, min, prod, std, sum, variance } from "./reduce.js";
+import { dot, inner, linalg, matmul, outer } from "./linalg.js";
 import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 import {
   abs,
@@ -104,6 +105,17 @@ export { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
 export type { IndexSpec, SliceTuple } from "./indexing.js";
 export { argmax, argmin, max, mean, min, prod, std, sum, variance } from "./reduce.js";
 export type { ArgReduceOptions, ReduceOptions, VarOptions } from "./reduce.js";
+export { dot, inner, linalg, matmul, outer } from "./linalg.js";
+export type {
+  EigResult,
+  LstsqResult,
+  NormOptions,
+  NormOrder,
+  QrMode,
+  QrResult,
+  SvdOptions,
+  SvdResult,
+} from "./linalg.js";
 export type { MethodReduceOptions } from "./ndarray.js";
 /** Development instrumentation: live native buffers / bytes (PLAN §33). */
 export function memoryStats(): { buffers: number; bytes: number } {
@@ -166,6 +178,11 @@ const np = {
   std,
   argmin,
   argmax,
+  matmul,
+  dot,
+  inner,
+  outer,
+  linalg,
   newaxis,
   ellipsis,
   fromTypedArray,

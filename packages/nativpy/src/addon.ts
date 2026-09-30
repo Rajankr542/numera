@@ -73,6 +73,27 @@ export interface NativeAddon {
     },
   ): NativeNDArray;
   argReduce(isMax: boolean, a: NativeNDArray, axis: number | null, keepdims: boolean): NativeNDArray;
+  // M8 linear algebra (D-018)
+  linalg: NativeLinalg;
+}
+
+type N = NativeNDArray;
+export interface NativeLinalg {
+  matmul(a: N, b: N): N;
+  dot(a: N, b: N): N;
+  inner(a: N, b: N): N;
+  outer(a: N, b: N): N;
+  solve(a: N, b: N): N;
+  det(a: N): N;
+  inv(a: N): N;
+  eig(a: N): { eigenvalues: N; eigenvectors: N };
+  eigh(a: N): { eigenvalues: N; eigenvectors: N };
+  svd(a: N, fullMatrices: boolean, computeUV: boolean): { U: N | null; S: N; Vh: N | null };
+  qr(a: N, mode: string): { Q: N | null; R: N };
+  lstsq(a: N, b: N, rcond: number | null): { x: N; residuals: N; rank: number; s: N };
+  norm(a: N, ord: string | number | null, axis: number[] | null, keepdims: boolean): N;
+  backend(): string;
+  _setBackend(which: "fallback" | "default"): void;
 }
 
 /**
