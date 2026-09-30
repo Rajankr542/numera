@@ -70,6 +70,15 @@ else()
   message(STATUS "nativpy linalg backend: fallback")
 endif()
 
+# ---- Random (D-019) ---------------------------------------------------------
+add_library(nativpy_random STATIC
+  native/random/bitgen.cpp
+  native/random/distributions.cpp
+)
+target_include_directories(nativpy_random PUBLIC native/random)
+target_link_libraries(nativpy_random PUBLIC nativpy_core)
+target_compile_options(nativpy_random PRIVATE ${NATIVPY_WARNINGS})
+
 # ---- Node-API addon --------------------------------------------------------
 if(NATIVPY_BUILD_ADDON AND CMAKE_JS_VERSION)
   execute_process(
@@ -86,6 +95,7 @@ if(NATIVPY_BUILD_ADDON AND CMAKE_JS_VERSION)
     native/bindings/error_binding.cpp
     native/bindings/ops_binding.cpp
     native/bindings/linalg_binding.cpp
+    native/bindings/random_binding.cpp
     ${CMAKE_JS_SRC})
   set_target_properties(nativpy_addon PROPERTIES PREFIX "" SUFFIX ".node"
                         OUTPUT_NAME "nativpy")
@@ -96,7 +106,7 @@ if(NATIVPY_BUILD_ADDON AND CMAKE_JS_VERSION)
   # Node/N-API headers are not -Wconversion clean; keep warnings on our code only.
   target_compile_options(nativpy_addon PRIVATE
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror>)
-  target_link_libraries(nativpy_addon PRIVATE nativpy_linalg nativpy_core ${CMAKE_JS_LIB})
+  target_link_libraries(nativpy_addon PRIVATE nativpy_random nativpy_linalg nativpy_core ${CMAKE_JS_LIB})
   if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
     execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF}
                     /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
@@ -116,8 +126,9 @@ if(NATIVPY_BUILD_TESTS)
     tests/native/test_ufunc.cpp
     tests/native/test_indexing.cpp
     tests/native/test_reduce.cpp
-    tests/native/test_linalg.cpp)
-  target_link_libraries(nativpy_core_tests PRIVATE nativpy_linalg nativpy_core)
+    tests/native/test_linalg.cpp
+    tests/native/test_random.cpp)
+  target_link_libraries(nativpy_core_tests PRIVATE nativpy_random nativpy_linalg nativpy_core)
   target_compile_options(nativpy_core_tests PRIVATE ${NATIVPY_WARNINGS})
   add_test(NAME nativpy_core_tests COMMAND nativpy_core_tests)
 endif()
