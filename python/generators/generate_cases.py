@@ -652,6 +652,162 @@ def reduce_cases() -> list[dict]:
     return cases
 
 
+def _linalg_run(fn):
+    with warnings.catch_warnings(), np.errstate(all="ignore"):
+        warnings.simplefilter("ignore")
+        try:
+            return fn(), None
+        except np.linalg.LinAlgError:
+            return None, "LinAlgError"
+        except np.exceptions.AxisError:
+            return None, "IndexError"
+        except (ValueError, TypeError) as e:
+            return None, type(e).__name__
+
+
+def _mat(dt, shape, seed):
+    rng = np.random.default_rng(seed)
+    n = int(np.prod(shape)) if shape else 1
+    if dt == "bool":
+        return (rng.integers(0, 2, n).astype(bool)).reshape(shape)
+    kind = np.dtype(dt).kind
+    if kind in "iu":
+        lo = 0 if kind == "u" else -4
+        return rng.integers(lo, 5, n).astype(dt).reshape(shape)
+    return (rng.integers(-8, 9, n) * 0.25).astype(dt).reshape(shape)
+
+
+def _lin_case(fn, inputs, kw, call):
+    r, err = _linalg_run(call)
+    base = {"op": "linalg", "fn": fn,
+            "kw": {k: enc(v) if isinstance(v, float) else v for k, v in kw.items()},
+            "inputs": [{"data": enc(x.ravel().tolist()), "dtype": str(x.dtype),
+                        "shape": list(x.shape)} for x in inputs]}
+    if err:
+        return {**base, "error": err}
+    if isinstance(r, tuple):
+        return {**base, "expected": [int(v) if fn == "lstsq" and i == 2
+                                     else describe_c(np.asarray(v))
+                                     for i, v in enumerate(r)]}
+    return {**base, "expected": describe_c(np.asarray(r))}
+
+
+def describe_c(a: np.ndarray) -> dict:
+    """describe() that splits complex arrays into real/imag value lists."""
+    if a.dtype.kind == "c":
+        d = describe(a.real, values=True)
+        d["dtype"] = str(a.dtype)
+        d["imag"] = enc(a.imag.tolist())
+        return d
+    return describe(a)
+
+
+def linalg_product_cases() -> list[dict]:
+    cases = []
+    prod_fns = {"matmul": np.matmul, "dot": np.dot, "inner": np.inner, "outer": np.outer}
+    shapes = [((3, 4), (4, 2)), ((4,), (4,)), ((4,), (4, 3)), ((2, 3), (3,)),
+              ((2, 2, 3), (3, 2)), ((2, 1, 2, 3), (3, 3, 2)), ((0, 3), (3, 2)),
+              ((2, 0), (0, 3)), ((3, 4), (3, 2)), ((2, 3, 4), (5, 4, 2))]
+    for i, (sa, sb) in enumerate(shapes):
+        for dt in ("float64", "float32", "int32", "int8", "bool", "uint16"):
+            a, b = _mat(dt, sa, i), _mat(dt, sb, i + 100)
+            for fn, f in prod_fns.items():
+                if fn == "inner":
+                    b = _mat(dt, sb[:-1] + sa[-1:], i + 7)
+                cases.append(_lin_case(fn, [a, b], {}, lambda f=f, a=a, b=b: f(a, b)))
+    a, b = _mat("int16", (2, 3), 1), _mat("float32", (3, 2), 2)
+    cases.append(_lin_case("matmul", [a, b], {}, lambda: np.matmul(a, b)))
+    c, d = _mat("int64", (2, 3), 1), _mat("float32", (3, 2), 2)
+    cases.append(_lin_case("matmul", [c, d], {}, lambda: np.matmul(c, d)))
+    w = np.full((2, 3), 100, np.int8)
+    wt = w.T.copy()
+    cases.append(_lin_case("matmul", [w, wt], {}, lambda: np.matmul(w, wt)))
+    h = _mat("float16", (2, 3), 3)
+    ht = h.T.copy()
+    cases.append(_lin_case("matmul", [h, ht], {}, lambda: np.matmul(h, ht)))
+    s = np.array(3.0)
+    cases.append(_lin_case("dot", [s, a], {}, lambda: np.dot(s, a)))
+    return cases
+
+
+def linalg_decomp_cases() -> list[dict]:
+    cases = []
+    well = np.array([[4, 1, 2], [1, 5, 1], [2, 1, 6]], np.float64)
+    squares = [well, well.astype(np.float32), well.astype(np.int64), _mat("float64", (2, 3, 3), 3),
+               np.array([[1, 2], [2, 4]], np.float64), np.zeros((0, 0)), np.eye(4) * 2,
+               _mat("float64", (4, 4), 9), np.array([[0, 1], [-1, 0]], np.float64),
+               well.astype(bool)]
+    for s in squares:
+        cases.append(_lin_case("det", [s], {}, lambda s=s: np.linalg.det(s)))
+        cases.append(_lin_case("inv", [s], {}, lambda s=s: np.linalg.inv(s)))
+        rhs = _mat("float64", s.shape[:-1], 5)
+        cases.append(_lin_case("solve", [s, rhs], {}, lambda s=s, r=rhs: np.linalg.solve(s, r)))
+        rhs2 = _mat("float64", s.shape[:-1] + (2,), 6)
+        cases.append(_lin_case("solve", [s, rhs2], {}, lambda s=s, r=rhs2: np.linalg.solve(s, r)))
+        sym = s + np.swapaxes(s, -1, -2)
+        cases.append(_lin_case("eigh", [sym], {}, lambda m=sym: np.linalg.eigh(m)))
+        cases.append(_lin_case("eig", [s], {}, lambda s=s: np.linalg.eig(s)))
+    rect = _mat("float64", (2, 3), 4)
+    vec = np.arange(3.0)
+    h = np.eye(2, dtype=np.float16)
+    nanm = np.array([[np.nan, 1], [0, 1]])
+    for fn, f in (("det", np.linalg.det), ("inv", np.linalg.inv), ("eig", np.linalg.eig),
+                  ("eigh", np.linalg.eigh)):
+        for bad in (rect, vec, h):
+            cases.append(_lin_case(fn, [bad], {}, lambda f=f, x=bad: f(x)))
+    cases.append(_lin_case("eig", [nanm], {}, lambda: np.linalg.eig(nanm)))
+    cases.append(_lin_case("solve", [well, vec[:2]], {}, lambda: np.linalg.solve(well, vec[:2])))
+    return cases
+
+
+def linalg_svd_qr_cases() -> list[dict]:
+    cases = []
+    well = np.array([[4, 1, 2], [1, 5, 1], [2, 1, 6]], np.float64)
+    rects = [_mat("float64", (4, 3), 11), _mat("float64", (3, 5), 12), well,
+             _mat("float32", (5, 2), 13), _mat("int32", (3, 3), 14), _mat("float64", (2, 4, 3), 15),
+             np.array([[1, 2], [2, 4], [3, 6]], np.float64), np.zeros((0, 3))]
+    for r in rects:
+        for full in (True, False):
+            cases.append(_lin_case("svd", [r], {"fullMatrices": full},
+                                   lambda r=r, full=full: np.linalg.svd(r, full_matrices=full)))
+        cases.append(_lin_case("svd", [r], {"computeUV": False},
+                               lambda r=r: np.linalg.svd(r, compute_uv=False)))
+        for mode in ("reduced", "complete", "r"):
+            cases.append(_lin_case("qr", [r], {"mode": mode},
+                                   lambda r=r, mode=mode: np.linalg.qr(r, mode=mode)))
+        if r.ndim == 2 and r.size > 0:
+            b = _mat("float64", (r.shape[0],), 16)
+            cases.append(_lin_case("lstsq", [r, b], {}, lambda r=r, b=b: np.linalg.lstsq(r, b)))
+            b2 = _mat("float64", (r.shape[0], 2), 17)
+            cases.append(_lin_case("lstsq", [r, b2], {}, lambda r=r, b=b2: np.linalg.lstsq(r, b)))
+    return cases
+
+
+def linalg_norm_cases() -> list[dict]:
+    cases = []
+    inf = float("inf")
+    vec = _mat("float64", (5,), 20)
+    m2 = _mat("float64", (3, 4), 21)
+    m3 = _mat("float32", (2, 3, 4), 22)
+    for ord_ in (None, 1, 2, inf, -inf, 0, 3, -1, 0.5):
+        cases.append(_lin_case("norm", [vec], {"ord": ord_},
+                               lambda o=ord_: np.linalg.norm(vec, ord=o)))
+    for ord_ in (None, "fro", "nuc", 1, -1, 2, -2, inf, -inf, 3):
+        cases.append(_lin_case("norm", [m2], {"ord": ord_},
+                               lambda o=ord_: np.linalg.norm(m2, ord=o)))
+    for kw in ({"axis": 0}, {"axis": -1, "keepdims": True}, {"axis": [1, 2]},
+               {"axis": [2, 0], "ord": 1}, {"keepdims": True}, {"axis": [0, 1], "ord": "nuc"},
+               {"axis": 3}):
+        ax = kw.get("axis")
+        call = {**kw, "axis": tuple(ax) if isinstance(ax, list) else ax}
+        cases.append(_lin_case("norm", [m3], kw, lambda c=call: np.linalg.norm(m3, **c)))
+    ints = _mat("int32", (3, 3), 23)
+    cases.append(_lin_case("norm", [ints], {}, lambda: np.linalg.norm(ints)))
+    cases.append(_lin_case("norm", [vec], {"ord": "fro"}, lambda: np.linalg.norm(vec, ord="fro")))
+    cases.append(_lin_case("norm", [m3], {"ord": 1}, lambda: np.linalg.norm(m3, ord=1)))
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -667,6 +823,8 @@ def main() -> None:
         "indexing": index_cases(),
         "writeable": writeable_cases(),
         "reduce": reduce_cases(),
+        "linalg": linalg_product_cases() + linalg_decomp_cases() + linalg_svd_qr_cases()
+        + linalg_norm_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

@@ -5,7 +5,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import np, {
   type IndexSpec,
   type NDArray,
@@ -502,6 +502,243 @@ describe("differential: reductions (M7, D-017)", () => {
     } else {
       checkArray(r, exp);
     }
+  });
+});
+
+
+describe("differential: linalg (M8, D-018)", () => {
+  const { numpy_version, cases } = load("linalg");
+  interface LCase extends Case {
+    inputs: { data: Encoded; dtype: string; shape: number[] }[];
+  }
+  type Ex = Described & { imag?: Encoded };
+  const flat = (v: unknown): number[] =>
+    Array.isArray(v) ? v.flatMap(flat) : [typeof v === "boolean" ? Number(v) : (v as number)];
+  const tolFor = (dt: string): number =>
+    dt.includes("16") ? 3e-3 : dt === "float32" || dt === "complex64" ? 2e-5 : 1e-10;
+  /** Elementwise |got - exp| <= tol * max(1, max|exp|). */
+  const closeFlat = (got: number[], exp: number[], tol: number): void => {
+    expect(got.length).toBe(exp.length);
+    const scale = Math.max(1, ...exp.map((x) => (Number.isFinite(x) ? Math.abs(x) : 0)));
+    exp.forEach((e, i) => {
+      if (!Number.isFinite(e)) expect(got[i]).toEqual(e);
+      else expect(Math.abs(got[i]! - e)).toBeLessThanOrEqual(tol * scale);
+    });
+  };
+  const meta = (r: NDArray, exp: Ex): void => {
+    expect(r.dtype.name).toBe(exp.dtype);
+    expect(r.shape).toEqual(exp.shape);
+    expect(r.flags.cContiguous).toBe(true);
+  };
+  const approx = (r: NDArray, exp: Ex): void => {
+    meta(r, exp);
+    closeFlat(flat(r.toArray()), flat(decodeExpected(exp.values!)), tolFor(exp.dtype));
+  };
+  const exact = (r: NDArray, exp: Ex): void => {
+    meta(r, exp);
+    expect(r.toArray()).toEqual(decodeExpected(exp.values!));
+  };
+  const isFloat = (dt: string): boolean => dt.startsWith("float") || dt.startsWith("complex");
+  const lastTwo = (s: number[]): [number, number] => [s[s.length - 2]!, s[s.length - 1]!];
+  /** Row-major batch of matrices -> number[][][] */
+  const mats = (a: NDArray): number[][][] => {
+    const [m, n] = lastTwo(a.shape);
+    const f = flat(a.toArray());
+    const out: number[][][] = [];
+    for (let t = 0; t * m * n < f.length || (out.length === 0 && f.length === 0); t++) {
+      if (m * n === 0) break;
+      out.push(Array.from({ length: m }, (_, i) => f.slice(t * m * n + i * n, t * m * n + i * n + n)));
+    }
+    return out;
+  };
+  const mm = (a: number[][], b: number[][]): number[][] =>
+    a.map((row) => b[0]!.map((_, j) => row.reduce((s, x, k) => s + x * b[k]![j]!, 0)));
+  const T = (a: number[][]): number[][] => a[0]!.map((_, j) => a.map((row) => row[j]!));
+  const closeMat = (got: number[][], exp: number[][], tol: number): void =>
+    closeFlat(got.flat(), exp.flat(), tol);
+  const eye = (n: number): number[][] =>
+    Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+
+  const call = (c: LCase, xs: NDArray[]): unknown => {
+    const L = np.linalg;
+    const kw = c.kw ?? {};
+    switch (c.fn) {
+      case "matmul": return np.matmul(xs[0]!, xs[1]!);
+      case "dot": return np.dot(xs[0]!, xs[1]!);
+      case "inner": return np.inner(xs[0]!, xs[1]!);
+      case "outer": return np.outer(xs[0]!, xs[1]!);
+      case "det": return L.det(xs[0]!);
+      case "inv": return L.inv(xs[0]!);
+      case "solve": return L.solve(xs[0]!, xs[1]!);
+      case "eig": return L.eig(xs[0]!);
+      case "eigh": return L.eigh(xs[0]!);
+      case "svd": return L.svd(xs[0]!, kw as { fullMatrices?: boolean; computeUV?: boolean });
+      case "qr": return L.qr(xs[0]!, (kw.mode as "reduced" | "complete" | "r") ?? "reduced");
+      case "lstsq": return L.lstsq(xs[0]!, xs[1]!);
+      case "norm": {
+        const ord = kw.ord == null ? null : (decodeExpected(kw.ord as Encoded) as never);
+        return L.norm(xs[0]!, { ord, axis: kw.axis as never, keepdims: kw.keepdims as boolean });
+      }
+      default: throw new Error(`unknown linalg fn ${c.fn}`);
+    }
+  };
+  const errorsFor = (c: LCase): (typeof np.ValueError)[] => {
+    if (c.error === "LinAlgError") return [np.LinAlgError];
+    if (c.error === "TypeError") return [np.DTypeError]; // D-018: float16
+    if (c.error === "IndexError") return [np.IndexError]; // D-012
+    // D-018: core-dimension mismatches raise ShapeError; batch-dimension
+    // mismatches raise BroadcastError (D-014). NumPy raises ValueError for both.
+    if (["matmul", "dot", "inner", "solve"].includes(c.fn!)) return [np.ShapeError, np.BroadcastError];
+    return [np.ValueError];
+  };
+
+  const complexParts = (r: NDArray): [number[], number[]] => {
+    const t = Array.from(r.toTypedArray() as Float64Array);
+    return [t.filter((_, i) => i % 2 === 0), t.filter((_, i) => i % 2 === 1)];
+  };
+  const byMatrix = (arr: number[], m: number, n: number): number[][][] =>
+    Array.from({ length: m * n === 0 ? 0 : arr.length / (m * n) }, (_, t) =>
+      Array.from({ length: m }, (_, i) => arr.slice(t * m * n + i * n, t * m * n + i * n + n)));
+
+  const check = (c: LCase, xs: NDArray[], r: unknown): void => {
+    const A = xs[0]!;
+    const tol = (dt: string): number => tolFor(dt) * 100;
+    switch (c.fn) {
+      case "eigh": {
+        const [w, V] = c.expected as Ex[];
+        const res = r as { eigenvalues: NDArray; eigenvectors: NDArray };
+        approx(res.eigenvalues, w!);
+        meta(res.eigenvectors, V!);
+        const ws = mats(res.eigenvalues.reshape([...res.eigenvalues.shape, 1]));
+        mats(A).forEach((a, t) => {
+          const v = mats(res.eigenvectors)[t]!;
+          const vd = v.map((row) => row.map((x, j) => x * ws[t]![j]![0]!));
+          closeMat(mm(a, v), vd, tol(V!.dtype));
+          closeMat(mm(T(v), v), eye(v.length), tol(V!.dtype));
+        });
+        return;
+      }
+      case "eig": {
+        const [w, V] = c.expected as Ex[];
+        const res = r as { eigenvalues: NDArray; eigenvectors: NDArray };
+        meta(res.eigenvalues, w!);
+        meta(res.eigenvectors, V!);
+        const [wr, wi] = complexParts(res.eigenvalues);
+        const key = (re: number[], im: number[]): number[][] =>
+          re.map((x, i) => [x, im[i]!]).sort((p, q) => p[0]! - q[0]! || p[1]! - q[1]!);
+        const n = A.shape[A.shape.length - 1]!;
+        for (let t = 0; t * n < wr.length; t++) {
+          const g = key(wr.slice(t * n, t * n + n), wi.slice(t * n, t * n + n));
+          const e = key(flat(decodeExpected(w!.values!)).slice(t * n, t * n + n),
+            flat(decodeExpected(w!.imag!)).slice(t * n, t * n + n));
+          closeFlat(g.flat(), e.flat(), tol(w!.dtype));
+        }
+        // A v_j = w_j v_j  (complex)
+        const [vr, vi] = complexParts(res.eigenvectors);
+        const VR = byMatrix(vr, n, n);
+        const VI = byMatrix(vi, n, n);
+        mats(A).forEach((a, t) => {
+          const lr = mm(a, VR[t]!);
+          const li = mm(a, VI[t]!);
+          const rr = VR[t]!.map((row, i) => row.map((x, j) => x * wr[t * n + j]! - VI[t]![i]![j]! * wi[t * n + j]!));
+          const ri = VR[t]!.map((row, i) => row.map((x, j) => x * wi[t * n + j]! + VI[t]![i]![j]! * wr[t * n + j]!));
+          closeMat(lr, rr, tol(w!.dtype));
+          closeMat(li, ri, tol(w!.dtype));
+        });
+        return;
+      }
+      case "svd": {
+        const exp = c.expected as Ex | Ex[];
+        const kw = c.kw ?? {};
+        const res = r as { U: NDArray | null; S: NDArray; Vh: NDArray | null };
+        if (kw.computeUV === false) {
+          expect(res.U).toBeNull();
+          approx(res.S, exp as Ex);
+          return;
+        }
+        const [U, S, Vh] = exp as Ex[];
+        meta(res.U!, U!);
+        approx(res.S, S!);
+        meta(res.Vh!, Vh!);
+        const [m, n] = lastTwo(A.shape);
+        const k = Math.min(m, n);
+        const us = mats(res.U!);
+        const vs = mats(res.Vh!);
+        const ss = flat(res.S.toArray());
+        mats(A).forEach((a, t) => {
+          const u = us[t]!;
+          const v = vs[t]!;
+          // U[:, :k] diag(S) Vh[:k, :] == A
+          const usk = u.map((row) => row.slice(0, k).map((x, j) => x * ss[t * k + j]!));
+          closeMat(mm(usk, v.slice(0, k)), a, tol(S!.dtype));
+          closeMat(mm(T(u), u), eye(u[0]!.length), tol(S!.dtype));
+          closeMat(mm(v, T(v)), eye(v.length), tol(S!.dtype));
+        });
+        return;
+      }
+      case "qr": {
+        const exp = c.expected as Ex | Ex[];
+        const res = r as { Q: NDArray | null; R: NDArray };
+        if (c.kw?.mode === "r") {
+          expect(res.Q).toBeNull();
+          meta(res.R, exp as Ex);
+          // R is unique up to row signs.
+          const g = flat(res.R.toArray()).map(Math.abs);
+          closeFlat(g, flat(decodeExpected((exp as Ex).values!)).map(Math.abs), tol((exp as Ex).dtype));
+          return;
+        }
+        const [Q, R] = exp as Ex[];
+        meta(res.Q!, Q!);
+        meta(res.R, R!);
+        const rs = mats(res.R);
+        mats(res.Q!).forEach((q, t) => {
+          closeMat(mm(q, rs[t]!), mats(A)[t]!, tol(R!.dtype));
+          closeMat(mm(T(q), q), eye(q[0]!.length), tol(R!.dtype));
+          rs[t]!.forEach((row, i) => row.forEach((x, j) => { if (j < i) expect(x).toBe(0); }));
+        });
+        return;
+      }
+      case "lstsq": {
+        const [x, res0, rank, s] = c.expected as [Ex, Ex, number, Ex];
+        const res = r as { x: NDArray; residuals: NDArray; rank: number; s: NDArray };
+        approx(res.x, x);
+        approx(res.residuals, res0);
+        expect(res.rank).toBe(rank);
+        approx(res.s, s);
+        return;
+      }
+      default: {
+        const exp = c.expected as Ex;
+        if (isFloat(exp.dtype)) approx(r as NDArray, exp);
+        else exact(r as NDArray, exp);
+      }
+    }
+  };
+
+  const run = (_l: string, c: LCase): void => {
+    const xs = c.inputs.map((i) =>
+      np.array(decodeInput(i.data) as NestedArray, { dtype: i.dtype }).reshape(i.shape));
+    if (c.error !== undefined) {
+      let thrown: unknown;
+      try {
+        call(c, xs);
+      } catch (e) {
+        thrown = e;
+      }
+      expect(errorsFor(c).some((k) => thrown instanceof k), String(thrown)).toBe(true);
+      return;
+    }
+    check(c, xs, call(c, xs));
+  };
+  const table = (cases as LCase[]).map((c) => [label(c), c] as const);
+  describe(`default backend (${np.linalg.backend()})`, () => {
+    it.each(table)(`numpy ${numpy_version}: %s`, run);
+  });
+  describe("fallback backend", () => {
+    beforeAll(() => np.linalg._setBackend("fallback"));
+    afterAll(() => np.linalg._setBackend("default"));
+    it("is active", () => expect(np.linalg.backend()).toBe("fallback"));
+    it.each(table)(`numpy ${numpy_version}: %s`, run);
   });
 });
 
