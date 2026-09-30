@@ -256,7 +256,8 @@ it runs `npm login --auth-type=web`, which **opens the browser** to
 authenticate. If the current version is already on npm it bumps to the next
 one. Then it builds and tests the code and builds the prebuilds (macOS
 locally, Linux in Docker). It packs the tarball and smoke-tests it in a clean
-folder, then runs `npm publish`. If your npm account uses 2FA, the script
+folder, then runs `npm publish --access public` (required for a free scoped
+package). If your npm account uses 2FA, the script
 **pauses and asks for the one-time password** from your authenticator app at
 that point. Run it in an interactive terminal. A code passed in advance
 (`-- --otp <code>` or `NPM_OTP`) usually expires during the ~10 minute build.

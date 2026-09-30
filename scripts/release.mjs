@@ -142,7 +142,15 @@ try {
   step(dryRun ? "Publishing (dry run)" : "Publishing to npm");
   let otp = otpArg ?? process.env.NPM_OTP ?? null;
   for (let attempt = 1; ; attempt++) {
-    const publishArgs = ["publish", ...(dryRun ? ["--dry-run"] : []), ...(otp ? [`--otp=${otp}`] : [])];
+    // Scoped packages default to restricted (paid); --access public publishes them
+    // free and public (also set in publishConfig; explicit here as npm advises).
+    const publishArgs = [
+      "publish",
+      "--access",
+      "public",
+      ...(dryRun ? ["--dry-run"] : []),
+      ...(otp ? [`--otp=${otp}`] : []),
+    ];
     try {
       console.log(`\n$ npm ${publishArgs.map((a) => (a.startsWith("--otp=") ? "--otp=******" : a)).join(" ")}`);
       execFileSync("npm", publishArgs, { stdio: ["inherit", "inherit", "pipe"], cwd: pkgDir, encoding: "utf8" });
@@ -154,7 +162,8 @@ try {
         console.error(
           `\nnpm rejected the name "${pkg.name}" as too similar to an existing package.` +
             `\nUse a scoped name instead (npm skips this check for scopes): set "name" in` +
-            `\n${pkgJsonPath} to "@${user}/${pkg.name.replace(/^@[^/]+\//, "")}" and re-run pnpm release.`,
+            `\n${pkgJsonPath} to "@${user}/${pkg.name.replace(/^@[^/]+\//, "")}" (or an npm org scope you belong to)` +
+            `\nand re-run pnpm release; it publishes with --access public.`,
         );
         throw err;
       }
