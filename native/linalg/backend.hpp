@@ -1,0 +1,58 @@
+#pragma once
+
+#include <complex>
+#include <cstdint>
+#include <memory>
+#include <string_view>
+
+namespace nativpy::linalg {
+
+// Numerical backend abstraction (PLAN §20/§45, D-018). All matrices are dense,
+// COLUMN-major (LAPACK convention) with leading dimension == rows, except gemm
+// which takes row-major operands. Routines return a LAPACK-style `info`:
+// 0 = success, > 0 = numerical failure (singular / no convergence).
+// T is float or double.
+template <typename T>
+class Routines {
+ public:
+  virtual ~Routines() = default;
+  // Row-major C[m×n] = A[m×k] · B[k×n].
+  virtual void gemm(std::int64_t m, std::int64_t n, std::int64_t k, const T* a, const T* b,
+                    T* c) const = 0;
+  // LU factorisation in place (n×n); piv receives 0-based row swaps.
+  virtual int getrf(std::int64_t n, T* a, std::int64_t* piv) const = 0;
+  // Solves A X = B for n×nrhs B (A overwritten by LU, B by X).
+  virtual int gesv(std::int64_t n, std::int64_t nrhs, T* a, T* b) const = 0;
+  // Symmetric eigen (lower triangle used): w ascending, a -> eigenvectors.
+  virtual int syevd(std::int64_t n, T* a, T* w) const = 0;
+  // General eigen: w complex, v complex n×n (column eigenvectors, unit 2-norm).
+  virtual int geev(std::int64_t n, T* a, std::complex<T>* w, std::complex<T>* v) const = 0;
+  // SVD of m×n A. s: min(m,n). If u/vt null, values only. full: U m×m and
+  // Vt n×n; else U m×k and Vt k×n.
+  virtual int gesdd(std::int64_t m, std::int64_t n, T* a, T* s, T* u, T* vt, bool full) const = 0;
+  // Householder QR of m×n A: a -> R in upper triangle + reflectors; tau: min(m,n).
+  virtual int geqrf(std::int64_t m, std::int64_t n, T* a, T* tau) const = 0;
+  // Forms the first `cols` columns of Q (m×cols) from geqrf output in q
+  // (q must hold the reflectors in its first k columns, ld = m).
+  virtual int orgqr(std::int64_t m, std::int64_t cols, std::int64_t k, T* q,
+                    const T* tau) const = 0;
+};
+
+class Backend {
+ public:
+  virtual ~Backend() = default;
+  [[nodiscard]] virtual std::string_view name() const noexcept = 0;
+  [[nodiscard]] virtual const Routines<float>& f32() const noexcept = 0;
+  [[nodiscard]] virtual const Routines<double>& f64() const noexcept = 0;
+};
+
+// Portable C++ implementation (always available).
+const Backend& fallback_backend();
+// Platform-optimised backend when compiled in (Accelerate), else fallback.
+const Backend& default_backend();
+
+// Backend used by the NDArray-level API. Tests may override it.
+const Backend& active_backend();
+void set_active_backend(const Backend* backend) noexcept;  // nullptr = default
+
+}  // namespace nativpy::linalg
