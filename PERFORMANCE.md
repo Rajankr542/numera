@@ -146,13 +146,17 @@ Where the time went:
   transposing.
 - **`sum`/`mean`/`var`/`std`.** Pairwise summation (8 accumulators) breaks the
   serial add chain.
-- **`max`/`min`.** A 16-lane compare-select loop vectorizes. The first attempt,
-  which kept a `bool` NaN flag inside the loop, only reached 409 µs. Clang
-  reported the loop as not vectorized. Accumulating `v - v` instead got it to
-  186 µs.
+- **`max`/`min`.** A 16-lane compare-select loop vectorizes. The first attempt
+  kept a `bool` NaN flag inside the loop and measured 434 µs at 1e6 in the C++
+  kernel harness. Clang reported the loop as not vectorized. Accumulating `v - v`
+  instead brought the harness to ~190 µs (186 µs end to end).
 - **Regression found and fixed during the loop.** Hoisting the per-element `switch` out of
-  the generic fold into a shared lambda made `sum i32` 3.6× slower (0.70 ms
-  at 1e6). Dispatching the op outside the element loop restored 0.21 ms.
+  the generic fold into a shared lambda made `sum i32` noticeably slower. The
+  exact figure was not recorded. Dispatching the op outside the element loop
+  restored 0.21 ms at 1e6 (baseline 0.235).
+- **FMA contraction** is disabled for `reduce.cpp` (`-ffp-contract=off`, D-021).
+  Kernel timings did not change: `sum f64` 108 µs, `max f64` 191 µs,
+  `sum axis=0` 145 µs.
 
 Remaining gaps, with profiling evidence still needed before claiming causes:
 

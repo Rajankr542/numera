@@ -457,9 +457,11 @@ Found by the NumPy differential tests (NumPy 2.5.3):
     accumulate `v - v`, which is NaN for NaN or ±inf input. A hit triggers an exact
     rescan that returns the first NaN; ±inf-only input just costs one extra
     pass. The signed-zero rule is applied by a rescan only when the result is 0.
-  - **Contraction.** The code is written so that `d*d` in the variance is rounded
-    separately, matching NumPy. This is verified bit-exact on AArch64 with the
-    default `-ffp-contract=on`.
+  - **Contraction.** NumPy rounds `d*d` in the variance (and every product)
+    separately. Clang's default `-ffp-contract=on` may fuse them into an FMA,
+    which changes the bits. `CMakeLists.txt` therefore compiles `reduce.cpp` with
+    `-ffp-contract=off` (GCC/Clang). MSVC builds are not covered and not verified.
+    This was verified bit-exact with no kernel slowdown.
 - Verification: 77 exact (not tolerance-based) differential cases in
   `d021_cases()`. Pre-D-021 code fails 34 of them.
 

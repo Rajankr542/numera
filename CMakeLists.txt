@@ -40,6 +40,11 @@ add_library(nativpy_core STATIC
 )
 target_include_directories(nativpy_core PUBLIC native/core)
 target_compile_options(nativpy_core PRIVATE ${NATIVPY_WARNINGS})
+# D-021: reductions must round every multiply separately (NumPy bit-exactness);
+# clang defaults to -ffp-contract=on, which may fuse d*d + acc into an FMA.
+if(NOT MSVC)
+  set_source_files_properties(native/core/reduce.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+endif()
 
 # ---- Linear algebra (D-018) ------------------------------------------------
 set(NATIVPY_LINALG_BACKEND "auto" CACHE STRING "Linalg backend: auto|accelerate|fallback")
