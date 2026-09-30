@@ -1,6 +1,7 @@
 #include <napi.h>
 
 #include "dtype_binding.hpp"
+#include "fft_binding.hpp"
 #include "linalg_binding.hpp"
 #include "ndarray_binding.hpp"
 #include "ops_binding.hpp"
@@ -14,6 +15,7 @@ Napi::Object init(Napi::Env env, Napi::Object exports) {
   nativpy::bindings::init_ops_binding(env, exports);
   nativpy::bindings::init_linalg_binding(env, exports);
   nativpy::bindings::init_random_binding(env, exports);
+  nativpy::bindings::init_fft_binding(env, exports);
   exports.Set("napiVersion", Napi::Number::New(env, NAPI_VERSION));
   return exports;
 }
