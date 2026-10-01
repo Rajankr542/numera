@@ -69,6 +69,11 @@ class Routines {
   // (q must hold the reflectors in its first k columns, ld = m).
   virtual int orgqr(std::int64_t m, std::int64_t cols, std::int64_t k, T* q,
                     const T* tau) const = 0;
+  // Complex Householder QR and Q formation, layouts as geqrf/orgqr (D-040).
+  virtual int cgeqrf(std::int64_t m, std::int64_t n, std::complex<T>* a,
+                     std::complex<T>* tau) const = 0;
+  virtual int cungqr(std::int64_t m, std::int64_t cols, std::int64_t k, std::complex<T>* q,
+                     const std::complex<T>* tau) const = 0;
 };
 
 class Backend {

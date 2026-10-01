@@ -256,6 +256,18 @@ int gesv_e(idx n, idx r, E* a, E* b) {
   else return routines<typename E::value_type>().cgesv(n, r, a, b);
 }
 
+// geqrf / orgqr for a real or complex element type E (D-040).
+template <typename E>
+int geqrf_e(idx m, idx n, E* a, E* tau) {
+  if constexpr (std::is_floating_point_v<E>) return routines<E>().geqrf(m, n, a, tau);
+  else return routines<typename E::value_type>().cgeqrf(m, n, a, tau);
+}
+template <typename E>
+int orgqr_e(idx m, idx cols, idx k, E* q, const E* tau) {
+  if constexpr (std::is_floating_point_v<E>) return routines<E>().orgqr(m, cols, k, q, tau);
+  else return routines<typename E::value_type>().cungqr(m, cols, k, q, tau);
+}
+
 // Dispatches fn(E{}) for the inv/solve compute dtype: float32, float64 or
 // complex128 (complex input always computes in complex128, D-039).
 template <typename Fn>
@@ -521,7 +533,9 @@ SvdResult svd(const NDArray& a, bool full_matrices, bool compute_uv) {
 }
 
 QrResult qr(const NDArray& a, QrMode mode) {
-  const DType dt = decomp_dtype(a, "qr");
+  const bool cplx = is_complex(a.dtype());
+  const DType dt = cplx ? a.dtype() : decomp_dtype(a, "qr");
+  const DType ct = cplx ? DType::Complex128 : dt;  // NumPy 'D->D' (D-040)
   require_2d(a, "qr");
   const Shape& s = a.shape();
   const idx m = s[s.size() - 2];
@@ -531,11 +545,11 @@ QrResult qr(const NDArray& a, QrMode mode) {
   const idx nb = shape_size(batch);
   const idx qc = mode == QrMode::Complete ? m : k;  // Q: m × qc
   const idx rr = mode == QrMode::Complete ? m : k;  // R: rr × n
-  const NDArray ac = as_compute(a, dt);
-  NDArray r = NDArray::zeros(concat(batch, {rr, n}), dt);
+  const NDArray ac = as_compute(a, ct);
+  NDArray r = NDArray::zeros(concat(batch, {rr, n}), ct);
   std::optional<NDArray> q;
-  if (mode != QrMode::R) q = NDArray::zeros(concat(batch, {m, qc}), dt);
-  dispatch_real(dt, [&](auto tag) {
+  if (mode != QrMode::R) q = NDArray::zeros(concat(batch, {m, qc}), ct);
+  dispatch_solve(ct, [&](auto tag) {
     using T = decltype(tag);
     std::vector<T> am(sz(m * n));
     std::vector<T> tau(sz(std::max<idx>(k, 1)));
@@ -548,18 +562,22 @@ QrResult qr(const NDArray& a, QrMode mode) {
         continue;
       }
       to_colmajor(ptr<T>(ac) + t * m * n, am.data(), m, n);
-      if (routines<T>().geqrf(m, n, am.data(), tau.data()) != 0) linalg_fail("QR failed");
+      if (geqrf_e(m, n, am.data(), tau.data()) != 0) linalg_fail("QR failed");
       for (idx i = 0; i < std::min(rr, m); ++i)
         for (idx j = i; j < n; ++j) rp[i * n + j] = am[sz(i + j * m)];
       if (q) {
         // Reflectors live in the first k columns of am; copy then expand.
         std::fill(qm.begin(), qm.end(), T{0});
         std::copy(am.begin(), am.begin() + static_cast<std::ptrdiff_t>(m * k), qm.begin());
-        if (routines<T>().orgqr(m, qc, k, qm.data(), tau.data()) != 0) linalg_fail("QR failed");
+        if (orgqr_e(m, qc, k, qm.data(), tau.data()) != 0) linalg_fail("QR failed");
         from_colmajor(qm.data(), ptr<T>(*q) + t * m * qc, m, qc);
       }
     }
   });
+  if (ct != dt) {
+    r = r.astype(dt);
+    if (q) q = q->astype(dt);
+  }
   return {q, r};
 }
 

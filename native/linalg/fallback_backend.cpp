@@ -416,6 +416,65 @@ int complex_eig(idx n, const T* a, std::complex<T>* w, std::complex<T>* vout) {
 
 // Extends the first `k` orthonormal columns of Q (m×m, ld m) to a full
 // orthonormal basis by Gram-Schmidt against unit vectors.
+// Complex Householder QR after LAPACK zlarfg/zgeqr2 (D-040): beta is real,
+// tau = ((beta - Re a)/beta, -Im a/beta), v = x / (alpha - beta). The
+// trailing columns get H^H = I - conj(tau) v v^H.
+template <typename T>
+void complex_householder_qr(idx m, idx n, std::complex<T>* a, std::complex<T>* tau) {
+  using C = std::complex<T>;
+  Mat<C> A{a, m};
+  const idx k = std::min(m, n);
+  for (idx j = 0; j < k; ++j) {
+    T norm2 = 0;
+    for (idx i = j + 1; i < m; ++i) norm2 += std::norm(A(i, j));
+    const C alpha = A(j, j);
+    if (norm2 == T{0} && alpha.imag() == T{0}) {
+      tau[j] = C{0};
+      continue;
+    }
+    const T beta = -std::copysign(std::hypot(alpha.real(), alpha.imag(), std::sqrt(norm2)),
+                                  alpha.real());
+    tau[j] = C((beta - alpha.real()) / beta, -alpha.imag() / beta);
+    const C scale = C{1} / (alpha - beta);
+    for (idx i = j + 1; i < m; ++i) A(i, j) *= scale;
+    A(j, j) = beta;
+    const C ct = std::conj(tau[j]);
+    for (idx c = j + 1; c < n; ++c) {
+      C dot = A(j, c);  // v_j = 1
+      for (idx i = j + 1; i < m; ++i) dot += std::conj(A(i, j)) * A(i, c);
+      dot *= ct;
+      A(j, c) -= dot;
+      for (idx i = j + 1; i < m; ++i) A(i, c) -= dot * A(i, j);
+    }
+  }
+}
+
+// Q = H(0)…H(k-1) applied to the first `cols` identity columns, with
+// H(j) = I - tau_j v_j v_j^H (zung2r).
+template <typename T>
+void complex_form_q(idx m, idx cols, idx k, std::complex<T>* q, const std::complex<T>* tau) {
+  using C = std::complex<T>;
+  Mat<C> Q{q, m};
+  std::vector<C> refl(static_cast<std::size_t>(m * k));
+  Mat<C> R{refl.data(), m};
+  for (idx j = 0; j < k; ++j) {
+    for (idx i = 0; i < m; ++i) R(i, j) = Q(i, j);
+  }
+  for (idx j = 0; j < cols; ++j) {
+    for (idx i = 0; i < m; ++i) Q(i, j) = (i == j) ? C{1} : C{0};
+  }
+  for (idx j = k; j-- > 0;) {
+    if (tau[j] == C{0}) continue;
+    for (idx c = 0; c < cols; ++c) {
+      C dot = Q(j, c);
+      for (idx i = j + 1; i < m; ++i) dot += std::conj(R(i, j)) * Q(i, c);
+      dot *= tau[j];
+      Q(j, c) -= dot;
+      for (idx i = j + 1; i < m; ++i) Q(i, c) -= dot * R(i, j);
+    }
+  }
+}
+
 template <typename T>
 void complete_basis(idx m, idx k, T* q) {
   Mat<T> Q{q, m};
@@ -549,6 +608,15 @@ class FallbackRoutines final : public Routines<T> {
   }
   int orgqr(idx m, idx cols, idx k, T* q, const T* tau) const override {
     form_q(m, cols, k, q, tau);
+    return 0;
+  }
+  int cgeqrf(idx m, idx n, std::complex<T>* a, std::complex<T>* tau) const override {
+    complex_householder_qr(m, n, a, tau);
+    return 0;
+  }
+  int cungqr(idx m, idx cols, idx k, std::complex<T>* q,
+             const std::complex<T>* tau) const override {
+    complex_form_q(m, cols, k, q, tau);
     return 0;
   }
 };

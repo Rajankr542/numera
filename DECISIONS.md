@@ -991,3 +991,26 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   fallback LU is tolerance-level (D-018): its complex128 results are within
   ~2e-14 relative, and its complex64 results matched after the final
   rounding.
+
+## D-040 — Complex qr (P1-5c) — Accepted — 2026-10-01
+- `qr` accepts complex64/complex128 in every mode ('reduced', 'complete',
+  'r'). Q and R keep the input's complex dtype (NumPy `_commonType`).
+- Like `det`/`inv`/`solve` (D-038/D-039), complex input is computed in
+  complex128 (NumPy's `'D->D'`/`'DD->D'` signatures) and the result is cast
+  once at the end. Real `qr` is unchanged: float32 stays float32 (D-018).
+- `Routines<T>::cgeqrf(m, n, a, tau)` and `cungqr(m, cols, k, q, tau)` are
+  part of the backend interface. They take the same column-major layout as
+  `geqrf`/`orgqr`. Accelerate calls `cgeqrf_`/`zgeqrf_` and
+  `cungqr_`/`zungqr_` with lda = m and the queried optimal workspace.
+- The fallback follows LAPACK's `zlarfg`/`zgeqr2`/`zung2r`:
+  `beta = -sign(|(alpha, x)|, Re alpha)` is real, so R's diagonal is real
+  (and usually negative), as in NumPy. `tau = 0` only when `x = 0` and
+  `Im alpha = 0`. The reflector `H^H = I - conj(tau) v v^H` is applied to the
+  trailing columns, and Q = H(1)…H(k) is built by applying `I - tau v v^H`
+  to the identity, starting from the last reflector.
+- NaN input does not raise, as in NumPy (Q and R contain NaN).
+- Exactness (NumPy 2.x + Accelerate, arm64; 60 random m×n cases, m, n = 1–29,
+  both widths, all three modes): the default backend was bit-identical to
+  NumPy in 60/60 cases. The fallback is tolerance-level (D-018). It was
+  bit-identical in 30/60 cases, and its largest absolute difference was ~5e-15.
+

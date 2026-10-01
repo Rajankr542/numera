@@ -320,7 +320,7 @@ TEST_CASE("linalg: complex det (D-038)") {
     run(double{}, 1e-12);
     run(float{}, 1e-5);
     // Other decompositions still reject complex until their slice lands.
-    CHECK_THROWS_KIND(qr(cmat<double>(1, 1, {C(1, 1)}), QrMode::Reduced), ErrorKind::NotImplemented);
+    CHECK_THROWS_KIND(svd(cmat<double>(1, 1, {C(1, 1)}), false, true), ErrorKind::NotImplemented);
   });
 }
 
@@ -393,6 +393,88 @@ TEST_CASE("linalg: complex inv/solve (D-039)") {
     const double nan = std::numeric_limits<double>::quiet_NaN();
     const NDArray ni = inv(cmat<double>(2, 2, {C(nan, 0), C(1, 0), C(1, 0), C(1, 0)}));
     CHECK(std::isnan(cat<double>(ni, 0).real()));
+  });
+}
+
+TEST_CASE("linalg: complex qr (D-040)") {
+  using C = std::complex<double>;
+  const auto near_c = [](C got, C want, double tol) {
+    return std::abs(got - want) <= tol * (1.0 + std::abs(want));
+  };
+  each_backend([&near_c] {
+    const auto run = [&near_c](auto tag, double tol) {
+      using R = decltype(tag);
+      const DType cdt = std::is_same_v<R, float> ? DType::Complex64 : DType::Complex128;
+      // A (3x2) = [[1+2j, 3-j], [0.5j, 2], [1, j]]; NumPy reference values.
+      const NDArray a = cmat<R>(3, 2, {C(1, 2), C(3, -1), C(0, 0.5), C(2, 0), C(1, 0), C(0, 1)});
+      const QrResult red = qr(a, QrMode::Reduced);
+      CHECK(red.q->dtype() == cdt);
+      CHECK(red.r.dtype() == cdt);
+      CHECK(red.q->shape() == Shape({3, 2}));
+      CHECK(red.r.shape() == Shape({2, 2}));
+      const C wq[6] = {C(-0.4, -0.8), C(-2.26778684e-01, 7.55928946e-02),
+                       C(0, -0.2), C(-5.44268841e-01, 3.02371578e-02),
+                       C(-0.4, 0), C(6.04743157e-02, -8.01284683e-01)};
+      const C wr[4] = {C(-2.5, 0), C(-0.4, 2.8), C(0, 0), C(-2.6457513110645907, 0)};
+      for (int i = 0; i < 6; ++i) CHECK(near_c(C(cat<R>(*red.q, i)), wq[i], std::max(tol, 1e-8)));
+      for (int i = 0; i < 4; ++i) CHECK(near_c(C(cat<R>(red.r, i)), wr[i], tol));
+      // R's diagonal is exactly real (zlarfg) and the lower triangle is zero.
+      CHECK(cat<R>(red.r, 0).imag() == R{0});
+      CHECK(cat<R>(red.r, 3).imag() == R{0});
+      CHECK(cat<R>(red.r, 2) == std::complex<R>{});
+      // Complete: Q is 3x3 unitary (Q^H Q = I), R is 3x2 with a zero last row.
+      const QrResult cq = qr(a, QrMode::Complete);
+      CHECK(cq.q->shape() == Shape({3, 3}));
+      CHECK(cq.r.shape() == Shape({3, 2}));
+      for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+          C dot{};
+          for (int p = 0; p < 3; ++p)
+            dot += std::conj(C(cat<R>(*cq.q, p * 3 + i))) * C(cat<R>(*cq.q, p * 3 + j));
+          CHECK(near_c(dot, i == j ? C(1, 0) : C(0, 0), tol));
+        }
+      }
+      // Q R reconstructs A.
+      for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 2; ++j) {
+          C s{};
+          for (int p = 0; p < 3; ++p) s += C(cat<R>(*cq.q, i * 3 + p)) * C(cat<R>(cq.r, p * 2 + j));
+          CHECK(near_c(s, C(cat<R>(a, i * 2 + j)), tol));
+        }
+      }
+      // Mode 'r' on the wide transpose; 1x1 [[j]] -> Q = [[-j]], R = [[-1]].
+      const QrResult rr = qr(transpose(a, {1, 0}), QrMode::R);
+      CHECK(!rr.q.has_value());
+      CHECK(rr.r.shape() == Shape({2, 3}));
+      CHECK(near_c(C(cat<R>(rr.r, 0)), C(-3.872983346207417, 0), tol));
+      const QrResult one = qr(cmat<R>(1, 1, {C(0, 1)}), QrMode::Reduced);
+      CHECK(near_c(C(cat<R>(*one.q, 0)), C(0, -1), tol));
+      CHECK(near_c(C(cat<R>(one.r, 0)), C(-1, 0), tol));
+      // Batched input factors each matrix separately.
+      NDArray st = NDArray::empty({2, 1, 1}, cdt);
+      auto* sp = reinterpret_cast<std::complex<R>*>(st.data());
+      sp[0] = {0, 1};
+      sp[1] = {2, 0};
+      const QrResult bq = qr(st, QrMode::Reduced);
+      CHECK(bq.q->shape() == Shape({2, 1, 1}));
+      CHECK(C(cat<R>(bq.r, 1)) == C(2, 0));  // real 1x1: tau = 0 (zlarfg)
+      CHECK(C(cat<R>(*bq.q, 1)) == C(1, 0));
+      // Empty shapes: (0,3) reduced -> Q (0,0), R (0,3); (3,0) complete -> Q = I3.
+      const QrResult e0 = qr(NDArray::zeros({0, 3}, cdt), QrMode::Reduced);
+      CHECK(e0.q->shape() == Shape({0, 0}));
+      CHECK(e0.r.shape() == Shape({0, 3}));
+      const QrResult e1 = qr(NDArray::zeros({3, 0}, cdt), QrMode::Complete);
+      CHECK(e1.q->dtype() == cdt);
+      CHECK(C(cat<R>(*e1.q, 4)) == C(1, 0));
+      CHECK(C(cat<R>(*e1.q, 1)) == C(0, 0));
+      CHECK_THROWS_KIND(qr(NDArray::zeros({3}, cdt), QrMode::Reduced), ErrorKind::LinAlg);
+    };
+    run(double{}, 1e-12);
+    run(float{}, 1e-5);
+    // NaN input does not raise (NumPy returns NaN factors).
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const QrResult nq = qr(cmat<double>(2, 2, {C(nan, 0), C(1, 0), C(1, 0), C(1, 0)}), QrMode::Reduced);
+    CHECK(std::isnan(cat<double>(nq.r, 0).real()));
   });
 }
 

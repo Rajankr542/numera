@@ -366,8 +366,8 @@ describe("complex linalg.det (P1-5a, D-038)", () => {
     });
   }
 
-  it("qr still rejects complex input", () => {
-    expect(() => np.linalg.qr(A)).toThrow(np.NotImplementedError);
+  it("svd still rejects complex input", () => {
+    expect(() => np.linalg.svd(A)).toThrow(np.NotImplementedError);
   });
 });
 
@@ -432,5 +432,63 @@ describe("complex linalg.inv / solve (P1-5b, D-039)", () => {
     expect(np.linalg.solve(np.eye(2, undefined, { dtype: "float32" }), a64).dtype).toBe(np.complex64);
     expect(() => np.linalg.solve(a64, np.array([1, 2], { dtype: "float16" }))).toThrow(np.DTypeError);
   });
+});
+
+
+describe("complex linalg.qr (P1-5c, D-040)", () => {
+  const flat = (x: InstanceType<typeof np.NDArray>): number[][] =>
+    (x.flatten().toArray() as Complex[]).map((v) => [v.re, v.im]);
+  const close = (got: number[][], want: number[][], digits: number) => {
+    expect(got.length).toBe(want.length);
+    got.forEach(([re, im], i) => {
+      expect(re).toBeCloseTo(want[i]![0]!, digits);
+      expect(im).toBeCloseTo(want[i]![1]!, digits);
+    });
+  };
+  // A (3x2) = [[1+2j, 3-j], [0.5j, 2], [1, j]]; NumPy qr(A) reference values.
+  const A = [
+    [np.complex(1, 2), np.complex(3, -1)],
+    [np.complex(0, 0.5), 2],
+    [1, np.complex(0, 1)],
+  ];
+  const Q = [[-0.4, -0.8], [-0.226778684, 0.0755928946], [0, -0.2], [-0.544268841, 0.0302371578],
+    [-0.4, 0], [0.0604743157, -0.801284683]];
+  const R = [[-2.5, 0], [-0.4, 2.8], [0, 0], [-2.6457513110645907, 0]];
+  for (const backend of ["default", "fallback"] as const) {
+    describe(`backend: ${backend}`, () => {
+      beforeAll(() => np.linalg._setBackend(backend));
+      afterAll(() => np.linalg._setBackend("default"));
+
+      it("reduced qr matches NumPy for both widths", () => {
+        for (const dtype of ["complex128", "complex64"] as const) {
+          const { Q: q, R: r } = np.linalg.qr(np.array(A, { dtype }));
+          expect(q!.dtype).toBe(np[dtype]);
+          expect(r.dtype).toBe(np[dtype]);
+          expect(q!.shape).toEqual([3, 2]);
+          expect(r.shape).toEqual([2, 2]);
+          close(flat(q!), Q, dtype === "complex128" ? 8 : 6);
+          close(flat(r), R, dtype === "complex128" ? 14 : 5);
+        }
+      });
+
+      it("complete and r modes, empty and NaN inputs", () => {
+        const c = np.linalg.qr(A, "complete");
+        expect(c.Q!.shape).toEqual([3, 3]);
+        expect(c.R.shape).toEqual([3, 2]);
+        // Q R reconstructs A.
+        close(flat(np.matmul(c.Q!, c.R)), flat(np.array(A)), 12);
+        const r = np.linalg.qr(np.transpose(np.array(A)), "r");
+        expect(r.Q).toBeNull();
+        expect(r.R.shape).toEqual([2, 3]);
+        close(flat(r.R).slice(0, 1), [[-3.872983346207417, 0]], 12);
+        const e = np.linalg.qr(np.zeros([3, 0], { dtype: "complex64" }), "complete");
+        expect(e.Q!.dtype).toBe(np.complex64);
+        expect(flat(e.Q!)).toEqual(flat(np.eye(3, undefined, { dtype: "complex64" })));
+        const n = np.linalg.qr([[np.complex(NaN, 0), 1], [1, 1]]);
+        expect(Number.isNaN(flat(n.R)[0]![0])).toBe(true);
+        expect(() => np.linalg.qr([np.complex(1, 1)])).toThrow(np.LinAlgError);
+      });
+    });
+  }
 });
 

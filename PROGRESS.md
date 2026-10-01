@@ -1,6 +1,23 @@
 # PROGRESS
 
-## 2026-10-01 — P1 step 5: complex linalg (in progress, D-038/D-039)
+## 2026-10-01 — P1 step 5: complex linalg (in progress, D-038–D-040)
+
+P1-5c done: `linalg.qr` accepts complex64/complex128 in all modes
+('reduced', 'complete', 'r').
+- New backend routines `cgeqrf`/`cungqr`: Accelerate `cgeqrf_`/`zgeqrf_` and
+  `cungqr_`/`zungqr_`. The fallback is a complex Householder QR using
+  LAPACK's `zlarfg` convention, so R's diagonal is real.
+- As in NumPy, complex input runs in complex128 and is cast at the end.
+- Measured against NumPy 2.x + Accelerate (arm64) on 60 random m×n cases
+  (m, n = 1–29; both widths; all modes). The default backend was
+  bit-identical 60/60. The fallback was bit-identical 30/60, and its largest
+  absolute difference was ~5e-15.
+- Tests: C++ `linalg: complex qr (D-040)`; vitest `complex linalg.qr`. Both
+  run on both backends.
+- Checks: `pnpm test:native`, `pnpm test:asan`, `pnpm test` (229),
+  `pnpm test:diff` (4580) all pass.
+
+Next: P1-5d, complex `svd`.
 
 P1-5b done: `linalg.inv` and `linalg.solve` accept complex64/complex128.
 - New backend routine `cgesv`: Accelerate `cgesv_`/`zgesv_` with

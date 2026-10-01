@@ -145,10 +145,62 @@ void orgqr_(const lint* m, const lint* n, const lint* k, double* a, const double
             double* w, const lint* lw, lint* info) {
   dorgqr_(m, n, k, a, m, tau, w, lw, info);
 }
+void geqrf_(const lint* m, const lint* n, std::complex<float>* a, std::complex<float>* tau,
+            std::complex<float>* w, const lint* lw, lint* info) {
+  cgeqrf_(m, n, a, m, tau, w, lw, info);
+}
+void geqrf_(const lint* m, const lint* n, std::complex<double>* a, std::complex<double>* tau,
+            std::complex<double>* w, const lint* lw, lint* info) {
+  zgeqrf_(m, n, a, m, tau, w, lw, info);
+}
+void orgqr_(const lint* m, const lint* n, const lint* k, std::complex<float>* a,
+            const std::complex<float>* tau, std::complex<float>* w, const lint* lw, lint* info) {
+  cungqr_(m, n, k, a, m, tau, w, lw, info);
+}
+void orgqr_(const lint* m, const lint* n, const lint* k, std::complex<double>* a,
+            const std::complex<double>* tau, std::complex<double>* w, const lint* lw,
+            lint* info) {
+  zungqr_(m, n, k, a, m, tau, w, lw, info);
+}
 
 template <typename T>
 lint lwork_from(T q) {
   return std::max<lint>(1, static_cast<lint>(q) + 1);
+}
+template <typename T>
+lint lwork_from(std::complex<T> q) {
+  return lwork_from(q.real());
+}
+
+// ?geqrf / ?orgqr (?ungqr) with a workspace query; E real or complex (D-040).
+template <typename E>
+int qr_factor(idx m, idx n, E* a, E* tau) {
+  const lint mm = li(m);
+  const lint nn = li(n);
+  lint info = 0;
+  E wq{};
+  const lint q = -1;
+  geqrf_(&mm, &nn, a, tau, &wq, &q, &info);
+  if (info != 0) return static_cast<int>(info);
+  const lint lw = lwork_from(wq);
+  std::vector<E> work(static_cast<std::size_t>(lw));
+  geqrf_(&mm, &nn, a, tau, work.data(), &lw, &info);
+  return static_cast<int>(info);
+}
+template <typename E>
+int qr_form_q(idx m, idx cols, idx k, E* q, const E* tau) {
+  const lint mm = li(m);
+  const lint cc = li(cols);
+  const lint kk = li(k);
+  lint info = 0;
+  E wq{};
+  const lint qq = -1;
+  orgqr_(&mm, &cc, &kk, q, tau, &wq, &qq, &info);
+  if (info != 0) return static_cast<int>(info);
+  const lint lw = lwork_from(wq);
+  std::vector<E> work(static_cast<std::size_t>(lw));
+  orgqr_(&mm, &cc, &kk, q, tau, work.data(), &lw, &info);
+  return static_cast<int>(info);
 }
 
 // ?getrf on an n×n column-major matrix; pivots converted to 0-based.
@@ -283,32 +335,16 @@ class AccelRoutines final : public Routines<T> {
     gesdd_(job, &mm, &nn, a, s, up, &ldu, vp, &ldvt, work.data(), &lw, iw.data(), &info);
     return static_cast<int>(info);
   }
-  int geqrf(idx m, idx n, T* a, T* tau) const override {
-    const lint mm = li(m);
-    const lint nn = li(n);
-    lint info = 0;
-    T wq{};
-    const lint q = -1;
-    geqrf_(&mm, &nn, a, tau, &wq, &q, &info);
-    if (info != 0) return static_cast<int>(info);
-    const lint lw = lwork_from(wq);
-    std::vector<T> work(static_cast<std::size_t>(lw));
-    geqrf_(&mm, &nn, a, tau, work.data(), &lw, &info);
-    return static_cast<int>(info);
-  }
+  int geqrf(idx m, idx n, T* a, T* tau) const override { return qr_factor(m, n, a, tau); }
   int orgqr(idx m, idx cols, idx k, T* q, const T* tau) const override {
-    const lint mm = li(m);
-    const lint cc = li(cols);
-    const lint kk = li(k);
-    lint info = 0;
-    T wq{};
-    const lint qq = -1;
-    orgqr_(&mm, &cc, &kk, q, tau, &wq, &qq, &info);
-    if (info != 0) return static_cast<int>(info);
-    const lint lw = lwork_from(wq);
-    std::vector<T> work(static_cast<std::size_t>(lw));
-    orgqr_(&mm, &cc, &kk, q, tau, work.data(), &lw, &info);
-    return static_cast<int>(info);
+    return qr_form_q(m, cols, k, q, tau);
+  }
+  int cgeqrf(idx m, idx n, std::complex<T>* a, std::complex<T>* tau) const override {
+    return qr_factor(m, n, a, tau);
+  }
+  int cungqr(idx m, idx cols, idx k, std::complex<T>* q,
+             const std::complex<T>* tau) const override {
+    return qr_form_q(m, cols, k, q, tau);
   }
 };
 

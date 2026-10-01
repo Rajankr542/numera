@@ -41,7 +41,7 @@ Steps 1–4 are done (conversion, ufuncs, reductions, matmul family). Slices lef
 |---|---|
 | P1-5a ✅ | `det`: fallback, then Accelerate (`cgetrf`/`zgetrf`) (D-038). |
 | P1-5b ✅ | `inv`, `solve` (`?gesv`) (D-039). |
-| P1-5c | `qr` (`?geqrf`/`?ungqr`). |
+| P1-5c ✅ | `qr` (`?geqrf`/`?ungqr`) (D-040). |
 | P1-5d | `svd` (`?gesdd`). Singular values are real. |
 | P1-5e | `eigh`/`eigvalsh` (`?heevd`). Eigenvalues are real. |
 | P1-5f | `eig`/`eigvals` on complex input (`?geev`). |
