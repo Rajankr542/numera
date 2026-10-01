@@ -69,9 +69,18 @@ machinery.
 | P2-7 ✅ | Table-driven native ufunc registry replacing the `BinaryOp`/`UnaryOp` enums (name → loops per dtype, identity, type resolver). Pure refactor: every existing test stays green (D-051). |
 | P2-8 ✅ | `ufunc.reduce` and `ufunc.accumulate` (`np.add.reduce(a, {axis, dtype, out, keepdims, initial, where})`), routed through the registry. **Build-first:** native implementation + binding + TS API, verified by C++ unit tests and vitest only. |
 | P2-8v | Verification pass for P2-8: NumPy differential group (`ufunc_reduce`), bit-exactness fixes (pairwise float `add`, float16 accumulation), and bench cases. |
-| P2-9 | `ufunc.outer`, `ufunc.reduceat`, `ufunc.at`. |
+| P2-9 ✅ | `ufunc.outer`, `ufunc.reduceat`, `ufunc.at`. |
 | P2-10 | `errstate`/`seterr`/`geterr` (`divide`/`over`/`under`/`invalid` → `ignore`/`warn`/`raise`) via native FP-exception flags plus the integer divide-by-zero path. |
 | P2-11 | Bench cases for every new kwarg/method in both suites, ROADMAP/PROGRESS/COMPATIBILITY updates, and marking P2 ✅. |
+
+## Build-first order (user direction, 2026-10-02)
+Milestones P2-9 … P15 are implemented **build-first**: native code + binding +
+TS API, verified by `pnpm build`, `pnpm test`, `pnpm test:native` and
+`pnpm test:asan`. NumPy differential groups, bit-exactness fixes and bench
+cases are deferred to one **V phase** after P15 (V-P2 … V-P15, including P2-8v
+and P2-11). No NumPy-compatibility or performance claim is made for a slice
+until its V slice is done. `api:check` must stay green, so new callables are
+listed in the bench-exemption list until V adds their bench cases.
 
 ## P3–P15
 Slice each milestone just before it starts, using the same rules. As a rule of

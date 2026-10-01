@@ -127,8 +127,10 @@ export type {
   ArrayLike,
   Operand,
   UfuncAccumulateOptions,
+  UfuncAtIndices,
   UfuncOptions,
   UfuncOrder,
+  UfuncReduceatOptions,
   UfuncReduceOptions,
 } from "./ufunc.js";
 export { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";

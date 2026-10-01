@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import np, { BroadcastError, DTypeError, type NDArray, ValueError } from "../src/index.js";
+import np, { BroadcastError, DTypeError, IndexError, type NDArray, ValueError } from "../src/index.js";
 
 describe("ufuncs (M4) + broadcasting (M5)", () => {
   it("broadcasts per PLAN §14/§54", () => {
@@ -316,5 +316,35 @@ describe("ufunc.reduce / ufunc.accumulate (P2-8, D-052)", () => {
     expect(() => np.add.accumulate(np.array(1))).toThrow(DTypeError);
     expect(() => np.add.accumulate(A(), { keepdims: true } as never)).toThrow(DTypeError);
     expect(() => np.add.accumulate(A(), { axis: [0] } as never)).toThrow(DTypeError);
+  });
+});
+
+describe("ufunc.outer / reduceat / at (P2-9)", () => {
+  it("outer", () => {
+    expect(np.multiply.outer([1, 2], [3, 4, 5]).toArray()).toEqual([[3, 4, 5], [6, 8, 10]]);
+    expect(np.add.outer(np.ones([2, 1]), [1, 2]).shape).toEqual([2, 1, 2]);
+    expect(np.subtract.outer([1, 2], 1).toArray()).toEqual([0, 1]);
+    const out = np.zeros([2, 2]);
+    expect(np.add.outer([1, 2], [10, 20], { out })).toBe(out);
+    expect(out.toArray()).toEqual([[11, 21], [12, 22]]);
+  });
+
+  it("reduceat", () => {
+    const a = np.arange(8);
+    expect(np.add.reduceat(a, [0, 4, 1, 5]).toArray()).toEqual([6, 4, 10, 18]);
+    expect(np.multiply.reduceat([[1, 2, 3], [4, 5, 6]], [0, 2], { axis: 1 }).toArray()).toEqual([[2, 3], [20, 6]]);
+    expect(() => np.add.reduceat(a, [8])).toThrow(IndexError);
+  });
+
+  it("at", () => {
+    const a = np.array([1, 2, 3, 4]);
+    np.add.at(a, [0, 0, 2], 1);
+    expect(a.toArray()).toEqual([3, 2, 4, 4]);
+    np.negative.at(a, 1);
+    expect(a.toArray()).toEqual([3, -2, 4, 4]);
+    const m = np.array([[1, 2], [3, 4]]);
+    np.multiply.at(m, [np.array([0, 1]), np.array([1, 0])], 10);
+    expect(m.toArray()).toEqual([[1, 20], [30, 4]]);
+    expect(() => np.add.at(a, [9], 1)).toThrow(IndexError);
   });
 });

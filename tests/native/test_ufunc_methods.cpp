@@ -191,3 +191,56 @@ TEST_CASE("ufunc.accumulate: errors") {
   NDArray wrong = NDArray::zeros({3}, DType::Float64);
   CHECK_THROWS_KIND(ufunc_accumulate(U("add"), a, &wrong, {}), ErrorKind::Value);
 }
+
+namespace {
+NDArray ints(const Shape& shape, std::vector<std::int64_t> v) {
+  NDArray a = NDArray::empty(shape, DType::Int64);
+  for (std::size_t i = 0; i < v.size(); ++i) a.set_int64(static_cast<std::int64_t>(i), v[i]);
+  return a;
+}
+}  // namespace
+
+TEST_CASE("ufunc.outer") {
+  const NDArray r = ufunc_outer(U("multiply"), mat_d({2}, {1, 2}), mat_d({3}, {3, 4, 5}), nullptr, {});
+  CHECK(r.shape() == Shape({2, 3}));
+  CHECK_EQ(r.get_double(5), 10.0);
+  const NDArray s = ufunc_outer(U("subtract"), mat_d({2, 1}, {1, 2}), mat_d({2}, {10, 20}), nullptr, {});
+  CHECK(s.shape() == Shape({2, 1, 2}));
+  CHECK_EQ(s.get_double(3), -18.0);
+  CHECK_THROWS_KIND(ufunc_outer(U("negative"), mat_d({1}, {1}), mat_d({1}, {1}), nullptr, {}),
+                    ErrorKind::Value);
+}
+
+TEST_CASE("ufunc.reduceat") {
+  const NDArray a = mat_d({8}, {0, 1, 2, 3, 4, 5, 6, 7});
+  const NDArray r = ufunc_reduceat(U("add"), a, ints({4}, {0, 4, 1, 5}), nullptr, {});
+  CHECK(r.shape() == Shape({4}));
+  CHECK_EQ(r.get_double(0), 6.0);   // 0..3
+  CHECK_EQ(r.get_double(1), 4.0);   // 4 > 1: a[4]
+  CHECK_EQ(r.get_double(2), 10.0);  // 1..4
+  CHECK_EQ(r.get_double(3), 18.0);  // 5..7
+  const NDArray m = mat_d({2, 3}, {1, 2, 3, 4, 5, 6});
+  const NDArray c = ufunc_reduceat(U("multiply"), m, ints({2}, {0, 2}), nullptr, ax({1}));
+  CHECK(c.shape() == Shape({2, 2}));
+  CHECK_EQ(c.get_double(0), 2.0);
+  CHECK_EQ(c.get_double(3), 6.0);
+  CHECK_THROWS_KIND(ufunc_reduceat(U("add"), a, ints({1}, {8}), nullptr, {}), ErrorKind::Index);
+}
+
+TEST_CASE("ufunc.at") {
+  NDArray a = mat_d({4}, {1, 2, 3, 4});
+  const NDArray one = mat_d({}, {1});
+  ufunc_at(U("add"), a, {ints({3}, {0, 0, 2})}, &one);
+  CHECK_EQ(a.get_double(0), 3.0);  // repeated index applies twice
+  CHECK_EQ(a.get_double(2), 4.0);
+  ufunc_at(U("negative"), a, {ints({1}, {1})}, nullptr);
+  CHECK_EQ(a.get_double(1), -2.0);
+  NDArray m = mat_d({2, 2}, {1, 2, 3, 4});
+  const NDArray v = mat_d({2}, {10, 20});
+  ufunc_at(U("multiply"), m, {ints({1}, {1})}, &v);
+  CHECK_EQ(m.get_double(2), 30.0);
+  CHECK_EQ(m.get_double(3), 80.0);
+  CHECK_THROWS_KIND(ufunc_at(U("add"), a, {ints({1}, {9})}, &one), ErrorKind::Index);
+  CHECK_EQ(a.get_double(0), 3.0);
+  CHECK_THROWS_KIND(ufunc_at(U("add"), a, {ints({1}, {0})}, nullptr), ErrorKind::Value);
+}

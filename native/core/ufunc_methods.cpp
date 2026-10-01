@@ -240,4 +240,142 @@ NDArray ufunc_accumulate(const Ufunc& u, const NDArray& a_in, const NDArray* out
   return *out;
 }
 
+NDArray ufunc_outer(const Ufunc& u, const NDArray& a, const NDArray& b, const NDArray* out,
+                    const UfuncParams& params) {
+  if (u.nin != 2) throw_error(ErrorKind::Value, "outer product only supported for binary functions");
+  // a viewed as a.shape + (1,) * b.ndim; broadcasting then forms the outer grid.
+  Shape shape = a.shape();
+  Strides strides = a.strides();
+  for (std::size_t k = 0; k < b.ndim(); ++k) {
+    shape.push_back(1);
+    strides.push_back(0);
+  }
+  return binary(u, a.view(shape, strides, a.offset()), b, out, params);
+}
+
+NDArray ufunc_reduceat(const Ufunc& u, const NDArray& a_in, const NDArray& indices,
+                       const NDArray* out, const UfuncReduceOptions& opts) {
+  require_binary(u, "reduceat");
+  check_out_writeable(out);
+  if (a_in.ndim() == 0) throw_error(ErrorKind::DType, "cannot reduceat on a scalar");
+  if (opts.all_axes || (opts.axis && opts.axis->size() != 1)) {
+    throw_error(ErrorKind::Value, "reduceat does not allow multiple axes");
+  }
+  if (!is_integer(indices.dtype()) || indices.ndim() != 1) {
+    throw_error(ErrorKind::DType, "reduceat indices must be a 1-d integer array");
+  }
+  const auto nd = static_cast<std::int64_t>(a_in.ndim());
+  const auto ax = static_cast<std::size_t>(normalize_axis(opts.axis ? opts.axis->front() : 0, nd));
+  const std::int64_t len = a_in.shape()[ax];
+  const std::int64_t m = indices.size();
+  std::vector<std::int64_t> idx(static_cast<std::size_t>(m));
+  for (std::int64_t i = 0; i < m; ++i) {
+    const std::int64_t v = indices.get_int64(i);
+    if (v < 0 || v >= len) {
+      throw_error(ErrorKind::Index, "index " + std::to_string(v) + " out-of-bounds in " + u.name +
+                                        ".reduceat [0, " + std::to_string(len) + ")");
+    }
+    idx[static_cast<std::size_t>(i)] = v;
+  }
+
+  const DType dt = loop_dtype(u, a_in, out, opts.dtype);
+  loop_for(u, dt);
+  Shape res_shape = a_in.shape();
+  res_shape[ax] = m;
+  if (out && out->shape() != res_shape) {
+    throw_error(ErrorKind::Value, std::string("output parameter for reduceat operation ") + u.name +
+                                      " has the wrong shape: expected " + shape_to_string(res_shape) +
+                                      ", got " + shape_to_string(out->shape()));
+  }
+  const NDArray a = as_loop_dtype(a_in, dt);
+  NDArray r = NDArray::empty(res_shape, dt);
+  UfuncReduceOptions seg;
+  seg.axis = std::vector<std::int64_t>{static_cast<std::int64_t>(ax)};
+  seg.dtype = dt;
+  seg.keepdims = true;
+  for (std::int64_t i = 0; i < m; ++i) {
+    const std::int64_t lo = idx[static_cast<std::size_t>(i)];
+    const std::int64_t hi = i + 1 < m ? idx[static_cast<std::size_t>(i + 1)] : len;
+    const NDArray dst = axis_slice(r, ax, i, 1);
+    if (hi > lo + 1) {
+      copy_into(dst, ufunc_reduce(u, axis_slice(a, ax, lo, hi - lo), nullptr, seg));
+    } else {
+      copy_into(dst, axis_slice(a, ax, lo, 1));
+    }
+  }
+  if (!out) return r;
+  copy_into(*out, r);
+  return *out;
+}
+
+void ufunc_at(const Ufunc& u, const NDArray& a, const std::vector<NDArray>& indices,
+              const NDArray* b) {
+  a.check_writeable();
+  if (u.nin == 2 && !b) {
+    throw_error(ErrorKind::Value, "second operand needed for ufunc");
+  }
+  if (u.nin == 1 && b) {
+    throw_error(ErrorKind::Value, "second operand provided when ufunc is unary");
+  }
+  if (indices.size() > a.ndim()) {
+    throw_error(ErrorKind::Index, "too many indices for array: array is " +
+                                      std::to_string(a.ndim()) + "-dimensional, but " +
+                                      std::to_string(indices.size()) + " were indexed");
+  }
+  std::vector<Shape> ishapes;
+  for (const auto& ix : indices) {
+    if (!is_integer(ix.dtype())) {
+      throw_error(ErrorKind::Index, "arrays used as indices must be of integer type");
+    }
+    ishapes.push_back(ix.shape());
+  }
+  const Shape ishape = broadcast_shapes(ishapes);
+  std::vector<NDArray> bidx;
+  for (const auto& ix : indices) bidx.push_back(broadcast_to(ix, ishape));
+
+  // a[indices] has shape ishape + sub; `b` broadcasts against it.
+  const std::size_t k = indices.size();
+  const Shape sub(a.shape().begin() + static_cast<std::ptrdiff_t>(k), a.shape().end());
+  const Strides sub_st(a.strides().begin() + static_cast<std::ptrdiff_t>(k), a.strides().end());
+  Shape full = ishape;
+  full.insert(full.end(), sub.begin(), sub.end());
+  std::optional<NDArray> bb;
+  if (b) bb = broadcast_to(*b, full);
+
+  // Validate every index first so an error leaves `a` untouched.
+  const std::int64_t count = shape_size(ishape);
+  std::vector<std::int64_t> offs(static_cast<std::size_t>(count), a.offset());
+  for (std::size_t d = 0; d < k; ++d) {
+    const std::int64_t dim = a.shape()[d];
+    for (std::int64_t p = 0; p < count; ++p) {
+      std::int64_t v = bidx[d].get_int64(p);
+      if (v < -dim || v >= dim) {
+        throw_error(ErrorKind::Index, "index " + std::to_string(v) + " is out of bounds for axis " +
+                                          std::to_string(d) + " with size " + std::to_string(dim));
+      }
+      if (v < 0) v += dim;
+      offs[static_cast<std::size_t>(p)] += v * a.strides()[d];
+    }
+  }
+
+  const UfuncParams params;
+  std::vector<std::int64_t> pos(ishape.size(), 0);
+  for (std::int64_t p = 0; p < count; ++p) {
+    const NDArray target = a.view(sub, sub_st, offs[static_cast<std::size_t>(p)]);
+    if (bb) {
+      std::int64_t boff = bb->offset();
+      for (std::size_t d = 0; d < pos.size(); ++d) boff += pos[d] * bb->strides()[d];
+      const Strides bst(bb->strides().begin() + static_cast<std::ptrdiff_t>(ishape.size()),
+                        bb->strides().end());
+      binary(u, target, bb->view(sub, bst, boff), &target, params);
+    } else {
+      unary(u, target, &target, params);
+    }
+    for (std::size_t d = pos.size(); d-- > 0;) {
+      if (++pos[d] < ishape[d]) break;
+      pos[d] = 0;
+    }
+  }
+}
+
 }  // namespace nativpy

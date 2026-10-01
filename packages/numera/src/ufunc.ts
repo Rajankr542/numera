@@ -155,16 +155,54 @@ export interface UfuncAccumulateOptions {
   out?: NDArray | null;
 }
 
+/** `ufunc.reduceat` options (P2-9). */
+export interface UfuncReduceatOptions {
+  /** Axis to reduce along (default 0). */
+  axis?: number;
+  dtype?: DTypeLike | null;
+  out?: NDArray | null;
+}
+
+/**
+ * `ufunc.at` indices: a number, an integer index array (or nested list) for
+ * axis 0, or an array of NDArrays — one index array per leading axis (NumPy's
+ * tuple of index arrays).
+ */
+export type UfuncAtIndices = number | ArrayLike | readonly NDArray[];
+
 type BinaryUfunc = ((a: Operand, b: Operand, opts?: UfuncOptions) => NDArray) & {
   /** NumPy ufunc.reduce (D-052). */
   reduce(a: ArrayLike, opts?: UfuncReduceOptions): NDArray;
   /** NumPy ufunc.accumulate (D-052). */
   accumulate(a: ArrayLike, opts?: UfuncAccumulateOptions): NDArray;
+  /** NumPy ufunc.reduceat: reductions over the slices a[indices[i]:indices[i+1]]. */
+  reduceat(a: ArrayLike, indices: ArrayLike, opts?: UfuncReduceatOptions): NDArray;
+  /** NumPy ufunc.outer: op over every pair, result shape a.shape + b.shape. */
+  outer(a: Operand, b: Operand, opts?: UfuncOptions): NDArray;
+  /** NumPy ufunc.at: unbuffered in place a[indices] = op(a[indices], b). */
+  at(a: NDArray, indices: UfuncAtIndices, b: Operand): void;
 };
-type UnaryUfunc = (a: ArrayLike, opts?: UfuncOptions) => NDArray;
+type UnaryUfunc = ((a: ArrayLike, opts?: UfuncOptions) => NDArray) & {
+  /** NumPy ufunc.at: unbuffered in place a[indices] = op(a[indices]). */
+  at(a: NDArray, indices: UfuncAtIndices): void;
+};
 
 const REDUCE_KEYS = new Set(["axis", "dtype", "out", "keepdims", "initial", "where"]);
 const ACCUMULATE_KEYS = new Set(["axis", "dtype", "out"]);
+
+function atIndices(indices: UfuncAtIndices): NDArray[] {
+  if (Array.isArray(indices) && indices.length > 0 && indices.every((x) => x instanceof NDArray)) {
+    return [...(indices as readonly NDArray[])];
+  }
+  return [indices instanceof NDArray ? indices : array(indices as ArrayLike | number)];
+}
+
+function ufuncAt(op: string, a: NDArray, indices: UfuncAtIndices, b?: Operand): void {
+  if (!(a instanceof NDArray)) throw new DTypeError("ufunc.at requires an NDArray as first operand");
+  const idx = atIndices(indices).map((x) => x._native);
+  const bArr = b === undefined ? null : operands(a, b)[1]._native;
+  wrapNative(() => addon.ufuncAt(op, a._native, idx, bArr));
+}
 
 function checkKeys(method: string, opts: object, allowed: Set<string>): void {
   for (const k of Object.keys(opts)) {
@@ -173,10 +211,11 @@ function checkKeys(method: string, opts: object, allowed: Set<string>): void {
 }
 
 function ufuncMethod(
-  method: "reduce" | "accumulate",
+  method: "reduce" | "accumulate" | "reduceat",
   op: string,
   a: ArrayLike,
   opts: UfuncReduceOptions,
+  extra?: NDArray,
 ): NDArray {
   const out = outArg(opts);
   const x = toArray(a);
@@ -190,11 +229,24 @@ function ufuncMethod(
   if (opts.initial !== undefined && opts.initial !== null) native.initial = opts.initial;
   const where = whereArg(opts);
   if (where) native.where = where._native;
+  const b = extra?._native;
   if (out) {
-    wrapNative(() => addon.ufuncMethod(method, op, x._native, out._native, native));
+    wrapNative(() => addon.ufuncMethod(method, op, x._native, out._native, native, b));
     return out;
   }
-  return wrapNative(() => NDArray._wrap(addon.ufuncMethod(method, op, x._native, null, native)!));
+  return wrapNative(() => NDArray._wrap(addon.ufuncMethod(method, op, x._native, null, native, b)!));
+}
+
+function outer(op: string, a: Operand, b: Operand, opts: UfuncOptions = {}): NDArray {
+  const out = outArg(opts);
+  const loop = loopDtype(opts);
+  const [x, y] = operands(a, b, loop);
+  const params = nativeParams(loop, opts);
+  if (out) {
+    wrapNative(() => addon.ufuncMethod("outer", op, x._native, out._native, params, y._native));
+    return out;
+  }
+  return wrapNative(() => NDArray._wrap(addon.ufuncMethod("outer", op, x._native, null, params, y._native)!));
 }
 
 function binaryUfunc(op: string): BinaryUfunc {
@@ -211,6 +263,23 @@ function binaryUfunc(op: string): BinaryUfunc {
       }
       return ufuncMethod("accumulate", op, a, opts);
     },
+    reduceat: (a: ArrayLike, indices: ArrayLike, opts: UfuncReduceatOptions = {}): NDArray => {
+      checkKeys("reduceat", opts, ACCUMULATE_KEYS);
+      if (opts.axis !== undefined && typeof opts.axis !== "number") {
+        throw new DTypeError("reduceat axis must be an integer");
+      }
+      const idx = indices instanceof NDArray ? indices : array(indices, { dtype: "int64" });
+      return ufuncMethod("reduceat", op, a, opts, idx);
+    },
+    outer: (a: Operand, b: Operand, opts?: UfuncOptions): NDArray => outer(op, a, b, opts),
+    at: (a: NDArray, indices: UfuncAtIndices, b: Operand): void => ufuncAt(op, a, indices, b),
+  });
+}
+
+function unaryUfunc(op: string): UnaryUfunc {
+  const f = (a: ArrayLike, opts?: UfuncOptions): NDArray => unary(op, a, opts);
+  return Object.assign(f, {
+    at: (a: NDArray, indices: UfuncAtIndices): void => ufuncAt(op, a, indices),
   });
 }
 
@@ -222,11 +291,11 @@ export const power: BinaryUfunc = binaryUfunc("power");
 export const mod: BinaryUfunc = binaryUfunc("mod");
 export const floorDivide: BinaryUfunc = binaryUfunc("floorDivide");
 
-export const abs: UnaryUfunc = (a, opts) => unary("abs", a, opts);
-export const negative: UnaryUfunc = (a, opts) => unary("negative", a, opts);
-export const sqrt: UnaryUfunc = (a, opts) => unary("sqrt", a, opts);
-export const exp: UnaryUfunc = (a, opts) => unary("exp", a, opts);
-export const log: UnaryUfunc = (a, opts) => unary("log", a, opts);
+export const abs: UnaryUfunc = unaryUfunc("abs");
+export const negative: UnaryUfunc = unaryUfunc("negative");
+export const sqrt: UnaryUfunc = unaryUfunc("sqrt");
+export const exp: UnaryUfunc = unaryUfunc("exp");
+export const log: UnaryUfunc = unaryUfunc("log");
 
 // ---- Complex helpers (P1, D-033) ----
 

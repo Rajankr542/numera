@@ -82,12 +82,15 @@ export interface NativeAddon {
   unary(op: string, a: NativeNDArray, out: null, params: NativeUfuncParams): NativeNDArray;
   /** ufunc.reduce / ufunc.accumulate (D-052). Returns undefined when `out` is given. */
   ufuncMethod(
-    method: "reduce" | "accumulate",
+    method: "reduce" | "accumulate" | "reduceat" | "outer",
     op: string,
     a: NativeNDArray,
     out: NativeNDArray | null,
-    opts: NativeUfuncMethodOptions,
+    opts: NativeUfuncMethodOptions | NativeUfuncParams,
+    b?: NativeNDArray,
   ): NativeNDArray | undefined;
+  /** ufunc.at (P2-9): in place on `a`. */
+  ufuncAt(op: string, a: NativeNDArray, indices: NativeNDArray[], b: NativeNDArray | null): undefined;
   // P1 complex helpers (D-033)
   complexPart(a: NativeNDArray, imag: boolean): NativeNDArray;
   isComplexElementwise(a: NativeNDArray, wantComplex: boolean): NativeNDArray;

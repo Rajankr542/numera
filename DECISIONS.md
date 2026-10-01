@@ -1442,3 +1442,20 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   so `out` overlapping the input is safe. `out` must have exactly the result
   shape. NumPy's keep-order result strides are deferred to P2-8v.
 - Integer power reductions apply the negative-exponent check (D-051 `check`).
+
+## D-053 — ufunc.outer / reduceat / at (P2-9) — Accepted — 2026-10-02
+- Native `ufunc_outer`, `ufunc_reduceat`, `ufunc_at` in `native/core/ufunc_methods.cpp`,
+  driven by the D-051 record. Build-first (see `TASK_SLICES.md`): NumPy differential
+  checks are deferred to the V phase.
+- `outer`: `a` is viewed as `a.shape + (1,)*b.ndim` and passed to the generic
+  binary driver, so `out`/`dtype`/`casting`/`where`/`order` behave as for the
+  call form. Unary ufuncs raise `ValueError`.
+- `reduceat(a, indices, {axis, dtype, out})`: segment `i` reduces
+  `a[indices[i]:indices[i+1]]` (last segment runs to the end); when
+  `indices[i] >= indices[i+1]` the result is `a[indices[i]]` (NumPy rule).
+  Loop dtype follows D-052. Indices outside `[0, len)` raise `IndexError`.
+- `at(a, indices, b?)`: JS has no tuple index, so `indices` is a number, an
+  index array/list (axis 0), or an array of NDArrays (one per leading axis,
+  broadcast together). Repeated indices apply repeatedly (unbuffered). All
+  indices are validated before `a` is modified. Unary ufuncs get `.at` too.
+  Slices/boolean masks as `at` indices are not supported yet.

@@ -244,11 +244,34 @@ void init_ops_binding(Napi::Env env, Napi::Object exports) {
                 }
                 const bool has_out = i.Length() > 3 && !i[3].IsUndefined() && !i[3].IsNull();
                 const NDArray* out = has_out ? &arr(i, 3) : nullptr;
-                NDArray r = method == "reduce"       ? ufunc_reduce(*u, arr(i, 2), out, opts)
-                            : method == "accumulate" ? ufunc_accumulate(*u, arr(i, 2), out, opts)
-                                                     : (throw_error(ErrorKind::Value, "unknown ufunc method " + method), arr(i, 2));
+                NDArray r = arr(i, 2);
+                if (method == "reduce") {
+                  r = ufunc_reduce(*u, arr(i, 2), out, opts);
+                } else if (method == "accumulate") {
+                  r = ufunc_accumulate(*u, arr(i, 2), out, opts);
+                } else if (method == "reduceat") {
+                  r = ufunc_reduceat(*u, arr(i, 2), arr(i, 5), out, opts);
+                } else if (method == "outer") {
+                  r = ufunc_outer(*u, arr(i, 2), arr(i, 5), out, ufunc_params(i, 4));
+                } else {
+                  throw_error(ErrorKind::Value, "unknown ufunc method " + method);
+                }
                 if (has_out) return e.Undefined();
                 return Napi::Value(NDArrayWrap::create(e, r));
+              }));
+  // ufuncAt(name, a, indices: NDArray[], b | null): in place (P2-9).
+  exports.Set("ufuncAt", fn(env, "ufuncAt", [](Info i, Napi::Env e) {
+                const std::string name = i[0].ToString().Utf8Value();
+                const Ufunc* u = find_ufunc(name);
+                if (!u) throw_error(ErrorKind::Value, "unknown ufunc " + name);
+                std::vector<NDArray> idx;
+                const auto list = i[2].As<Napi::Array>();
+                for (std::uint32_t k = 0; k < list.Length(); ++k) {
+                  idx.push_back(NDArrayWrap::unwrap(list.Get(k)));
+                }
+                const bool has_b = !i[3].IsUndefined() && !i[3].IsNull();
+                ufunc_at(*u, arr(i, 1), idx, has_b ? &arr(i, 3) : nullptr);
+                return e.Undefined();
               }));
   // ---- indexing (M6) ----
   exports.Set("complexPart", fn(env, "complexPart", [](Info i, Napi::Env e) {
