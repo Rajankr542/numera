@@ -77,6 +77,14 @@ void getrf_(const lint* m, const lint* n, float* a, const lint* lda, lint* piv, 
 void getrf_(const lint* m, const lint* n, double* a, const lint* lda, lint* piv, lint* info) {
   dgetrf_(m, n, a, lda, piv, info);
 }
+void getrf_(const lint* m, const lint* n, std::complex<float>* a, const lint* lda, lint* piv,
+            lint* info) {
+  cgetrf_(m, n, a, lda, piv, info);
+}
+void getrf_(const lint* m, const lint* n, std::complex<double>* a, const lint* lda, lint* piv,
+            lint* info) {
+  zgetrf_(m, n, a, lda, piv, info);
+}
 void gesv_(const lint* n, const lint* r, float* a, const lint* lda, lint* p, float* b,
            const lint* ldb, lint* info) {
   sgesv_(n, r, a, lda, p, b, ldb, info);
@@ -135,6 +143,18 @@ lint lwork_from(T q) {
   return std::max<lint>(1, static_cast<lint>(q) + 1);
 }
 
+// ?getrf on an n×n column-major matrix; pivots converted to 0-based.
+template <typename E>
+int lu(idx n, E* a, idx* piv) {
+  const lint nn = li(n);
+  const lint lda = std::max<lint>(nn, 1);
+  std::vector<lint> p(static_cast<std::size_t>(std::max<idx>(n, 1)));
+  lint info = 0;
+  getrf_(&nn, &nn, a, &lda, p.data(), &info);
+  for (idx i = 0; i < n; ++i) piv[i] = p[static_cast<std::size_t>(i)] - 1;
+  return static_cast<int>(info);
+}
+
 template <typename T>
 class AccelRoutines final : public Routines<T> {
  public:
@@ -166,14 +186,8 @@ class AccelRoutines final : public Routines<T> {
       cgemm_(li(m), li(n), li(k), a, b, c);
     }
   }
-  int getrf(idx n, T* a, idx* piv) const override {
-    const lint nn = li(n);
-    std::vector<lint> p(static_cast<std::size_t>(std::max<idx>(n, 1)));
-    lint info = 0;
-    getrf_(&nn, &nn, a, &nn, p.data(), &info);
-    for (idx i = 0; i < n; ++i) piv[i] = p[static_cast<std::size_t>(i)] - 1;
-    return static_cast<int>(info);
-  }
+  int getrf(idx n, T* a, idx* piv) const override { return lu(n, a, piv); }
+  int cgetrf(idx n, std::complex<T>* a, idx* piv) const override { return lu(n, a, piv); }
   int gesv(idx n, idx nrhs, T* a, T* b) const override {
     const lint nn = li(n);
     const lint r = li(nrhs);

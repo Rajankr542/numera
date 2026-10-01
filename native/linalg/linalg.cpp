@@ -199,6 +199,39 @@ T det_one(const T* rowmajor, idx n, std::vector<T>& work, std::vector<idx>& piv)
   return d;
 }
 
+// NumPy's umath_linalg complex det (D-038): sign from pivot parity times
+// u_ii/|u_ii| (unfused `mult`), magnitude exp(sum log|u_ii|), then
+// mult(sign, exp(logdet) + 0j). A singular getrf gives sign 0, logdet -inf.
+template <typename R>
+std::complex<R> cdet_one(const std::complex<R>* rowmajor, idx n,
+                         std::vector<std::complex<R>>& work, std::vector<idx>& piv) {
+  if (n == 0) return {R{1}, R{0}};
+  to_colmajor(rowmajor, work.data(), n, n);
+  const int info = routines<R>().cgetrf(n, work.data(), piv.data());
+  R sr = 0;
+  R si = 0;
+  R logdet = -std::numeric_limits<R>::infinity();
+  if (info == 0) {
+    idx swaps = 0;
+    for (idx i = 0; i < n; ++i) swaps += piv[sz(i)] != i ? 1 : 0;
+    sr = swaps % 2 != 0 ? R{-1} : R{1};
+    logdet = 0;
+    for (idx i = 0; i < n; ++i) {
+      const std::complex<R> u = work[sz(i + i * n)];
+      const R mag = std::hypot(u.real(), u.imag());
+      const R er = u.real() / mag;
+      const R ei = u.imag() / mag;
+      const R nr = sr * er - si * ei;
+      const R ni = sr * ei + si * er;
+      sr = nr;
+      si = ni;
+      logdet += std::log(mag);
+    }
+  }
+  const R e = std::exp(logdet);
+  return {sr * e - si * R{0}, sr * R{0} + si * e};
+}
+
 }  // namespace
 
 NDArray matmul(const NDArray& a, const NDArray& b) {
@@ -263,10 +296,24 @@ NDArray outer(const NDArray& a, const NDArray& b) {
 }
 
 NDArray det(const NDArray& a) {
-  const DType dt = decomp_dtype(a, "det");
+  const bool cplx = is_complex(a.dtype());
+  const DType dt = cplx ? a.dtype() : decomp_dtype(a, "det");
   require_square(a, "det");
   const idx n = a.shape().back();
   const Shape batch = batch_of(a.shape(), 2);
+  if (cplx) {
+    // NumPy computes every complex det in complex128 ('D->D') and casts the
+    // result to the input width afterwards (D-038).
+    const NDArray a128 = as_compute(a, DType::Complex128);
+    NDArray o128 = NDArray::empty(batch, DType::Complex128);
+    using C = std::complex<double>;
+    std::vector<C> work(sz(std::max<idx>(n * n, 1)));
+    std::vector<idx> piv(sz(std::max<idx>(n, 1)));
+    const C* src = ptr<C>(a128);
+    C* dst = ptr<C>(o128);
+    for (idx t = 0; t < shape_size(batch); ++t) dst[t] = cdet_one(src + t * n * n, n, work, piv);
+    return dt == DType::Complex128 ? o128 : o128.astype(dt);
+  }
   const NDArray ac = as_compute(a, dt);
   NDArray out = NDArray::empty(batch, dt);
   dispatch_real(dt, [&](auto tag) {

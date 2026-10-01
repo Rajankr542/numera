@@ -49,6 +49,8 @@ class Routines {
                      const std::complex<T>* b, std::complex<T>* c) const = 0;
   // LU factorisation in place (n×n); piv receives 0-based row swaps.
   virtual int getrf(std::int64_t n, T* a, std::int64_t* piv) const = 0;
+  // Complex LU in place (n×n, column-major), 0-based pivots (D-038).
+  virtual int cgetrf(std::int64_t n, std::complex<T>* a, std::int64_t* piv) const = 0;
   // Solves A X = B for n×nrhs B (A overwritten by LU, B by X).
   virtual int gesv(std::int64_t n, std::int64_t nrhs, T* a, T* b) const = 0;
   // Symmetric eigen (lower triangle used): w ascending, a -> eigenvectors.

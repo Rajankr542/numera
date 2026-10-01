@@ -39,7 +39,7 @@ Steps 1–4 are done (conversion, ufuncs, reductions, matmul family). Slices lef
 ### Step 5: complex linalg (one function per slice, both backends)
 | Slice | Work |
 |---|---|
-| P1-5a | `det`: fallback, then Accelerate (`cgetrf`/`zgetrf`). |
+| P1-5a ✅ | `det`: fallback, then Accelerate (`cgetrf`/`zgetrf`) (D-038). |
 | P1-5b | `inv`, `solve` (`?gesv`). |
 | P1-5c | `qr` (`?geqrf`/`?ungqr`). |
 | P1-5d | `svd` (`?gesdd`). Singular values are real. |

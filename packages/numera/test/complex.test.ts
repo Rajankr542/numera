@@ -321,3 +321,53 @@ describe("complex matmul/dot/inner/outer (P1 step 4, D-035/D-036)", () => {
   }
 });
 
+describe("complex linalg.det (P1-5a, D-038)", () => {
+  const z = (x: InstanceType<typeof np.NDArray>): number[] => {
+    const v = x.item() as Complex;
+    return [v.re, v.im];
+  };
+  const A = [
+    [np.complex(1, 2), np.complex(3, -1)],
+    [np.complex(0, 0.5), np.complex(2, 0)],
+  ];
+  for (const backend of ["default", "fallback"] as const) {
+    describe(`backend: ${backend}`, () => {
+      beforeAll(() => np.linalg._setBackend(backend));
+      afterAll(() => np.linalg._setBackend("default"));
+
+      it("keeps the complex dtype and matches NumPy", () => {
+        const d = np.linalg.det(A);
+        expect(d.dtype).toBe(np.complex128);
+        expect(d.shape).toEqual([]);
+        // NumPy: (1.5000000000000002+2.5j) for complex128, (1.5+2.5j) for complex64.
+        const [re, im] = z(d);
+        expect(re).toBeCloseTo(1.5, 14);
+        expect(im).toBeCloseTo(2.5, 14);
+        const d64 = np.linalg.det(np.array(A, { dtype: "complex64" }));
+        expect(d64.dtype).toBe(np.complex64);
+        expect(z(d64)).toEqual([1.5, 2.5]);
+      });
+
+      it("batched, empty, singular and NaN inputs", () => {
+        const b = np.multiply(np.arange(8).reshape([2, 2, 2]), np.complex(1, 1));
+        const bd = np.linalg.det(b);
+        expect(bd.shape).toEqual([2]);
+        for (const v of bd.toArray() as Complex[]) {
+          expect(v.re).toBeCloseTo(0, 12);
+          expect(v.im).toBeCloseTo(-4, 12);
+        }
+        expect(z(np.linalg.det(np.zeros([0, 0], { dtype: "complex64" })))).toEqual([1, 0]);
+        const sing = z(np.linalg.det([[np.complex(0, 0), np.complex(1, 0)], [np.complex(0, 0), np.complex(0, 1)]]));
+        expect(sing).toEqual([0, 0]);
+        const nan = z(np.linalg.det([[np.complex(NaN, 0), 1], [1, 1]]));
+        expect(nan.every(Number.isNaN)).toBe(true);
+        expect(() => np.linalg.det(np.zeros([2, 3], { dtype: "complex128" }))).toThrow(np.LinAlgError);
+      });
+    });
+  }
+
+  it("other decompositions still reject complex input", () => {
+    expect(() => np.linalg.inv(A)).toThrow(np.NotImplementedError);
+  });
+});
+

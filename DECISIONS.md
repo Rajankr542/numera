@@ -935,3 +935,34 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   We always return C strides, which also hold for zero-size arrays, so strides
   are compared only for non-empty results (the real linalg group never
   compared them, D-018).
+
+## D-038 — Complex det (P1-5a) — Accepted — 2026-10-01
+- `det` accepts complex64/complex128 and returns the same dtype. All other
+  decompositions still reject complex input with `NotImplementedError` until
+  their own slice lands.
+- `Routines<T>::cgetrf` (column-major, in place, 0-based pivots) is part of
+  the backend interface. Accelerate calls `cgetrf_`/`zgetrf_`. The fallback
+  reuses its partial-pivot LU and, like LAPACK's `icamax`, picks the pivot
+  by |re| + |im|.
+- The value follows NumPy's `umath_linalg` `det` exactly: `sign` starts at ±1
+  from the pivot parity and is multiplied by `u_ii / |u_ii|` (`|.|` is
+  `hypot`) using the unfused `mult` formula. The result is
+  `mult(sign, exp(Σ log|u_ii|) + 0j)`. If
+  `getrf` reports a singular matrix (info > 0), `sign = 0` and
+  `logdet = -inf`, so the result is `0+0j`. A 0×0 matrix gives `1+0j`.
+- Precision: NumPy's `det` always runs the complex128 kernel
+  (`signature='D->D'`, from `_commonType`) and casts to the result dtype
+  afterwards. We do the same, so complex64 input is factored with `zgetrf`
+  and rounded to complex64 once at the end. Probe: computing complex64 det
+  in single precision matched NumPy in 39/70 random cases; the complex128
+  path then cast matched 120/120. NumPy's real `det` also runs in float64
+  (`'d->d'`) and then casts float32 results, whereas ours keeps float32
+  (D-018). That is a separate follow-up.
+- Real `det` keeps its direct product of the diagonal (D-018). Switching it
+  to the slogdet form would be a separate decision.
+- Exactness (NumPy 2.x + Accelerate, arm64, 70 random matrices n = 1–40,
+  both widths): the default backend is bit-identical to NumPy in 70/70,
+  because it uses the same `zgetrf` and the same post-processing. The
+  fallback LU uses a different elimination order: complex128 is within
+  ~2e-14 relative, so it is tolerance-level (D-018). Its complex64 results
+  matched after the final rounding.

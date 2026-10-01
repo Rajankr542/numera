@@ -5,6 +5,7 @@
 #include <cmath>
 #include <complex>
 #include <limits>
+#include <type_traits>
 #include <vector>
 
 #include "backend.hpp"
@@ -22,16 +23,23 @@ struct Mat {  // column-major view
   T& operator()(idx i, idx j) const { return p[i + j * ld]; }
 };
 
+// Pivot magnitude: |x| for real, |re| + |im| for complex (LAPACK icamax, D-038).
+template <typename T>
+auto pivot_mag(const T& x) {
+  if constexpr (std::is_floating_point_v<T>) return std::abs(x);
+  else return std::abs(x.real()) + std::abs(x.imag());
+}
+
 template <typename T>
 int lu(idx n, T* a, idx* piv) {
   Mat<T> A{a, n};
   int info = 0;
   for (idx k = 0; k < n; ++k) {
     idx p = k;
-    T best = std::abs(A(k, k));
+    auto best = pivot_mag(A(k, k));
     for (idx i = k + 1; i < n; ++i) {
-      if (std::abs(A(i, k)) > best) {
-        best = std::abs(A(i, k));
+      if (pivot_mag(A(i, k)) > best) {
+        best = pivot_mag(A(i, k));
         p = i;
       }
     }
@@ -513,6 +521,7 @@ class FallbackRoutines final : public Routines<T> {
     noblas_cgemm(m, n, k, a, b, c);
   }
   int getrf(idx n, T* a, idx* piv) const override { return lu(n, a, piv); }
+  int cgetrf(idx n, std::complex<T>* a, idx* piv) const override { return lu(n, a, piv); }
   int gesv(idx n, idx nrhs, T* a, T* b) const override {
     std::vector<idx> piv(static_cast<std::size_t>(n));
     const int info = lu(n, a, piv.data());

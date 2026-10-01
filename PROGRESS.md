@@ -1,5 +1,25 @@
 # PROGRESS
 
+## 2026-10-01 — P1 step 5: complex linalg (in progress, D-038)
+
+P1-5a done: `linalg.det` accepts complex64/complex128.
+- New backend routine `cgetrf`: Accelerate `cgetrf_`/`zgetrf_`; the fallback
+  reuses its LU with |re| + |im| pivoting.
+- Value formula ported from NumPy's `umath_linalg` (sign × exp(Σ log|u_ii|)).
+  As in NumPy, every complex det runs in complex128 and is then cast.
+- Measured against NumPy 2.x + Accelerate (arm64) on 70 random matrices
+  (n = 1–40, both widths). The default backend was bit-identical 70/70. A
+  first version that worked in single precision for complex64 matched only
+  39/70, and that probe is how the complex128 rule was found. The fallback
+  backend's complex128 results are within ~2e-14 relative.
+- Tests: C++ `linalg: complex det (D-038)` on both backends; vitest
+  `complex linalg.det` on both backends.
+- Checks: `pnpm test:native`, `pnpm test:asan`, `pnpm test` (218),
+  `pnpm test:diff` (4580), `pnpm typecheck` and root `tsc` all pass.
+- Not yet: differential cases (P1-5h) and benchmarks (P1-5j).
+
+Next: P1-5b, complex `inv`/`solve`.
+
 ## 2026-10-01 — P1 step 4: complex matmul family (done, D-035–D-037)
 
 Done (slices P1-4a to P1-4e):

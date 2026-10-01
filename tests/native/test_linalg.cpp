@@ -278,6 +278,52 @@ TEST_CASE("linalg: complex matmul dispatch branches (D-036)") {
 
 
 
+TEST_CASE("linalg: complex det (D-038)") {
+  using C = std::complex<double>;
+  const auto near_c = [](C got, C want, double tol) {
+    return std::abs(got - want) <= tol * (1.0 + std::abs(want));
+  };
+  each_backend([&near_c] {
+    const auto run = [&near_c](auto tag, double tol) {
+      using R = decltype(tag);
+      const DType cdt = std::is_same_v<R, float> ? DType::Complex64 : DType::Complex128;
+      // (1+2j)*2 - (3-j)*0.5j = 1.5+2.5j (NumPy: 1.5000000000000002+2.5j).
+      const NDArray d = det(cmat<R>(2, 2, {C(1, 2), C(3, -1), C(0, 0.5), C(2, 0)}));
+      CHECK(d.dtype() == cdt);
+      CHECK(d.shape() == Shape{});
+      CHECK(near_c(C(cat<R>(d, 0)), C(1.5, 2.5), tol));
+      // Needs a row swap: [[0, j], [2, 3]] -> -2j.
+      CHECK(near_c(C(cat<R>(det(cmat<R>(2, 2, {C(0, 0), C(0, 1), C(2, 0), C(3, 0)})), 0)), C(0, -2), tol));
+      // 3x3, NumPy: 5.999999999999999-2.4556958919860773e-16j.
+      const NDArray d3 = det(cmat<R>(3, 3, {C(2, 0), C(0, 1), C(0, 0), C(1, -1), C(3, 0), C(1, 0),
+                                            C(0, 0), C(0, 2), C(1, 1)}));
+      CHECK(near_c(C(cat<R>(d3, 0)), C(6, 0), tol));
+      // Singular (exact zero pivot): sign 0, logdet -inf -> exactly 0+0j.
+      const C z(cat<R>(det(cmat<R>(2, 2, {C(0, 0), C(1, 0), C(0, 0), C(0, 1)})), 0));
+      CHECK(z.real() == 0.0 && z.imag() == 0.0);
+      // 0x0 -> 1+0j; batched (2,2,2) of k*(1+j): both determinants are -4j.
+      CHECK(C(cat<R>(det(NDArray::zeros({0, 0}, cdt)), 0)) == C(1, 0));
+      NDArray b = NDArray::empty({2, 2, 2}, cdt);
+      auto* bp = reinterpret_cast<std::complex<R>*>(b.data());
+      for (int i = 0; i < 8; ++i) bp[i] = {static_cast<R>(i), static_cast<R>(i)};
+      const NDArray bd = det(b);
+      CHECK(bd.shape() == Shape({2}));
+      CHECK(near_c(C(cat<R>(bd, 0)), C(0, -4), tol));
+      CHECK(near_c(C(cat<R>(bd, 1)), C(0, -4), tol));
+      // NaN input propagates to nan+nanj, as in NumPy.
+      const double nan = std::numeric_limits<double>::quiet_NaN();
+      const C dn(cat<R>(det(cmat<R>(2, 2, {C(nan, 0), C(1, 0), C(1, 0), C(1, 0)})), 0));
+      CHECK(std::isnan(dn.real()) && std::isnan(dn.imag()));
+      // Shape errors are unchanged.
+      CHECK_THROWS_KIND(det(NDArray::zeros({2, 3}, cdt)), ErrorKind::LinAlg);
+    };
+    run(double{}, 1e-12);
+    run(float{}, 1e-5);
+    // Other decompositions still reject complex until their slice lands.
+    CHECK_THROWS_KIND(inv(cmat<double>(1, 1, {C(1, 1)})), ErrorKind::NotImplemented);
+  });
+}
+
 TEST_CASE("linalg: dot/inner/outer") {
   const NDArray a = arange(0, 24, 1, DType::Float64).reshape({2, 3, 4});
   const NDArray b = arange(0, 24, 1, DType::Float64).reshape({3, 4, 2});
