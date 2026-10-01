@@ -16,6 +16,7 @@
 #include "shape_ops.hpp"
 #include "ufunc.hpp"
 #include "ufunc_methods.hpp"
+#include "layout.hpp"
 #include "fp_errors.hpp"
 #include "ufunc_registry.hpp"
 
@@ -85,6 +86,18 @@ UfuncParams ufunc_params(const Napi::CallbackInfo& info, std::size_t i) {
     p.order = *ord;
   }
   return p;
+}
+
+// Memory order argument (P3-1): undefined/null = `def`; else "C"/"F"/"A"/"K" (either case).
+Order arg_order(const Napi::Value& v, Order def) {
+  if (v.IsUndefined() || v.IsNull()) return def;
+  if (!v.IsString()) throw_error(ErrorKind::DType, "order must be str, not a non-string value");
+  const std::string name = v.As<Napi::String>().Utf8Value();
+  const auto ord = order_from_name(name);
+  if (!ord) {
+    throw_error(ErrorKind::Value, "order must be one of 'C', 'F', 'A', or 'K' (got '" + name + "')");
+  }
+  return *ord;
 }
 
 std::optional<std::int64_t> opt_int(const Napi::Object& o, const char* key) {
@@ -171,10 +184,28 @@ void init_ops_binding(Napi::Env env, Napi::Object exports) {
                                                        arg_ints(i[2], "destination")));
               }));
   exports.Set("ravel", fn(env, "ravel", [](Info i, Napi::Env e) {
-                return NDArrayWrap::create(e, ravel(arr(i, 0)));
+                return NDArrayWrap::create(e, ravel_order(arr(i, 0), arg_order(i[1], Order::C)));
               }));
   exports.Set("flatten", fn(env, "flatten", [](Info i, Napi::Env e) {
-                return NDArrayWrap::create(e, flatten(arr(i, 0)));
+                return NDArrayWrap::create(e, flatten_order(arr(i, 0), arg_order(i[1], Order::C)));
+              }));
+  // ---- memory order (P3-1, D-055) ----
+  // emptyOrder(shape, dtype, order, zeroed)
+  exports.Set("emptyOrder", fn(env, "emptyOrder", [](Info i, Napi::Env e) {
+                return NDArrayWrap::create(e, empty_order(arg_ints(i[0], "shape"), parse_dtype(i[1]),
+                                                          arg_order(i[2], Order::C),
+                                                          i[3].ToBoolean().Value()));
+              }));
+  // copyOrder(a, dtype | null, order): np.copy / astype with order=.
+  exports.Set("copyOrder", fn(env, "copyOrder", [](Info i, Napi::Env e) {
+                const NDArray& a = arr(i, 0);
+                const DType dt = i[1].IsNull() || i[1].IsUndefined() ? a.dtype() : parse_dtype(i[1]);
+                return NDArrayWrap::create(e, copy_order(a, dt, arg_order(i[2], Order::K)));
+              }));
+  // reshapeOrder(a, shape, order)
+  exports.Set("reshapeOrder", fn(env, "reshapeOrder", [](Info i, Napi::Env e) {
+                return NDArrayWrap::create(e, reshape_order(arr(i, 0), arg_ints(i[1], "shape"),
+                                                            arg_order(i[2], Order::C)));
               }));
   // ---- broadcasting (M5) / ufuncs (M4) ----
   exports.Set("broadcastShapes", fn(env, "broadcastShapes", [](Info i, Napi::Env e) {

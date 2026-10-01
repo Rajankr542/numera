@@ -82,6 +82,8 @@ Strides iter_strides(const NDArray& a, const Shape& shape) {
   return s;
 }
 
+}  // namespace
+
 // NumPy npyiter_find_best_axis_ordering: array axes, outermost first.
 std::vector<std::size_t> keep_order_axes(const Shape& shape,
                                          const std::vector<const NDArray*>& ops) {
@@ -116,8 +118,6 @@ std::vector<std::size_t> keep_order_axes(const Shape& shape,
   }
   return {perm.rbegin(), perm.rend()};
 }
-
-}  // namespace
 
 Strides ufunc_result_strides(const Shape& shape, std::size_t itemsize,
                              const std::vector<const NDArray*>& inputs,

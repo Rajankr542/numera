@@ -1,9 +1,9 @@
 {
  "numpy_version": "2.5.3",
  "totals": {
-  "implemented": 174,
+  "implemented": 177,
   "total": 1060,
-  "coverage": 16.4
+  "coverage": 16.7
  },
  "surfaces": {
   "Generator": {
@@ -489,8 +489,8 @@
   },
   "np": {
    "total": 435,
-   "implemented": 86,
-   "coverage": 19.8,
+   "implemented": 89,
+   "coverage": 20.5,
    "excluded": 42,
    "missing": [
     "False_",
@@ -523,8 +523,6 @@
     "array_str",
     "asanyarray",
     "asarray_chkfinite",
-    "ascontiguousarray",
-    "asfortranarray",
     "asin",
     "asinh",
     "asmatrix",
@@ -568,7 +566,6 @@
     "concat",
     "concatenate",
     "convolve",
-    "copy",
     "copysign",
     "copyto",
     "corrcoef",

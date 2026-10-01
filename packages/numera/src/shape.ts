@@ -1,5 +1,5 @@
 import { addon } from "./addon.js";
-import { NDArray, type Shape } from "./ndarray.js";
+import { NDArray, type OrderOptions, type Shape } from "./ndarray.js";
 import { wrapNative } from "./errors.js";
 
 /** Shape functions (PLAN §12, M3). Views unless noted. */
@@ -7,8 +7,8 @@ import { wrapNative } from "./errors.js";
 const axesOf = (axis: number | readonly number[]): number[] =>
   typeof axis === "number" ? [axis] : [...axis];
 
-export function reshape(a: NDArray, shape: Shape | number): NDArray {
-  return a.reshape(typeof shape === "number" ? [shape] : shape);
+export function reshape(a: NDArray, shape: Shape | number, opts: OrderOptions = {}): NDArray {
+  return a.reshape(typeof shape === "number" ? [shape] : shape, opts);
 }
 
 export function transpose(a: NDArray, axes?: readonly number[]): NDArray {
@@ -37,6 +37,6 @@ export function moveAxis(
   );
 }
 
-export function ravel(a: NDArray): NDArray {
-  return a.ravel();
+export function ravel(a: NDArray, opts: OrderOptions = {}): NDArray {
+  return a.ravel(opts);
 }

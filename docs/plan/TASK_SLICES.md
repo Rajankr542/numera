@@ -82,7 +82,16 @@ and P2-11). No NumPy-compatibility or performance claim is made for a slice
 until its V slice is done. `api:check` must stay green, so new callables are
 listed in the bench-exemption list until V adds their bench cases.
 
-## P3–P15
+## P3 — Layout and core array API (build-first)
+| Slice | Content |
+|-------|---------|
+| P3-1 ✅ | `order='C'/'F'` for creation (`empty/zeros/ones/full/*Like`, `array`), `copy({order})` incl. `'K'`/`'A'`, `ravel/flatten/reshape({order})`, `ascontiguousarray`, `asfortranarray`, `np.copy`. |
+| P3-2 | NDArray methods: `fill`, `tolist`, `tobytes({order})`, `view(dtype)`, `byteswap`, `setflags({write})`, `base`, `mT`, `flat` (1-D iterator view), `astype({copy})`. |
+| P3-3 | Iteration helpers: `ndindex`, `ndenumerate`, `nditer` (read-only, C/F/K order, multi-operand broadcast; no buffering/external loop). |
+| P3-4 | Dtype introspection: `finfo`, `iinfo`, `resultType`, `minScalarType`, `issubdtype`, `isdtype`, `commonType`, `mintypecode`. |
+| P3-5 | Printing: `array2string`, `arrayRepr`, `arrayStr`, `setPrintoptions`/`getPrintoptions`/`printoptions`, `formatFloatPositional`/`Scientific` (NumPy dragon4 shortest repr), and `toString()` using them. |
+
+## P4–P15
 Slice each milestone just before it starts, using the same rules. As a rule of
 thumb, one ufunc family, one function group, or one kwarg (`out=`, `where=`, …)
 per slice.

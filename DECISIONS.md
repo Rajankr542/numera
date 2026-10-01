@@ -1484,3 +1484,22 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   instead of Python's context manager; restored in `finally`).
 - Relies on the compiler not reordering FP ops across the flag reads (no
   `-ffast-math`); Clang/GCC defaults are fine for this.
+
+## D-055 — Memory order for creation, copies and reshaping (P3-1) — Accepted — 2026-10-02
+- Native `native/core/layout.{hpp,cpp}` reuses the D-050 `Order` enum and
+  `keep_order_axes` (now public in `ufunc.hpp`). Build-first; NumPy
+  differential checks are deferred to the V phase.
+- Creation (`empty/zeros/ones/full`): `order` "C" (default) or "F"; anything
+  else raises `ValueError("only 'C' or 'F' order is permitted")`.
+- `np.array(ndarray)`/`np.copy`/`astype`/`*Like` default to "K" (keep the
+  input's stride order, as NumPy); `NDArray.copy()` defaults to "C" as NumPy's
+  `ndarray.copy`. "A" means F when F- and not C-contiguous.
+- `reshape`/`ravel`/`flatten` take `{order}`; F works by reversing axes around
+  a C reshape. `reshape` rejects "K". `ravel("K")` reads in memory order by
+  sorting axes by |stride| without flipping negative strides (NumPy behaviour),
+  and returns a view when that order is contiguous.
+- JS has no keyword arguments, so `reshape(3, 2, {order})` accepts a trailing
+  options object.
+- `astype(dt, {order, copy})`: `copy: false` returns `this` when dtype and
+  layout already match.
+- `ascontiguousarray`/`asfortranarray` return at least 1-d (NumPy 2 behaviour).

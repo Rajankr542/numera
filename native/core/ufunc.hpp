@@ -50,6 +50,11 @@ struct UfuncParams {
   Order order = Order::K;
 };
 
+// NumPy npyiter_find_best_axis_ordering over `ops` broadcast to `shape`:
+// array axes from outermost to innermost (C order wins ties).
+std::vector<std::size_t> keep_order_axes(const Shape& shape,
+                                         const std::vector<const NDArray*>& ops);
+
 // Byte strides NumPy gives a new ufunc result of `shape` (D-050). `inputs`
 // are the operands before any dtype cast; `cast[k]` says whether input k is
 // cast to the loop dtype. `where` (if any) votes in 'A'/'K' like an operand.

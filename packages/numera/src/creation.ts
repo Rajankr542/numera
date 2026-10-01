@@ -2,10 +2,30 @@ import { addon } from "./addon.js";
 import { dtype as toDType, type DType, type DTypeLike } from "./dtype.js";
 import { ValueError, wrapNative } from "./errors.js";
 import { isComplexLike, type ComplexLike } from "./complex.js";
-import { NDArray, type NestedArray, type Shape } from "./ndarray.js";
+import { NDArray, type MemoryOrder, type NestedArray, type Shape } from "./ndarray.js";
 
 export interface ArrayOptions {
   dtype?: DTypeLike;
+}
+
+/** Creation options with a memory order (NumPy `order=`, D-055). */
+export interface CreationOptions extends ArrayOptions {
+  /** "C" (row-major, default) or "F" (column-major). */
+  order?: "C" | "F" | "c" | "f" | null;
+}
+
+/** `np.array` / `np.copy` options. */
+export interface ArrayCopyOptions extends ArrayOptions {
+  /** "K" (default), "A", "C" or "F". */
+  order?: MemoryOrder | null;
+}
+
+const isF = (o: string | null | undefined): boolean => o === "F" || o === "f";
+
+// Re-lays out a fresh C-order result in F order when requested.
+function inOrder(a: NDArray, order: string | null | undefined): NDArray {
+  if (order === undefined || order === null) return a;
+  return wrapNative(() => NDArray._wrap(addon.copyOrder(a._native, null, order)));
 }
 
 /** Default dtype inference mirroring NumPy (DECISIONS D-004). */
@@ -80,10 +100,14 @@ function collectNumbers(
   return { shape, flat, allInt };
 }
 
-/** np.array: always copies (PLAN §11). */
-export function array(data: NestedArray | NDArray, options: ArrayOptions = {}): NDArray {
+/** np.array: always copies (PLAN §11). `order`: K (default), A, C or F. */
+export function array(data: NestedArray | NDArray, options: ArrayCopyOptions = {}): NDArray {
   if (data instanceof NDArray) {
-    return options.dtype === undefined ? data.copy() : data.astype(options.dtype);
+    const dt = options.dtype === undefined ? null : toDType(options.dtype).name;
+    return wrapNative(() => NDArray._wrap(addon.copyOrder(data._native, dt, options.order ?? "K")));
+  }
+  if (options.order !== undefined && options.order !== null) {
+    return inOrder(array(data, { dtype: options.dtype }), options.order);
   }
   const explicit = options.dtype === undefined ? undefined : toDType(options.dtype);
   if (explicit === undefined || !explicit.name.startsWith("complex")) {
@@ -102,22 +126,40 @@ function normalizeShape(shape: Shape | number): number[] {
   return typeof shape === "number" ? [shape] : [...shape];
 }
 
+function ordered(shape: Shape | number, options: CreationOptions, zeroed: boolean): NDArray {
+  const dt = toDType(options.dtype ?? "float64");
+  return wrapNative(() =>
+    NDArray._wrap(addon.emptyOrder(normalizeShape(shape), dt.name, options.order ?? "C", zeroed)),
+  );
+}
+
 /** np.empty: uninitialized memory. */
-export function empty(shape: Shape | number, options: ArrayOptions = {}): NDArray {
+export function empty(shape: Shape | number, options: CreationOptions = {}): NDArray {
+  if (options.order != null) return ordered(shape, options, false);
   const dt = toDType(options.dtype ?? "float64");
   return wrapNative(() => NDArray._wrap(addon.empty(normalizeShape(shape), dt.name)));
 }
 
 /** np.zeros. */
-export function zeros(shape: Shape | number, options: ArrayOptions = {}): NDArray {
+export function zeros(shape: Shape | number, options: CreationOptions = {}): NDArray {
+  if (options.order != null) return ordered(shape, options, true);
   const dt = toDType(options.dtype ?? "float64");
   return wrapNative(() => NDArray._wrap(addon.zeros(normalizeShape(shape), dt.name)));
 }
 
 /** np.ones. */
-export function ones(shape: Shape | number, options: ArrayOptions = {}): NDArray {
+export function ones(shape: Shape | number, options: CreationOptions = {}): NDArray {
   const dt = toDType(options.dtype ?? "float64");
-  return wrapNative(() => NDArray._wrap(addon.ones(normalizeShape(shape), dt.name)));
+  const r = wrapNative(() => NDArray._wrap(addon.ones(normalizeShape(shape), dt.name)));
+  return validOrder(options.order) && isF(options.order) ? inOrder(r, "F") : r;
+}
+
+function validOrder(order: string | null | undefined): boolean {
+  if (order === undefined || order === null) return false;
+  if (!["C", "F", "c", "f"].includes(order)) {
+    throw new ValueError("only 'C' or 'F' order is permitted");
+  }
+  return true;
 }
 
 /**
@@ -128,28 +170,69 @@ export function ones(shape: Shape | number, options: ArrayOptions = {}): NDArray
 export function full(
   shape: Shape | number,
   fillValue: number | boolean | bigint | ComplexLike,
-  options: ArrayOptions = {},
+  options: CreationOptions = {},
 ): NDArray {
-  const value = array(fillValue, options);
-  return wrapNative(() => NDArray._wrap(addon.full(normalizeShape(shape), value._native)));
+  const value = array(fillValue, { dtype: options.dtype });
+  const r = wrapNative(() => NDArray._wrap(addon.full(normalizeShape(shape), value._native)));
+  return validOrder(options.order) && isF(options.order) ? inOrder(r, "F") : r;
 }
 
-/** np.zerosLike / onesLike / fullLike / emptyLike: same shape, dtype defaults to the input's. */
-export function zerosLike(a: NDArray, options: ArrayOptions = {}): NDArray {
-  return zeros(a.shape, { dtype: options.dtype ?? a.dtype });
+/** Options for the `*Like` functions: `order` defaults to "K" (keep `a`'s layout). */
+export interface LikeOptions extends ArrayOptions {
+  order?: MemoryOrder | null;
 }
-export function onesLike(a: NDArray, options: ArrayOptions = {}): NDArray {
-  return ones(a.shape, { dtype: options.dtype ?? a.dtype });
+
+// *Like results: a's layout per NumPy order= (K default), values from `make`.
+function like(a: NDArray, options: LikeOptions, make: (dt: DTypeLike) => NDArray): NDArray {
+  const dt = options.dtype ?? a.dtype;
+  const order = options.order ?? "K";
+  const r = make(dt);
+  if (a.ndim === 0 || order === "C" || order === "c") return r;
+  // Lay `r` out like `a` would be copied with `order`.
+  const layout = wrapNative(() => NDArray._wrap(addon.copyOrder(a._native, toDType(dt).name, order)));
+  if (layout.flags.cContiguous) return r;
+  layout.set([], r);
+  return layout;
 }
-export function emptyLike(a: NDArray, options: ArrayOptions = {}): NDArray {
-  return empty(a.shape, { dtype: options.dtype ?? a.dtype });
+
+/** np.zerosLike / onesLike / fullLike / emptyLike: same shape and layout (order K), dtype defaults to the input's. */
+export function zerosLike(a: NDArray, options: LikeOptions = {}): NDArray {
+  return like(a, options, (dt) => zeros(a.shape, { dtype: dt }));
+}
+export function onesLike(a: NDArray, options: LikeOptions = {}): NDArray {
+  return like(a, options, (dt) => ones(a.shape, { dtype: dt }));
+}
+export function emptyLike(a: NDArray, options: LikeOptions = {}): NDArray {
+  const dt = toDType(options.dtype ?? a.dtype);
+  const order = options.order ?? "K";
+  if (a.ndim === 0 || order === "C" || order === "c") return empty(a.shape, { dtype: dt });
+  return wrapNative(() => NDArray._wrap(addon.copyOrder(a._native, dt.name, order)));
 }
 export function fullLike(
   a: NDArray,
   fillValue: number | boolean | bigint | ComplexLike,
-  options: ArrayOptions = {},
+  options: LikeOptions = {},
 ): NDArray {
-  return full(a.shape, fillValue, { dtype: options.dtype ?? a.dtype });
+  return like(a, options, (dt) => full(a.shape, fillValue, { dtype: dt }));
+}
+
+/** np.copy: a copy with `order` "K" (default), "A", "C" or "F". */
+export function copy(a: NDArray | NestedArray, options: { order?: MemoryOrder | null } = {}): NDArray {
+  return array(a, { order: options.order ?? "K" });
+}
+
+/** np.ascontiguousarray: C-contiguous array (no copy when already C-contiguous, ndim >= 1). */
+export function ascontiguousarray(a: NDArray | NestedArray, options: ArrayOptions = {}): NDArray {
+  const x = asarray(a, options);
+  if (x.ndim === 0) return x.reshape([1]);
+  return x.flags.cContiguous ? x : x.copy({ order: "C" });
+}
+
+/** np.asfortranarray: F-contiguous array (no copy when already F-contiguous, ndim >= 1). */
+export function asfortranarray(a: NDArray | NestedArray, options: ArrayOptions = {}): NDArray {
+  const x = asarray(a, options);
+  if (x.ndim === 0) return x.reshape([1]);
+  return x.flags.fContiguous ? x : x.copy({ order: "F" });
 }
 
 /**

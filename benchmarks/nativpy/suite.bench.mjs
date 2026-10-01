@@ -203,6 +203,9 @@ for (const m of DECOMP) {
   api("identity", ms, () => np.identity(32));
   api("linspace", vs, () => np.linspace(0, 1, n));
   api("mayShareMemory", vs, () => np.mayShareMemory(v, w));
+  api("copy", ms, () => np.copy(M));
+  api("ascontiguousarray", ms, () => np.ascontiguousarray(M.T));
+  api("asfortranarray", ms, () => np.asfortranarray(M));
   api("promoteTypes", [], () => np.promoteTypes("int32", "float32"));
   api("canCast", [], () => np.canCast("int64", "float32", "same_kind"));
   api("broadcastShapes", [], () => np.broadcastShapes([32, 1], [1, 32]));

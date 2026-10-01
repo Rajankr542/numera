@@ -59,6 +59,28 @@ function isSliceTuple(x: unknown): x is SliceTuple {
   );
 }
 
+/** Memory order (NumPy `order=`, D-055); either case. */
+export type MemoryOrder = "C" | "F" | "A" | "K" | "c" | "f" | "a" | "k";
+
+/** Options for `reshape`/`ravel`/`flatten`. */
+export interface OrderOptions {
+  order?: MemoryOrder | null;
+}
+
+/** Options for `astype` (NumPy `order=`, `copy=`). */
+export interface AstypeOptions {
+  /** Result layout; default "K" (keep the input's). */
+  order?: MemoryOrder | null;
+  /** When false, returns this array itself if dtype and layout already match. */
+  copy?: boolean;
+}
+
+const orderArg = (o: { order?: MemoryOrder | null } | undefined): string | undefined =>
+  o?.order === undefined || o.order === null ? undefined : o.order;
+
+const isOrderOptions = (x: unknown): x is OrderOptions =>
+  typeof x === "object" && x !== null && !Array.isArray(x);
+
 export interface ArrayFlags {
   readonly cContiguous: boolean;
   readonly fContiguous: boolean;
@@ -123,15 +145,25 @@ export class NDArray {
     return this._native.flags();
   }
 
-  /** Returns a view when the array is C-contiguous, otherwise a copy. Supports one -1. */
-  reshape(shape: Shape | number, ...rest: number[]): NDArray {
-    const target = typeof shape === "number" ? [shape, ...rest] : [...shape];
-    return wrapNative(() => NDArray._wrap(this._native.reshape(target)));
+  /**
+   * Returns a view when possible, otherwise a copy. Supports one -1.
+   * `reshape([2, 3], { order: "F" })` reads/writes in column-major index order.
+   */
+  reshape(shape: Shape | number, ...rest: (number | OrderOptions)[]): NDArray {
+    const last = rest[rest.length - 1];
+    const opts = isOrderOptions(last) ? last : undefined;
+    const dims = (opts ? rest.slice(0, -1) : rest) as number[];
+    const target = typeof shape === "number" ? [shape, ...dims] : [...shape];
+    const order = orderArg(opts);
+    if (order === undefined) return wrapNative(() => NDArray._wrap(this._native.reshape(target)));
+    return wrapNative(() => NDArray._wrap(addon.reshapeOrder(this._native, target, order)));
   }
 
-  /** C-contiguous deep copy. */
-  copy(): NDArray {
-    return wrapNative(() => NDArray._wrap(this._native.copy()));
+  /** Deep copy. `order`: "C" (default), "F", "A" or "K" (NumPy `a.copy(order)`). */
+  copy(opts: OrderOptions = {}): NDArray {
+    const order = orderArg(opts);
+    if (order === undefined) return wrapNative(() => NDArray._wrap(this._native.copy()));
+    return wrapNative(() => NDArray._wrap(addon.copyOrder(this._native, null, order)));
   }
 
   /** Permuted-axes view (reverses axes by default). */
@@ -170,20 +202,29 @@ export class NDArray {
     return wrapNative(() => NDArray._wrap(addon.swapaxes(this._native, axis1, axis2)));
   }
 
-  /** 1-D view when possible, otherwise a copy (NumPy ravel). */
-  ravel(): NDArray {
-    return wrapNative(() => NDArray._wrap(addon.ravel(this._native)));
+  /** 1-D view when possible, otherwise a copy (NumPy ravel; `order` C/F/A/K). */
+  ravel(opts: OrderOptions = {}): NDArray {
+    return wrapNative(() => NDArray._wrap(addon.ravel(this._native, orderArg(opts))));
   }
 
-  /** 1-D copy, always (NumPy flatten). */
-  flatten(): NDArray {
-    return wrapNative(() => NDArray._wrap(addon.flatten(this._native)));
+  /** 1-D copy, always (NumPy flatten; `order` C/F/A/K). */
+  flatten(opts: OrderOptions = {}): NDArray {
+    return wrapNative(() => NDArray._wrap(addon.flatten(this._native, orderArg(opts))));
   }
 
-  /** Converted C-contiguous copy (NumPy `astype`, unsafe casting). */
-  astype(dt: DTypeLike): NDArray {
+  /** Converted copy (NumPy `astype`, unsafe casting, default order "K"). */
+  astype(dt: DTypeLike, opts: AstypeOptions = {}): NDArray {
     const target = toDType(dt);
-    return wrapNative(() => NDArray._wrap(this._native.astype(target.name)));
+    const order = orderArg(opts) ?? "K";
+    if (opts.copy === false && target === this.dtype) {
+      const f = this.flags;
+      const o = order.toUpperCase();
+      const ok =
+        o === "K" || (o === "C" && f.cContiguous) || (o === "F" && f.fContiguous) ||
+        (o === "A" && (f.cContiguous || f.fContiguous));
+      if (ok) return this;
+    }
+    return wrapNative(() => NDArray._wrap(addon.copyOrder(this._native, target.name, order)));
   }
 
   // ---- reductions (M7, D-017); see np.sum etc. in reduce.ts ----

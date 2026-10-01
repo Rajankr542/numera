@@ -5,7 +5,10 @@ import {
   arange,
   array,
   asarray,
+  ascontiguousarray,
+  asfortranarray,
   asStrided,
+  copy,
   empty,
   emptyLike,
   eye,
@@ -76,12 +79,15 @@ export * from "./errors.js";
 export { NDArray } from "./ndarray.js";
 export { Complex, complex } from "./complex.js";
 export type { ComplexLike } from "./complex.js";
-export type { ArrayFlags, NestedArray, Shape } from "./ndarray.js";
+export type { ArrayFlags, AstypeOptions, MemoryOrder, NestedArray, OrderOptions, Shape } from "./ndarray.js";
 export {
   arange,
   array,
   asarray,
+  ascontiguousarray,
+  asfortranarray,
   asStrided,
+  copy,
   empty,
   emptyLike,
   eye,
@@ -97,7 +103,14 @@ export {
   zeros,
   zerosLike,
 } from "./creation.js";
-export type { ArrayOptions, EyeOptions, LinspaceOptions } from "./creation.js";
+export type {
+  ArrayCopyOptions,
+  ArrayOptions,
+  CreationOptions,
+  EyeOptions,
+  LikeOptions,
+  LinspaceOptions,
+} from "./creation.js";
 export { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 export {
   abs,
@@ -243,6 +256,9 @@ const np = {
   ellipsis,
   fromTypedArray,
   mayShareMemory,
+  copy,
+  ascontiguousarray,
+  asfortranarray,
   lib,
   memoryStats,
   bool: dtypes.bool,

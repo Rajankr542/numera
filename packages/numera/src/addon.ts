@@ -76,8 +76,12 @@ export interface NativeAddon {
   expandDims(a: NativeNDArray, axes: number[]): NativeNDArray;
   swapaxes(a: NativeNDArray, axis1: number, axis2: number): NativeNDArray;
   moveaxis(a: NativeNDArray, source: number[], destination: number[]): NativeNDArray;
-  ravel(a: NativeNDArray): NativeNDArray;
-  flatten(a: NativeNDArray): NativeNDArray;
+  ravel(a: NativeNDArray, order?: string): NativeNDArray;
+  flatten(a: NativeNDArray, order?: string): NativeNDArray;
+  // P3-1 memory order (D-055)
+  emptyOrder(shape: number[], dtype: string, order: string | undefined, zeroed: boolean): NativeNDArray;
+  copyOrder(a: NativeNDArray, dtype: string | null, order: string | undefined): NativeNDArray;
+  reshapeOrder(a: NativeNDArray, shape: number[], order: string | undefined): NativeNDArray;
   // M4/M5 ufuncs and broadcasting
   broadcastShapes(shapes: number[][]): number[];
   broadcastTo(a: NativeNDArray, shape: number[]): NativeNDArray;
