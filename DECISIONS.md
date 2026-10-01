@@ -1214,3 +1214,20 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   It broadcasts `src`, casts unsafely, and stages through a copy when the
   two overlap.
 
+
+## D-047 — TS `{ out }` option on the element-wise ufuncs (P2-3) — Accepted — 2026-10-01
+- The 12 ufuncs `add subtract multiply divide power mod floorDivide abs
+  negative sqrt exp log` take a final optional `opts: UfuncOptions`
+  (`{ out?: NDArray | null }`). `conjugate` and `angle` are unchanged here.
+- With `out`, the native D-046 overloads run and the function returns the
+  same `out` JS object (`np.add(a, b, { out }) === out`), as NumPy returns
+  `out` itself.
+- `out: undefined` or `null` means "allocate a new result", like NumPy
+  `out=None`.
+- An `out` that is not an `NDArray` (nested list, scalar, JS array) raises
+  `DTypeError`, matching NumPy's `TypeError` "return arrays must be of
+  ArrayType". NumPy's one-element tuple form `out=(arr,)` is not accepted.
+- `out` takes no part in dtype resolution. JS scalar operands stay weak
+  relative to the other operand (NEP 50), and the loop result is then cast
+  to `out.dtype` under `same_kind` (D-046).
+

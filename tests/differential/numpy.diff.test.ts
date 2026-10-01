@@ -1416,3 +1416,64 @@ describe("differential: complex ufuncs (P1 step 2, D-033)", () => {
     run,
   );
 });
+
+describe("differential: ufunc out= (P2-3, D-046/D-047)", () => {
+  interface View { shape: number[]; strides: number[]; offset: number }
+  interface OutArg { data?: Encoded; dtype?: string; shape?: number[]; scalar?: number; view?: View }
+  interface OutSpec { dtype: string; n: number; init: "zeros" | "arange"; view: View; readonly?: boolean }
+  interface OutCase { op: string; args: OutArg[]; out: OutSpec; approx?: boolean; error?: string; expected?: Described }
+  const { numpy_version, cases } = load("ufunc_out") as unknown as { numpy_version: string; cases: OutCase[] };
+  const ufuncs = np as unknown as Record<string, (...a: unknown[]) => NDArray>;
+  const errors: Record<string, typeof np.ValueError> = {
+    DTypeError: np.DTypeError,
+    ValueError: np.ValueError,
+    BroadcastError: np.BroadcastError,
+  };
+  const rtol = (dt: string): number => (dt === "float16" ? 1e-3 : dt === "float32" ? 1e-6 : 1e-14);
+  const view = (base: NDArray, v: View): NDArray =>
+    np.lib.stride_tricks.asStrided(
+      base,
+      v.shape,
+      v.strides.map((s) => s * base.itemSize),
+      v.offset * base.itemSize,
+    );
+
+  it.each(cases.map((c) => [JSON.stringify({ op: c.op, args: c.args, out: c.out }).slice(0, 360), c] as const))(
+    `numpy ${numpy_version}: %s`,
+    (_l, c) => {
+      const s = c.out;
+      const base = (s.init === "arange" ? np.arange(s.n) : np.zeros(s.n)).astype(s.dtype);
+      const out = s.readonly ? np.broadcastTo(view(base, { ...s.view, shape: [1] }), s.view.shape) : view(base, s.view);
+      const xs = c.args.map((a): NDArray | number => {
+        if (a.view !== undefined) return view(base, a.view);
+        if (a.scalar !== undefined) return a.scalar;
+        const x = np.array(decodeInput(a.data!), { dtype: a.dtype! });
+        return a.shape !== undefined ? x.reshape(a.shape) : x;
+      });
+      const run = (): NDArray => ufuncs[c.op]!(...xs, { out });
+      if (c.error !== undefined) {
+        expect(run).toThrow(errors[c.error]);
+        return;
+      }
+      expect(run()).toBe(out);
+      const exp = c.expected!;
+      expect(base.dtype.name).toBe(exp.dtype);
+      const want = decodeExpected(exp.values!) as unknown[];
+      const got = base.toArray() as unknown[];
+      if (!c.approx) {
+        expect(got).toEqual(want);
+        return;
+      }
+      want.forEach((e, i) => {
+        const g = got[i] as number;
+        const ev = e as number;
+        if (Number.isNaN(ev) || !Number.isFinite(ev) || Number.isInteger(ev) || ev === 0) {
+          expect(g).toEqual(ev);
+        } else {
+          expect(Math.abs(g - ev)).toBeLessThanOrEqual(rtol(exp.dtype) * Math.abs(ev));
+        }
+      });
+    },
+  );
+});
+

@@ -1,5 +1,5 @@
 import { addon } from "./addon.js";
-import { wrapNative } from "./errors.js";
+import { DTypeError, wrapNative } from "./errors.js";
 import { array } from "./creation.js";
 import { NDArray, type NestedArray, type Shape } from "./ndarray.js";
 import { isComplexLike, type ComplexLike } from "./complex.js";
@@ -49,29 +49,55 @@ function operands(a: Operand, b: Operand): [NDArray, NDArray] {
 
 const toArray = (a: ArrayLike): NDArray => (a instanceof NDArray ? a : array(a));
 
-function binary(op: string, a: Operand, b: Operand): NDArray {
+/** Ufunc keyword options (D-047). */
+export interface UfuncOptions {
+  /** Write the result into this array and return it (NumPy `out=`, D-046). */
+  out?: NDArray | null;
+}
+
+function outArg(opts: UfuncOptions): NDArray | undefined {
+  const out = opts.out;
+  if (out === undefined || out === null) return undefined;
+  if (!(out instanceof NDArray)) throw new DTypeError("return arrays must be of ArrayType");
+  return out;
+}
+
+function binary(op: string, a: Operand, b: Operand, opts: UfuncOptions = {}): NDArray {
+  const out = outArg(opts);
   const [x, y] = operands(a, b);
+  if (out) {
+    wrapNative(() => addon.binary(op, x._native, y._native, out._native));
+    return out;
+  }
   return wrapNative(() => NDArray._wrap(addon.binary(op, x._native, y._native)));
 }
 
-function unary(op: string, a: ArrayLike): NDArray {
+function unary(op: string, a: ArrayLike, opts: UfuncOptions = {}): NDArray {
+  const out = outArg(opts);
   const x = toArray(a);
+  if (out) {
+    wrapNative(() => addon.unary(op, x._native, out._native));
+    return out;
+  }
   return wrapNative(() => NDArray._wrap(addon.unary(op, x._native)));
 }
 
-export const add = (a: Operand, b: Operand): NDArray => binary("add", a, b);
-export const subtract = (a: Operand, b: Operand): NDArray => binary("subtract", a, b);
-export const multiply = (a: Operand, b: Operand): NDArray => binary("multiply", a, b);
-export const divide = (a: Operand, b: Operand): NDArray => binary("divide", a, b);
-export const power = (a: Operand, b: Operand): NDArray => binary("power", a, b);
-export const mod = (a: Operand, b: Operand): NDArray => binary("mod", a, b);
-export const floorDivide = (a: Operand, b: Operand): NDArray => binary("floorDivide", a, b);
+type BinaryUfunc = (a: Operand, b: Operand, opts?: UfuncOptions) => NDArray;
+type UnaryUfunc = (a: ArrayLike, opts?: UfuncOptions) => NDArray;
 
-export const abs = (a: ArrayLike): NDArray => unary("abs", a);
-export const negative = (a: ArrayLike): NDArray => unary("negative", a);
-export const sqrt = (a: ArrayLike): NDArray => unary("sqrt", a);
-export const exp = (a: ArrayLike): NDArray => unary("exp", a);
-export const log = (a: ArrayLike): NDArray => unary("log", a);
+export const add: BinaryUfunc = (a, b, opts) => binary("add", a, b, opts);
+export const subtract: BinaryUfunc = (a, b, opts) => binary("subtract", a, b, opts);
+export const multiply: BinaryUfunc = (a, b, opts) => binary("multiply", a, b, opts);
+export const divide: BinaryUfunc = (a, b, opts) => binary("divide", a, b, opts);
+export const power: BinaryUfunc = (a, b, opts) => binary("power", a, b, opts);
+export const mod: BinaryUfunc = (a, b, opts) => binary("mod", a, b, opts);
+export const floorDivide: BinaryUfunc = (a, b, opts) => binary("floorDivide", a, b, opts);
+
+export const abs: UnaryUfunc = (a, opts) => unary("abs", a, opts);
+export const negative: UnaryUfunc = (a, opts) => unary("negative", a, opts);
+export const sqrt: UnaryUfunc = (a, opts) => unary("sqrt", a, opts);
+export const exp: UnaryUfunc = (a, opts) => unary("exp", a, opts);
+export const log: UnaryUfunc = (a, opts) => unary("log", a, opts);
 
 // ---- Complex helpers (P1, D-033) ----
 

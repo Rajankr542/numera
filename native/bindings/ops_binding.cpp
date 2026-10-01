@@ -168,13 +168,22 @@ void init_ops_binding(Napi::Env env, Napi::Object exports) {
                 const std::string name = i[0].ToString().Utf8Value();
                 const auto op = binary_op_from_name(name);
                 if (!op) throw_error(ErrorKind::Value, "unknown binary ufunc " + name);
-                return NDArrayWrap::create(e, binary(*op, arr(i, 1), arr(i, 2)));
+                // Optional out (D-046/D-047): the caller returns its own JS object.
+                if (i.Length() > 3 && !i[3].IsUndefined() && !i[3].IsNull()) {
+                  binary(*op, arr(i, 1), arr(i, 2), arr(i, 3));
+                  return e.Undefined();
+                }
+                return Napi::Value(NDArrayWrap::create(e, binary(*op, arr(i, 1), arr(i, 2))));
               }));
   exports.Set("unary", fn(env, "unary", [](Info i, Napi::Env e) {
                 const std::string name = i[0].ToString().Utf8Value();
                 const auto op = unary_op_from_name(name);
                 if (!op) throw_error(ErrorKind::Value, "unknown unary ufunc " + name);
-                return NDArrayWrap::create(e, unary(*op, arr(i, 1)));
+                if (i.Length() > 2 && !i[2].IsUndefined() && !i[2].IsNull()) {
+                  unary(*op, arr(i, 1), arr(i, 2));
+                  return e.Undefined();
+                }
+                return Napi::Value(NDArrayWrap::create(e, unary(*op, arr(i, 1))));
               }));
   // ---- indexing (M6) ----
   exports.Set("complexPart", fn(env, "complexPart", [](Info i, Napi::Env e) {
