@@ -105,7 +105,7 @@ differential tests (`pnpm test:diff`).
 - Complex ufuncs beyond `add`, `subtract`, `multiply`, `divide`, `power`, `negative`, `abs`, `sqrt`, `exp`, `log`, `conjugate` and `angle`. Trig/hyperbolic functions and comparison ufuncs are not implemented for any dtype yet; they will accept complex input when they land (D-033).
 - Linalg (every implemented function accepts complex input): `pinv`, `matrix_rank`, `matrix_power`, `cholesky`, `slogdet`, `cond`, `tensordot`, `einsum`, `vdot`, `kron`; batched `lstsq`; `out=` parameters; `eigh(UPLO='U')` (only the lower triangle is used). The `@` operator is not available in JS; use `np.matmul`.
 - `NDArray` operator methods; ufunc keywords on `conjugate`/`angle` (the other 12 element-wise ufuncs support `out=`, `where=`, `casting=`, `dtype=` and `order=`).
-- `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.
+- `take` `out=`; field (structured) indexing.
 - Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
 - FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
 - Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
