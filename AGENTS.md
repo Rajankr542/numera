@@ -3,9 +3,10 @@
 Canonical specification: `docs/plan/PLAN.md`. Do not rewrite it unnecessarily.
 
 ## Before any task
-1. Read this file, `docs/plan/PLAN.md`, `ROADMAP.md`, `PROGRESS.md`.
-2. Read relevant sections of `ARCHITECTURE.md` and `DECISIONS.md`.
-3. Inspect `git status` and the existing implementation.
+1. Read this file and the current task slice in `docs/plan/TASK_SLICES.md`.
+2. Read only the source files directly touched by that slice.
+3. Run `git status` to see what is already in progress.
+4. Only read `docs/plan/PLAN.md`, `ROADMAP.md`, `PROGRESS.md`, `ARCHITECTURE.md`, or `DECISIONS.md` if the task involves an architectural decision or you are unfamiliar with the area being changed.
 
 ## Task loop (PLAN §83)
 Read task → inspect → design → implement → compile → unit tests → NumPy

@@ -52,6 +52,7 @@ add_library(nativpy_core STATIC
   native/core/broadcast.cpp
   native/core/ufunc.cpp
   native/core/ufunc_registry.cpp
+  native/core/ufunc_methods.cpp
   native/core/indexing.cpp
   native/core/reduce.cpp
 )
@@ -171,6 +172,7 @@ if(NATIVPY_BUILD_TESTS)
     tests/native/test_ndarray.cpp
     tests/native/test_creation_shape.cpp
     tests/native/test_ufunc.cpp
+    tests/native/test_ufunc_methods.cpp
     tests/native/test_complex.cpp
     tests/native/test_indexing.cpp
     tests/native/test_reduce.cpp

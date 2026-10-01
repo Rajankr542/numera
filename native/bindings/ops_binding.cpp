@@ -15,6 +15,7 @@
 #include "reduce.hpp"
 #include "shape_ops.hpp"
 #include "ufunc.hpp"
+#include "ufunc_methods.hpp"
 #include "ufunc_registry.hpp"
 
 namespace nativpy::bindings {
@@ -216,6 +217,38 @@ void init_ops_binding(Napi::Env env, Napi::Object exports) {
                   return e.Undefined();
                 }
                 return Napi::Value(NDArrayWrap::create(e, unary(*u, arr(i, 1), nullptr, params)));
+              }));
+  // ufuncMethod(method, name, a, out | null, {axis?: number[] | null, dtype?,
+  // keepdims?, initial?, where?}) for "reduce" / "accumulate" (D-052).
+  // axis: undefined = default, null = all axes.
+  exports.Set("ufuncMethod", fn(env, "ufuncMethod", [](Info i, Napi::Env e) {
+                const std::string method = i[0].ToString().Utf8Value();
+                const std::string name = i[1].ToString().Utf8Value();
+                const Ufunc* u = find_ufunc(name);
+                if (!u) throw_error(ErrorKind::Value, "unknown ufunc " + name);
+                UfuncReduceOptions opts;
+                if (i.Length() > 4 && i[4].IsObject()) {
+                  const auto o = i[4].As<Napi::Object>();
+                  if (o.Has("axis")) {
+                    const Napi::Value axis = o.Get("axis");
+                    if (axis.IsNull()) opts.all_axes = true;
+                    else if (!axis.IsUndefined()) opts.axis = arg_ints(axis, "axis");
+                  }
+                  const Napi::Value dt = o.Get("dtype");
+                  if (!dt.IsUndefined() && !dt.IsNull()) opts.dtype = parse_dtype(dt);
+                  opts.keepdims = o.Get("keepdims").ToBoolean().Value();
+                  const Napi::Value init = o.Get("initial");
+                  if (!init.IsUndefined() && !init.IsNull()) opts.initial = arg_double(init, "initial");
+                  const Napi::Value where = o.Get("where");
+                  if (!where.IsUndefined() && !where.IsNull()) opts.where = NDArrayWrap::unwrap(where);
+                }
+                const bool has_out = i.Length() > 3 && !i[3].IsUndefined() && !i[3].IsNull();
+                const NDArray* out = has_out ? &arr(i, 3) : nullptr;
+                NDArray r = method == "reduce"       ? ufunc_reduce(*u, arr(i, 2), out, opts)
+                            : method == "accumulate" ? ufunc_accumulate(*u, arr(i, 2), out, opts)
+                                                     : (throw_error(ErrorKind::Value, "unknown ufunc method " + method), arr(i, 2));
+                if (has_out) return e.Undefined();
+                return Napi::Value(NDArrayWrap::create(e, r));
               }));
   // ---- indexing (M6) ----
   exports.Set("complexPart", fn(env, "complexPart", [](Info i, Napi::Env e) {

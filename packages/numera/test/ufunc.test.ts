@@ -277,3 +277,44 @@ describe("ufunc order= / result layout (P2-6, D-050)", () => {
   });
 });
 
+
+describe("ufunc.reduce / ufunc.accumulate (P2-8, D-052)", () => {
+  const A = () => np.array([[1, 2, 3], [4, 5, 6]]);
+
+  it("reduce: axis, keepdims, dtype", () => {
+    expect(np.add.reduce(A()).toArray()).toEqual([5, 7, 9]);
+    expect(np.subtract.reduce(A(), { axis: 1 }).toArray()).toEqual([-4, -7]);
+    expect(np.multiply.reduce(A(), { axis: null }).toArray()).toBe(720);
+    expect(np.add.reduce(A(), { axis: [0, 1] }).toArray()).toBe(21);
+    expect(np.add.reduce(A(), { axis: 1, keepdims: true }).shape).toEqual([2, 1]);
+    expect(np.add.reduce(A(), { axis: [] }).shape).toEqual([2, 3]);
+    expect(np.add.reduce(np.array([100, 100, 100], { dtype: "int8" })).dtype.name).toBe("int64");
+    expect(np.add.reduce(np.array([100, 100, 100], { dtype: "int8" }), { dtype: "int8" }).toArray()).toBe(44);
+  });
+
+  it("reduce: initial, where, out", () => {
+    expect(np.subtract.reduce([1, 2, 3], { initial: 10 }).toArray()).toBe(4);
+    expect(np.add.reduce(A(), { axis: 1, where: [true, false, true] }).toArray()).toEqual([4, 10]);
+    expect(() => np.subtract.reduce(A(), { axis: 1, where: [true, false, true] })).toThrow(ValueError);
+    const out = np.zeros([3], { dtype: "float32" });
+    expect(np.add.reduce(A(), { out })).toBe(out);
+    expect(out.toArray()).toEqual([5, 7, 9]);
+  });
+
+  it("reduce: errors", () => {
+    expect(() => np.subtract.reduce(A(), { axis: [0, 1] })).toThrow(ValueError);
+    expect(() => np.subtract.reduce(np.zeros([0]))).toThrow(ValueError);
+    expect(() => np.add.reduce(A(), { bogus: 1 } as never)).toThrow(DTypeError);
+  });
+
+  it("accumulate", () => {
+    expect(np.add.accumulate(A()).toArray()).toEqual([[1, 2, 3], [5, 7, 9]]);
+    expect(np.subtract.accumulate(A(), { axis: 1 }).toArray()).toEqual([[1, -1, -4], [4, -1, -7]]);
+    const out = np.zeros([2, 3]);
+    expect(np.multiply.accumulate(A(), { axis: 1, out })).toBe(out);
+    expect(out.toArray()).toEqual([[1, 2, 6], [4, 20, 120]]);
+    expect(() => np.add.accumulate(np.array(1))).toThrow(DTypeError);
+    expect(() => np.add.accumulate(A(), { keepdims: true } as never)).toThrow(DTypeError);
+    expect(() => np.add.accumulate(A(), { axis: [0] } as never)).toThrow(DTypeError);
+  });
+});

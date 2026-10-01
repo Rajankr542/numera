@@ -1403,3 +1403,42 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - This is a pure refactor. Error messages, result dtypes, layouts and values
   do not change, and every existing test must stay green with no edits.
 
+
+## D-052 — ufunc.reduce / ufunc.accumulate (P2-8) — Accepted — 2026-10-01
+- Native `ufunc_reduce` / `ufunc_accumulate` in `native/core/ufunc_methods.{hpp,cpp}`,
+  driven only by the D-051 `Ufunc` record (binary ufuncs only; unary raises
+  `ValueError: reduce only supported for binary functions`).
+- JS: `np.add.reduce(a, {axis, dtype, out, keepdims, initial, where})` and
+  `np.add.accumulate(a, {axis, dtype, out})` as properties on the 7 binary
+  ufunc functions (NumPy rejects keepdims/initial/where on accumulate; so do we).
+- Loop dtype: `dtype=d` → the ufunc's dtype= resolver (D-048) on `(a, d)`;
+  else with `out` → the normal resolver on `(out.dtype, a.dtype)`; else
+  add/multiply use the sum/prod rule (bool and signed ints → int64, unsigned →
+  uint64) and every other ufunc its normal resolver on `(a, a)`. Inputs and
+  `out` are cast `unsafe` (NumPy reduce takes no `casting=`).
+- Axis rules:
+  - reduce: default 0; an int, a list, `null` (all axes) or `[]` (no reduction,
+    result is the cast input). More than one axis is allowed only for ufuncs with
+    an identity (add, multiply); others raise `ValueError: reduction operation
+    '<name>' is not reorderable, so at most one axis may be specified`.
+  - accumulate: a single int axis (default 0); `null` or a list raise
+    `ValueError: accumulate does not allow multiple axes`; 0-d input raises
+    `DTypeError` (NumPy `TypeError: cannot accumulate on a scalar`, D-009).
+  - Out-of-range axes raise `IndexError`; duplicates raise `ValueError` (D-017).
+- Empty reductions: the identity (or `initial`) fills the result; with neither,
+  a reduced length of 0 with a non-empty result raises `ValueError: zero-size
+  array to reduction operation <name> which has no identity`.
+- `where=` (reduce only, bool, broadcast to `a`) needs an identity or `initial`;
+  a non-bool mask raises `DTypeError`.
+- Seeding: with one axis and no `initial`, the first element seeds the
+  accumulator (NumPy); otherwise `initial` or the identity does.
+- Evaluation (build-first, P2-8): sequential `acc = op(acc, a[k])` through the
+  registry's strided loop (accumulator view with stride 0 on reduced axes).
+  Exact for integers and every non-reorderable ufunc. NumPy's pairwise float
+  `add`, float16 accumulator precision, and the per-buffer round-trip through
+  `out`'s dtype are **not** reproduced yet; they are scheduled for P2-8v
+  together with the differential group and benchmarks.
+- Results are built in a fresh C-contiguous buffer and copied into `out` last,
+  so `out` overlapping the input is safe. `out` must have exactly the result
+  shape. NumPy's keep-order result strides are deferred to P2-8v.
+- Integer power reductions apply the negative-exponent check (D-051 `check`).

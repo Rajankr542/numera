@@ -1,4 +1,4 @@
-import { addon, type NativeUfuncParams } from "./addon.js";
+import { addon, type NativeUfuncMethodOptions, type NativeUfuncParams } from "./addon.js";
 import { DTypeError, wrapNative } from "./errors.js";
 import { array } from "./creation.js";
 import { dtype, type Casting, type DType, type DTypeLike } from "./dtype.js";
@@ -77,20 +77,20 @@ export interface UfuncOptions {
 /** NumPy ufunc `order=` values (either case, D-050). */
 export type UfuncOrder = "C" | "F" | "A" | "K" | "c" | "f" | "a" | "k";
 
-function outArg(opts: UfuncOptions): NDArray | undefined {
+function outArg(opts: { out?: NDArray | null }): NDArray | undefined {
   const out = opts.out;
   if (out === undefined || out === null) return undefined;
   if (!(out instanceof NDArray)) throw new DTypeError("return arrays must be of ArrayType");
   return out;
 }
 
-function loopDtype(opts: UfuncOptions): DType | undefined {
+function loopDtype(opts: { dtype?: DTypeLike | null }): DType | undefined {
   return opts.dtype === undefined || opts.dtype === null ? undefined : dtype(opts.dtype);
 }
 
 // where= (D-049): `true`/undefined mean no mask; NDArray masks pass through
 // (the native side requires bool); lists and scalars convert like NumPy's.
-function whereArg(opts: UfuncOptions): NDArray | undefined {
+function whereArg(opts: { where?: ArrayLike | boolean | number }): NDArray | undefined {
   const w = opts.where;
   if (w === undefined || w === true) return undefined;
   if (w === null) throw new DTypeError("where= must be an array, nested list, boolean or number, not null");
@@ -131,16 +131,96 @@ function unary(op: string, a: ArrayLike, opts: UfuncOptions = {}): NDArray {
   return wrapNative(() => NDArray._wrap(addon.unary(op, x._native, null, params)));
 }
 
-type BinaryUfunc = (a: Operand, b: Operand, opts?: UfuncOptions) => NDArray;
+/** `ufunc.reduce` options (D-052). */
+export interface UfuncReduceOptions {
+  /** Axis or axes to reduce (default 0); `null` reduces all axes, `[]` none. */
+  axis?: number | readonly number[] | null;
+  /** Loop/result dtype. */
+  dtype?: DTypeLike | null;
+  /** Write the result into this array and return it. */
+  out?: NDArray | null;
+  /** Keep reduced axes as size-1 dimensions. */
+  keepdims?: boolean;
+  /** Starting value (required with `where` for ufuncs without an identity). */
+  initial?: number | null;
+  /** Bool mask: only true elements take part in the reduction. */
+  where?: ArrayLike | boolean | number;
+}
+
+/** `ufunc.accumulate` options (D-052). */
+export interface UfuncAccumulateOptions {
+  /** Axis to accumulate along (default 0). */
+  axis?: number;
+  dtype?: DTypeLike | null;
+  out?: NDArray | null;
+}
+
+type BinaryUfunc = ((a: Operand, b: Operand, opts?: UfuncOptions) => NDArray) & {
+  /** NumPy ufunc.reduce (D-052). */
+  reduce(a: ArrayLike, opts?: UfuncReduceOptions): NDArray;
+  /** NumPy ufunc.accumulate (D-052). */
+  accumulate(a: ArrayLike, opts?: UfuncAccumulateOptions): NDArray;
+};
 type UnaryUfunc = (a: ArrayLike, opts?: UfuncOptions) => NDArray;
 
-export const add: BinaryUfunc = (a, b, opts) => binary("add", a, b, opts);
-export const subtract: BinaryUfunc = (a, b, opts) => binary("subtract", a, b, opts);
-export const multiply: BinaryUfunc = (a, b, opts) => binary("multiply", a, b, opts);
-export const divide: BinaryUfunc = (a, b, opts) => binary("divide", a, b, opts);
-export const power: BinaryUfunc = (a, b, opts) => binary("power", a, b, opts);
-export const mod: BinaryUfunc = (a, b, opts) => binary("mod", a, b, opts);
-export const floorDivide: BinaryUfunc = (a, b, opts) => binary("floorDivide", a, b, opts);
+const REDUCE_KEYS = new Set(["axis", "dtype", "out", "keepdims", "initial", "where"]);
+const ACCUMULATE_KEYS = new Set(["axis", "dtype", "out"]);
+
+function checkKeys(method: string, opts: object, allowed: Set<string>): void {
+  for (const k of Object.keys(opts)) {
+    if (!allowed.has(k)) throw new DTypeError(`${method}() got an unexpected keyword argument '${k}'`);
+  }
+}
+
+function ufuncMethod(
+  method: "reduce" | "accumulate",
+  op: string,
+  a: ArrayLike,
+  opts: UfuncReduceOptions,
+): NDArray {
+  const out = outArg(opts);
+  const x = toArray(a);
+  const native: NativeUfuncMethodOptions = {};
+  if (opts.axis !== undefined) {
+    native.axis = opts.axis === null ? null : typeof opts.axis === "number" ? [opts.axis] : [...opts.axis];
+  }
+  const loop = loopDtype(opts);
+  if (loop) native.dtype = loop.name;
+  if (opts.keepdims) native.keepdims = true;
+  if (opts.initial !== undefined && opts.initial !== null) native.initial = opts.initial;
+  const where = whereArg(opts);
+  if (where) native.where = where._native;
+  if (out) {
+    wrapNative(() => addon.ufuncMethod(method, op, x._native, out._native, native));
+    return out;
+  }
+  return wrapNative(() => NDArray._wrap(addon.ufuncMethod(method, op, x._native, null, native)!));
+}
+
+function binaryUfunc(op: string): BinaryUfunc {
+  const f = (a: Operand, b: Operand, opts?: UfuncOptions): NDArray => binary(op, a, b, opts);
+  return Object.assign(f, {
+    reduce: (a: ArrayLike, opts: UfuncReduceOptions = {}): NDArray => {
+      checkKeys("reduce", opts, REDUCE_KEYS);
+      return ufuncMethod("reduce", op, a, opts);
+    },
+    accumulate: (a: ArrayLike, opts: UfuncAccumulateOptions = {}): NDArray => {
+      checkKeys("accumulate", opts, ACCUMULATE_KEYS);
+      if (opts.axis !== undefined && typeof opts.axis !== "number") {
+        throw new DTypeError("accumulate axis must be an integer");
+      }
+      return ufuncMethod("accumulate", op, a, opts);
+    },
+  });
+}
+
+export const add: BinaryUfunc = binaryUfunc("add");
+export const subtract: BinaryUfunc = binaryUfunc("subtract");
+export const multiply: BinaryUfunc = binaryUfunc("multiply");
+export const divide: BinaryUfunc = binaryUfunc("divide");
+export const power: BinaryUfunc = binaryUfunc("power");
+export const mod: BinaryUfunc = binaryUfunc("mod");
+export const floorDivide: BinaryUfunc = binaryUfunc("floorDivide");
 
 export const abs: UnaryUfunc = (a, opts) => unary("abs", a, opts);
 export const negative: UnaryUfunc = (a, opts) => unary("negative", a, opts);

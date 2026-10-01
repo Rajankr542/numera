@@ -24,6 +24,15 @@ export interface NativeNDArray {
   getItem(index: number[]): number | boolean | { re: number; im: number };
 }
 
+/** Options for ufunc.reduce / ufunc.accumulate (D-052). `axis`: omitted = default, null = all. */
+export interface NativeUfuncMethodOptions {
+  axis?: number[] | null;
+  dtype?: string;
+  keepdims?: boolean;
+  initial?: number;
+  where?: NativeNDArray;
+}
+
 /** Ufunc `dtype=` / `casting=` (D-048) and `where=` mask (D-049). */
 export interface NativeUfuncParams {
   dtype?: string;
@@ -71,6 +80,14 @@ export interface NativeAddon {
   unary(op: string, a: NativeNDArray): NativeNDArray;
   unary(op: string, a: NativeNDArray, out: NativeNDArray, params?: NativeUfuncParams): undefined;
   unary(op: string, a: NativeNDArray, out: null, params: NativeUfuncParams): NativeNDArray;
+  /** ufunc.reduce / ufunc.accumulate (D-052). Returns undefined when `out` is given. */
+  ufuncMethod(
+    method: "reduce" | "accumulate",
+    op: string,
+    a: NativeNDArray,
+    out: NativeNDArray | null,
+    opts: NativeUfuncMethodOptions,
+  ): NativeNDArray | undefined;
   // P1 complex helpers (D-033)
   complexPart(a: NativeNDArray, imag: boolean): NativeNDArray;
   isComplexElementwise(a: NativeNDArray, wantComplex: boolean): NativeNDArray;

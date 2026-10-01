@@ -123,7 +123,14 @@ export {
   isrealobj,
   real,
 } from "./ufunc.js";
-export type { ArrayLike, Operand, UfuncOptions, UfuncOrder } from "./ufunc.js";
+export type {
+  ArrayLike,
+  Operand,
+  UfuncAccumulateOptions,
+  UfuncOptions,
+  UfuncOrder,
+  UfuncReduceOptions,
+} from "./ufunc.js";
 export { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
 export type { IndexSpec, SliceTuple } from "./indexing.js";
 export { argmax, argmin, max, mean, min, prod, std, sum, variance } from "./reduce.js";

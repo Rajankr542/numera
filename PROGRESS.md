@@ -1,5 +1,14 @@
 # PROGRESS
 
+## 2026-10-02 — P2-8: ufunc.reduce / ufunc.accumulate, build-first (D-052)
+- Native: new `native/core/ufunc_methods.{hpp,cpp}` with `ufunc_reduce` / `ufunc_accumulate`. Both run only through the D-051 registry record (loops, identity, resolvers, power check), with no per-op code apart from the add/multiply sum/prod dtype rule.
+- Binding: `ufuncMethod(method, name, a, out | null, opts)`.
+- TS: the 7 binary ufuncs now carry `.reduce(a, {axis, dtype, out, keepdims, initial, where})` and `.accumulate(a, {axis, dtype, out})`. New exported types: `UfuncReduceOptions`, `UfuncAccumulateOptions`.
+- Tests: new `tests/native/test_ufunc_methods.cpp` (9 cases) and a vitest block (4 cases).
+- Verified: `pnpm build`, `test` (271), `test:native`, `test:asan`, `typecheck` and `api:check` pass.
+- Not yet done (P2-8v): NumPy differential group, pairwise float add / float16 accumulator bit-exactness, NumPy keep-order result strides, out-dtype buffer round-trip, benchmarks. No NumPy-compatibility or performance claims are made for this slice.
+- Environment: I recreated `.venv` and removed the stale `build*/` caches, which pointed at the old `nativpy` path. Native builds need `SDKROOT=$(xcrun --sdk macosx --show-sdk-path)` on this machine because the CommandLineTools SDK 27 fails to link.
+
 ## 2026-10-01 — P2-7: table-driven native ufunc registry (D-051)
 - Native: new `native/core/ufunc_registry.{hpp,cpp}`. Each of the 14 ufuncs is now one `constexpr` `Ufunc` record with these fields:
   - name, `nin` and `identity` (add 0, multiply 1).
