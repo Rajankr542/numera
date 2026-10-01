@@ -847,3 +847,17 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   5. complex linalg.
   Each step is tested against NumPy before the next one starts. Any path that
   isn't done yet keeps raising `NotImplementedError`, never a wrong value.
+
+## D-034 — Complex var/std (P1-3d) — Accepted — 2026-10-01
+- Follows NumPy `_var`: the mean is `sum / n` in the complex dtype (D-033
+  division); then `|x - mean|² = re² + im²` in the matching real dtype, with
+  each square rounded before the add (no FMA); then the same pairwise or
+  sequential summation as a real reduction (D-021); then a float64 divide by
+  `max(n - ddof, 0)`, cast back, and `sqrt` for std.
+- The result is real: float32 for complex64, float64 for complex128.
+- `dtype=` different from the input, when either side is complex, raises
+  `NotImplementedError`. NumPy's intermediate casts in that case are
+  dtype-specific; they're deferred, not approximated.
+- Exactness: bit-exact vs NumPy where real reductions are (D-021: trailing or
+  leading reduced axes). Non-adjacent multi-axis (e.g. `axis=(0, 2)`) is within
+  1 ulp, the same as real `sum`/`var` there (D-017 tolerance).

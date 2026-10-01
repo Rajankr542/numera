@@ -91,8 +91,7 @@ TEST_CASE("complex ufuncs: dtypes, mod rejection and real/imag views") {
 TEST_CASE("complex reductions: sum/prod (P1-3a)") {
   CHECK(reduce_result_dtype(ReduceOp::Sum, DType::Complex64) == DType::Complex64);
   CHECK(reduce_result_dtype(ReduceOp::Prod, DType::Complex128) == DType::Complex128);
-  CHECK_THROWS_KIND(reduce_result_dtype(ReduceOp::Std, DType::Complex128),
-                    ErrorKind::NotImplemented);
+  CHECK(reduce_result_dtype(ReduceOp::Std, DType::Complex128) == DType::Float64);
   // [[1+2j, 3-1j, 0.5j], [2, -1j, 1+1j]]
   const NDArray m =
       cvec({C{1, 2}, C{3, -1}, C{0, 0.5}, C{2, 0}, C{0, -1}, C{1, 1}}).reshape({2, 3});
@@ -136,8 +135,7 @@ TEST_CASE("complex reductions: sum/prod (P1-3a)") {
 
 TEST_CASE("complex reductions: mean (P1-3b)") {
   CHECK(reduce_result_dtype(ReduceOp::Mean, DType::Complex64) == DType::Complex64);
-  CHECK_THROWS_KIND(reduce_result_dtype(ReduceOp::Var, DType::Complex128),
-                    ErrorKind::NotImplemented);
+  CHECK(reduce_result_dtype(ReduceOp::Var, DType::Complex64) == DType::Float32);
   // [[1+1j, 2], [3, 4j]] over axis 0, keepdims -> [[2+0.5j, 1+2j]]
   const NDArray m = cvec({C{1, 1}, C{2, 0}, C{3, 0}, C{0, 4}}).reshape({2, 2});
   ReduceOptions k;
@@ -227,5 +225,43 @@ TEST_CASE("complex reductions: min/max/argmin/argmax (P1-3c)") {
   const NDArray fm = reduce(ReduceOp::Max, f, {});
   CHECK(fm.dtype() == DType::Complex64);
   CHECK_EQ(reinterpret_cast<const std::complex<float>*>(fm.data())[0].imag(), 3.0f);
+}
+
+
+TEST_CASE("complex reductions: var/std (P1-3d)") {
+  // Expected values from NumPy 2.5.3.
+  const NDArray c = cvec({C{1, 2}, C{3, -1}, C{0, 0.5}});
+  const NDArray v = reduce(ReduceOp::Var, c, {});
+  CHECK(v.dtype() == DType::Float64);
+  CHECK_EQ(v.get_double(0), 3.055555555555556);
+  CHECK_EQ(reduce(ReduceOp::Std, c, {}).get_double(0), 1.7480147469502527);
+  ReduceOptions d1;
+  d1.ddof = 1;
+  CHECK_EQ(reduce(ReduceOp::Std, cvec({C{1, 1}, C{2, 0}}), d1).get_double(0), 1.0);
+  // Empty input and ddof >= n give NaN; non-finite input propagates NaN.
+  CHECK(std::isnan(reduce(ReduceOp::Var, cvec({}), {}).get_double(0)));
+  CHECK(std::isnan(reduce(ReduceOp::Var, cvec({C{1, 1}}), d1).get_double(0)));
+  CHECK(std::isnan(reduce(ReduceOp::Var, cvec({C{kInf, 0}, C{1, 0}}), {}).get_double(0)));
+  // [[1+1j, 2], [3, 4j]]: var axis 0 -> [1.25, 5], std axis 1 keepdims -> [[0.7071...], [2.5]].
+  const NDArray m = cvec({C{1, 1}, C{2, 0}, C{3, 0}, C{0, 4}}).reshape({2, 2});
+  ReduceOptions a0;
+  a0.axis = std::vector<std::int64_t>{0};
+  const NDArray v0 = reduce(ReduceOp::Var, m, a0);
+  CHECK_EQ(v0.get_double(0), 1.25);
+  CHECK_EQ(v0.get_double(1), 5.0);
+  ReduceOptions a1;
+  a1.axis = std::vector<std::int64_t>{1};
+  a1.keepdims = true;
+  const NDArray s1 = reduce(ReduceOp::Std, m, a1);
+  CHECK(s1.shape() == Shape({2, 1}));
+  CHECK_EQ(s1.get_double(0), 0.7071067811865476);
+  CHECK_EQ(s1.get_double(1), 2.5);
+  // complex64 -> float32; dtype equal to the input is accepted.
+  NDArray f = c.astype(DType::Complex64);
+  ReduceOptions same_dt;
+  same_dt.dtype = DType::Complex64;
+  const NDArray fv = reduce(ReduceOp::Var, f, same_dt);
+  CHECK(fv.dtype() == DType::Float32);
+  CHECK_EQ(fv.get_double(0), static_cast<double>(3.0555556f));
 }
 

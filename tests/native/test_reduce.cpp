@@ -29,8 +29,12 @@ TEST_CASE("reduce: result dtypes follow NumPy (D-017)") {
   CHECK(reduce_result_dtype(ReduceOp::Max, DType::UInt16) == DType::UInt16);
   CHECK(reduce_result_dtype(ReduceOp::Mean, DType::Int32) == DType::Float64);
   CHECK(reduce_result_dtype(ReduceOp::Var, DType::Float16) == DType::Float16);
-  CHECK_THROWS_KIND(reduce_result_dtype(ReduceOp::Var, DType::Complex128),
-                    ErrorKind::NotImplemented);
+  {
+    ReduceOptions o;
+    o.dtype = DType::Complex128;  // complex var with dtype != input: D-034
+    CHECK_THROWS_KIND(reduce(ReduceOp::Var, NDArray::zeros({2}, DType::Complex64), o),
+                      ErrorKind::NotImplemented);
+  }
 }
 
 TEST_CASE("reduce: sum/prod/min/max with axis and keepdims") {

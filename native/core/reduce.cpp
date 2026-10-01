@@ -258,12 +258,6 @@ T minmax_row(const T* x, std::int64_t n) {
   return acc;
 }
 
-void reject_complex(DType dt) {
-  if (is_complex(dt)) {
-    throw_error(ErrorKind::NotImplemented, "reductions on complex arrays are not implemented");
-  }
-}
-
 const char* op_name(ReduceOp op) {
   switch (op) {
     case ReduceOp::Sum: return "add";
@@ -409,6 +403,41 @@ void complex_mean_rows(const Work& w, NDArray& out) {
     store<W>(o, cast_value<W>(kernels::cdiv(cast_value<Z>(load<W>(o)), count)));
   }
 }
+// Complex var/std (P1-3d), following NumPy _var: mean = sum / n in W; then
+// |x - mean|² = re² + im² in the real dtype R, summed like a real reduction
+// (same pairwise/sequential order); then / max(n - ddof, 0) and sqrt for std.
+template <typename W>
+void complex_var_rows(ReduceOp op, const Work& w, std::int64_t ddof, NDArray& out) {
+  using R = typename W::value_type;
+  NDArray mean = NDArray::empty({w.rows}, w.data.dtype());
+  complex_mean_rows<W>(w, mean);
+  const auto* mu = reinterpret_cast<const W*>(mean.data());
+  const auto* x = reinterpret_cast<const W*>(w.data.data());
+  const std::int64_t total = w.rows * w.n;
+  NDArray sq = NDArray::empty({total}, out.dtype());
+  auto* s = reinterpret_cast<R*>(sq.data());
+  for (std::int64_t i = 0; i < total; ++i) {
+    const std::int64_t r = w.cols ? i % w.rows : i / w.n;
+    const R dr = x[i].real() - mu[r].real();
+    const R di = x[i].imag() - mu[r].imag();
+    const R a = dr * dr;  // separate statements: no FMA contraction (NumPy squares first)
+    const R b = di * di;
+    s[i] = a + b;
+  }
+  Work ws = w;
+  ws.data = sq;
+  fold_rows<R>(ReduceOp::Sum, ws, std::nullopt, out);
+  // NumPy divides by an intp count, i.e. in float64, then casts back to R.
+  const double denom = static_cast<double>(std::max<std::int64_t>(w.n - ddof, 0));
+  auto* o = reinterpret_cast<R*>(out.data());
+  for (std::int64_t r = 0; r < w.rows; ++r) {
+    R v = static_cast<R>(static_cast<double>(o[r]) / denom);
+    if (op == ReduceOp::Std) v = std::sqrt(v);
+    o[r] = v;
+  }
+}
+
+
 
 // Mean/var/std in accumulator dtype W (float32 or float64).
 template <typename W>
@@ -473,8 +502,6 @@ void moment_rows(ReduceOp op, const Work& w, std::int64_t ddof, NDArray& out) {
 }  // namespace
 
 DType reduce_result_dtype(ReduceOp op, DType in) {
-  const bool complex_ok = op != ReduceOp::Var && op != ReduceOp::Std;
-  if (!complex_ok) reject_complex(in);  // complex var/std: P1-3d
   const bool intlike = in == DType::Bool || is_integer(in);
   switch (op) {
     case ReduceOp::Sum:
@@ -483,16 +510,34 @@ DType reduce_result_dtype(ReduceOp op, DType in) {
       return dtype_info(in).kind == 'u' ? DType::UInt64 : DType::Int64;
     case ReduceOp::Min:
     case ReduceOp::Max: return in;
+    case ReduceOp::Var:
+    case ReduceOp::Std:
+      // NumPy: complex var/std are real (float32 for complex64).
+      if (in == DType::Complex64) return DType::Float32;
+      if (in == DType::Complex128) return DType::Float64;
+      return intlike ? DType::Float64 : in;
     default: return intlike ? DType::Float64 : in;
   }
 }
 
 NDArray reduce(ReduceOp op, const NDArray& a, const ReduceOptions& opts) {
   const bool sum_prod = op == ReduceOp::Sum || op == ReduceOp::Prod;
-  const bool complex_ok = op != ReduceOp::Var && op != ReduceOp::Std;
-  if (!complex_ok) reject_complex(a.dtype());
+  const bool var_std = op == ReduceOp::Var || op == ReduceOp::Std;
   const DType rdt = opts.dtype.value_or(reduce_result_dtype(op, a.dtype()));
-  if (!complex_ok) reject_complex(rdt);
+  // Complex var/std with a dtype that differs from the input changes NumPy's
+  // intermediate precision/casts; not supported yet (D-034).
+  if (var_std && opts.dtype && *opts.dtype != a.dtype() &&
+      (is_complex(a.dtype()) || is_complex(*opts.dtype))) {
+    throw_error(ErrorKind::NotImplemented,
+                "var/std with a complex dtype different from the input dtype is not implemented");
+  }
+  if (var_std && is_complex(a.dtype())) {  // P1-3d: real result, complex work dtype
+    const Work w = prepare(a, opts.axis, opts.keepdims, a.dtype(), /*allow_cols=*/true);
+    NDArray out = NDArray::empty(w.out_shape, reduce_result_dtype(op, a.dtype()));
+    if (a.dtype() == DType::Complex64) complex_var_rows<std::complex<float>>(op, w, opts.ddof, out);
+    else complex_var_rows<std::complex<double>>(op, w, opts.ddof, out);
+    return out;
+  }
   if (op == ReduceOp::Min || op == ReduceOp::Max || sum_prod) {
     const Work w = prepare(a, opts.axis, opts.keepdims, rdt, /*allow_cols=*/true);
     NDArray out = NDArray::empty(w.out_shape, rdt);

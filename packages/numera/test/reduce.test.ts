@@ -31,8 +31,11 @@ describe("reductions (M7, D-017)", () => {
     expect(np.mean(np.array([1, 2], { dtype: "float32" })).dtype.name).toBe("float32");
     expect(np.max(np.array([1, 2], { dtype: "int16" })).dtype.name).toBe("int16");
     expect(np.sum(np.array([100, 100], { dtype: "int8" }), { dtype: "int8" }).item()).toBe(-56);
-    // Complex var is P1-3d; complex sum/prod/mean are covered in complex vitest cases (P1-3e).
-    expect(() => np.var(np.zeros([2], { dtype: "complex128" }))).toThrow(NotImplementedError);
+    // Complex var/std are real (D-034). A complex dtype= different from the input is not supported yet.
+    expect(np.var(np.zeros([2], { dtype: "complex64" })).dtype.name).toBe("float32");
+    expect(() => np.var(np.zeros([2], { dtype: "complex64" }), { dtype: "complex128" })).toThrow(
+      NotImplementedError,
+    );
   });
 
   it("initial, empty inputs and NaN", () => {
