@@ -1029,3 +1029,15 @@ semantics for empty or disjoint views.
 
 Known gaps: see COMPATIBILITY.md. CI workflow is written but has not run yet
 (no remote).
+
+## P8 — Indexing extras (branch p08) — 2026-10-02
+- Native `native/core/p08_indexing.{hpp,cpp}` (binding `addon.p08`), TS
+  `p08.ts` plus `take` `mode=` in `indexing.ts` (D-110, D-111):
+  `takeAlongAxis putAlongAxis put putmask place choose compress extract select
+  piecewise argwhere flatnonzero countNonzero ravelMultiIndex unravelIndex
+  diagonal trace`, `take` `mode=`, NDArray `choose compress diagonal nonzero put
+  take trace`. `nested_iters` stays excluded.
+- Checks: `pnpm build`, `pnpm test` (322 tests), `pnpm test:native`,
+  `pnpm test:asan` (ASan+UBSan clean), `pnpm typecheck` and `pnpm api:check` pass;
+  API coverage 16.7% → 19.0% (201/1060). Benchmarks and NumPy differential cases
+  are deferred to the V phase (bench-exempt in `api/bench-exempt/p08.json`).

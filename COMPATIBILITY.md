@@ -109,3 +109,23 @@ differential tests (`pnpm test:diff`).
 - Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
 - FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
 - Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+
+## P8 indexing extras (build-first, not yet differential-verified)
+Implemented natively (D-110, D-111): `take` `mode=` (raise/wrap/clip),
+`takeAlongAxis`, `putAlongAxis`, `put` (mode), `putmask`, `place`, `choose`
+(mode), `compress`, `extract`, `select`, `piecewise`, `argwhere`, `flatnonzero`,
+`countNonzero` (axis, keepdims), `ravelMultiIndex` (mode, order),
+`unravelIndex` (order), `diagonal` (read-only view), `trace` (dtype), and the
+NDArray methods `choose compress diagonal nonzero put take trace`. This
+supersedes the "`take` `mode=`; `put`, `putmask`, `choose`, `compress`" item
+under "Not implemented" (`take` `out=` is still missing). NumPy differential
+cases come in the V phase.
+
+| Feature | NumPy | numera | Decision |
+|---------|-------|--------|----------|
+| `countNonzero(a)` without axis, `ravelMultiIndex` of scalars | Python int / `np.int64` | 0-d int64 `NDArray` | D-110 |
+| `unravelIndex` | tuple of arrays | `NDArray[]` | D-110 |
+| `choose` with an out-of-range weak int scalar (e.g. 300 with `int8`) | wraps silently | `ValueError` | D-111 |
+| `putAlongAxis(..., axis=null)` on a non-contiguous array | raises (writes to a read-only copy) | writes through in flat C order | D-110 |
+| `piecewise` callbacks | Python callables | JS callbacks on `x[cond]` | D-110 |
+| `nested_iters` | iterator objects | excluded (api/exclusions.json) | D-110 |
