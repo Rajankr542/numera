@@ -135,10 +135,10 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   inner loop over the last dim, like NumPy inner loops. Every ufunc uses it.
   An incompatible shape raises `BroadcastError`; NumPy raises `ValueError`.
   Public helpers: `broadcastShapes` and `broadcastTo` (a zero-stride view).
-- **Ufunc results** are always new C-contiguous arrays. NumPy's default
-  `order='K'` can return F-ordered results for F-ordered inputs; values and
-  shape match, strides may not. Native `out=` landed in D-046; `where=`, `casting=` and `dtype=` are
-  not supported yet.
+- **Ufunc results** were always new C-contiguous arrays until D-050. NumPy's
+  result layout (`order=`, default 'K') is now matched on the 12 element-wise
+  ufuncs (see D-050). Native `out=` landed in D-046, `dtype=`/`casting=` in
+  D-048 and `where=` in D-049.
 - **Loop dtype** follows NumPy's type resolution:
   - Binary ops use `promote_types(a, b)`.
   - `divide` sends bool and int inputs to float64.
@@ -1311,4 +1311,63 @@ Found by the NumPy differential tests (NumPy 2.5.3):
     and scalars (`[1.5, 0]` → `[true, false]`).
   - `null` is not accepted. NumPy treats `where=None` as `False`, which is
     a trap, and numera refuses to copy it.
+
+
+
+## D-050 — Ufunc `order=` and NumPy result layout (P2-6) — Accepted — 2026-10-01
+- Supersedes the D-014 rule "ufunc results are always C-contiguous". Results
+  of the element-wise ufuncs now get NumPy's memory layout (strides), not
+  only its shape and values. Default `order` is `'K'`, as in NumPy.
+- Native: `enum class Order { C, F, A, K }` and `UfuncParams::order`
+  (default K). Names are parsed natively (case-insensitive one letter, like
+  NumPy). Anything else raises `ValueError` "order must be one of 'C', 'F',
+  'A', or 'K' (got 'X')". A non-string raises `DTypeError` (NumPy
+  `TypeError`).
+- Layout of a freshly allocated result (port of NumPy 2.5.3
+  `try_trivial_single_output_loop` + `NpyIter` `npyiter_find_best_axis_ordering`
+  + `npyiter_new_temp_array`):
+  1. **Trivial path** (no `where`; in input order, each cast input that is
+     0-d or 1-d with <= 8192 (NPY_BUFSIZE) elements becomes a contiguous cast
+     copy, and any other cast input disables this path): every non-0-d input
+     has the same shape; every input with ndim >= 2 is C- or F-contiguous with
+     the same flags (and matching `order` if it is C or F). Then the result is
+     F-contiguous if the flags are F-only and C-contiguous otherwise.
+  2. Otherwise `order` picks the layout: `C` → C-order, `F` → F-order, `A` →
+     F if every operand (inputs, using the copies from step 1, and the `where`
+     mask) is F-contiguous, else C.
+     `K` → a stable insertion sort of the axes by absolute stride (smallest
+     innermost) over all operands. Strides are taken as 0 on dims where the
+     operand has extent 1, operands with a 0 stride on either axis don't vote,
+     and C order wins ties and conflicts.
+  3. A zero-size result has all-zero strides (NumPy, same as
+     `allocation_strides`).
+- With `out=`, `order` doesn't affect the result: `out` is returned as it
+  is. Internal temporaries (the `where` path, cast to a different `out` dtype)
+  use the same layout, so the loop runs over memory that matches its inputs.
+- Error order: NumPy 2.5.3 reports, in order, read-only `out` → `casting`
+  name → `where` dtype → `order` name → loop resolution, then as D-049.
+  numera parses `order` in the binding along with `casting` (whose name is
+  already parsed there, D-048). So when a call has several errors at once, a
+  bad `order`/`casting` name is reported before a read-only `out` or a
+  non-bool `where`. The error class for each single error matches NumPy. The
+  `order` name is validated even when `out` is given.
+- Verification: differential group `ufunc_order` (916 cases: random
+  C/F/permuted/reversed/stepped/size-1/0-d/zero-size operands, input casts,
+  `dtype=`, `where=`, unary and binary, all four orders, invalid names)
+  compares strides and flags as well as values. A one-off run of the same
+  generator with 7 more seeds (6,492 cases) also passed.
+- `np.dot`/`np.inner` with a 0-d operand (native `linalg.cpp`, which uses
+  `binary(Multiply)`) follow NumPy 2.5.3, probed on 672 + 1,473 random cases:
+  both operands are first cast to the result dtype with
+  `PyArray_NewLikeArray(KEEPORDER)` strides (C/F if the source is, else axes
+  stably sorted by |stride|). Then for float/complex dtypes with ndim <= 2
+  the result is C-order (cblas_matrixproduct); otherwise it is multiply's
+  'K' layout. `outer` is unchanged (it reshapes to C-contiguous (n,1)/(1,m)
+  views, giving C like NumPy).
+- TS: `UfuncOptions.order?: UfuncOrder | null` (`"C" | "F" | "A" | "K"`,
+  either case) on the same 12 ufuncs. The value goes straight to the
+  native side, which does all the validation. `conjugate`/`angle` take no
+  options, so they always use 'K', which matches NumPy's default.
+- `angle` with `deg=true` multiplies by a scalar afterwards, which keeps the
+  'K' layout.
 

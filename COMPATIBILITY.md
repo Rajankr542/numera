@@ -46,7 +46,7 @@ differential tests (`pnpm test:diff`).
 | `full(shape, -1.5, {dtype: uint*})` | unchecked cast | `ValueError` | D-009/D-012 |
 | invalid axis | `AxisError` | `IndexError` (repeated axis: `ValueError`) | D-012 |
 | incompatible broadcast shapes | `ValueError` | `BroadcastError` | D-014 |
-| ufunc result layout for F-ordered inputs | F order (`order='K'`) | always C-contiguous | D-014 |
+| ufunc result layout (strides) | `order='K'` default; `'C'`/`'F'`/`'A'` | same: NumPy's trivial-loop and `NpyIter` layout rules for every element-wise ufunc, incl. `conjugate`/`angle` (default 'K'), and `dot`/`inner` with a scalar | D-050 |
 | ufunc `out=` shape mismatch | `ValueError` | `BroadcastError` | D-046 |
 | ufunc `out=` cast not `same_kind`, non-array `out` | `UFuncTypeError` / `TypeError` | `DTypeError` | D-046/D-047 |
 | ufunc `out=(arr,)` tuple form | accepted | not accepted; pass `{ out: arr }` | D-047 |
@@ -104,8 +104,8 @@ differential tests (`pnpm test:diff`).
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
 - Complex ufuncs beyond `add`, `subtract`, `multiply`, `divide`, `power`, `negative`, `abs`, `sqrt`, `exp`, `log`, `conjugate` and `angle`. Trig/hyperbolic functions and comparison ufuncs are not implemented for any dtype yet; they will accept complex input when they land (D-033).
 - Linalg (every implemented function accepts complex input): `pinv`, `matrix_rank`, `matrix_power`, `cholesky`, `slogdet`, `cond`, `tensordot`, `einsum`, `vdot`, `kron`; batched `lstsq`; `out=` parameters; `eigh(UPLO='U')` (only the lower triangle is used). The `@` operator is not available in JS; use `np.matmul`.
-- Ufunc keywords `where=`, `casting=`, `dtype=`, `order=` (`out=` is supported on the 12 element-wise ufuncs; not yet on `conjugate`/`angle`); `NDArray` operator methods.
+- `NDArray` operator methods; ufunc keywords on `conjugate`/`angle` (the other 12 element-wise ufuncs support `out=`, `where=`, `casting=`, `dtype=` and `order=`).
 - `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.
 - Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
 - FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
-- Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'`, `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+- Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.

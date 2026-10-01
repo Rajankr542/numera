@@ -53,6 +53,14 @@ NDArray NDArray::zeros(const Shape& shape, DType dtype) {
           0, true};
 }
 
+NDArray NDArray::empty_strided(const Shape& shape, const Strides& strides, DType dtype,
+                               bool zeroed) {
+  const std::size_t nbytes = checked_nbytes(shape, dtype);
+  auto buf = MemoryBuffer::allocate(nbytes, zeroed);
+  // The constructor bounds-checks the strides against the buffer.
+  return {std::move(buf), dtype, shape, strides, 0, true};
+}
+
 bool NDArray::is_c_contiguous() const noexcept {
   return nativpy::is_c_contiguous(shape_, strides_, itemsize());
 }

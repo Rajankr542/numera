@@ -328,13 +328,7 @@ describe("differential: ufuncs + broadcasting", () => {
     }
     const r = make();
     const exp = c.expected as Described;
-    if (c.op === "sub_transposed") {
-      // D-014: results are always C-contiguous; NumPy order='K' keeps F order.
-      expect(r.dtype.name).toBe(exp.dtype);
-      expect(r.shape).toEqual(exp.shape);
-      expect(r.flags.cContiguous).toBe(true);
-      expect(r.toArray()).toEqual(decodeExpected(exp.values!));
-    } else if (c.approx) {
+    if (c.approx) {
       expect(r.dtype.name).toBe(exp.dtype);
       expect(r.shape).toEqual(exp.shape);
       expect(r.strides).toEqual(exp.strides);
@@ -1618,6 +1612,63 @@ describe("differential: ufunc where= (P2-5, D-049)", () => {
     },
   );
 });
+describe("differential: ufunc order= / result layout (P2-6, D-050)", () => {
+  interface Spec { n: number; shape: number[]; strides: number[]; offset: number }
+  interface OArg { dtype?: string; spec?: Spec; scalar?: number }
+  interface OCase {
+    op: string;
+    args: OArg[];
+    opts: { order?: string; dtype?: string };
+    where?: Spec;
+    approx?: boolean;
+    error?: string;
+    expected?: { dtype: string; shape: number[]; strides: number[]; c_contiguous: boolean; f_contiguous: boolean; values: Encoded };
+  }
+  const { numpy_version, cases } = load("ufunc_order") as unknown as { numpy_version: string; cases: OCase[] };
+  const ufuncs = np as unknown as Record<string, (...a: unknown[]) => NDArray>;
+  const errors: Record<string, typeof np.ValueError> = { DTypeError: np.DTypeError, ValueError: np.ValueError };
+  const rtol = (dt: string): number => (dt === "float32" ? 1e-6 : 1e-14);
+  // Same construction as the generator: a view of arange(n) (or its % 3 != 0 mask).
+  const make = (s: Spec, dt: string, mask = false): NDArray => {
+    const base = mask
+      ? np.array(Array.from({ length: s.n }, (_, i) => i % 3 !== 0), { dtype: "bool" })
+      : np.arange(s.n).astype(dt);
+    const it = base.itemSize;
+    return np.lib.stride_tricks.asStrided(base, s.shape, s.strides.map((x) => x * it), s.offset * it);
+  };
+
+  it.each(cases.map((c) => [JSON.stringify({ op: c.op, args: c.args, opts: c.opts, where: c.where }).slice(0, 360), c] as const))(
+    `numpy ${numpy_version}: %s`,
+    (_l, c) => {
+      const xs = c.args.map((a) => (a.scalar !== undefined ? a.scalar : make(a.spec!, a.dtype!)));
+      const opts = { ...c.opts, ...(c.where ? { where: make(c.where, "bool", true) } : {}) } as Record<string, unknown>;
+      const linalg = c.op === "dot" || c.op === "inner"; // no options argument
+      const run = (): NDArray => (linalg ? ufuncs[c.op]!(...xs) : ufuncs[c.op]!(...xs, opts));
+      if (c.error !== undefined) {
+        expect(run).toThrow(errors[c.error]);
+        return;
+      }
+      const r = run();
+      const exp = c.expected!;
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      expect(r.strides).toEqual(exp.strides);
+      expect(r.flags.cContiguous).toBe(exp.c_contiguous);
+      expect(r.flags.fContiguous).toBe(exp.f_contiguous);
+      const want = ([decodeExpected(exp.values)] as unknown[]).flat(Infinity) as number[];
+      const got = ([r.toArray()] as unknown[]).flat(Infinity) as number[];
+      if (!c.approx || r.dtype.kind !== "f") {
+        expect(got).toEqual(want);
+        return;
+      }
+      want.forEach((e, i) => {
+        if (Number.isNaN(e) || !Number.isFinite(e) || e === 0) expect(got[i]).toEqual(e);
+        else expect(Math.abs(got[i]! - e)).toBeLessThanOrEqual(rtol(exp.dtype) * Math.abs(e));
+      });
+    },
+  );
+});
+
 
 
 

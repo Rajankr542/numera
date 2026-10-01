@@ -66,7 +66,16 @@ export interface UfuncOptions {
    * `out` the others keep their values; without `out` they are zero.
    */
   where?: ArrayLike | boolean | number;
+  /**
+   * Memory layout of a new result (NumPy `order=`, D-050): "K" (default) keeps
+   * the inputs' layout, "C"/"F" force row/column-major, and "A" uses F only if
+   * every input is F-contiguous. Ignored when `out` is given.
+   */
+  order?: UfuncOrder | null;
 }
+
+/** NumPy ufunc `order=` values (either case, D-050). */
+export type UfuncOrder = "C" | "F" | "A" | "K" | "c" | "f" | "a" | "k";
 
 function outArg(opts: UfuncOptions): NDArray | undefined {
   const out = opts.out;
@@ -95,6 +104,7 @@ function nativeParams(loop: DType | undefined, opts: UfuncOptions): NativeUfuncP
   if (opts.casting !== undefined) p.casting = opts.casting;
   const where = whereArg(opts);
   if (where) p.where = where._native;
+  if (opts.order !== undefined && opts.order !== null) p.order = opts.order;
   return p;
 }
 

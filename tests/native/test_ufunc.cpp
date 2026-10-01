@@ -399,3 +399,31 @@ TEST_CASE("ufunc: where= dtype, error order and masked values") {
   CHECK_EQ(o.get_int64(2), 2);
 }
 
+
+// D-050 result layouts (expected strides from NumPy 2.5.3).
+TEST_CASE("ufunc: order= result layout") {
+  const NDArray c = vec_d({0, 1, 2, 3, 4, 5}).reshape({2, 3});
+  const NDArray f = transpose(vec_d({0, 1, 2, 3, 4, 5}).reshape({3, 2}), {});
+  const NDArray one = vec_d({1}).reshape({});
+  auto with = [](Order o) { UfuncParams p{}; p.order = o; return p; };
+  CHECK(binary(BinaryOp::Add, f, one, nullptr, with(Order::K)).strides() == Strides({8, 16}));
+  CHECK(binary(BinaryOp::Add, f, one, nullptr, with(Order::A)).strides() == Strides({8, 16}));
+  CHECK(binary(BinaryOp::Add, f, one, nullptr, with(Order::C)).strides() == Strides({24, 8}));
+  CHECK(binary(BinaryOp::Add, c, one, nullptr, with(Order::F)).strides() == Strides({8, 16}));
+  CHECK(binary(BinaryOp::Add, c, f).strides() == Strides({24, 8}));
+  // K keeps a non C/F permutation; A falls back to C.
+  const NDArray p3 = transpose(NDArray::zeros({2, 3, 4}, DType::Float64), {1, 0, 2});
+  CHECK(unary(UnaryOp::Negative, p3).strides() == Strides({32, 96, 8}));
+  CHECK(unary(UnaryOp::Negative, p3, nullptr, with(Order::A)).strides() == Strides({64, 32, 8}));
+  // Values are layout independent.
+  const NDArray rf = binary(BinaryOp::Add, c, one, nullptr, with(Order::F));
+  CHECK(rf.get_double(1) == 2.0 && rf.get_double(3) == 4.0);
+  // Zero-size: all-zero strides.
+  CHECK(unary(UnaryOp::Negative, NDArray::zeros({2, 0}, DType::Float64), nullptr, with(Order::F))
+            .strides() == Strides({0, 0}));
+  CHECK(order_from_name("k") == Order::K);
+  CHECK(order_from_name("F") == Order::F);
+  CHECK(!order_from_name("KK").has_value());
+  CHECK(!order_from_name("").has_value());
+}
+

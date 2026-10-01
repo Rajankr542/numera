@@ -69,6 +69,18 @@ UfuncParams ufunc_params(const Napi::CallbackInfo& info, std::size_t i) {
   // where= (D-049): a native bool array; TS normalises lists/scalars.
   const Napi::Value where = o.Get("where");
   if (!where.IsUndefined() && !where.IsNull()) p.where = NDArrayWrap::unwrap(where);
+  // order= (D-050): validated natively, like NumPy's PyArray_OrderConverter.
+  const Napi::Value order = o.Get("order");
+  if (!order.IsUndefined() && !order.IsNull()) {
+    if (!order.IsString()) throw_error(ErrorKind::DType, "order must be str, not a non-string value");
+    const std::string name = order.As<Napi::String>().Utf8Value();
+    const auto ord = order_from_name(name);
+    if (!ord) {
+      throw_error(ErrorKind::Value,
+                  "order must be one of 'C', 'F', 'A', or 'K' (got '" + name + "')");
+    }
+    p.order = *ord;
+  }
   return p;
 }
 

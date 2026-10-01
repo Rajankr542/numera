@@ -38,10 +38,12 @@ describe("ufuncs (M4) + broadcasting (M5)", () => {
     expect(() => np.floorDivide(np.zeros(2, { dtype: "complex64" }), 1)).toThrow(DTypeError);
   });
 
-  it("works on non-contiguous inputs and returns C-contiguous results", () => {
+  it("works on non-contiguous inputs and keeps their layout (order='K', D-050)", () => {
     const t = np.arange(6).reshape([2, 3]).T;
     const r = np.multiply(t, 2);
-    expect(r.flags.cContiguous).toBe(true);
+    // NumPy: an F-contiguous input gives an F-contiguous result.
+    expect(r.flags.fContiguous).toBe(true);
+    expect(r.strides).toEqual([8, 24]);
     expect(r.toArray()).toEqual([[0, 6], [2, 8], [4, 10]]);
     expect(np.sqrt(np.array([4, 9], { dtype: "uint8" })).dtype).toBe(np.float16);
     expect(np.abs([-3, 3]).toArray()).toEqual([3, 3]);
@@ -201,6 +203,77 @@ describe("ufunc where= (P2-5, D-049)", () => {
     np.power([2, 2], [1, -1], { out, where: [true, false] });
     expect(out.toArray()).toEqual([2, 0]);
     expect(() => np.power([2, 2], [1, -1], { where: [true, true] })).toThrow(ValueError);
+  });
+});
+
+
+// Expected strides below come from NumPy 2.5.3 (DECISIONS D-050).
+describe("ufunc order= / result layout (P2-6, D-050)", () => {
+  const F = (): NDArray => np.arange(6).astype("float64").reshape([3, 2]).T; // (2,3) F-contiguous
+  const C = (): NDArray => np.arange(6).astype("float64").reshape([2, 3]);
+
+  it("C/F force the layout; A/K follow the inputs", () => {
+    const want: Record<string, [number[], number[]]> = {
+      C: [[24, 8], [24, 8]],
+      F: [[8, 16], [8, 16]],
+      A: [[8, 16], [24, 8]],
+      K: [[8, 16], [24, 8]],
+    };
+    for (const [o, [fs, cs]] of Object.entries(want)) {
+      const order = o as "C" | "F" | "A" | "K";
+      expect(np.add(F(), 1, { order }).strides).toEqual(fs);
+      expect(np.add(C(), 1, { order }).strides).toEqual(cs);
+      expect(np.add(F(), 1, { order: order.toLowerCase() as "c" }).strides).toEqual(fs);
+    }
+    // Values never depend on the layout.
+    expect(np.add(F(), 1, { order: "F" }).toArray()).toEqual(np.add(F(), 1, { order: "C" }).toArray());
+  });
+
+  it("K keeps a permuted (non C/F) layout; A falls back to C", () => {
+    const p = np.arange(24).astype("float64").reshape([2, 3, 4]).transpose([1, 0, 2]);
+    expect(p.strides).toEqual([32, 96, 8]);
+    const r = np.negative(p);
+    expect(r.strides).toEqual([32, 96, 8]);
+    expect(r.flags.cContiguous || r.flags.fContiguous).toBe(false);
+    expect(np.negative(p, { order: "A" }).strides).toEqual([64, 32, 8]);
+  });
+
+  it("mixed C and F inputs give C; casts and where= keep the rules", () => {
+    expect(np.add(C(), F()).strides).toEqual([24, 8]);
+    expect(np.add(F(), C()).strides).toEqual([24, 8]);
+    const fi = np.arange(6).astype("int32").reshape([3, 2]).T;
+    expect(np.add(fi, 1.5).strides).toEqual([8, 16]);
+    expect(np.add(fi, 1.5, { order: "C" }).strides).toEqual([24, 8]);
+    const m = np.array([[true, false, true], [false, true, true]]);
+    const r = np.negative(F(), { where: m }); // the C mask breaks the F tie
+    expect(r.strides).toEqual([24, 8]);
+    expect(r.toArray()).toEqual([[-0, 0, -4], [0, -3, -5]]);
+    expect(np.negative(F(), { where: m.T.copy().T }).strides).toEqual([8, 16]);
+  });
+
+  it("zero-size and 0-d results", () => {
+    expect(np.negative(np.zeros([2, 0]), { order: "F" }).strides).toEqual([0, 0]);
+    expect(np.add(1.5, 2.5, { order: "F" }).shape).toEqual([]);
+  });
+
+  it("is ignored with out= (out is returned as is)", () => {
+    const out = np.zeros([2, 3]);
+    const r = np.add(F(), 1, { out, order: "F" });
+    expect(r).toBe(out);
+    expect(r.strides).toEqual([24, 8]);
+    expect(r.toArray()).toEqual([[1, 3, 5], [2, 4, 6]]);
+  });
+
+  it("rejects invalid orders like NumPy", () => {
+    for (const bad of ["X", "", "KK", "Fortran"]) {
+      const opts = { order: bad as "C" };
+      expect(() => np.add(C(), 1, opts)).toThrow(ValueError);
+      expect(() => np.negative(C(), opts)).toThrow(`order must be one of 'C', 'F', 'A', or 'K' (got '${bad}')`);
+      // Validated even when out= is given.
+      expect(() => np.add(C(), 1, { ...opts, out: np.zeros([2, 3]) })).toThrow(ValueError);
+    }
+    expect(() => np.add(C(), 1, { order: 1 as unknown as "C" })).toThrow(DTypeError);
+    expect(np.add(C(), 1, { order: null }).strides).toEqual([24, 8]);
   });
 });
 

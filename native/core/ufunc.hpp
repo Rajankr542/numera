@@ -3,13 +3,14 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include <vector>
 
 #include "ndarray.hpp"
 
 namespace nativpy {
 
 // Element-wise arithmetic ufuncs (PLAN §15, M4). Inputs broadcast (M5);
-// results are new C-contiguous arrays. Semantics: D-014.
+// results get NumPy's layout for `order` (D-050). Semantics: D-014.
 
 enum class BinaryOp { Add, Subtract, Multiply, Divide, Power, Mod, FloorDivide };
 enum class UnaryOp { Abs, Negative, Sqrt, Exp, Log, Conjugate, Angle };
@@ -31,16 +32,31 @@ NDArray unary(UnaryOp op, const NDArray& a);
 NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b, const NDArray& out);
 NDArray unary(UnaryOp op, const NDArray& a, const NDArray& out);
 
+// NumPy `order=` (D-050): memory layout of a freshly allocated result.
+enum class Order : std::uint8_t { C, F, A, K };
+// "C"/"F"/"A"/"K" (either case), as NumPy's PyArray_OrderConverter.
+std::optional<Order> order_from_name(std::string_view name) noexcept;
+
 // NumPy `dtype=` / `casting=` (D-048). `dtype` picks the loop whose output is
 // that dtype; every input must cast to its loop dtype, and the loop output to
 // `out`, under `casting`.
 // `where` (D-049): a bool mask that broadcasts like an extra input; only true
 // positions are written (others keep `out`, or are zero without `out`).
+// `order` (D-050): layout of the result when there is no `out` (default K).
 struct UfuncParams {
   std::optional<DType> dtype;
   Casting casting = Casting::SameKind;
   std::optional<NDArray> where = std::nullopt;
+  Order order = Order::K;
 };
+
+// Byte strides NumPy gives a new ufunc result of `shape` (D-050). `inputs`
+// are the operands before any dtype cast; `cast[k]` says whether input k is
+// cast to the loop dtype. `where` (if any) votes in 'A'/'K' like an operand.
+Strides ufunc_result_strides(const Shape& shape, std::size_t itemsize,
+                             const std::vector<const NDArray*>& inputs,
+                             const std::vector<bool>& cast, const NDArray* where,
+                             Order order);
 
 NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b, const NDArray* out,
                const UfuncParams& params);

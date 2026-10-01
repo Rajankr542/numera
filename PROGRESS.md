@@ -1,5 +1,20 @@
 # PROGRESS
 
+## 2026-10-01 — P2-6: ufunc `order=` and NumPy result layout (D-050)
+- Native: `Order {C,F,A,K}`, `UfuncParams::order` (default K), and `ufunc_result_strides` (ports of NumPy's trivial-loop check, `npyiter_find_best_axis_ordering` and the 'A' rule).
+  - `NDArray::empty_strided` allocates results and temporaries with that layout. The `where=` path keeps the layout as well.
+  - Strides come from the inputs before any cast. This includes NumPy's contiguous copy of cast 0-d and short (<= 8192) 1-d inputs.
+  - `dot`/`inner` with a 0-d operand now match NumPy's layout as well: inputs are cast with keep-order strides, and BLAS dtypes with ndim <= 2 give C order.
+- Binding: `order` is parsed in `ops_binding` (case-insensitive). Bad names raise `ValueError` with NumPy's message, and non-strings raise `DTypeError`.
+- TS: `UfuncOptions.order?: UfuncOrder | null`, with the `UfuncOrder` type exported.
+- Supersedes the D-014 "always C-contiguous" rule. The `sub_transposed` special case in the differential runner is gone; it now compares exactly. `conjugate`/`angle` match NumPy too.
+- Tests:
+  - New differential group `ufunc_order` with 951 cases. It compares strides and flags as well as values.
+  - One-off runs, not committed: 6,492 extra order cases (7 seeds) and 1,473 dot/inner cases, all passing.
+  - 1 native test case and 6 numera tests.
+- Verified on Node 22: `pnpm build`, `test` (267), `test:native`, `test:asan`, `test:diff` (10420 passed), `typecheck` and `api:check` all pass. `test` also passes on Node 18.20.4 and 20.17.0.
+- Limitation (documented in D-050): when several errors happen in one call, a bad `order`/`casting` name is reported before a read-only `out` or a bad `where` dtype. NumPy checks those first. No performance claims are made; the layout computation is O(nd² · nops) per call.
+
 ## 2026-10-01 — P2-5: ufunc `where=` mask (D-049)
 - Native: `UfuncParams::where` holds an optional bool mask, used by both binary and unary ufuncs.
   - The mask broadcasts like an extra input: it can expand the result, and it is checked against `out`.

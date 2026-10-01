@@ -29,6 +29,8 @@ export interface NativeUfuncParams {
   dtype?: string;
   casting?: string;
   where?: NativeNDArray;
+  /** D-050; validated natively. */
+  order?: unknown;
 }
 
 

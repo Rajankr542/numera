@@ -18,6 +18,10 @@ class NDArray {
   // Allocates a new C-contiguous array.
   static NDArray empty(const Shape& shape, DType dtype);
   static NDArray zeros(const Shape& shape, DType dtype);
+  // Allocates an owned, writeable array with the given byte strides (a dense
+  // permutation of C order, e.g. from ufunc_result_strides, D-050).
+  static NDArray empty_strided(const Shape& shape, const Strides& strides, DType dtype,
+                               bool zeroed = false);
 
   // Creates a view over an existing buffer. Validates bounds.
   NDArray(std::shared_ptr<MemoryBuffer> buffer, DType dtype, Shape shape,
