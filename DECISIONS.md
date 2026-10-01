@@ -1530,3 +1530,41 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   `api/coverage*.json` and `TASK_SLICES.md` are updated only on `main`.
 - Build-first rule (TASK_SLICES.md) is unchanged: no NumPy-compatibility or
   performance claim until the V phase.
+
+## D-110 — Indexing extras API (P8) — Accepted — 2026-10-02
+- Native kernels in `native/core/p08_indexing.{hpp,cpp}`, exposed as
+  `addon.p08`; TS in `p08.ts` (and `take` in `indexing.ts`, owned by P8).
+- `take(a, indices, axis?, {mode})` (also `take(a, indices, {axis, mode})`);
+  `mode` is `"raise"` (default; negative indices wrap once), `"wrap"` or
+  `"clip"` (clip maps negatives to 0, as NumPy). A non-empty take from an
+  empty axis raises `IndexError`. Unknown modes raise `ValueError`.
+- `put(a, ind, v, {mode})`, `putmask(a, mask, values)`, `place(arr, mask, vals)`
+  and `putAlongAxis(arr, indices, values, axis)` mutate in place (write through
+  non-contiguous views via flat C order) and return `undefined`; read-only
+  targets raise `ValueError`.
+- `choose(a, choices, {mode})`, `select(condlist, choicelist, {default})`,
+  `compress(condition, a, {axis})`, `extract`, `piecewise(x, condlist, funclist)`
+  (funclist entries are JS callbacks `(x: NDArray) => ArrayLike` or constants;
+  callbacks run in JS on the masked selection, the selection and assignment
+  are native).
+- Results are always `NDArray`s, as D-017: `countNonzero(a)` without `axis`
+  returns a 0-d int64 array (NumPy returns a Python int); `ravelMultiIndex` of
+  scalars returns a 0-d int64 array; `unravelIndex` returns `NDArray[]` (one
+  int64 array per dimension, like NumPy's tuple).
+- `diagonal(a, {offset, axis1, axis2})` returns a **read-only view** (NumPy ≥
+  1.9); `trace(a, {offset, axis1, axis2, dtype})` sums that view with the D-017
+  sum dtype rules.
+- NDArray methods `choose compress diagonal nonzero put take trace` are added
+  by declaration merging in `p08.ts`.
+- `nested_iters` stays excluded (api/exclusions.json).
+
+## D-111 — Value casting in P8 setters and selectors — Accepted — 2026-10-02
+- `put` / `putAlongAxis`: values cast unsafely to the target dtype (NumPy).
+- `putmask` / `place`: an `NDArray` of values must cast to the target under
+  `"safe"` casting, else `DTypeError` (NumPy `TypeError`). Nested JS arrays and
+  scalars are converted with the target dtype first (like Python lists).
+- `choose` / `select`: result dtype is the promotion of the array/nested
+  operands; JS number/boolean scalars are weak (NEP 50, as D-014). NumPy
+  `choose` wraps out-of-range Python ints silently (`int8` + 300 → 44);
+  numera raises `ValueError` for an out-of-range weak scalar (documented
+  divergence). `select` conditions must be bool arrays (`DTypeError`).
