@@ -28,6 +28,8 @@ and a benchmark case in both suites.
 | P1 complex numbers (D-008, D-033) | 🟡 in progress. Steps 1 (conversion) and 2 (ufuncs plus `real`/`imag`/`conj`/`angle`/`iscomplex*`/`isreal*`) are done. Still to do: reductions, matmul and linalg. |
 | P2–P15 | ⬜ |
 
+Work is done in small slices, one per session (see `docs/plan/TASK_SLICES.md`). Next slice: **P1-3a**.
+
 ## Next steps
 1. M11 per PLAN §86. Next targets, from PERFORMANCE.md findings:
    - Per-call binding overhead: the construction-guard fix is done (D-024, about 13%). The remaining ~700 ns per result is ObjectWrap construction. Evaluate `napi_create_external` handles (needs a decision).
