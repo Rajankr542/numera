@@ -5,7 +5,7 @@ describe("ufuncs (M4) + broadcasting (M5)", () => {
   it("broadcasts per PLAN §14/§54", () => {
     const r = np.add(np.ones([1000, 3]), np.array([1, 2, 3]));
     expect(r.shape).toEqual([1000, 3]);
-    expect(r.toArray()[999]).toEqual([2, 3, 4]);
+    expect((r.toArray() as number[][])[999]).toEqual([2, 3, 4]);
     expect(np.broadcastShapes([3, 1], [4], [])).toEqual([3, 4]);
     expect(() => np.broadcastShapes([3], [4])).toThrow(BroadcastError);
     expect(() => np.add(np.ones([2, 3]), np.ones([3, 2]))).toThrow(BroadcastError);

@@ -638,7 +638,7 @@ describe("differential: linalg (M8, D-018)", () => {
     const tol = (dt: string): number => tolFor(dt) * 100;
     switch (c.fn) {
       case "eigh": {
-        const [w, V] = c.expected as Ex[];
+        const [w, V] = c.expected as unknown as Ex[];
         const res = r as { eigenvalues: NDArray; eigenvectors: NDArray };
         approx(res.eigenvalues, w!);
         meta(res.eigenvectors, V!);
@@ -652,7 +652,7 @@ describe("differential: linalg (M8, D-018)", () => {
         return;
       }
       case "eig": {
-        const [w, V] = c.expected as Ex[];
+        const [w, V] = c.expected as unknown as Ex[];
         const res = r as { eigenvalues: NDArray; eigenvectors: NDArray };
         meta(res.eigenvalues, w!);
         meta(res.eigenvectors, V!);
@@ -737,7 +737,7 @@ describe("differential: linalg (M8, D-018)", () => {
         return;
       }
       case "lstsq": {
-        const [x, res0, rank, s] = c.expected as [Ex, Ex, number, Ex];
+        const [x, res0, rank, s] = c.expected as unknown as [Ex, Ex, number, Ex];
         const res = r as { x: NDArray; residuals: NDArray; rank: number; s: NDArray };
         approx(res.x, x);
         approx(res.residuals, res0);
@@ -964,7 +964,7 @@ describe("differential: complex ufuncs (P1 step 2, D-033)", () => {
   const run = (_l: string, c: CUCase): void => {
     const [x, y] = c.args.map(operand);
     const ufuncs = np as unknown as Record<string, (...a: unknown[]) => NDArray>;
-    const r = c.op === "angle" ? np.angle(x as NDArray, c.kw?.deg ?? false) : y === undefined ? ufuncs[c.op](x) : ufuncs[c.op](x, y);
+    const r = c.op === "angle" ? np.angle(x as NDArray, c.kw?.deg ?? false) : y === undefined ? ufuncs[c.op]!(x) : ufuncs[c.op]!(x, y);
     const exp = c.expected;
     expect(r.dtype.name).toBe(exp.dtype);
     expect(r.shape).toEqual(exp.shape);

@@ -61,7 +61,7 @@ describe("complex ufuncs (P1 step 2, D-033)", () => {
   });
 
   it("divides by zero like NumPy (Smith's algorithm)", () => {
-    const [[re, im]] = parts(np.divide([np.complex(-3, 0.5)], [np.complex(0, 0)]));
+    const [re, im] = parts(np.divide([np.complex(-3, 0.5)], [np.complex(0, 0)]))[0]!;
     expect(re).toBe(-Infinity);
     expect(im).toBe(Infinity);
   });
