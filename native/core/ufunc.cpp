@@ -205,14 +205,12 @@ void check_nonnegative_exponent(const NDArray& b) {
 
 }  // namespace
 
-NDArray binary(BinaryOp op, const NDArray& a_in, const NDArray& b_in) {
-  const DType dt = binary_result_dtype(op, a_in.dtype(), b_in.dtype());
-  const Shape out_shape = broadcast_shapes({a_in.shape(), b_in.shape()});
-  const NDArray a = a_in.dtype() == dt ? a_in : a_in.astype(dt);
-  const NDArray b = b_in.dtype() == dt ? b_in : b_in.astype(dt);
-  if (op == BinaryOp::Power) check_nonnegative_exponent(b);
-  NDArray out = NDArray::empty(out_shape, dt);
-  const auto plan = make_plan<3>(out_shape, {&out, &a, &b});
+namespace {
+
+// Runs the binary kernel for loop dtype `dt`. a and b already have dtype dt;
+// `out` has dtype dt and the broadcast shape (any strides, D-046).
+void binary_into(BinaryOp op, DType dt, const NDArray& a, const NDArray& b, const NDArray& out) {
+  const auto plan = make_plan<3>(out.shape(), {&out, &a, &b});
   const std::array<std::byte*, 3> base{out.data(), a.data(), b.data()};
   dispatch_dtype(dt, [&](auto tag) {
     using S = dtype_t<decltype(tag)::value>;
@@ -253,15 +251,14 @@ NDArray binary(BinaryOp op, const NDArray& a_in, const NDArray& b_in) {
       bad_loop(binary_name(op), dt);
     }
   });
-  return out;
 }
 
-NDArray unary(UnaryOp op, const NDArray& a_in) {
-  const DType dt = unary_result_dtype(op, a_in.dtype());
+// Runs the unary kernel. `a` has its original dtype for complex abs/angle and
+// dtype dt otherwise; `out` has dtype dt and a's (or a larger broadcast) shape.
+void unary_into(UnaryOp op, DType dt, const NDArray& a_in, const NDArray& out) {
   if ((op == UnaryOp::Abs || op == UnaryOp::Angle) && is_complex(a_in.dtype())) {
     // Complex -> real: input and output element types differ (D-033).
-    NDArray out = NDArray::empty(a_in.shape(), dt);
-    const auto plan = make_plan<2>(a_in.shape(), {&out, &a_in});
+    const auto plan = make_plan<2>(out.shape(), {&out, &a_in});
     const std::array<std::byte*, 2> base{out.data(), a_in.data()};
     const auto run = [&](auto zero) {
       using R = decltype(zero);
@@ -277,11 +274,10 @@ NDArray unary(UnaryOp op, const NDArray& a_in) {
     };
     if (dt == DType::Float32) run(float{});
     else run(double{});
-    return out;
+    return;
   }
-  const NDArray a = a_in.dtype() == dt ? a_in : a_in.astype(dt);
-  NDArray out = NDArray::empty(a.shape(), dt);
-  const auto plan = make_plan<2>(a.shape(), {&out, &a});
+  const NDArray& a = a_in;
+  const auto plan = make_plan<2>(out.shape(), {&out, &a});
   const std::array<std::byte*, 2> base{out.data(), a.data()};
   dispatch_dtype(dt, [&](auto tag) {
     using S = dtype_t<decltype(tag)::value>;
@@ -321,6 +317,104 @@ NDArray unary(UnaryOp op, const NDArray& a_in) {
       bad_loop(unary_name(op), dt);
     }
   });
+}
+
+// complex abs/angle read the complex input directly; every other loop reads dt.
+bool unary_reads_input_dtype(UnaryOp op, DType in) noexcept {
+  return (op == UnaryOp::Abs || op == UnaryOp::Angle) && is_complex(in);
+}
+
+// True if every element of `in` (broadcast to out's shape) sits at the same
+// address as the out element it produces, so element-wise in-place is safe.
+bool same_view(const NDArray& in, const NDArray& out) {
+  return in.shares_buffer(out) && in.offset() == out.offset() && in.dtype() == out.dtype() &&
+         detail::aligned_strides(in, out.shape()) == detail::aligned_strides(out, out.shape());
+}
+
+// Input prepared for a direct write into `out` (D-046): copied when it may
+// share memory with out without being the same view.
+NDArray safe_input(const NDArray& in, const NDArray& out) {
+  return in.may_share_memory(out) && !same_view(in, out) ? in.copy() : in;
+}
+
+void check_out_writeable(const NDArray& out) {
+  if (!out.writeable()) throw_error(ErrorKind::Value, "output array is read-only");
+}
+
+void check_out_cast(const char* name, DType dt, DType out) {
+  if (!can_cast(dt, out, Casting::SameKind)) {
+    throw_error(ErrorKind::DType, std::string("Cannot cast ufunc '") + name + "' output from " +
+                                      std::string(dtype_name(dt)) + " to " +
+                                      std::string(dtype_name(out)) +
+                                      " with casting rule 'same_kind'");
+  }
+}
+
+void check_out_shape(std::vector<Shape> shapes, const Shape& out) {
+  shapes.push_back(out);
+  const Shape full = broadcast_shapes(shapes);  // throws, listing out last
+  if (full != out) {
+    shapes.pop_back();
+    throw_error(ErrorKind::Broadcast, "non-broadcastable output operand with shape " +
+                                          shape_to_string(out) + " doesn't match the broadcast shape " +
+                                          shape_to_string(broadcast_shapes(shapes)));
+  }
+}
+
+}  // namespace
+
+NDArray binary(BinaryOp op, const NDArray& a_in, const NDArray& b_in) {
+  const DType dt = binary_result_dtype(op, a_in.dtype(), b_in.dtype());
+  const Shape out_shape = broadcast_shapes({a_in.shape(), b_in.shape()});
+  const NDArray a = a_in.dtype() == dt ? a_in : a_in.astype(dt);
+  const NDArray b = b_in.dtype() == dt ? b_in : b_in.astype(dt);
+  if (op == BinaryOp::Power) check_nonnegative_exponent(b);
+  NDArray out = NDArray::empty(out_shape, dt);
+  binary_into(op, dt, a, b, out);
+  return out;
+}
+
+NDArray binary(BinaryOp op, const NDArray& a_in, const NDArray& b_in, const NDArray& out) {
+  check_out_writeable(out);
+  const DType dt = binary_result_dtype(op, a_in.dtype(), b_in.dtype());
+  check_out_cast(binary_name(op), dt, out.dtype());
+  check_out_shape({a_in.shape(), b_in.shape()}, out.shape());
+  const NDArray a = a_in.dtype() == dt ? a_in : a_in.astype(dt);
+  const NDArray b = b_in.dtype() == dt ? b_in : b_in.astype(dt);
+  if (op == BinaryOp::Power) check_nonnegative_exponent(b);
+  if (out.dtype() == dt) {
+    binary_into(op, dt, safe_input(a, out), safe_input(b, out), out);
+  } else {
+    const NDArray tmp = NDArray::empty(out.shape(), dt);
+    binary_into(op, dt, a, b, tmp);
+    copy_into(out, tmp);
+  }
+  return out;
+}
+
+NDArray unary(UnaryOp op, const NDArray& a_in) {
+  const DType dt = unary_result_dtype(op, a_in.dtype());
+  const bool direct = unary_reads_input_dtype(op, a_in.dtype()) || a_in.dtype() == dt;
+  const NDArray a = direct ? a_in : a_in.astype(dt);
+  NDArray out = NDArray::empty(a.shape(), dt);
+  unary_into(op, dt, a, out);
+  return out;
+}
+
+NDArray unary(UnaryOp op, const NDArray& a_in, const NDArray& out) {
+  check_out_writeable(out);
+  const DType dt = unary_result_dtype(op, a_in.dtype());
+  check_out_cast(unary_name(op), dt, out.dtype());
+  check_out_shape({a_in.shape()}, out.shape());
+  const bool direct = unary_reads_input_dtype(op, a_in.dtype()) || a_in.dtype() == dt;
+  const NDArray a = direct ? a_in : a_in.astype(dt);
+  if (out.dtype() == dt) {
+    unary_into(op, dt, safe_input(a, out), out);
+  } else {
+    const NDArray tmp = NDArray::empty(out.shape(), dt);
+    unary_into(op, dt, a, tmp);
+    copy_into(out, tmp);
+  }
   return out;
 }
 

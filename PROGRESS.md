@@ -1,5 +1,30 @@
 # PROGRESS
 
+## 2026-10-01 — P2-2: native `out=` for `binary`/`unary` (D-046)
+
+- New native overloads `binary(op, a, b, out)` and `unary(op, a, out)`
+  (`native/core/ufunc.{hpp,cpp}`). The kernels now write into any `out` of
+  the loop dtype; the overloads without `out` are unchanged and reuse them.
+  When `out.dtype` differs from the loop dtype, the result goes into a
+  temporary array that is then cast into `out`.
+- The checks run in NumPy's order: read-only, then loop resolution, then
+  the `same_kind` cast, then shape, then value checks. A second NumPy probe
+  confirmed this order for calls with several faults.
+- Overlap: an input that may share memory with `out` is copied first, unless
+  it is exactly the same view. Results match NumPy for shifted, reversed,
+  partially overlapping and broadcast-input cases.
+- `assign` moved from `indexing.cpp` to the public `copy_into` in
+  `broadcast.hpp`. Indexing setitem now uses it, with no behaviour change.
+- No JS binding yet; that is P2-3.
+- New C++ tests: `ufunc: out= dtype casts and broadcast`,
+  `ufunc: out= strided and overlapping` and `ufunc: out= errors in NumPy
+  order`. Expected values come from NumPy 2.5.3.
+- Verification:
+  - `pnpm test:native`: 88 cases, 0 failed.
+  - `pnpm test:asan` is clean.
+  - `pnpm test`: 247 tests pass.
+  - `pnpm test:diff`: 6111 tests pass.
+
 ## 2026-10-01 — P2 sliced; P2-1: casting rules and `canCast` (D-045)
 
 - P2 (ufunc machinery) is split into P2-1 to P2-11 in

@@ -15,6 +15,11 @@ Shape broadcast_shapes(const std::vector<Shape>& shapes);
 // Zero-stride read-only view of `a` with the target shape (D-016).
 NDArray broadcast_to(const NDArray& a, const Shape& shape);
 
+// Writes src (broadcast to dst's shape) into dst with an unsafe cast (D-046).
+// Overlapping memory is handled by staging src through a copy. Does not check
+// dst's writeable flag; callers do.
+void copy_into(const NDArray& dst, const NDArray& src);
+
 // Iteration plan for N operands over a common (output) shape (PLAN §14).
 // Adjacent dimensions that are contiguous for every operand are coalesced,
 // so a fully contiguous op becomes one inner loop.

@@ -136,3 +136,104 @@ TEST_CASE("ufunc: float semantics and broadcasting") {
   CHECK_EQ(r0.get_double(0), 2.0);
 }
 
+
+// Expected values from NumPy 2.5.3 (D-046).
+TEST_CASE("ufunc: out= dtype casts and broadcast") {
+  NDArray o16 = NDArray::zeros({2}, DType::Int16);
+  NDArray r = binary(BinaryOp::Add, vec_i({100, 100}, DType::Int8), vec_i({100, 100}, DType::Int8), o16);
+  CHECK(r.shares_buffer(o16));
+  CHECK_EQ(o16.get_int64(0), std::int64_t{-56});  // loop dtype int8 wraps
+  NDArray f32 = NDArray::zeros({2}, DType::Float32);
+  binary(BinaryOp::Add, vec_d({1.5, 2.0}), vec_d({1.0}), f32);
+  CHECK_EQ(f32.get_double(0), 2.5);
+  NDArray c = NDArray::zeros({2}, DType::Complex128);
+  binary(BinaryOp::Add, vec_d({1.5, 2.0}), vec_d({1.0}), c);
+  CHECK_EQ(c.get_double(1), 3.0);
+  NDArray o23 = NDArray::zeros({2, 3}, DType::Float64);
+  binary(BinaryOp::Add, vec_d({1, 2, 3}), vec_d({1}), o23);
+  CHECK_EQ(o23.get_double(5), 4.0);
+  NDArray u = NDArray::zeros({2, 3}, DType::Float64);
+  unary(UnaryOp::Negative, vec_d({1}), u);
+  CHECK_EQ(u.get_double(4), -1.0);
+  NDArray s = NDArray::zeros({2}, DType::Float32);
+  unary(UnaryOp::Sqrt, vec_i({4, 9}, DType::Int64), s);
+  CHECK_EQ(s.get_double(1), 3.0);
+  NDArray cz = NDArray::empty({1}, DType::Complex128);
+  cz.set_double(0, 0.0);
+  NDArray ab = binary(BinaryOp::Add, cz, vec_d({0}), NDArray::zeros({1}, DType::Complex128));
+  CHECK_EQ(ab.get_double(0), 0.0);
+  NDArray absf = NDArray::zeros({1}, DType::Float32);
+  unary(UnaryOp::Abs, cz, absf);
+  CHECK_EQ(absf.get_double(0), 0.0);
+  NDArray empty = NDArray::zeros({0}, DType::Float64);
+  CHECK_EQ(binary(BinaryOp::Add, empty, vec_d({1}), empty).size(), std::int64_t{0});
+}
+
+TEST_CASE("ufunc: out= strided and overlapping") {
+  NDArray a = arange(0, 6, 1, DType::Float64);
+  const auto st = a.strides()[0];
+  NDArray head = a.view({5}, {st}, 0), tail = a.view({5}, {st}, st);
+  binary(BinaryOp::Add, head, tail, tail);  // NumPy: [0,1,3,5,7,9]
+  const double want1[] = {0, 1, 3, 5, 7, 9};
+  for (int i = 0; i < 6; ++i) CHECK_EQ(a.get_double(i), want1[i]);
+  a = arange(0, 6, 1, DType::Float64);
+  binary(BinaryOp::Add, a.view({5}, {st}, st), a.view({5}, {st}, 0), a.view({5}, {st}, 0));
+  const double want2[] = {1, 3, 5, 7, 9, 5};
+  for (int i = 0; i < 6; ++i) CHECK_EQ(a.get_double(i), want2[i]);
+  a = arange(0, 6, 1, DType::Float64);
+  binary(BinaryOp::Add, a, a, a);
+  CHECK_EQ(a.get_double(5), 10.0);
+  a = arange(0, 6, 1, DType::Float64);
+  unary(UnaryOp::Negative, a.view({6}, {-st}, 5 * st), a);  // reversed overlap
+  CHECK_EQ(a.get_double(0), -5.0);
+  CHECK_EQ(a.get_double(5), 0.0);
+  a = arange(0, 4, 1, DType::Float64);
+  binary(BinaryOp::Add, a.view({1}, {st}, 0), a, a);  // broadcast input overlaps out
+  CHECK_EQ(a.get_double(3), 3.0);
+  a = arange(0, 6, 1, DType::Float64);
+  binary(BinaryOp::Multiply, a.view({3}, {2 * st}, 0), a.view({3}, {2 * st}, st), a.view({3}, {st}, 0));
+  CHECK_EQ(a.get_double(1), 6.0);
+  CHECK_EQ(a.get_double(2), 20.0);
+  NDArray z = NDArray::zeros({6}, DType::Float64);
+  binary(BinaryOp::Add, ones({3}, DType::Float64), vec_d({2}), z.view({3}, {2 * st}, 0));
+  CHECK_EQ(z.get_double(2), 3.0);
+  CHECK_EQ(z.get_double(1), 0.0);
+  NDArray i8 = arange(0, 4, 1, DType::Int8);
+  NDArray f = NDArray::zeros({4}, DType::Float64);
+  binary(BinaryOp::Add, i8, i8, f);  // cast path
+  CHECK_EQ(f.get_double(3), 6.0);
+}
+
+TEST_CASE("ufunc: out= errors in NumPy order") {
+  NDArray ro = NDArray::zeros({3}, DType::Int64).as_readonly();
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, vec_d({1, 1, 1}), vec_d({1.5}), ro), ErrorKind::Value);
+  CHECK_THROWS_KIND(unary(UnaryOp::Sqrt, vec_d({1}), ro), ErrorKind::Value);
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, vec_d({1}), vec_d({1}), broadcast_to(vec_d({0}), {3})),
+                    ErrorKind::Value);
+  NDArray i64 = NDArray::zeros({3}, DType::Int64);
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, ones({2, 3}, DType::Float64), vec_d({1}), i64), ErrorKind::DType);
+  CHECK_THROWS_KIND(binary(BinaryOp::Divide, vec_i({1, 2, 3}, DType::Int64), vec_i({1}, DType::Int64), i64),
+                    ErrorKind::DType);
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, vec_i({1}, DType::Int64), vec_i({1}, DType::Int64),
+                           NDArray::zeros({1}, DType::UInt8)),
+                    ErrorKind::DType);
+  CHECK_THROWS_KIND(binary(BinaryOp::Power, vec_i({1, 1, 1}, DType::Int64), vec_i({-1}, DType::Int64),
+                           NDArray::zeros({3}, DType::Bool)),
+                    ErrorKind::DType);
+  CHECK_THROWS_KIND(binary(BinaryOp::Power, vec_i({1, 1, 1}, DType::Int64), vec_i({-1}, DType::Int64),
+                           NDArray::zeros({4}, DType::Float64)),
+                    ErrorKind::Broadcast);
+  CHECK_THROWS_KIND(binary(BinaryOp::Power, vec_i({1}, DType::Int64), vec_i({-1}, DType::Int64),
+                           NDArray::zeros({1}, DType::Float64)),
+                    ErrorKind::Value);
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, ones({2, 3}, DType::Float64), vec_d({1}),
+                           NDArray::zeros({3}, DType::Float64)),
+                    ErrorKind::Broadcast);
+  CHECK_THROWS_KIND(unary(UnaryOp::Negative, ones({2, 3}, DType::Float64), NDArray::zeros({3}, DType::Float64)),
+                    ErrorKind::Broadcast);
+  CHECK_THROWS_KIND(unary(UnaryOp::Abs, NDArray::zeros({1}, DType::Complex128), NDArray::zeros({1}, DType::Int64)),
+                    ErrorKind::DType);
+  CHECK_THROWS_KIND(unary(UnaryOp::Negative, NDArray::zeros({1}, DType::Bool), NDArray::zeros({1}, DType::Int64)),
+                    ErrorKind::DType);
+}
+

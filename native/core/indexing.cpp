@@ -37,26 +37,7 @@ SliceBounds slice_indices(std::optional<std::int64_t> start, std::optional<std::
 
 namespace {
 
-// Copies src (same shape as dst, possibly broadcast/strided) into dst with an
-// unsafe cast. Handles overlapping memory by staging through a copy.
-void assign(NDArray& dst, const NDArray& src_in) {
-  const NDArray bsrc = broadcast_to(src_in, dst.shape());
-  const NDArray src = bsrc.may_share_memory(dst) ? bsrc.copy() : bsrc;
-  const auto plan = make_plan<2>(dst.shape(), {&dst, &src});
-  dispatch_dtype(src.dtype(), [&](auto stag) {
-    using S = dtype_t<decltype(stag)::value>;
-    dispatch_dtype(dst.dtype(), [&](auto dtag) {
-      using D = dtype_t<decltype(dtag)::value>;
-      run_plan<2>(plan, {dst.data(), src.data()},
-                  [](std::array<std::byte*, 2> p, const std::array<std::int64_t, 2>& s,
-                     std::int64_t n) {
-                    for (std::int64_t i = 0; i < n; ++i) {
-                      store<D>(p[0] + i * s[0], cast_value<D>(load<S>(p[1] + i * s[1])));
-                    }
-                  });
-    });
-  });
-}
+void assign(NDArray& dst, const NDArray& src) { copy_into(dst, src); }
 
 std::int64_t norm_index(std::int64_t i, std::int64_t dim, std::size_t axis) {
   if (i < -dim || i >= dim) {

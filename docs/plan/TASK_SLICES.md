@@ -61,7 +61,7 @@ machinery.
 | Slice | Content |
 |-------|---------|
 | P2-1 ✅ | Casting rules (D-045): native `Casting` + `can_cast` (`no`/`equiv`/`safe`/`same_kind`/`unsafe`), public `np.canCast` (moved forward from P3 because `out=`/`casting=` need it). C++ test, vitest, differential `casting` group, bench case. |
-| P2-2 | Native `out=` for `binary`/`unary`: result broadcast into `out` (`out` shape must equal the broadcast shape), `same_kind` output cast, read-only check, inputs copied first when they overlap `out` (except identical in-place). C++ tests. |
+| P2-2 ✅ | Native `out=` (D-046) for `binary`/`unary`: result broadcast into `out` (`out` shape must equal the broadcast shape), `same_kind` output cast, read-only check, inputs copied first when they overlap `out` (except identical in-place). C++ tests. |
 | P2-3 | TS `{ out }` option on all 12 ufuncs (returns `out` itself), vitest, and differential group `ufunc_out` (dtype casts, broadcast, strided/overlapping `out`, errors). |
 | P2-4 | `casting=` and `dtype=` (loop-dtype override with input casting). C++ + TS + differential cases. |
 | P2-5 | `where=` mask (with and without `out`; unmasked elements stay uninitialized/`out`). C++ + TS + differential cases. |

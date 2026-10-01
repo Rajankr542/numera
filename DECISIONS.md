@@ -137,7 +137,7 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   Public helpers: `broadcastShapes` and `broadcastTo` (a zero-stride view).
 - **Ufunc results** are always new C-contiguous arrays. NumPy's default
   `order='K'` can return F-ordered results for F-ordered inputs; values and
-  shape match, strides may not. `out=`, `where=`, `casting=` and `dtype=` are
+  shape match, strides may not. Native `out=` landed in D-046; `where=`, `casting=` and `dtype=` are
   not supported yet.
 - **Loop dtype** follows NumPy's type resolution:
   - Binary ops use `promote_types(a, b)`.
@@ -1175,4 +1175,42 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   - An unknown casting name raises `ValueError`, as in NumPy.
   - An unknown dtype raises `DTypeError` (NumPy `TypeError`).
 - `canCast` comes forward from P3 (dtype introspection) because P2 needs it.
+
+
+## D-046 — Native ufunc `out=` (P2-2) — Accepted — 2026-10-01
+- New overloads `binary(op, a, b, out)` and `unary(op, a, out)` in
+  `native/core/ufunc.hpp` write into `out` and return it, a view of the same
+  buffer. The existing overloads without `out` are unchanged.
+- Checks run in NumPy 2.5.3's order (checked by hand), so a call with several
+  faults raises the same error as NumPy:
+  1. `out` is read-only: `ValueError` "output array is read-only".
+  2. Loop dtype resolution (D-014), using only the inputs. A missing loop
+     raises `DTypeError`.
+  3. The loop dtype must cast to `out.dtype` under `same_kind` (D-045),
+     otherwise `DTypeError` (NumPy `UFuncTypeError`, a `TypeError`):
+     "Cannot cast ufunc 'add' output from float64 to int64 with casting rule
+     'same_kind'".
+  4. Shapes: `broadcast_shapes(inputs..., out.shape)` must equal
+     `out.shape`. Inputs may broadcast up to a larger `out`; `out` itself
+     never broadcasts.
+     - Incompatible shapes raise `BroadcastError` "operands could not be
+       broadcast together with shapes ...", listing `out` last.
+     - A smaller `out` raises `BroadcastError` "non-broadcastable output
+       operand with shape X doesn't match the broadcast shape Y".
+     - NumPy raises `ValueError` for both; `BroadcastError` follows D-014.
+  5. Value checks, such as integer power with a negative exponent.
+- The kernel computes in the loop dtype. If `out.dtype` equals it, results go
+  straight into `out` through the broadcast plan, so strided and zero-stride
+  `out` both work. Otherwise results go into a temporary array that is then
+  cast into `out` with `copy_into`. As in NumPy, int8 + int8 into an int16
+  `out` wraps in int8.
+- Overlap: when writing straight into `out`, an input that may share memory
+  with `out` (D-011) is copied first. The exception is an input that is
+  exactly the same view as `out` (same buffer, offset, dtype and aligned
+  strides); element-wise in-place is safe there. This reproduces NumPy's
+  "as if the inputs were copied" results.
+- `assign` moves out of `indexing.cpp` and becomes the public
+  `copy_into(dst, src)` in `broadcast.hpp`, used by both indexing and ufuncs.
+  It broadcasts `src`, casts unsafely, and stages through a copy when the
+  two overlap.
 

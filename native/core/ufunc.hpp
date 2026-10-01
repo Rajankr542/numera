@@ -24,6 +24,13 @@ DType unary_result_dtype(UnaryOp op, DType in);
 NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b);
 NDArray unary(UnaryOp op, const NDArray& a);
 
+// NumPy `out=` (D-046): writes the result into `out` and returns it (a view of
+// the same buffer). `out` must be writeable, have exactly the broadcast shape,
+// and accept the loop dtype under same_kind casting. Overlapping inputs behave
+// as if they were copied first.
+NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b, const NDArray& out);
+NDArray unary(UnaryOp op, const NDArray& a, const NDArray& out);
+
 // NumPy a.real / a.imag (D-033). For complex input this is a strided view of
 // the real-typed component, sharing a's buffer and writeability. For real
 // input, `real` returns a itself (a view), and `imag` returns a new read-only
