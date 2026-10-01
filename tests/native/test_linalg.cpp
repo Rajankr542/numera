@@ -2,6 +2,8 @@
 #include <complex>
 #include <cstdint>
 #include <initializer_list>
+#include <limits>
+#include <type_traits>
 #include <vector>
 
 #include "backend.hpp"
@@ -120,6 +122,120 @@ TEST_CASE("linalg: matmul in-place operands and uninitialized output (D-022)") {
     }
   });
 }
+namespace {
+
+template <typename R>
+NDArray cmat(std::int64_t m, std::int64_t n, std::initializer_list<std::complex<double>> v) {
+  NDArray a = NDArray::empty({m, n}, std::is_same_v<R, float> ? DType::Complex64 : DType::Complex128);
+  auto* p = reinterpret_cast<std::complex<R>*>(a.data());
+  for (const auto& x : v) *p++ = {static_cast<R>(x.real()), static_cast<R>(x.imag())};
+  return a;
+}
+
+template <typename R>
+std::complex<R> cat(const NDArray& a, std::int64_t i) {
+  return reinterpret_cast<const std::complex<R>*>(a.data())[i];
+}
+
+}  // namespace
+
+TEST_CASE("linalg: complex matmul (D-035)") {
+  using C = std::complex<double>;
+  each_backend([] {
+    // Small integers: every product and sum is exact in both widths.
+    const auto values = [](auto tag) {
+      using R = decltype(tag);
+      const NDArray a = cmat<R>(2, 3, {C(1, 2), C(3, -1), C(0, 1), C(-2, 0), C(1, 1), C(2, 3)});
+      const NDArray b = cmat<R>(3, 2, {C(1, 0), C(0, 1), C(2, 2), C(-1, 1), C(1, -3), C(4, 0)});
+      const NDArray r = matmul(a, b);
+      CHECK(r.dtype() == a.dtype());
+      CHECK(r.shape() == Shape({2, 2}));
+      CHECK(r.is_c_contiguous());
+      // Row 0: (1+2j)*1 + (3-j)(2+2j) + j(1-3j) = 1+2j + 8+4j + 3+j = 12+7j
+      //        (1+2j)j + (3-j)(-1+j) + j*4     = -2+j + -2+4j + 4j = -4+9j
+      // Row 1: -2 + (1+j)(2+2j) + (2+3j)(1-3j) = -2 + 4j + 11-3j = 9+j
+      //        -2j + (1+j)(-1+j) + (2+3j)4    = -2j - 2 + 8+12j = 6+10j
+      CHECK(cat<R>(r, 0) == std::complex<R>(12, 7));
+      CHECK(cat<R>(r, 1) == std::complex<R>(-4, 9));
+      CHECK(cat<R>(r, 2) == std::complex<R>(9, 1));
+      CHECK(cat<R>(r, 3) == std::complex<R>(6, 10));
+      // 1-D @ 1-D: no conjugation, as in NumPy.
+      const NDArray v = cmat<R>(1, 2, {C(0, 1), C(1, 1)}).reshape({2});
+      const NDArray s = matmul(v, v);
+      CHECK(s.shape() == Shape{});
+      CHECK(cat<R>(s, 0) == std::complex<R>(-1, 2));  // j*j + (1+j)^2 = -1 + 2j
+    };
+    values(float{});
+    values(double{});
+
+    // Promotion: float64 @ complex64 -> complex128; int32 @ complex64 -> complex128;
+    // float32 @ complex64 -> complex64.
+    const NDArray c64 = cmat<float>(2, 1, {C(1, 1), C(2, -1)});
+    CHECK(matmul(mat(1, 2, {3, 4}), c64).dtype() == DType::Complex128);
+    CHECK(cat<double>(matmul(mat(1, 2, {3, 4}), c64), 0) == C(11, -1));
+    CHECK(matmul(arange(1, 3, 1, DType::Int32).reshape({1, 2}), c64).dtype() == DType::Complex128);
+    CHECK(matmul(mat(1, 2, {3, 4}, DType::Float32), c64).dtype() == DType::Complex64);
+
+    // Batched with a broadcast operand: (2,1,2) @ (2,1).
+    const NDArray bat = cmat<double>(2, 2, {C(1, 0), C(0, 1), C(0, -1), C(2, 0)}).reshape({2, 1, 2});
+    const NDArray rb = matmul(bat, cmat<double>(2, 1, {C(1, 1), C(0, 2)}));
+    CHECK(rb.shape() == Shape({2, 1, 1}));
+    CHECK(cat<double>(rb, 0) == C(-1, 1));  // (1+j) + j*2j
+    CHECK(cat<double>(rb, 1) == C(1, 3));   // -j(1+j) + 4j = 1 - j + 4j
+
+    // NumPy's non-BLAS formula: no Annex G NaN recovery.
+    const double inf = std::numeric_limits<double>::infinity();
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const C i1 = cat<double>(matmul(cmat<double>(1, 1, {C(inf, 0)}), cmat<double>(1, 1, {C(1, 0)})), 0);
+    CHECK(i1.real() == inf);
+    CHECK(std::isnan(i1.imag()));
+    const C i2 = cat<double>(matmul(cmat<double>(1, 1, {C(inf, inf)}), cmat<double>(1, 1, {C(0, 1)})), 0);
+    CHECK(std::isnan(i2.real()));
+    CHECK(std::isnan(i2.imag()));
+    const C n0 = cat<double>(matmul(cmat<double>(1, 1, {C(nan, 0)}), cmat<double>(1, 1, {C(0, 0)})), 0);
+    CHECK(std::isnan(n0.real()));
+    CHECK(std::isnan(n0.imag()));
+    // -0 products accumulate onto +0.
+    const C z = cat<double>(matmul(cmat<double>(1, 1, {C(-0.0, -0.0)}), cmat<double>(1, 1, {C(1, 0)})), 0);
+    CHECK(!std::signbit(z.real()));
+    CHECK(!std::signbit(z.imag()));
+
+    // Output starts as `empty`: k = 0 must still write +0+0j on dirty memory.
+    for (int rep = 0; rep < 4; ++rep) {
+      { NDArray junk = NDArray::empty({32, 32}, DType::Complex128); for (std::int64_t i = 0; i < junk.size() * 2; ++i) reinterpret_cast<double*>(junk.data())[i] = 1e300; }
+      const NDArray zk = matmul(NDArray::zeros({16, 0}, DType::Complex128), NDArray::zeros({0, 16}, DType::Complex128));
+      bool zero = true;
+      for (std::int64_t i = 0; i < zk.size(); ++i) {
+        const C x = cat<double>(zk, i);
+        zero = zero && x == C(0, 0) && !std::signbit(x.real()) && !std::signbit(x.imag());
+      }
+      CHECK(zero);
+    }
+    CHECK_THROWS_KIND(matmul(cmat<double>(1, 2, {C(1, 0), C(1, 0)}), cmat<double>(1, 2, {C(1, 0), C(1, 0)})),
+                      ErrorKind::Shape);
+
+    // complex64 vs a double-precision reference on a larger product (tolerance, D-035).
+    const std::int64_t m = 7, k = 33, n = 5;
+    NDArray a = NDArray::empty({m, k}, DType::Complex64);
+    NDArray b = NDArray::empty({k, n}, DType::Complex64);
+    auto* ap = reinterpret_cast<std::complex<float>*>(a.data());
+    auto* bp = reinterpret_cast<std::complex<float>*>(b.data());
+    for (std::int64_t i = 0; i < m * k; ++i) ap[i] = {static_cast<float>(std::sin(0.7 * double(i))), static_cast<float>(std::cos(1.3 * double(i)))};
+    for (std::int64_t i = 0; i < k * n; ++i) bp[i] = {static_cast<float>(std::cos(0.4 * double(i))), static_cast<float>(std::sin(2.1 * double(i)))};
+    const NDArray r = matmul(a, b);
+    bool close = true;
+    for (std::int64_t i = 0; i < m; ++i)
+      for (std::int64_t j = 0; j < n; ++j) {
+        C ref{};
+        for (std::int64_t p = 0; p < k; ++p) ref += C(ap[i * k + p]) * C(bp[p * n + j]);
+        const C got(cat<float>(r, i * n + j));
+        close = close && std::abs(got - ref) <= 2e-5 * double(k);
+      }
+    CHECK(close);
+  });
+}
+
+
 
 TEST_CASE("linalg: dot/inner/outer") {
   const NDArray a = arange(0, 24, 1, DType::Float64).reshape({2, 3, 4});

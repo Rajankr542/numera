@@ -30,7 +30,7 @@ Steps 1–2 are done (conversion, ufuncs). Slices left:
 ### Step 4: matmul family
 | Slice | Work |
 |---|---|
-| P1-4a | Complex `matmul` kernel (portable path) + C++ test. |
+| P1-4a ✅ | Complex `matmul` kernel (portable path) + C++ test (D-035). |
 | P1-4b | Accelerate path (`cblas_cgemm`/`zgemm`) + C++ test. |
 | P1-4c | `dot`, `inner`, `outer` on complex (no conjugation, as in NumPy); vitest. |
 | P1-4d | Differential `complex_matmul` cases (batched, mixed real/complex promotion). |

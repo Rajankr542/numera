@@ -124,6 +124,28 @@ void loop_gemm(const T* a, const T* b, T* c, idx m, idx n, idx k) {
   }
 }
 
+// Complex product loop (D-035): NumPy's non-BLAS complex matmul formula. Each
+// output starts at +0 and adds (ar*br - ai*bi, ar*bi + ai*br) in increasing p
+// order. The i-p-j loop order keeps that per-element summation order.
+template <typename R>
+void complex_gemm(const std::complex<R>* a, const std::complex<R>* b, std::complex<R>* c, idx m,
+                  idx n, idx k) {
+  for (idx i = 0; i < m; ++i) {
+    std::complex<R>* crow = c + i * n;
+    std::fill(crow, crow + n, std::complex<R>{});
+    for (idx p = 0; p < k; ++p) {
+      const R ar = a[i * k + p].real();
+      const R ai = a[i * k + p].imag();
+      const std::complex<R>* brow = b + p * n;
+      for (idx j = 0; j < n; ++j) {
+        const R br = brow[j].real();
+        const R bi = brow[j].imag();
+        crow[j] = {crow[j].real() + (ar * br - ai * bi), crow[j].imag() + (ar * bi + ai * br)};
+      }
+    }
+  }
+}
+
 // Core batched matmul of a (..., m, k) and b (..., k, n) (both ≥ 2-D).
 NDArray matmul_2d(const NDArray& a, const NDArray& b) {
   const Shape& as = a.shape();
@@ -154,21 +176,19 @@ NDArray matmul_2d(const NDArray& a, const NDArray& b) {
   if (m * n == 0) return out;
   dispatch_dtype(dt, [&](auto tag) {
     using T = dtype_t<decltype(tag)::value>;
-    if constexpr (is_complex_v<T>) {
-      throw_error(ErrorKind::NotImplemented, "matmul: complex input is not supported yet (D-008)");
-    } else {
-      const T* ap = ptr<T>(ac);
-      const T* bp = ptr<T>(bc);
-      T* cp = ptr<T>(out);
-      for (idx t = 0; t < nb; ++t) {
-        const T* at = ap + t * m * k;
-        const T* bt = bp + t * k * n;
-        T* ct = cp + t * m * n;
-        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
-          routines<T>().gemm(m, n, k, at, bt, ct);
-        } else {
-          loop_gemm(at, bt, ct, m, n, k);
-        }
+    const T* ap = ptr<T>(ac);
+    const T* bp = ptr<T>(bc);
+    T* cp = ptr<T>(out);
+    for (idx t = 0; t < nb; ++t) {
+      const T* at = ap + t * m * k;
+      const T* bt = bp + t * k * n;
+      T* ct = cp + t * m * n;
+      if constexpr (is_complex_v<T>) {
+        complex_gemm(at, bt, ct, m, n, k);
+      } else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
+        routines<T>().gemm(m, n, k, at, bt, ct);
+      } else {
+        loop_gemm(at, bt, ct, m, n, k);
       }
     }
   });

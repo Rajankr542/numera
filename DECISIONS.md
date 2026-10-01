@@ -867,3 +867,24 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   24-element product differed by 1 ulp in one component. `sum`/`mean`/`min`/
   `max`/`arg*` stay exact on the `complex_reductions` group; `var`/`std` are
   exact on its large random inputs and use the D-017 tolerance on small ones.
+
+
+## D-035 — Complex matmul, portable kernel (P1-4a) — Accepted — 2026-10-01
+- complex64/complex128 `matmul` (and so `dot`/`inner`/`outer`, which go
+  through `matmul_2d`) use a loop in `linalg.cpp`, the same structure as
+  NumPy's non-BLAS `matmul` inner loop. Each output starts at `+0+0j` and adds
+  the terms `(ar*br - ai*bi, ar*bi + ai*br)` in increasing `k` order. There is
+  no C99 Annex G NaN recovery, so `inf*1 -> inf+nanj` and
+  `(inf+infj)*1j -> nan+nanj`, as in NumPy. Sums of `-0` products are `+0`,
+  and `k=0` gives `+0+0j`.
+- Result dtype comes from `promote_types` (e.g. float64 @ complex64 ->
+  complex128).
+- Exactness: compared with a tolerance (D-018), not bit-for-bit. NumPy calls
+  `cblas_cgemm`/`zgemm` for complex matmul. Probing NumPy 2.x + Accelerate on
+  arm64 found that k=1 results equal `fma(ar,br,-(ai*bi))`/`fma(ar,bi,ai*br)`,
+  but for k>1 neither an unfused nor any simple FMA emulation reproduces
+  NumPy. Its strided non-BLAS loop also differs from an unfused emulation,
+  because of FP contraction in the wheel build. Summation order and FMA use
+  belong to the BLAS, so no portable kernel can match them bit-for-bit.
+- P1-4b sends complex to the backend's `?gemm` (Accelerate `cblas_cgemm`/
+  `zgemm`). This loop stays as the fallback backend path.
