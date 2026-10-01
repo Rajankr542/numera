@@ -36,17 +36,23 @@ export function stripInternalRefs(text) {
     .replace(/\bD-\d{3}(?:\/D-\d{3})*[ \t]*(\n[ \t]*\*)?[ \t]*(?=[a-z])/g, (_m, nl) => (nl ? `${nl} ` : ""));
 }
 
-/** Drops the last column of every Markdown table row in the given section. */
-function dropLastColumn(md, heading) {
+/**
+ * Drops the internal last column of every Markdown table whose header's last
+ * cell is "Decision" (D-029; milestone branches append such tables, D-056).
+ */
+function dropDecisionColumn(md) {
   const lines = md.split("\n");
-  let inSection = false;
+  let inTable = false;
   return lines
     .map((line) => {
-      if (/^#{1,6}\s/.test(line)) inSection = line.trim() === heading;
-      if (!inSection || !line.startsWith("|")) return line;
+      if (!line.startsWith("|")) {
+        inTable = false;
+        return line;
+      }
       const cells = line.split(/(?<!\\)\|/);
-      // ["", c1, ..., cN, ""] -> drop cN
-      return cells.slice(0, -2).concat("").join("|");
+      // ["", c1, ..., cN, ""]
+      if (!inTable) inTable = cells.length >= 3 && cells[cells.length - 2].trim() === "Decision";
+      return inTable ? cells.slice(0, -2).concat("").join("|") : line;
     })
     .join("\n");
 }
@@ -71,7 +77,7 @@ export function packageReadme(readme) {
 }
 
 export function packageCompatibility(compat) {
-  let md = dropLastColumn(compat, "## Documented divergences");
+  let md = dropDecisionColumn(compat);
   md = md.replace(/`pnpm test:diff`/g, "the project's NumPy differential test suite");
   md = md.replace(/\s*Everything from PLAN M11 onward \(see ROADMAP\.md\)\.\s*/g, " ");
   md = md.replace(/\bnativpy\b/g, "numera");
