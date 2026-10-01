@@ -1,5 +1,36 @@
 # PROGRESS
 
+## 2026-10-01 — P1-5e.1: complex eigh/eigvalsh (D-042)
+
+`linalg.eigh`/`eigvalsh` accept complex64/complex128 (Hermitian, lower
+triangle). Eigenvalues are real (float32 for complex64, float64 for
+complex128); eigenvectors keep the complex dtype.
+- Backend: `syevd` gains a `vectors` (JOBZ) flag; new `cheevd`. Accelerate
+  calls `ssyevd_`/`dsyevd_`/`cheevd_`/`zheevd_` with queried
+  `lwork`/`lrwork`/`liwork`, as NumPy's `init_evd` does. The fallback Jacobi
+  is generalised to Hermitian input: each pair is phase-aligned, then given
+  the real rotation. The real path is unchanged.
+- `eigvalsh` is now a native values-only call (JOBZ='N'), for real input too.
+  Before, it returned `eigh(a).eigenvalues`. A probe run in NumPy itself
+  shows those values differ bitwise from NumPy's `eigvalsh` in most cases.
+- Complex input runs in complex128 and is cast at the end, as in NumPy.
+- Probe against NumPy 2.x + Accelerate (arm64), 60 random n×n inputs
+  (n = 1–29, 15 per dtype):
+  - Default backend: `eigh` values, `eigvalsh` values and eigenvectors are
+    bit-identical in 15/15 cases each for complex128, complex64 and float64.
+  - float32: 0/15 bit-identical (max |Δw| 7.6e-6). NumPy computes float32
+    input in float64; nativpy computes it in float32 (D-018). This is an
+    existing difference, recorded as an open item in COMPATIBILITY.md.
+  - Fallback: within 6.6e-14 (complex128/float64); largest reconstruction
+    error 2.6e-14.
+- Tests: C++ `linalg: complex eigh/eigvalsh (D-042)`; vitest `complex
+  linalg.eigh / eigvalsh`. Both run on both backends. The "still rejects
+  complex" guards now use `eig`.
+- Checks: `pnpm typecheck`, `pnpm test:native`, `pnpm test:asan`,
+  `pnpm test` (237), `pnpm test:diff` (4580) all pass.
+
+Next: P1-5e.2, complex `eig`/`eigvals` (`?geev`).
+
 ## 2026-10-01 — P1 step 5: complex linalg (in progress, D-038–D-041)
 
 P1-5d done: `linalg.svd` accepts complex64/complex128 with every

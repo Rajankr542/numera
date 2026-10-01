@@ -56,8 +56,11 @@ class Routines {
   // Complex A X = B (column-major n×n A, n×nrhs B), as gesv (D-039).
   virtual int cgesv(std::int64_t n, std::int64_t nrhs, std::complex<T>* a,
                     std::complex<T>* b) const = 0;
-  // Symmetric eigen (lower triangle used): w ascending, a -> eigenvectors.
-  virtual int syevd(std::int64_t n, T* a, T* w) const = 0;
+  // Symmetric eigen (lower triangle used): w ascending; with `vectors`, a ->
+  // eigenvectors (JOBZ='V'), else values only (JOBZ='N', D-042).
+  virtual int syevd(std::int64_t n, T* a, T* w, bool vectors) const = 0;
+  // Hermitian eigen, layout as syevd; w real (D-042).
+  virtual int cheevd(std::int64_t n, std::complex<T>* a, T* w, bool vectors) const = 0;
   // General eigen: w complex, v complex n×n (column eigenvectors, unit 2-norm).
   virtual int geev(std::int64_t n, T* a, std::complex<T>* w, std::complex<T>* v) const = 0;
   // SVD of m×n A. s: min(m,n). If u/vt null, values only. full: U m×m and

@@ -1051,4 +1051,51 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   difference. With the fallback, S was bit-identical in 32/60 cases, largest
   |ΔS| 5e-14.
 
+## D-042 — Complex eigh/eigvalsh, native eigvalsh (P1-5e.1) — Accepted — 2026-10-01
+- `eigh`/`eigvalsh` accept complex64/complex128 (Hermitian, lower triangle,
+  UPLO='L'). Eigenvalues are real and ascending: float32 for complex64,
+  float64 for complex128. Eigenvectors keep the input's complex dtype.
+- Like D-038–D-041, complex input is computed in complex128 (NumPy's
+  `'D->dD'`/`'D->d'` signatures) and the results are cast once at the end.
+  Real input is unchanged: float32 stays float32 (D-018).
+- `eigvalsh` becomes its own native entry point (`linalg::eigvalsh`). It
+  calls the eigen routine with JOBZ='N', as NumPy's `eigvalsh` gufunc does.
+  This affects real input too. LAPACK's values-only path is a different
+  algorithm (`?sterf` rather than `?stedc`), and in a NumPy probe its
+  results differed bitwise from `eigh(a).eigenvalues` in 29/31 random real
+  and 29/62 random complex matrices. Before this change, `eigvalsh` returned
+  `eigh(a).eigenvalues`, so it could not be bit-identical to NumPy.
+- Backend interface: `syevd(n, a, w, vectors)` gains the `vectors` flag, and
+  `cheevd(n, complex* a, T* w, vectors)` is new. Accelerate calls
+  `ssyevd_`/`dsyevd_`/`cheevd_`/`zheevd_` with queried `lwork`/`lrwork`/
+  `liwork`. The fallback is the cyclic Jacobi method. For complex input, each
+  pair (p, q) is first phase-aligned: row/column q of A and column q of V are
+  scaled by conj(a_pq)/|a_pq|, which makes a_pq real; then the real rotation
+  is applied. The diagonal's imaginary part is ignored, as in LAPACK. The
+  fallback always computes vectors, and `vectors` only changes what is
+  returned. The real fallback path is unchanged.
+- As in NumPy, non-finite input is not pre-checked; it goes to the backend.
+  With Accelerate the results match NumPy: a NaN diagonal gives [nan, 1]
+  with identity vectors, and an Inf in the lower triangle gives all-NaN
+  values and vectors. The Jacobi fallback raises
+  `LinAlgError("Eigenvalues did not converge")` in that case, which is a
+  backend difference already present for real input. Any backend failure
+  (info > 0) raises that error.
+- Eigenvectors are unique only up to a unit phase per column, so the
+  fallback is checked by reconstruction (A·V = V·Λ) and unitarity, not
+  element-wise.
+- Exactness (NumPy 2.x + Accelerate, arm64; 60 random non-Hermitian n×n
+  inputs, n = 1–29, 15 per dtype; only the lower triangle matters):
+  - Default backend, complex128/complex64/float64: `eigh` values,
+    `eigvalsh` values and eigenvectors are bit-identical in 15/15 cases each.
+  - Default backend, float32: 0/15. NumPy's `_commonType` computes float32
+    input in float64 ('d->dd') and casts the result; nativpy keeps D-018's
+    float32 compute. The largest |Δw| is 7.6e-6. This existing D-018
+    difference affects every real float32 decomposition. It is not changed
+    here and is recorded as an open item.
+  - Fallback: values within 6.6e-14 for complex128/float64 (complex64 values
+    bit-identical 15/15 after the complex128 compute and cast); the largest
+    reconstruction error is 2.6e-14.
+
+
 

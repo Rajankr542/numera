@@ -366,8 +366,8 @@ describe("complex linalg.det (P1-5a, D-038)", () => {
     });
   }
 
-  it("eigh still rejects complex input", () => {
-    expect(() => np.linalg.eigh(A)).toThrow(np.NotImplementedError);
+  it("eig still rejects complex input", () => {
+    expect(() => np.linalg.eig(A)).toThrow(np.NotImplementedError);
   });
 });
 
@@ -564,6 +564,81 @@ describe("complex linalg.svd (P1-5d, D-041)", () => {
         expect(() => np.linalg.svd([[np.complex(1, Infinity)]], { computeUV: false })).toThrow(
           "SVD did not converge",
         );
+      });
+    });
+  }
+});
+
+describe("complex linalg.eigh / eigvalsh (P1-5e.1, D-042)", () => {
+  const flat = (x: InstanceType<typeof np.NDArray>): number[][] =>
+    (x.flatten().toArray() as Complex[]).map((v) => [v.re, v.im]);
+  const maxAbs = (x: InstanceType<typeof np.NDArray>): number =>
+    Math.max(0, ...flat(x).map(([re, im]) => Math.hypot(re, im)));
+  // H = [[2, 1-j], [1+j, 3]] -> NumPy eigenvalues [1, 4].
+  const H = [
+    [2, np.complex(1, -1)],
+    [np.complex(1, 1), 3],
+  ];
+  // 3x3 Hermitian.
+  const A3 = [
+    [4, np.complex(1, -2), np.complex(0, 1)],
+    [np.complex(1, 2), 3, np.complex(2, -1)],
+    [np.complex(0, -1), np.complex(2, 1), 5],
+  ];
+  for (const backend of ["default", "fallback"] as const) {
+    describe(`backend: ${backend}`, () => {
+      beforeAll(() => np.linalg._setBackend(backend));
+      afterAll(() => np.linalg._setBackend("default"));
+
+      it("dtypes, values, reconstruction and unitarity", () => {
+        for (const [dtype, wdt, digits, tol] of [
+          ["complex128", "float64", 13, 1e-13],
+          ["complex64", "float32", 5, 1e-5],
+        ] as const) {
+          const h = np.array(H, { dtype });
+          const { eigenvalues, eigenvectors } = np.linalg.eigh(h);
+          expect(eigenvalues.dtype).toBe(np[wdt]);
+          expect(eigenvectors.dtype).toBe(np[dtype]);
+          expect(eigenvectors.shape).toEqual([2, 2]);
+          (eigenvalues.toArray() as number[]).forEach((v, i) => expect(v).toBeCloseTo([1, 4][i]!, digits));
+          const vals = np.linalg.eigvalsh(h);
+          expect(vals.dtype).toBe(np[wdt]);
+          (vals.toArray() as number[]).forEach((v, i) => expect(v).toBeCloseTo([1, 4][i]!, digits));
+          const a = np.array(A3, { dtype });
+          const r = np.linalg.eigh(a);
+          const V = r.eigenvectors;
+          const av = np.matmul(a, V);
+          const vl = np.multiply(V, r.eigenvalues);
+          expect(maxAbs(np.subtract(av, vl))).toBeLessThan(50 * tol);
+          const gram = np.matmul(np.conjugate(np.transpose(V)), V);
+          expect(maxAbs(np.subtract(gram, np.eye(3)))).toBeLessThan(10 * tol);
+          const w = r.eigenvalues.toArray() as number[];
+          expect(w[0]! <= w[1]! && w[1]! <= w[2]!).toBe(true);
+        }
+      });
+
+      it("lower triangle only, batched, empty and errors", () => {
+        // Upper triangle and the diagonal's imaginary part are ignored (UPLO='L').
+        const g = np.array([
+          [np.complex(2, 5), np.complex(9, 9)],
+          [np.complex(1, 1), np.complex(3, -7)],
+        ]);
+        (np.linalg.eigvalsh(g).toArray() as number[]).forEach((v, i) =>
+          expect(v).toBeCloseTo([1, 4][i]!, 13));
+        const b = np.array([
+          [[1, 0], [0, -2]],
+          [[0, np.complex(0, 1)], [np.complex(0, -1), 0]],
+        ]);
+        const bw = np.linalg.eigvalsh(b);
+        expect(bw.shape).toEqual([2, 2]);
+        (bw.toArray() as number[][]).flat().forEach((v, i) =>
+          expect(v).toBeCloseTo([-2, 1, -1, 1][i]!, 13));
+        const e = np.linalg.eigh(np.zeros([0, 0], { dtype: "complex128" }));
+        expect(e.eigenvalues.shape).toEqual([0]);
+        expect(e.eigenvalues.dtype).toBe(np.float64);
+        expect(e.eigenvectors.dtype).toBe(np.complex128);
+        expect(() => np.linalg.eigh(np.zeros([2, 3], { dtype: "complex64" }))).toThrow(np.LinAlgError);
+        expect(() => np.linalg.eigvalsh(np.zeros([3], { dtype: "complex128" }))).toThrow(np.LinAlgError);
       });
     });
   }

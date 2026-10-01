@@ -320,7 +320,7 @@ TEST_CASE("linalg: complex det (D-038)") {
     run(double{}, 1e-12);
     run(float{}, 1e-5);
     // Other decompositions still reject complex until their slice lands.
-    CHECK_THROWS_KIND(eigh(cmat<double>(1, 1, {C(1, 0)})), ErrorKind::NotImplemented);
+    CHECK_THROWS_KIND(eig(cmat<double>(1, 1, {C(1, 0)})), ErrorKind::NotImplemented);
   });
 }
 
@@ -497,6 +497,79 @@ TEST_CASE("linalg: complex svd (D-041)") {
     NDArray rn = NDArray::zeros({2, 2}, DType::Float64);
     reinterpret_cast<double*>(rn.data())[3] = nan;
     CHECK_THROWS_KIND(svd(rn, false, false), ErrorKind::LinAlg);
+  });
+}
+
+TEST_CASE("linalg: complex eigh/eigvalsh (D-042)") {
+  using C = std::complex<double>;
+  each_backend([] {
+    const auto run = [](auto tag, double tol) {
+      using R = decltype(tag);
+      const DType cdt = std::is_same_v<R, float> ? DType::Complex64 : DType::Complex128;
+      const DType rdt = std::is_same_v<R, float> ? DType::Float32 : DType::Float64;
+      const auto wat = [](const NDArray& x, std::int64_t i) {
+        return static_cast<double>(reinterpret_cast<const R*>(x.data())[i]);
+      };
+      const auto near = [tol](double got, double want) {
+        return std::abs(got - want) <= tol * (1.0 + std::abs(want));
+      };
+      // H = [[2, 1-j], [1+j, 3]] -> eigenvalues [1, 4].
+      const NDArray h = cmat<R>(2, 2, {C(2, 0), C(1, -1), C(1, 1), C(3, 0)});
+      const EigResult e = eigh(h);
+      CHECK(e.eigenvalues.dtype() == rdt);
+      CHECK(e.eigenvectors.dtype() == cdt);
+      CHECK(e.eigenvalues.shape() == Shape({2}));
+      CHECK(e.eigenvectors.shape() == Shape({2, 2}));
+      CHECK(near(wat(e.eigenvalues, 0), 1.0));
+      CHECK(near(wat(e.eigenvalues, 1), 4.0));
+      const NDArray vh = eigvalsh(h);
+      CHECK(vh.dtype() == rdt);
+      CHECK(near(wat(vh, 0), 1.0));
+      CHECK(near(wat(vh, 1), 4.0));
+      // Only the lower triangle is read: upper garbage and diagonal imag ignored.
+      const NDArray g = cmat<R>(2, 2, {C(2, 5), C(9, 9), C(1, 1), C(3, -7)});
+      const NDArray gw = eigvalsh(g);
+      CHECK(near(wat(gw, 0), 1.0));
+      CHECK(near(wat(gw, 1), 4.0));
+      // 3x3 Hermitian: A V = V diag(w), V^H V = I.
+      const NDArray a = cmat<R>(3, 3, {C(4, 0), C(1, -2), C(0, 1), C(1, 2), C(3, 0), C(2, -1),
+                                       C(0, -1), C(2, 1), C(5, 0)});
+      const EigResult r = eigh(a);
+      for (int i = 0; i < 2; ++i) CHECK(wat(r.eigenvalues, i) <= wat(r.eigenvalues, i + 1));
+      for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j) {
+          C av{};
+          C vv{};
+          for (int p = 0; p < 3; ++p) {
+            av += C(cat<R>(a, i * 3 + p)) * C(cat<R>(r.eigenvectors, p * 3 + j));
+            vv += std::conj(C(cat<R>(r.eigenvectors, p * 3 + i))) *
+                  C(cat<R>(r.eigenvectors, p * 3 + j));
+          }
+          const C want = C(cat<R>(r.eigenvectors, i * 3 + j)) * wat(r.eigenvalues, j);
+          CHECK(std::abs(av - want) <= 20 * tol);
+          CHECK(std::abs(vv - (i == j ? C(1, 0) : C(0, 0))) <= 10 * tol);
+        }
+      // Batched (2,2,2): [[1,0],[0,-2]] and [[0,j],[-j,0]] -> [-2,1], [-1,1].
+      NDArray b = NDArray::empty({2, 2, 2}, cdt);
+      auto* bp = reinterpret_cast<std::complex<R>*>(b.data());
+      const C bv[8] = {C(1, 0), C(0, 0), C(0, 0), C(-2, 0), C(0, 0), C(0, 1), C(0, -1), C(0, 0)};
+      for (int i = 0; i < 8; ++i) bp[i] = {static_cast<R>(bv[i].real()), static_cast<R>(bv[i].imag())};
+      const NDArray bw = eigvalsh(b);
+      CHECK(bw.shape() == Shape({2, 2}));
+      CHECK(near(wat(bw, 0), -2.0));
+      CHECK(near(wat(bw, 1), 1.0));
+      CHECK(near(wat(bw, 2), -1.0));
+      CHECK(near(wat(bw, 3), 1.0));
+      // Empty 0x0 and errors.
+      const EigResult z = eigh(NDArray::zeros({0, 0}, cdt));
+      CHECK(z.eigenvalues.shape() == Shape({0}));
+      CHECK(z.eigenvalues.dtype() == rdt);
+      CHECK(z.eigenvectors.dtype() == cdt);
+      CHECK_THROWS_KIND(eigh(NDArray::zeros({2, 3}, cdt)), ErrorKind::LinAlg);
+      CHECK_THROWS_KIND(eigvalsh(NDArray::zeros({3}, cdt)), ErrorKind::LinAlg);
+    };
+    run(double{}, 1e-12);
+    run(float{}, 1e-5);
   });
 }
 

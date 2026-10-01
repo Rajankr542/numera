@@ -624,7 +624,7 @@ eigenvalues.dtype.name; // => "complex128"`,
       {
         name: "linalg.eigh",
         sig: "np.linalg.eigh(a) · np.linalg.eigvalsh(a)",
-        desc: "Eigen-decomposition of a symmetric/Hermitian matrix, using the lower triangle. Eigenvalues are real and sorted in ascending order.",
+        desc: "Eigen-decomposition of a symmetric/Hermitian matrix (real or complex), using the lower triangle. Eigenvalues are real and sorted in ascending order. `eigvalsh` computes eigenvalues only.",
         args: [arrayArg()],
         returns: "{ eigenvalues: NDArray, eigenvectors: NDArray }",
         example: `np.linalg.eigh([[2, 1], [1, 2]]).eigenvalues; // => [1, 3]

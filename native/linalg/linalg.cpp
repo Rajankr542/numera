@@ -7,8 +7,10 @@
 #include <cstring>
 #include <initializer_list>
 #include <limits>
+#include <optional>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "backend.hpp"
@@ -283,6 +285,13 @@ int gesdd_e(idx m, idx n, E* a, real_of_t<E>* s, E* u, E* vt, bool full) {
   else return routines<typename E::value_type>().cgesdd(m, n, a, s, u, vt, full);
 }
 
+// syevd / cheevd for a real or complex element type E; w is real (D-042).
+template <typename E>
+int evd_e(idx n, E* a, real_of_t<E>* w, bool vectors) {
+  if constexpr (std::is_floating_point_v<E>) return routines<E>().syevd(n, a, w, vectors);
+  else return routines<typename E::value_type>().cheevd(n, a, w, vectors);
+}
+
 // Dispatches fn(E{}) for the inv/solve compute dtype: float32, float64 or
 // complex128 (complex input always computes in complex128, D-039).
 template <typename Fn>
@@ -290,6 +299,40 @@ void dispatch_solve(DType ct, Fn&& fn) {
   if (ct == DType::Complex128) fn(std::complex<double>{});
   else if (ct == DType::Float32) fn(float{});
   else fn(double{});
+}
+
+// Shared eigh / eigvalsh (D-042): complex computes in complex128 ('D->dD'),
+// eigenvalues real; `vectors` = JOBZ.
+std::pair<NDArray, std::optional<NDArray>> eigh_impl(const NDArray& a, bool vectors,
+                                                     const char* fn) {
+  const bool cplx = is_complex(a.dtype());
+  const DType dt = cplx ? a.dtype() : decomp_dtype(a, fn);
+  const DType ct = cplx ? DType::Complex128 : dt;
+  const DType wct = cplx ? DType::Float64 : dt;
+  const DType wdt = dt == DType::Complex64 ? DType::Float32 : wct;
+  require_square(a, fn);
+  const idx n = a.shape().back();
+  const Shape batch = batch_of(a.shape(), 2);
+  const NDArray ac = as_compute(a, ct);
+  NDArray w = NDArray::empty(concat(batch, {n}), wct);
+  std::optional<NDArray> v;
+  if (vectors) v = NDArray::empty(a.shape(), ct);
+  dispatch_solve(ct, [&](auto tag) {
+    using T = decltype(tag);
+    using R = real_of_t<T>;
+    std::vector<T> m(sz(n * n));
+    for (idx t = 0; t < shape_size(batch) && n > 0; ++t) {
+      // Column-major copy keeps element (i, j) in place; UPLO='L' reads i >= j.
+      to_colmajor(ptr<T>(ac) + t * n * n, m.data(), n, n);
+      if (evd_e(n, m.data(), ptr<R>(w) + t * n, vectors) != 0) {
+        linalg_fail("Eigenvalues did not converge");
+      }
+      if (vectors) from_colmajor(m.data(), ptr<T>(*v) + t * n * n, n, n);
+    }
+  });
+  if (wct != wdt) w = w.astype(wdt);
+  if (v && ct != dt) v = v->astype(dt);
+  return {w, v};
 }
 
 }  // namespace
@@ -449,27 +492,11 @@ NDArray solve(const NDArray& a, const NDArray& b) {
 }
 
 EigResult eigh(const NDArray& a) {
-  const DType dt = decomp_dtype(a, "eigh");
-  require_square(a, "eigh");
-  const idx n = a.shape().back();
-  const Shape batch = batch_of(a.shape(), 2);
-  const NDArray ac = as_compute(a, dt);
-  NDArray w = NDArray::empty(concat(batch, {n}), dt);
-  NDArray v = NDArray::empty(a.shape(), dt);
-  dispatch_real(dt, [&](auto tag) {
-    using T = decltype(tag);
-    std::vector<T> m(sz(n * n));
-    for (idx t = 0; t < shape_size(batch) && n > 0; ++t) {
-      // Column-major copy keeps element (i, j) in place; UPLO='L' reads i >= j.
-      to_colmajor(ptr<T>(ac) + t * n * n, m.data(), n, n);
-      if (routines<T>().syevd(n, m.data(), ptr<T>(w) + t * n) != 0) {
-        linalg_fail("Eigenvalues did not converge");
-      }
-      from_colmajor(m.data(), ptr<T>(v) + t * n * n, n, n);
-    }
-  });
-  return {w, v};
+  auto [w, v] = eigh_impl(a, true, "eigh");
+  return {w, *v};
 }
+
+NDArray eigvalsh(const NDArray& a) { return eigh_impl(a, false, "eigvalsh").first; }
 
 EigResult eig(const NDArray& a) {
   const DType dt = decomp_dtype(a, "eig");

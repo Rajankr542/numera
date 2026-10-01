@@ -26,7 +26,8 @@ struct EigResult {
   NDArray eigenvectors;
 };
 EigResult eig(const NDArray& a);
-EigResult eigh(const NDArray& a);  // lower triangle (UPLO='L')
+EigResult eigh(const NDArray& a);  // lower triangle (UPLO='L'); complex OK (D-042)
+NDArray eigvalsh(const NDArray& a);  // values only (JOBZ='N', D-042)
 
 struct SvdResult {
   std::optional<NDArray> u;

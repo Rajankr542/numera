@@ -65,6 +65,7 @@ void init_linalg_binding(Napi::Env env, Napi::Object exports) {
   bin("solve", &linalg::solve);
   un("det", &linalg::det);
   un("inv", &linalg::inv);
+  un("eigvalsh", &linalg::eigvalsh);
   const auto eig_obj = [](Napi::Env e, const linalg::EigResult& r) {
     Napi::Object o = Napi::Object::New(e);
     o.Set("eigenvalues", wrap(e, r.eigenvalues));

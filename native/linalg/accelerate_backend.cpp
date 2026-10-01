@@ -101,13 +101,26 @@ void gesv_(const lint* n, const lint* r, std::complex<double>* a, const lint* ld
            std::complex<double>* b, const lint* ldb, lint* info) {
   zgesv_(n, r, a, lda, p, b, ldb, info);
 }
-void syevd_(const lint* n, float* a, float* w, float* work, const lint* lw, lint* iw,
-            const lint* liw, lint* info) {
-  ssyevd_("V", "L", n, a, n, w, work, lw, iw, liw, info);
+// lda = max(n, 1), as NumPy's init_evd. `rw`/`lrw` are unused for real types.
+void syevd_(const char* jobz, const lint* n, const lint* lda, float* a, float* w, float* work,
+            const lint* lw, float* /*rw*/, const lint* /*lrw*/, lint* iw, const lint* liw,
+            lint* info) {
+  ssyevd_(jobz, "L", n, a, lda, w, work, lw, iw, liw, info);
 }
-void syevd_(const lint* n, double* a, double* w, double* work, const lint* lw, lint* iw,
+void syevd_(const char* jobz, const lint* n, const lint* lda, double* a, double* w, double* work,
+            const lint* lw, double* /*rw*/, const lint* /*lrw*/, lint* iw, const lint* liw,
+            lint* info) {
+  dsyevd_(jobz, "L", n, a, lda, w, work, lw, iw, liw, info);
+}
+void syevd_(const char* jobz, const lint* n, const lint* lda, std::complex<float>* a, float* w,
+            std::complex<float>* work, const lint* lw, float* rw, const lint* lrw, lint* iw,
             const lint* liw, lint* info) {
-  dsyevd_("V", "L", n, a, n, w, work, lw, iw, liw, info);
+  cheevd_(jobz, "L", n, a, lda, w, work, lw, rw, lrw, iw, liw, info);
+}
+void syevd_(const char* jobz, const lint* n, const lint* lda, std::complex<double>* a, double* w,
+            std::complex<double>* work, const lint* lw, double* rw, const lint* lrw, lint* iw,
+            const lint* liw, lint* info) {
+  zheevd_(jobz, "L", n, a, lda, w, work, lw, rw, lrw, iw, liw, info);
 }
 void geev_(const lint* n, float* a, float* wr, float* wi, float* vr, float* work,
            const lint* lw, lint* info) {
@@ -238,6 +251,30 @@ int lu_solve(idx n, idx nrhs, E* a, E* b) {
   return static_cast<int>(info);
 }
 
+// ?syevd / ?heevd (UPLO='L') with queried work sizes, like NumPy's init_evd;
+// E real or complex, R its real type (D-042).
+template <typename E, typename R>
+int evd(idx n, E* a, R* w, bool vectors) {
+  const char* jobz = vectors ? "V" : "N";
+  const lint nn = li(n);
+  const lint lda = std::max<lint>(nn, 1);
+  lint info = 0;
+  E wq{};
+  R rwq{};
+  lint iwq = 0;
+  const lint q = -1;
+  syevd_(jobz, &nn, &lda, a, w, &wq, &q, &rwq, &q, &iwq, &q, &info);
+  if (info != 0) return static_cast<int>(info);
+  const lint lw = lwork_from(wq);
+  const lint lrw = std::max<lint>(1, static_cast<lint>(rwq));
+  const lint liw = std::max<lint>(1, iwq);
+  std::vector<E> work(static_cast<std::size_t>(lw));
+  std::vector<R> rw(static_cast<std::size_t>(lrw));
+  std::vector<lint> iw(static_cast<std::size_t>(liw));
+  syevd_(jobz, &nn, &lda, a, w, work.data(), &lw, rw.data(), &lrw, iw.data(), &liw, &info);
+  return static_cast<int>(info);
+}
+
 template <typename T>
 class AccelRoutines final : public Routines<T> {
  public:
@@ -275,20 +312,9 @@ class AccelRoutines final : public Routines<T> {
   int cgesv(idx n, idx nrhs, std::complex<T>* a, std::complex<T>* b) const override {
     return lu_solve(n, nrhs, a, b);
   }
-  int syevd(idx n, T* a, T* w) const override {
-    const lint nn = li(n);
-    lint info = 0;
-    T wq{};
-    lint iwq = 0;
-    const lint q = -1;
-    syevd_(&nn, a, w, &wq, &q, &iwq, &q, &info);
-    if (info != 0) return static_cast<int>(info);
-    const lint lw = lwork_from(wq);
-    const lint liw = std::max<lint>(1, iwq);
-    std::vector<T> work(static_cast<std::size_t>(lw));
-    std::vector<lint> iw(static_cast<std::size_t>(liw));
-    syevd_(&nn, a, w, work.data(), &lw, iw.data(), &liw, &info);
-    return static_cast<int>(info);
+  int syevd(idx n, T* a, T* w, bool vectors) const override { return evd(n, a, w, vectors); }
+  int cheevd(idx n, std::complex<T>* a, T* w, bool vectors) const override {
+    return evd(n, a, w, vectors);
   }
   int geev(idx n, T* a, std::complex<T>* w, std::complex<T>* v) const override {
     const lint nn = li(n);

@@ -114,24 +114,28 @@ int lu_gesv(idx n, idx nrhs, E* a, E* b) {
   return 0;
 }
 
-// Cyclic Jacobi on symmetric n×n (lower triangle is mirrored first).
-template <typename T>
-int jacobi_eigh(idx n, T* a, T* w) {
-  Mat<T> A{a, n};
+// Cyclic Jacobi on Hermitian (real: symmetric) n×n; the lower triangle is
+// mirrored first and the diagonal's imaginary part ignored, as LAPACK does.
+// Complex pairs are phase-aligned so a_pq is real, then rotated (D-042).
+template <typename E>
+int jacobi_eigh(idx n, E* a, real_t<E>* w, bool vectors) {
+  using T = real_t<E>;
+  Mat<E> A{a, n};
   for (idx j = 0; j < n; ++j) {
-    for (idx i = 0; i < j; ++i) A(i, j) = A(j, i);
+    if constexpr (!std::is_floating_point_v<E>) A(j, j) = E(A(j, j).real(), T{0});
+    for (idx i = 0; i < j; ++i) A(i, j) = cj(A(j, i));
   }
-  std::vector<T> vbuf(static_cast<std::size_t>(n * n), T{0});
-  Mat<T> V{vbuf.data(), n};
-  for (idx i = 0; i < n; ++i) V(i, i) = T{1};
+  std::vector<E> vbuf(static_cast<std::size_t>(n * n), E{0});
+  Mat<E> V{vbuf.data(), n};
+  for (idx i = 0; i < n; ++i) V(i, i) = E{1};
   const T eps = std::numeric_limits<T>::epsilon();
   bool converged = n <= 1;
   for (int sweep = 0; sweep < 100 && !converged; ++sweep) {
     T off = 0;
     T diag = 0;
     for (idx j = 0; j < n; ++j) {
-      diag += A(j, j) * A(j, j);
-      for (idx i = 0; i < j; ++i) off += A(i, j) * A(i, j);
+      diag += abs2(A(j, j));
+      for (idx i = 0; i < j; ++i) off += abs2(A(i, j));
     }
     if (off <= eps * eps * diag || off == T{0}) {
       converged = true;
@@ -139,28 +143,39 @@ int jacobi_eigh(idx n, T* a, T* w) {
     }
     for (idx p = 0; p < n - 1; ++p) {
       for (idx q = p + 1; q < n; ++q) {
-        const T apq = A(p, q);
-        if (apq == T{0}) continue;
-        const T theta = (A(q, q) - A(p, p)) / (T{2} * apq);
+        if (A(p, q) == E{0}) continue;
+        if constexpr (!std::is_floating_point_v<E>) {
+          // D = diag(1, .., d, ..) at q with d = conj(a_pq)/|a_pq|: A <- Dᴴ A D, V <- V D.
+          const T mag = std::abs(A(p, q));
+          const E d = std::conj(A(p, q)) / mag;
+          for (idx k = 0; k < n; ++k) A(k, q) *= d;
+          for (idx k = 0; k < n; ++k) A(q, k) *= std::conj(d);
+          A(p, q) = E(mag, T{0});
+          A(q, p) = E(mag, T{0});
+          A(q, q) = E(A(q, q).real(), T{0});
+          for (idx k = 0; k < n; ++k) V(k, q) *= d;
+        }
+        const T apq = std::real(A(p, q));
+        const T theta = (std::real(A(q, q)) - std::real(A(p, p))) / (T{2} * apq);
         const T t = (theta >= 0 ? T{1} : T{-1}) /
                     (std::abs(theta) + std::sqrt(theta * theta + T{1}));
         const T c = T{1} / std::sqrt(t * t + T{1});
         const T s = t * c;
         for (idx k = 0; k < n; ++k) {
-          const T akp = A(k, p);
-          const T akq = A(k, q);
+          const E akp = A(k, p);
+          const E akq = A(k, q);
           A(k, p) = c * akp - s * akq;
           A(k, q) = s * akp + c * akq;
         }
         for (idx k = 0; k < n; ++k) {
-          const T apk = A(p, k);
-          const T aqk = A(q, k);
+          const E apk = A(p, k);
+          const E aqk = A(q, k);
           A(p, k) = c * apk - s * aqk;
           A(q, k) = s * apk + c * aqk;
         }
         for (idx k = 0; k < n; ++k) {
-          const T vkp = V(k, p);
-          const T vkq = V(k, q);
+          const E vkp = V(k, p);
+          const E vkq = V(k, q);
           V(k, p) = c * vkp - s * vkq;
           V(k, q) = s * vkp + c * vkq;
         }
@@ -170,11 +185,13 @@ int jacobi_eigh(idx n, T* a, T* w) {
   if (!converged) return 1;
   std::vector<idx> order(static_cast<std::size_t>(n));
   for (idx i = 0; i < n; ++i) order[static_cast<std::size_t>(i)] = i;
-  std::sort(order.begin(), order.end(), [&](idx x, idx y) { return A(x, x) < A(y, y); });
+  std::sort(order.begin(), order.end(),
+            [&](idx x, idx y) { return std::real(A(x, x)) < std::real(A(y, y)); });
   for (idx c = 0; c < n; ++c) {
     const idx src = order[static_cast<std::size_t>(c)];
-    w[c] = A(src, src);
+    w[c] = std::real(A(src, src));
   }
+  if (!vectors) return 0;
   for (idx c = 0; c < n; ++c) {
     const idx src = order[static_cast<std::size_t>(c)];
     for (idx r = 0; r < n; ++r) A(r, c) = V(r, src);
@@ -634,7 +651,12 @@ class FallbackRoutines final : public Routines<T> {
   int cgesv(idx n, idx nrhs, std::complex<T>* a, std::complex<T>* b) const override {
     return lu_gesv(n, nrhs, a, b);
   }
-  int syevd(idx n, T* a, T* w) const override { return jacobi_eigh(n, a, w); }
+  int syevd(idx n, T* a, T* w, bool vectors) const override {
+    return jacobi_eigh(n, a, w, vectors);
+  }
+  int cheevd(idx n, std::complex<T>* a, T* w, bool vectors) const override {
+    return jacobi_eigh(n, a, w, vectors);
+  }
   int geev(idx n, T* a, std::complex<T>* w, std::complex<T>* v) const override {
     return complex_eig(n, a, w, v);
   }

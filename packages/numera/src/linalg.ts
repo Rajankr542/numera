@@ -42,7 +42,10 @@ export function eig(a: ArrayLike): EigResult {
     return { eigenvalues: w(r.eigenvalues), eigenvectors: w(r.eigenvectors) };
   });
 }
-/** Symmetric eigen-decomposition using the lower triangle; ascending values. */
+/**
+ * Hermitian (real: symmetric) eigen-decomposition using the lower triangle.
+ * Eigenvalues are real and ascending; complex input is accepted (D-042).
+ */
 export function eigh(a: ArrayLike): EigResult {
   return wrapNative(() => {
     const r = addon.linalg.eigh(toArray(a)._native);
@@ -50,7 +53,9 @@ export function eigh(a: ArrayLike): EigResult {
   });
 }
 export const eigvals = (a: ArrayLike): NDArray => eig(a).eigenvalues;
-export const eigvalsh = (a: ArrayLike): NDArray => eigh(a).eigenvalues;
+/** Eigenvalues only (LAPACK JOBZ='N', like NumPy), D-042. */
+export const eigvalsh = (a: ArrayLike): NDArray =>
+  wrapNative(() => w(addon.linalg.eigvalsh(toArray(a)._native)));
 
 export interface SvdOptions {
   fullMatrices?: boolean;
