@@ -341,13 +341,77 @@ void check_out_writeable(const NDArray& out) {
   if (!out.writeable()) throw_error(ErrorKind::Value, "output array is read-only");
 }
 
-void check_out_cast(const char* name, DType dt, DType out) {
-  if (!can_cast(dt, out, Casting::SameKind)) {
-    throw_error(ErrorKind::DType, std::string("Cannot cast ufunc '") + name + "' output from " +
-                                      std::string(dtype_name(dt)) + " to " +
-                                      std::string(dtype_name(out)) +
-                                      " with casting rule 'same_kind'");
+// `what` is "output", "input", "input 0", "input 1" (NumPy's wording).
+void check_cast(const char* name, const char* what, DType from, DType to, Casting casting) {
+  if (!can_cast(from, to, casting)) {
+    throw_error(ErrorKind::DType, std::string("Cannot cast ufunc '") + name + "' " + what +
+                                      " from " + std::string(dtype_name(from)) + " to " +
+                                      std::string(dtype_name(to)) + " with casting rule '" +
+                                      std::string(casting_name(casting)) + "'");
   }
+}
+
+[[noreturn]] void no_loop(const char* name) {
+  throw_error(ErrorKind::DType,
+              std::string("No loop matching the specified signature and casting was found for ufunc ") +
+                  name);
+}
+
+bool is_inexact(DType dt) noexcept {
+  const char k = dtype_info(dt).kind;
+  return k == 'f' || k == 'c';
+}
+
+// Loop dtype for a binary ufunc called with dtype=d (D-048).
+DType binary_loop_for(BinaryOp op, DType d) {
+  if (d == DType::Bool && op == BinaryOp::Subtract) {
+    return binary_result_dtype(op, d, d);  // throws the boolean-subtract message
+  }
+  switch (op) {
+    case BinaryOp::Divide:
+      if (!is_inexact(d)) no_loop(binary_name(op));
+      break;
+    case BinaryOp::Power:
+      if (d == DType::Bool) no_loop(binary_name(op));
+      break;
+    case BinaryOp::Mod:
+    case BinaryOp::FloorDivide:
+      if (d == DType::Bool || is_complex(d)) no_loop(binary_name(op));
+      break;
+    default: break;
+  }
+  return d;
+}
+
+struct UnaryLoop {
+  DType in;
+  DType out;
+};
+
+// Loop (input, output) dtypes for a unary ufunc called with dtype=d (D-048).
+UnaryLoop unary_loop_for(UnaryOp op, DType in, DType d) {
+  switch (op) {
+    case UnaryOp::Abs:
+      if (is_complex(d)) no_loop(unary_name(op));
+      if (is_complex(in) && (d == DType::Float32 || d == DType::Float64)) {
+        const DType c = d == DType::Float32 ? DType::Complex64 : DType::Complex128;
+        if (can_cast(in, c, Casting::Safe)) return {c, d};  // NumPy F->f / D->d
+      }
+      return {d, d};
+    case UnaryOp::Negative:
+      if (d == DType::Bool) unary_result_dtype(op, d);  // throws the boolean-negative message
+      return {d, d};
+    case UnaryOp::Sqrt:
+    case UnaryOp::Exp:
+    case UnaryOp::Log:
+      if (!is_inexact(d)) no_loop(unary_name(op));
+      return {d, d};
+    case UnaryOp::Conjugate:
+      if (d == DType::Bool) no_loop(unary_name(op));
+      return {d, d};
+    case UnaryOp::Angle: break;
+  }
+  no_loop(unary_name(op));
 }
 
 void check_out_shape(std::vector<Shape> shapes, const Shape& out) {
@@ -363,59 +427,80 @@ void check_out_shape(std::vector<Shape> shapes, const Shape& out) {
 
 }  // namespace
 
-NDArray binary(BinaryOp op, const NDArray& a_in, const NDArray& b_in) {
-  const DType dt = binary_result_dtype(op, a_in.dtype(), b_in.dtype());
-  const Shape out_shape = broadcast_shapes({a_in.shape(), b_in.shape()});
+NDArray binary(BinaryOp op, const NDArray& a_in, const NDArray& b_in, const NDArray* out,
+               const UfuncParams& params) {
+  if (out) check_out_writeable(*out);
+  const char* name = binary_name(op);
+  const DType dt = params.dtype ? binary_loop_for(op, *params.dtype)
+                                : binary_result_dtype(op, a_in.dtype(), b_in.dtype());
+  check_cast(name, "input 0", a_in.dtype(), dt, params.casting);
+  check_cast(name, "input 1", b_in.dtype(), dt, params.casting);
+  if (out) {
+    check_cast(name, "output", dt, out->dtype(), params.casting);
+    check_out_shape({a_in.shape(), b_in.shape()}, out->shape());
+  }
   const NDArray a = a_in.dtype() == dt ? a_in : a_in.astype(dt);
   const NDArray b = b_in.dtype() == dt ? b_in : b_in.astype(dt);
   if (op == BinaryOp::Power) check_nonnegative_exponent(b);
-  NDArray out = NDArray::empty(out_shape, dt);
-  binary_into(op, dt, a, b, out);
-  return out;
-}
-
-NDArray binary(BinaryOp op, const NDArray& a_in, const NDArray& b_in, const NDArray& out) {
-  check_out_writeable(out);
-  const DType dt = binary_result_dtype(op, a_in.dtype(), b_in.dtype());
-  check_out_cast(binary_name(op), dt, out.dtype());
-  check_out_shape({a_in.shape(), b_in.shape()}, out.shape());
-  const NDArray a = a_in.dtype() == dt ? a_in : a_in.astype(dt);
-  const NDArray b = b_in.dtype() == dt ? b_in : b_in.astype(dt);
-  if (op == BinaryOp::Power) check_nonnegative_exponent(b);
-  if (out.dtype() == dt) {
-    binary_into(op, dt, safe_input(a, out), safe_input(b, out), out);
+  if (!out) {
+    NDArray res = NDArray::empty(broadcast_shapes({a_in.shape(), b_in.shape()}), dt);
+    binary_into(op, dt, a, b, res);
+    return res;
+  }
+  if (out->dtype() == dt) {
+    binary_into(op, dt, safe_input(a, *out), safe_input(b, *out), *out);
   } else {
-    const NDArray tmp = NDArray::empty(out.shape(), dt);
+    const NDArray tmp = NDArray::empty(out->shape(), dt);
     binary_into(op, dt, a, b, tmp);
-    copy_into(out, tmp);
+    copy_into(*out, tmp);
   }
-  return out;
+  return *out;
 }
 
-NDArray unary(UnaryOp op, const NDArray& a_in) {
-  const DType dt = unary_result_dtype(op, a_in.dtype());
-  const bool direct = unary_reads_input_dtype(op, a_in.dtype()) || a_in.dtype() == dt;
-  const NDArray a = direct ? a_in : a_in.astype(dt);
-  NDArray out = NDArray::empty(a.shape(), dt);
-  unary_into(op, dt, a, out);
-  return out;
+NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b) {
+  return binary(op, a, b, nullptr, UfuncParams{});
 }
 
-NDArray unary(UnaryOp op, const NDArray& a_in, const NDArray& out) {
-  check_out_writeable(out);
-  const DType dt = unary_result_dtype(op, a_in.dtype());
-  check_out_cast(unary_name(op), dt, out.dtype());
-  check_out_shape({a_in.shape()}, out.shape());
-  const bool direct = unary_reads_input_dtype(op, a_in.dtype()) || a_in.dtype() == dt;
-  const NDArray a = direct ? a_in : a_in.astype(dt);
-  if (out.dtype() == dt) {
-    unary_into(op, dt, safe_input(a, out), out);
+NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b, const NDArray& out) {
+  return binary(op, a, b, &out, UfuncParams{});
+}
+
+NDArray unary(UnaryOp op, const NDArray& a_in, const NDArray* out, const UfuncParams& params) {
+  if (out) check_out_writeable(*out);
+  const char* name = unary_name(op);
+  UnaryLoop loop{};
+  if (params.dtype) {
+    loop = unary_loop_for(op, a_in.dtype(), *params.dtype);
   } else {
-    const NDArray tmp = NDArray::empty(out.shape(), dt);
-    unary_into(op, dt, a, tmp);
-    copy_into(out, tmp);
+    const DType dt = unary_result_dtype(op, a_in.dtype());
+    loop = {unary_reads_input_dtype(op, a_in.dtype()) ? a_in.dtype() : dt, dt};
   }
-  return out;
+  const DType dt = loop.out;
+  check_cast(name, "input", a_in.dtype(), loop.in, params.casting);
+  if (out) {
+    check_cast(name, "output", dt, out->dtype(), params.casting);
+    check_out_shape({a_in.shape()}, out->shape());
+  }
+  const NDArray a = a_in.dtype() == loop.in ? a_in : a_in.astype(loop.in);
+  if (!out) {
+    NDArray res = NDArray::empty(a.shape(), dt);
+    unary_into(op, dt, a, res);
+    return res;
+  }
+  if (out->dtype() == dt) {
+    unary_into(op, dt, safe_input(a, *out), *out);
+  } else {
+    const NDArray tmp = NDArray::empty(out->shape(), dt);
+    unary_into(op, dt, a, tmp);
+    copy_into(*out, tmp);
+  }
+  return *out;
+}
+
+NDArray unary(UnaryOp op, const NDArray& a) { return unary(op, a, nullptr, UfuncParams{}); }
+
+NDArray unary(UnaryOp op, const NDArray& a, const NDArray& out) {
+  return unary(op, a, &out, UfuncParams{});
 }
 
 NDArray complex_part(const NDArray& a, bool imag) {

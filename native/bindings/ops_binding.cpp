@@ -57,6 +57,18 @@ const NDArray& arr(const Napi::CallbackInfo& info, std::size_t i) {
   return NDArrayWrap::unwrap(info[i]);
 }
 
+// Ufunc params (D-048) from an optional { dtype?: string, casting?: string }.
+UfuncParams ufunc_params(const Napi::CallbackInfo& info, std::size_t i) {
+  UfuncParams p;
+  if (info.Length() <= i || !info[i].IsObject()) return p;
+  const auto o = info[i].As<Napi::Object>();
+  const Napi::Value dt = o.Get("dtype");
+  if (!dt.IsUndefined() && !dt.IsNull()) p.dtype = parse_dtype(dt);
+  const Napi::Value casting = o.Get("casting");
+  if (!casting.IsUndefined()) p.casting = parse_casting(casting);
+  return p;
+}
+
 std::optional<std::int64_t> opt_int(const Napi::Object& o, const char* key) {
   const Napi::Value v = o.Get(key);
   if (v.IsUndefined() || v.IsNull()) return std::nullopt;
@@ -168,22 +180,26 @@ void init_ops_binding(Napi::Env env, Napi::Object exports) {
                 const std::string name = i[0].ToString().Utf8Value();
                 const auto op = binary_op_from_name(name);
                 if (!op) throw_error(ErrorKind::Value, "unknown binary ufunc " + name);
+                const UfuncParams params = ufunc_params(i, 4);
                 // Optional out (D-046/D-047): the caller returns its own JS object.
                 if (i.Length() > 3 && !i[3].IsUndefined() && !i[3].IsNull()) {
-                  binary(*op, arr(i, 1), arr(i, 2), arr(i, 3));
+                  const NDArray& out = arr(i, 3);
+                  binary(*op, arr(i, 1), arr(i, 2), &out, params);
                   return e.Undefined();
                 }
-                return Napi::Value(NDArrayWrap::create(e, binary(*op, arr(i, 1), arr(i, 2))));
+                return Napi::Value(NDArrayWrap::create(e, binary(*op, arr(i, 1), arr(i, 2), nullptr, params)));
               }));
   exports.Set("unary", fn(env, "unary", [](Info i, Napi::Env e) {
                 const std::string name = i[0].ToString().Utf8Value();
                 const auto op = unary_op_from_name(name);
                 if (!op) throw_error(ErrorKind::Value, "unknown unary ufunc " + name);
+                const UfuncParams params = ufunc_params(i, 3);
                 if (i.Length() > 2 && !i[2].IsUndefined() && !i[2].IsNull()) {
-                  unary(*op, arr(i, 1), arr(i, 2));
+                  const NDArray& out = arr(i, 2);
+                  unary(*op, arr(i, 1), &out, params);
                   return e.Undefined();
                 }
-                return Napi::Value(NDArrayWrap::create(e, unary(*op, arr(i, 1))));
+                return Napi::Value(NDArrayWrap::create(e, unary(*op, arr(i, 1), nullptr, params)));
               }));
   // ---- indexing (M6) ----
   exports.Set("complexPart", fn(env, "complexPart", [](Info i, Napi::Env e) {

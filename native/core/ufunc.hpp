@@ -31,6 +31,18 @@ NDArray unary(UnaryOp op, const NDArray& a);
 NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b, const NDArray& out);
 NDArray unary(UnaryOp op, const NDArray& a, const NDArray& out);
 
+// NumPy `dtype=` / `casting=` (D-048). `dtype` picks the loop whose output is
+// that dtype; every input must cast to its loop dtype, and the loop output to
+// `out`, under `casting`.
+struct UfuncParams {
+  std::optional<DType> dtype;
+  Casting casting = Casting::SameKind;
+};
+
+NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b, const NDArray* out,
+               const UfuncParams& params);
+NDArray unary(UnaryOp op, const NDArray& a, const NDArray* out, const UfuncParams& params);
+
 // NumPy a.real / a.imag (D-033). For complex input this is a strided view of
 // the real-typed component, sharing a's buffer and writeability. For real
 // input, `real` returns a itself (a view), and `imag` returns a new read-only

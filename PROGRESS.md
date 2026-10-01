@@ -1,5 +1,53 @@
 # PROGRESS
 
+## 2026-10-01 — P2-4: ufunc `dtype=` and `casting=` (D-048)
+
+- Native: `struct UfuncParams { optional<DType> dtype; Casting casting; }`
+  and overloads `binary(op, a, b, const NDArray* out, params)` /
+  `unary(op, a, out, params)` in `ufunc.hpp`. The old overloads forward to
+  them with the defaults, so they behave as before.
+  - With `dtype=D`, the D → D loop runs. The one exception is `abs` of
+    complex input with D float32/float64, which uses the complex → real loop
+    when the input casts safely to it (NumPy `F->f` / `D->d`).
+  - Missing loops raise `DTypeError` "No loop matching the specified
+    signature and casting was found for ufunc X". The list of missing loops
+    comes from an exhaustive NumPy probe over 14 dtypes × 12 ufuncs.
+  - Input casts are checked with `can_cast(in, loop_in, casting)` and
+    produce NumPy's messages ("input 0", "input 1", or just "input" for
+    unary ufuncs). The `out` cast now uses the given casting rule instead of
+    a fixed `same_kind`. Checks run in NumPy's order: read-only `out` →
+    loop → inputs → `out` → shape → values.
+- Binding: `binary`/`unary` take an optional params object
+  `{ dtype?, casting? }`. The shared `parse_casting` now lives in
+  `dtype_binding`, and `canCast` uses it too.
+- TS: `UfuncOptions` gains `dtype?: DTypeLike | null` and
+  `casting?: Casting`. With `dtype`, JS scalars are weak relative to that
+  dtype, as in NumPy: `add(int8Arr, 1000, {dtype: "int16"})` works, and
+  `add(int8Arr, 1.5, {dtype: "int8"})` raises the input-cast error.
+- Tests:
+  - 4 new C++ test cases in `test_ufunc.cpp`.
+  - 5 new vitest tests (block `ufunc dtype= / casting=`).
+  - New differential group `ufunc_dtype_casting`
+    (`python/generators/ufunc_dtype_casting_cases.py`) with 2198 cases, 803
+    of which expect errors. It covers:
+    - every ufunc × 7 input dtypes × 11 loop dtypes × {same_kind, unsafe}
+    - `casting=` alone (5 rules) over mixed dtypes
+    - `out` × `casting` × `dtype`
+    - weak JS scalars with `dtype=`
+    NumPy's `OverflowError` for an out-of-range Python int maps to
+    `ValueError` (D-009).
+- Verification:
+  - `pnpm build`: clean.
+  - `pnpm test`: 256 tests pass.
+  - `pnpm test:diff`: 8656 tests pass.
+  - `pnpm test:native` and `pnpm test:asan`: pass.
+  - `pnpm api:check`: passes.
+  - Type check: 3 pre-existing errors in `complex.test.ts`, none new.
+- Not done: bench cases for the kwargs (planned for P2-11), `signature=`, and
+  tuple `dtype`.
+
+Next: P2-5 (`where=`).
+
 ## 2026-10-01 — P2-3: TS `{ out }` option on the ufuncs (D-047)
 
 - `add subtract multiply divide power mod floorDivide abs negative sqrt exp

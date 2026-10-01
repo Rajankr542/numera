@@ -105,3 +105,54 @@ describe("ufunc out= (P2-3, D-046/D-047)", () => {
   });
 });
 
+
+// Expected values from NumPy 2.5.3 (D-048).
+describe("ufunc dtype= / casting= (P2-4, D-048)", () => {
+  const i8 = () => np.array([100, 2], { dtype: "int8" });
+  const c = () => np.array([{ re: 3, im: 4 }, { re: 1, im: -1 }]);
+
+  it("dtype= picks the loop and casts the inputs", () => {
+    const r = np.add(i8(), i8(), { dtype: "int16" });
+    expect(r.dtype.name).toBe("int16");
+    expect(r.toArray()).toEqual([200, 4]);
+    expect(np.divide([1, 2], 4, { dtype: "float32" }).dtype.name).toBe("float32");
+    expect(np.sqrt(np.array([4], { dtype: "int64" }), { dtype: "float32" }).toArray()).toEqual([2]);
+    expect(np.add([1], [2], { dtype: null }).dtype.name).toBe("int64");
+  });
+
+  it("makes JS scalars weak relative to dtype", () => {
+    expect(np.add(i8(), 1000, { dtype: "int16" }).toArray()).toEqual([1100, 1002]);
+    expect(np.add(i8(), 1.5, { dtype: "float32" }).toArray()).toEqual([101.5, 3.5]);
+    expect(() => np.add(i8(), 1.5, { dtype: "int8" })).toThrow(DTypeError);
+    expect(np.add(2.5, i8(), { dtype: "int16", casting: "unsafe" }).toArray()).toEqual([102, 4]);
+  });
+
+  it("abs of complex with a real dtype", () => {
+    expect(np.abs(c(), { dtype: "float64" }).toArray()).toEqual([5, Math.SQRT2]);
+    expect(() => np.abs(c(), { dtype: "float32" })).toThrow(DTypeError);
+    expect(np.abs(c(), { dtype: "float32", casting: "unsafe" }).toArray()).toEqual([3, 1]);
+    expect(() => np.abs(c(), { dtype: "complex128" })).toThrow(/No loop matching/);
+  });
+
+  it("casting= applies to inputs and out", () => {
+    expect(np.add(i8(), 1, { casting: "no" }).dtype.name).toBe("int8");
+    expect(() => np.add(i8(), 1.5, { casting: "no" })).toThrow(
+      "Cannot cast ufunc 'add' input 0 from int8 to float64 with casting rule 'no'",
+    );
+    expect(() => np.sqrt(i8(), { casting: "no" })).toThrow(/input from int8 to float16/);
+    const out = np.zeros(2, { dtype: "int8" });
+    expect(() => np.add([1.5, 2], 1, { out })).toThrow(/output from float64 to int8/);
+    expect(np.add([1.5, 2], 1, { out, casting: "unsafe" })).toBe(out);
+    expect(out.toArray()).toEqual([2, 3]);
+    expect(() => np.add(np.array([1]), 1, { out, casting: "safe" })).toThrow(/rule 'safe'/);
+  });
+
+  it("raises NumPy's errors for missing loops and bad casting names", () => {
+    expect(() => np.divide([1], [2], { dtype: "int8" })).toThrow(/No loop matching.*divide/);
+    expect(() => np.mod([1], [2], { dtype: "complex128" })).toThrow(DTypeError);
+    expect(() => np.negative([true], { dtype: "bool" })).toThrow(/boolean negative/);
+    expect(() => np.add(1, 2, { casting: "bogus" as never })).toThrow(ValueError);
+    expect(() => np.add(1, 2, { dtype: "nope" })).toThrow(DTypeError);
+  });
+});
+

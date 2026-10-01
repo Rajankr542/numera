@@ -1231,3 +1231,43 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   relative to the other operand (NEP 50), and the loop result is then cast
   to `out.dtype` under `same_kind` (D-046).
 
+
+
+## D-048 — Ufunc `dtype=` and `casting=` (P2-4) — Accepted — 2026-10-01
+- Native `struct UfuncParams { std::optional<DType> dtype; Casting casting =
+  Casting::SameKind; }` and overloads `binary(op, a, b[, out], params)` and
+  `unary(op, a[, out], params)`. The existing overloads keep their behaviour
+  because they pass the default params.
+- Loop selection:
+  - No `dtype`: the D-014 loop, as before.
+  - `dtype=D`: the loop whose output is D, with inputs of dtype D. The one
+    exception is `abs` of a complex input with D float32/float64: it uses the
+    complex64/complex128 → D loop (NumPy `F->f`/`D->d`) when the input casts
+    *safely* to that complex dtype. Otherwise it uses the D → D loop, so
+    complex128 with D float32 needs `unsafe` and drops the imaginary part, as
+    in NumPy.
+  - `conjugate`/`angle` are not exposed with options. Natively, `conjugate`
+    has D → D loops for every D except bool, and `angle` has no `dtype=` loop.
+  - With D, a missing loop raises `DTypeError` "No loop matching the specified
+    signature and casting was found for ufunc X" (NumPy `TypeError`). Missing
+    loops:
+    - D bool: `power`/`mod`/`floorDivide`.
+    - D not float or complex: `divide`/`sqrt`/`exp`/`log`.
+    - D complex: `mod`/`floorDivide`/`abs`.
+    - D bool for `subtract`/`negative` gives the existing boolean messages.
+- `casting` checks run in NumPy 2.5.3 order (checked by hand): read-only
+  `out` → loop resolution → each input `can_cast(in, loop_in, casting)` →
+  output `can_cast(loop_out, out.dtype, casting)` (only with `out`) → shapes →
+  values. Errors are `DTypeError` (NumPy `UFuncTypeError`):
+  - inputs: "Cannot cast ufunc 'add' input 0 from int8 to int64 with casting
+    rule 'no'". Unary ufuncs say just "input".
+  - output: the D-046 message, now with the actual rule name.
+- Casting names are parsed natively: an unknown name raises `ValueError`, as
+  in NumPy.
+- TS: `UfuncOptions` gains `dtype?: DTypeLike | null` and
+  `casting?: Casting` (default `"same_kind"`) on the same 12 ufuncs as D-047.
+  If `dtype` is given, a JS scalar operand is made weakly relative to D rather
+  than to the other operand (so `add(int8Arr, 1000, {dtype: "int16"})` works
+  and `add(int8Arr, 1.5, {dtype: "int8"})` fails the input cast, as in
+  NumPy).
+

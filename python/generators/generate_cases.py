@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from ufunc_out_cases import ufunc_out_cases
+from ufunc_dtype_casting_cases import ufunc_dtype_casting_cases
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "tests" / "differential" / "cases"
@@ -1517,6 +1518,7 @@ def main() -> None:
         "promotion": promotion_cases(),
         "casting": casting_cases(),
         "ufunc_out": ufunc_out_cases(enc, describe),
+        "ufunc_dtype_casting": ufunc_dtype_casting_cases(enc, describe),
         "indexing": index_cases(),
         "writeable": writeable_cases(),
         "reduce": reduce_cases(),

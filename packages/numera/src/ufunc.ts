@@ -1,6 +1,7 @@
-import { addon } from "./addon.js";
+import { addon, type NativeUfuncParams } from "./addon.js";
 import { DTypeError, wrapNative } from "./errors.js";
 import { array } from "./creation.js";
+import { dtype, type Casting, type DType, type DTypeLike } from "./dtype.js";
 import { NDArray, type NestedArray, type Shape } from "./ndarray.js";
 import { isComplexLike, type ComplexLike } from "./complex.js";
 
@@ -22,37 +23,44 @@ const isScalar = (x: Operand): x is Scalar =>
 // - booleans act like Python bool;
 // - {re, im} acts like Python complex: complex64 with float16/float32/complex64
 //   arrays, complex128 otherwise (D-033).
-function scalarFor(value: Scalar, like: NDArray): NDArray {
-  const kind = like.dtype.kind;
+function scalarFor(value: Scalar, like: DType): NDArray {
+  const kind = like.kind;
   if (isComplexLike(value)) {
-    const small = ["float16", "float32", "complex64"].includes(like.dtype.name);
+    const small = ["float16", "float32", "complex64"].includes(like.name);
     return array(value, { dtype: small ? "complex64" : "complex128" });
   }
-  if (typeof value === "boolean") return array(value, { dtype: like.dtype });
+  if (typeof value === "boolean") return array(value, { dtype: like });
   const isInt = typeof value === "bigint" || Number.isInteger(value);
   if (isInt) {
     if (kind === "b") return array(value, { dtype: "int64" });
-    return array(value, { dtype: like.dtype });
+    return array(value, { dtype: like });
   }
-  if (kind === "f" || kind === "c") return array(value, { dtype: like.dtype });
+  if (kind === "f" || kind === "c") return array(value, { dtype: like });
   return array(value, { dtype: "float64" });
 }
 
-function operands(a: Operand, b: Operand): [NDArray, NDArray] {
+// With `dtype=` (D-048), a JS scalar is weak relative to that loop dtype
+// instead of the other operand, as in NumPy.
+function operands(a: Operand, b: Operand, loop?: DType): [NDArray, NDArray] {
   const aArr = a instanceof NDArray ? a : isScalar(a) ? undefined : array(a);
   const bArr = b instanceof NDArray ? b : isScalar(b) ? undefined : array(b);
-  if (aArr && bArr) return [aArr, bArr];
-  if (aArr) return [aArr, scalarFor(b as Scalar, aArr)];
-  if (bArr) return [scalarFor(a as Scalar, bArr), bArr];
-  return [array(a), array(b)];
+  const weak = (v: Operand, other?: NDArray): NDArray => {
+    const like = loop ?? other?.dtype;
+    return like ? scalarFor(v as Scalar, like) : array(v);
+  };
+  return [aArr ?? weak(a, bArr), bArr ?? weak(b, aArr)];
 }
 
 const toArray = (a: ArrayLike): NDArray => (a instanceof NDArray ? a : array(a));
 
-/** Ufunc keyword options (D-047). */
+/** Ufunc keyword options (D-047, D-048). */
 export interface UfuncOptions {
   /** Write the result into this array and return it (NumPy `out=`, D-046). */
   out?: NDArray | null;
+  /** Loop dtype: inputs are cast to it and the result has it (NumPy `dtype=`). */
+  dtype?: DTypeLike | null;
+  /** Casting rule for inputs and `out` (NumPy `casting=`, default "same_kind"). */
+  casting?: Casting;
 }
 
 function outArg(opts: UfuncOptions): NDArray | undefined {
@@ -62,24 +70,38 @@ function outArg(opts: UfuncOptions): NDArray | undefined {
   return out;
 }
 
+function loopDtype(opts: UfuncOptions): DType | undefined {
+  return opts.dtype === undefined || opts.dtype === null ? undefined : dtype(opts.dtype);
+}
+
+function nativeParams(loop: DType | undefined, opts: UfuncOptions): NativeUfuncParams {
+  const p: NativeUfuncParams = {};
+  if (loop) p.dtype = loop.name;
+  if (opts.casting !== undefined) p.casting = opts.casting;
+  return p;
+}
+
 function binary(op: string, a: Operand, b: Operand, opts: UfuncOptions = {}): NDArray {
   const out = outArg(opts);
-  const [x, y] = operands(a, b);
+  const loop = loopDtype(opts);
+  const [x, y] = operands(a, b, loop);
+  const params = nativeParams(loop, opts);
   if (out) {
-    wrapNative(() => addon.binary(op, x._native, y._native, out._native));
+    wrapNative(() => addon.binary(op, x._native, y._native, out._native, params));
     return out;
   }
-  return wrapNative(() => NDArray._wrap(addon.binary(op, x._native, y._native)));
+  return wrapNative(() => NDArray._wrap(addon.binary(op, x._native, y._native, null, params)));
 }
 
 function unary(op: string, a: ArrayLike, opts: UfuncOptions = {}): NDArray {
   const out = outArg(opts);
+  const params = nativeParams(loopDtype(opts), opts);
   const x = toArray(a);
   if (out) {
-    wrapNative(() => addon.unary(op, x._native, out._native));
+    wrapNative(() => addon.unary(op, x._native, out._native, params));
     return out;
   }
-  return wrapNative(() => NDArray._wrap(addon.unary(op, x._native)));
+  return wrapNative(() => NDArray._wrap(addon.unary(op, x._native, null, params)));
 }
 
 type BinaryUfunc = (a: Operand, b: Operand, opts?: UfuncOptions) => NDArray;

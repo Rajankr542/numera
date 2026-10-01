@@ -17,6 +17,17 @@ DType parse_dtype(const Napi::Value& value) {
   return *dt;
 }
 
+Casting parse_casting(const Napi::Value& value) {
+  const std::string name = value.IsString() ? value.As<Napi::String>().Utf8Value() : "";
+  const auto casting = casting_from_name(name);
+  if (!casting) {
+    throw_error(ErrorKind::Value,
+                "casting must be one of 'no', 'equiv', 'safe', 'same_kind', 'unsafe' (got '" +
+                    name + "')");
+  }
+  return *casting;
+}
+
 namespace {
 Napi::Value promote_types_js(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
@@ -33,14 +44,7 @@ Napi::Value can_cast_js(const Napi::CallbackInfo& info) {
   return translate_errors(env, [&]() -> Napi::Value {
     const DType from = parse_dtype(info[0]);
     const DType to = parse_dtype(info[1]);
-    const std::string name = info[2].IsString() ? info[2].As<Napi::String>().Utf8Value() : "";
-    const auto casting = casting_from_name(name);
-    if (!casting) {
-      throw_error(ErrorKind::Value,
-                  "casting must be one of 'no', 'equiv', 'safe', 'same_kind', 'unsafe' (got '" +
-                      name + "')");
-    }
-    return Napi::Boolean::New(env, can_cast(from, to, *casting));
+    return Napi::Boolean::New(env, can_cast(from, to, parse_casting(info[2])));
   });
 }
 }  // namespace

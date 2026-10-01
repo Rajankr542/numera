@@ -24,6 +24,13 @@ export interface NativeNDArray {
   getItem(index: number[]): number | boolean | { re: number; im: number };
 }
 
+/** Ufunc `dtype=` / `casting=` (D-048): dtype and casting rule names. */
+export interface NativeUfuncParams {
+  dtype?: string;
+  casting?: string;
+}
+
+
 export interface NativeAddon {
   napiVersion: number;
   dtypes: Record<string, { itemsize: number; alignment: number; kind: string }>;
@@ -55,10 +62,12 @@ export interface NativeAddon {
   broadcastShapes(shapes: number[][]): number[];
   broadcastTo(a: NativeNDArray, shape: number[]): NativeNDArray;
   binary(op: string, a: NativeNDArray, b: NativeNDArray): NativeNDArray;
-  /** Writes into `out` (D-046); returns undefined. */
-  binary(op: string, a: NativeNDArray, b: NativeNDArray, out: NativeNDArray): undefined;
+  /** Writes into `out` (D-046); returns undefined. `params`: D-048. */
+  binary(op: string, a: NativeNDArray, b: NativeNDArray, out: NativeNDArray, params?: NativeUfuncParams): undefined;
+  binary(op: string, a: NativeNDArray, b: NativeNDArray, out: null, params: NativeUfuncParams): NativeNDArray;
   unary(op: string, a: NativeNDArray): NativeNDArray;
-  unary(op: string, a: NativeNDArray, out: NativeNDArray): undefined;
+  unary(op: string, a: NativeNDArray, out: NativeNDArray, params?: NativeUfuncParams): undefined;
+  unary(op: string, a: NativeNDArray, out: null, params: NativeUfuncParams): NativeNDArray;
   // P1 complex helpers (D-033)
   complexPart(a: NativeNDArray, imag: boolean): NativeNDArray;
   isComplexElementwise(a: NativeNDArray, wantComplex: boolean): NativeNDArray;

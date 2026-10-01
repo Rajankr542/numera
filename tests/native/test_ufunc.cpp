@@ -237,3 +237,89 @@ TEST_CASE("ufunc: out= errors in NumPy order") {
                     ErrorKind::DType);
 }
 
+// dtype= / casting= (D-048). Expected values from NumPy 2.5.3.
+TEST_CASE("ufunc: dtype= selects the loop") {
+  const NDArray i8 = vec_i({100, 2}, DType::Int8);
+  UfuncParams p{DType::Int16, Casting::SameKind};
+  NDArray r = binary(BinaryOp::Add, i8, i8, nullptr, p);  // no int8 wrap
+  CHECK(r.dtype() == DType::Int16);
+  CHECK_EQ(r.get_int64(0), 200);
+  // Unsafe input cast truncates: int8(1) + int8(2.7) = 3.
+  p = {DType::Int8, Casting::Unsafe};
+  r = binary(BinaryOp::Add, vec_i({1}, DType::Int8), vec_d({2.7}), nullptr, p);
+  CHECK(r.dtype() == DType::Int8);
+  CHECK_EQ(r.get_int64(0), 3);
+  // sqrt int64 with dtype=float32 under same_kind (int64 -> float32 is same_kind).
+  p = {DType::Float32, Casting::SameKind};
+  r = unary(UnaryOp::Sqrt, vec_i({4}, DType::Int64), nullptr, p);
+  CHECK(r.dtype() == DType::Float32);
+  CHECK_EQ(r.get_double(0), 2.0);
+  // divide with float32 loop
+  r = binary(BinaryOp::Divide, vec_i({1}, DType::Int8), vec_i({4}, DType::Int8), nullptr, p);
+  CHECK(r.dtype() == DType::Float32);
+  CHECK_EQ(r.get_double(0), 0.25);
+}
+
+TEST_CASE("ufunc: dtype= abs of complex") {
+  // c = 3+4j built as 3 + 4*sqrt(-1) via complex ops.
+  NDArray j = unary(UnaryOp::Sqrt, vec_d({-1}).astype(DType::Complex128));
+  const NDArray c = binary(BinaryOp::Add, vec_d({3}), binary(BinaryOp::Multiply, vec_d({4}), j));
+  // complex128 -> float64 uses the D->d loop: |3+4j| = 5.
+  NDArray r = unary(UnaryOp::Abs, c, nullptr, {DType::Float64, Casting::SameKind});
+  CHECK(r.dtype() == DType::Float64);
+  CHECK_EQ(r.get_double(0), 5.0);
+  // complex64 -> float64 also uses D->d (c8 casts safely to c16).
+  r = unary(UnaryOp::Abs, c.astype(DType::Complex64), nullptr, {DType::Float64, Casting::SameKind});
+  CHECK_EQ(r.get_double(0), 5.0);
+  // complex128 -> float32: needs unsafe, then the f->f loop on the real part.
+  CHECK_THROWS_KIND(unary(UnaryOp::Abs, c, nullptr, {DType::Float32, Casting::SameKind}), ErrorKind::DType);
+  r = unary(UnaryOp::Abs, c, nullptr, {DType::Float32, Casting::Unsafe});
+  CHECK(r.dtype() == DType::Float32);
+  CHECK_EQ(r.get_double(0), 3.0);
+  CHECK_THROWS_KIND(unary(UnaryOp::Abs, c, nullptr, {DType::Complex128, Casting::Unsafe}), ErrorKind::DType);
+}
+
+TEST_CASE("ufunc: casting= checks inputs and out") {
+  const NDArray i8 = vec_i({1}, DType::Int8);
+  const NDArray i16 = vec_i({1}, DType::Int16);
+  UfuncParams no{std::nullopt, Casting::No};
+  CHECK_EQ(binary(BinaryOp::Add, i8, i8, nullptr, no).get_int64(0), 2);
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, i8, i16, nullptr, no), ErrorKind::DType);
+  CHECK_THROWS_KIND(unary(UnaryOp::Sqrt, i8, nullptr, no), ErrorKind::DType);
+  // complex abs reads its input directly, so casting=no passes.
+  CHECK(unary(UnaryOp::Abs, NDArray::zeros({1}, DType::Complex64), nullptr, no).dtype() == DType::Float32);
+  // out: float64 loop into int8 out requires unsafe.
+  NDArray out = NDArray::zeros({1}, DType::Int8);
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, vec_d({1.5}), vec_d({1.5}), &out, {}), ErrorKind::DType);
+  binary(BinaryOp::Add, vec_d({1.5}), vec_d({1.5}), &out, {std::nullopt, Casting::Unsafe});
+  CHECK_EQ(out.get_int64(0), 3);
+  // safe forbids int64 -> int8 out even though same_kind allows it.
+  NDArray o8 = NDArray::zeros({1}, DType::Int8);
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, vec_i({1}, DType::Int64), vec_i({1}, DType::Int64), &o8,
+                           {std::nullopt, Casting::Safe}),
+                    ErrorKind::DType);
+}
+
+TEST_CASE("ufunc: dtype= missing loops and error order") {
+  const NDArray i8 = vec_i({1}, DType::Int8);
+  const UfuncParams u{DType::Int8, Casting::Unsafe};
+  CHECK_THROWS_KIND(binary(BinaryOp::Divide, i8, i8, nullptr, u), ErrorKind::DType);
+  CHECK_THROWS_KIND(unary(UnaryOp::Sqrt, i8, nullptr, u), ErrorKind::DType);
+  const UfuncParams b{DType::Bool, Casting::Unsafe};
+  CHECK_THROWS_KIND(binary(BinaryOp::Power, i8, i8, nullptr, b), ErrorKind::DType);
+  CHECK_THROWS_KIND(binary(BinaryOp::Subtract, i8, i8, nullptr, b), ErrorKind::DType);
+  CHECK_THROWS_KIND(unary(UnaryOp::Negative, i8, nullptr, b), ErrorKind::DType);
+  const UfuncParams c{DType::Complex128, Casting::Unsafe};
+  CHECK_THROWS_KIND(binary(BinaryOp::Mod, i8, i8, nullptr, c), ErrorKind::DType);
+  CHECK_THROWS_KIND(binary(BinaryOp::FloorDivide, i8, i8, nullptr, c), ErrorKind::DType);
+  // dtype=bool add/multiply exist (logical or / and).
+  CHECK_EQ(binary(BinaryOp::Add, i8, vec_i({0}, DType::Int8), nullptr, b).get_int64(0), 1);
+  // read-only out wins over a missing loop (NumPy order).
+  NDArray ro = NDArray::zeros({1}, DType::Int8).as_readonly();
+  CHECK_THROWS_KIND(binary(BinaryOp::Divide, i8, i8, &ro, u), ErrorKind::Value);
+  // negative exponent check still runs with dtype=.
+  CHECK_THROWS_KIND(binary(BinaryOp::Power, i8, vec_i({-1}, DType::Int8), nullptr,
+                           {DType::Int16, Casting::SameKind}),
+                    ErrorKind::Value);
+}
+

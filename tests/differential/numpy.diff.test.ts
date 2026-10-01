@@ -1477,3 +1477,72 @@ describe("differential: ufunc out= (P2-3, D-046/D-047)", () => {
   );
 });
 
+describe("differential: ufunc dtype= / casting= (P2-4, D-048)", () => {
+  interface DcArg {
+    data?: Encoded;
+    dtype?: string;
+    scalar?: number | boolean;
+  }
+  interface DcCase {
+    op: string;
+    args: DcArg[];
+    opts: { dtype?: string; casting?: string; out?: string };
+    approx?: boolean;
+    error?: string;
+    expected?: { dtype: string; shape: number[]; values: Encoded };
+  }
+  const { numpy_version, cases } = load("ufunc_dtype_casting") as unknown as {
+    numpy_version: string;
+    cases: DcCase[];
+  };
+  const ufuncs = np as unknown as Record<string, (...a: unknown[]) => NDArray>;
+  const errors: Record<string, typeof np.ValueError> = {
+    DTypeError: np.DTypeError,
+    ValueError: np.ValueError,
+  };
+  const rtol = (dt: string): number =>
+    dt === "float16" || dt === "complex64" ? 1e-3 : dt === "float32" ? 1e-6 : 1e-14;
+  const close = (g: number, e: number, dt: string): void => {
+    if (Number.isNaN(e) || !Number.isFinite(e) || e === 0) expect(g).toEqual(e);
+    else expect(Math.abs(g - e)).toBeLessThanOrEqual(rtol(dt) * Math.abs(e));
+  };
+
+  it.each(cases.map((c) => [JSON.stringify({ op: c.op, args: c.args, opts: c.opts }).slice(0, 300), c] as const))(
+    `numpy ${numpy_version}: %s`,
+    (_l, c) => {
+      const xs = c.args.map((a) =>
+        a.scalar !== undefined ? a.scalar : np.array(decodeInput(a.data!), { dtype: a.dtype! }),
+      );
+      const out = c.opts.out !== undefined ? np.zeros(3, { dtype: c.opts.out }) : undefined;
+      const opts = { dtype: c.opts.dtype, casting: c.opts.casting, ...(out ? { out } : {}) };
+      const run = (): NDArray => ufuncs[c.op]!(...xs, opts);
+      if (c.error !== undefined) {
+        expect(run).toThrow(errors[c.error]);
+        return;
+      }
+      const r = run();
+      if (out) expect(r).toBe(out);
+      const exp = c.expected!;
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      const want = (decodeExpected(exp.values) as unknown[]).flat(Infinity);
+      const got = (r.toArray() as unknown[]).flat(Infinity);
+      if (!c.approx || r.dtype.kind === "b" || r.dtype.kind === "i" || r.dtype.kind === "u") {
+        expect(got).toEqual(want);
+        return;
+      }
+      want.forEach((e, i) => {
+        const g = got[i];
+        if (typeof e === "number") close(g as number, e, exp.dtype);
+        else {
+          const ec = e as { re: number; im: number };
+          const gc = g as { re: number; im: number };
+          close(gc.re, ec.re, exp.dtype);
+          close(gc.im, ec.im, exp.dtype);
+        }
+      });
+    },
+  );
+});
+
+
