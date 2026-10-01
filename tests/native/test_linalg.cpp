@@ -320,7 +320,8 @@ TEST_CASE("linalg: complex det (D-038)") {
     run(double{}, 1e-12);
     run(float{}, 1e-5);
     // Other decompositions still reject complex until their slice lands.
-    CHECK_THROWS_KIND(eig(cmat<double>(1, 1, {C(1, 0)})), ErrorKind::NotImplemented);
+    CHECK_THROWS_KIND(lstsq(cmat<double>(1, 1, {C(1, 0)}), cmat<double>(1, 1, {C(1, 0)}), -1.0),
+                      ErrorKind::NotImplemented);
   });
 }
 
@@ -572,6 +573,87 @@ TEST_CASE("linalg: complex eigh/eigvalsh (D-042)") {
     run(float{}, 1e-5);
   });
 }
+
+TEST_CASE("linalg: complex eig/eigvals (D-043)") {
+  using C = std::complex<double>;
+  each_backend([] {
+    const auto run = [](auto tag, double tol) {
+      using R = decltype(tag);
+      const DType cdt = std::is_same_v<R, float> ? DType::Complex64 : DType::Complex128;
+      // Upper triangular, eigenvalues 1+j, 2-j, -1 (any order).
+      const NDArray t = cmat<R>(3, 3, {C(1, 1), C(2, 0), C(0, 0), C(0, 0), C(2, -1), C(0, 1),
+                                       C(0, 0), C(0, 0), C(-1, 0)});
+      const C want[3] = {C(1, 1), C(2, -1), C(-1, 0)};
+      const auto has = [&](const NDArray& w) {
+        for (const C& x : want) {
+          bool found = false;
+          for (int i = 0; i < 3; ++i) found = found || std::abs(C(cat<R>(w, i)) - x) <= tol;
+          if (!found) return false;
+        }
+        return true;
+      };
+      const EigResult e = eig(t);
+      CHECK(e.eigenvalues.dtype() == cdt);
+      CHECK(e.eigenvectors.dtype() == cdt);
+      CHECK(e.eigenvalues.shape() == Shape({3}));
+      CHECK(e.eigenvectors.shape() == Shape({3, 3}));
+      CHECK(has(e.eigenvalues));
+      const NDArray ev = eigvals(t);
+      CHECK(ev.dtype() == cdt);
+      CHECK(has(ev));
+      // Dense non-normal matrix: A v_j = w_j v_j, |v_j| = 1; eigvals agree.
+      const NDArray a = cmat<R>(3, 3, {C(1, 2), C(3, -1), C(0, 1), C(-2, 0), C(1, 1), C(2, 3),
+                                       C(0.5, 0), C(-1, 2), C(4, -2)});
+      const EigResult r = eig(a);
+      const NDArray rv = eigvals(a);
+      for (int j = 0; j < 3; ++j) {
+        double nrm = 0;
+        bool found = false;
+        for (int k = 0; k < 3; ++k)
+          found = found || std::abs(C(cat<R>(rv, k)) - C(cat<R>(r.eigenvalues, j))) <= 50 * tol;
+        CHECK(found);
+        for (int i = 0; i < 3; ++i) {
+          C av{};
+          for (int p = 0; p < 3; ++p) av += C(cat<R>(a, i * 3 + p)) * C(cat<R>(r.eigenvectors, p * 3 + j));
+          const C vij = C(cat<R>(r.eigenvectors, i * 3 + j));
+          CHECK(std::abs(av - vij * C(cat<R>(r.eigenvalues, j))) <= 50 * tol);
+          nrm += std::norm(vij);
+        }
+        CHECK(std::abs(nrm - 1.0) <= 10 * tol);
+      }
+      // Batched (2,2,2): diag(1, j) and [[0,1],[-1,0]] (eigenvalues ±j).
+      NDArray b = NDArray::empty({2, 2, 2}, cdt);
+      auto* bp = reinterpret_cast<std::complex<R>*>(b.data());
+      const C bv[8] = {C(1, 0), C(0, 0), C(0, 0), C(0, 1), C(0, 0), C(1, 0), C(-1, 0), C(0, 0)};
+      for (int i = 0; i < 8; ++i) bp[i] = {static_cast<R>(bv[i].real()), static_cast<R>(bv[i].imag())};
+      const NDArray bw = eigvals(b);
+      CHECK(bw.shape() == Shape({2, 2}));
+      CHECK(std::abs(C(cat<R>(bw, 0)) + C(cat<R>(bw, 1)) - C(1, 1)) <= tol);
+      CHECK(std::abs(C(cat<R>(bw, 2)) + C(cat<R>(bw, 3))) <= tol);
+      CHECK(std::abs(std::abs(C(cat<R>(bw, 2)).imag()) - 1.0) <= tol);
+      CHECK(eig(b).eigenvectors.shape() == Shape({2, 2, 2}));
+      // Empty, non-finite and shape errors.
+      const EigResult z = eig(NDArray::zeros({0, 0}, cdt));
+      CHECK(z.eigenvalues.shape() == Shape({0}));
+      CHECK(z.eigenvalues.dtype() == cdt);
+      CHECK(eigvals(NDArray::zeros({0, 0}, cdt)).dtype() == cdt);
+      const double nan = std::numeric_limits<double>::quiet_NaN();
+      CHECK_THROWS_KIND(eig(cmat<R>(2, 2, {C(0, nan), C(0, 0), C(0, 0), C(1, 0)})), ErrorKind::LinAlg);
+      CHECK_THROWS_KIND(eigvals(cmat<R>(1, 1, {C(INFINITY, 0)})), ErrorKind::LinAlg);
+      CHECK_THROWS_KIND(eig(NDArray::zeros({2, 3}, cdt)), ErrorKind::LinAlg);
+      CHECK_THROWS_KIND(eigvals(NDArray::zeros({3}, cdt)), ErrorKind::LinAlg);
+    };
+    run(double{}, 1e-12);
+    run(float{}, 1e-5);
+    // Real eigvals (values-only path): same values as eig, complex dtype.
+    const NDArray rot = mat(2, 2, {0, -1, 1, 0});
+    const NDArray rw = eigvals(rot);
+    CHECK(rw.dtype() == DType::Complex128);
+    CHECK(std::abs(std::abs(cat<double>(rw, 0).imag()) - 1.0) <= 1e-12);
+    CHECK(eigvals(rot.astype(DType::Float32)).dtype() == DType::Complex64);
+  });
+}
+
 
 TEST_CASE("linalg: complex qr (D-040)") {
   using C = std::complex<double>;

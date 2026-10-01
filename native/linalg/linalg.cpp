@@ -498,32 +498,58 @@ EigResult eigh(const NDArray& a) {
 
 NDArray eigvalsh(const NDArray& a) { return eigh_impl(a, false, "eigvalsh").first; }
 
-EigResult eig(const NDArray& a) {
-  const DType dt = decomp_dtype(a, "eig");
-  require_square(a, "eig");
+namespace {
+
+// Shared eig / eigvals (D-043). Real input: float32 stays (D-018), results
+// complex. Complex input computes in complex128 ('D->DD') and is cast once.
+// `vectors` = JOBVR ('N' for eigvals, as NumPy's eigvals gufunc).
+std::pair<NDArray, std::optional<NDArray>> eig_impl(const NDArray& a, bool vectors,
+                                                    const char* fn) {
+  const bool cplx = is_complex(a.dtype());
+  const DType dt = cplx ? a.dtype() : decomp_dtype(a, fn);
+  require_square(a, fn);
   const idx n = a.shape().back();
   const Shape batch = batch_of(a.shape(), 2);
-  const NDArray ac = as_compute(a, dt);
-  const DType cdt = dt == DType::Float32 ? DType::Complex64 : DType::Complex128;
-  NDArray w = NDArray::empty(concat(batch, {n}), cdt);
-  NDArray v = NDArray::empty(a.shape(), cdt);
-  dispatch_real(dt, [&](auto tag) {
-    using T = decltype(tag);
-    using C = std::complex<T>;
-    std::vector<T> m(sz(n * n));
-    std::vector<C> vc(sz(n * n));
+  const DType ct = cplx ? DType::Complex128 : dt;
+  const DType wct = cplx ? DType::Complex128
+                         : (dt == DType::Float32 ? DType::Complex64 : DType::Complex128);
+  const DType wdt = dt == DType::Complex64 ? DType::Complex64 : wct;
+  const NDArray ac = as_compute(a, ct);
+  NDArray w = NDArray::empty(concat(batch, {n}), wct);
+  std::optional<NDArray> v;
+  if (vectors) v = NDArray::empty(a.shape(), wct);
+  dispatch_solve(ct, [&](auto tag) {
+    using E = decltype(tag);
+    using R = real_of_t<E>;
+    using C = std::complex<R>;
+    std::vector<E> m(sz(n * n));
+    std::vector<C> vc(vectors ? sz(n * n) : 0);
     for (idx t = 0; t < shape_size(batch) && n > 0; ++t) {
-      const T* src = ptr<T>(ac) + t * n * n;
+      const E* src = ptr<E>(ac) + t * n * n;
       if (!all_finite(src, n * n)) linalg_fail("Array must not contain infs or NaNs");
       to_colmajor(src, m.data(), n, n);
-      if (routines<T>().geev(n, m.data(), ptr<C>(w) + t * n, vc.data()) != 0) {
-        linalg_fail("Eigenvalues did not converge");
-      }
-      from_colmajor(vc.data(), ptr<C>(v) + t * n * n, n, n);
+      C* wp = ptr<C>(w) + t * n;
+      C* vp = vectors ? vc.data() : nullptr;
+      int info = 0;
+      if constexpr (std::is_floating_point_v<E>) info = routines<R>().geev(n, m.data(), wp, vp);
+      else info = routines<R>().cgeev(n, m.data(), wp, vp);
+      if (info != 0) linalg_fail("Eigenvalues did not converge");
+      if (vectors) from_colmajor(vc.data(), ptr<C>(*v) + t * n * n, n, n);
     }
   });
+  if (wct != wdt) w = w.astype(wdt);
+  if (v && wct != wdt) v = v->astype(wdt);
   return {w, v};
 }
+
+}  // namespace
+
+EigResult eig(const NDArray& a) {
+  auto [w, v] = eig_impl(a, true, "eig");
+  return {w, *v};
+}
+
+NDArray eigvals(const NDArray& a) { return eig_impl(a, false, "eigvals").first; }
 
 SvdResult svd(const NDArray& a, bool full_matrices, bool compute_uv) {
   const bool cplx = is_complex(a.dtype());

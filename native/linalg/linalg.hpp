@@ -25,7 +25,8 @@ struct EigResult {
   NDArray eigenvalues;
   NDArray eigenvectors;
 };
-EigResult eig(const NDArray& a);
+EigResult eig(const NDArray& a);     // complex OK (D-043)
+NDArray eigvals(const NDArray& a);   // values only (JOBVR='N', D-043)
 EigResult eigh(const NDArray& a);  // lower triangle (UPLO='L'); complex OK (D-042)
 NDArray eigvalsh(const NDArray& a);  // values only (JOBZ='N', D-042)
 

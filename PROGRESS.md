@@ -1,5 +1,35 @@
 # PROGRESS
 
+## 2026-10-01 — P1-5e.2: complex eig/eigvals (D-043)
+
+`linalg.eig`/`eigvals` accept complex64/complex128. Results keep the input's
+complex dtype, and eigenvectors are unit-norm columns.
+- Backend: `geev` accepts `v == nullptr` (values only, JOBVR='N'); new
+  `cgeev`. Accelerate calls `cgeev_`/`zgeev_` with a queried `lwork` and
+  `rwork` of 2n, as NumPy's `init_geev`. The fallback's complex Hessenberg +
+  shifted QR is templated on real/complex input.
+- `eigvals` is now a native values-only call, for real input too. A NumPy
+  self-probe (n = 40–200) shows `eigvals` != `eig().eigenvalues` bitwise in
+  2/5 cases at n >= 160.
+- Complex input runs in complex128 and is cast at the end, as in NumPy.
+- Probe against NumPy 2.x + Accelerate (arm64), 45 random n×n inputs
+  (n = 1–12, 20, 32, 48; 15 per dtype):
+  - Default backend, complex128 and complex64: `eig` values, `eigvals` and
+    eigenvectors bit-identical in 15/15 cases each.
+  - Default backend, float64: values 15/15; eigenvectors 10/15, the rest
+    within 1 ulp. The same 5 cases also differ on the previous commit
+    (existing difference, not investigated).
+  - Fallback: reconstruction error ≤ 1.7e-14 (complex128/float64) and
+    9.5e-7 (complex64).
+- Tests: C++ `linalg: complex eig/eigvals (D-043)`; vitest `complex
+  linalg.eig / eigvals`. Both run on both backends. The "still rejects
+  complex" guards now use `lstsq`.
+- Checks: `pnpm typecheck`, `pnpm test:native` (83), `pnpm test:asan`,
+  `pnpm test` (240), `pnpm test:diff` (4580) all pass.
+
+Next: P1-5e.3, complex `lstsq` and `norm`.
+
+
 ## 2026-10-01 — P1-5e.1: complex eigh/eigvalsh (D-042)
 
 `linalg.eigh`/`eigvalsh` accept complex64/complex128 (Hermitian, lower

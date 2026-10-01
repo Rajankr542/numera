@@ -132,6 +132,7 @@ export interface NativeLinalg {
   eig(a: N): { eigenvalues: N; eigenvectors: N };
   eigh(a: N): { eigenvalues: N; eigenvectors: N };
   eigvalsh(a: N): N;
+  eigvals(a: N): N;
   svd(a: N, fullMatrices: boolean, computeUV: boolean): { U: N | null; S: N; Vh: N | null };
   qr(a: N, mode: string): { Q: N | null; R: N };
   lstsq(a: N, b: N, rcond: number | null): { x: N; residuals: N; rank: number; s: N };

@@ -332,15 +332,18 @@ int jacobi_svd_tall(idx m, idx n, E* a, real_t<E>* s, E* v) {
 // General eigenproblem via complex arithmetic: Hessenberg reduction, then
 // single-shift (Wilkinson) complex QR to Schur form T = Z^H A Z, then
 // eigenvectors of T by back-substitution, transformed by Z and normalised.
-template <typename T>
-int complex_eig(idx n, const T* a, std::complex<T>* w, std::complex<T>* vout) {
+// E is real or complex (D-043); vout == nullptr computes values only.
+template <typename E>
+int complex_eig(idx n, const E* a, std::complex<real_t<E>>* w,
+                std::complex<real_t<E>>* vout) {
+  using T = real_t<E>;
   using C = std::complex<T>;
   std::vector<C> hb(static_cast<std::size_t>(n * n));
   std::vector<C> zb(static_cast<std::size_t>(n * n), C{0});
   Mat<C> H{hb.data(), n};
   Mat<C> Z{zb.data(), n};
   for (idx j = 0; j < n; ++j) {
-    for (idx i = 0; i < n; ++i) H(i, j) = C(a[i + j * n], 0);
+    for (idx i = 0; i < n; ++i) H(i, j) = C(a[i + j * n]);
     Z(j, j) = C{1};
   }
   const T eps = std::numeric_limits<T>::epsilon();
@@ -435,6 +438,7 @@ int complex_eig(idx n, const T* a, std::complex<T>* w, std::complex<T>* vout) {
     }
   }
   for (idx i = 0; i < n; ++i) w[i] = H(i, i);
+  if (vout == nullptr) return 0;
   // Eigenvectors of upper-triangular H: solve (H - λ_k I) x = 0, x_k = 1.
   Mat<C> V{vout, n};
   std::vector<C> x(static_cast<std::size_t>(n));
@@ -658,6 +662,10 @@ class FallbackRoutines final : public Routines<T> {
     return jacobi_eigh(n, a, w, vectors);
   }
   int geev(idx n, T* a, std::complex<T>* w, std::complex<T>* v) const override {
+    return complex_eig(n, a, w, v);
+  }
+  int cgeev(idx n, std::complex<T>* a, std::complex<T>* w,
+            std::complex<T>* v) const override {
     return complex_eig(n, a, w, v);
   }
   int gesdd(idx m, idx n, T* a, T* s, T* u, T* vt, bool full) const override {

@@ -365,10 +365,6 @@ describe("complex linalg.det (P1-5a, D-038)", () => {
       });
     });
   }
-
-  it("eig still rejects complex input", () => {
-    expect(() => np.linalg.eig(A)).toThrow(np.NotImplementedError);
-  });
 });
 
 describe("complex linalg.inv / solve (P1-5b, D-039)", () => {
@@ -639,6 +635,91 @@ describe("complex linalg.eigh / eigvalsh (P1-5e.1, D-042)", () => {
         expect(e.eigenvectors.dtype).toBe(np.complex128);
         expect(() => np.linalg.eigh(np.zeros([2, 3], { dtype: "complex64" }))).toThrow(np.LinAlgError);
         expect(() => np.linalg.eigvalsh(np.zeros([3], { dtype: "complex128" }))).toThrow(np.LinAlgError);
+      });
+    });
+  }
+});
+
+
+describe("complex linalg.eig / eigvals (P1-5e.2, D-043)", () => {
+  const flat = (x: InstanceType<typeof np.NDArray>): number[][] =>
+    (x.flatten().toArray() as Complex[]).map((v) => [v.re, v.im]);
+  const maxAbs = (x: InstanceType<typeof np.NDArray>): number =>
+    Math.max(0, ...flat(x).map(([re, im]) => Math.hypot(re, im)));
+  const sorted = (x: InstanceType<typeof np.NDArray>): number[][] =>
+    flat(x).sort((p, q) => p[0]! - q[0]! || p[1]! - q[1]!);
+  // Upper triangular -> eigenvalues are the diagonal: -1, 1+j, 2-j.
+  const T = [
+    [np.complex(1, 1), 2, 0],
+    [0, np.complex(2, -1), np.complex(0, 1)],
+    [0, 0, -1],
+  ];
+  const A = [
+    [np.complex(1, 2), np.complex(3, -1), np.complex(0, 1)],
+    [-2, np.complex(1, 1), np.complex(2, 3)],
+    [0.5, np.complex(-1, 2), np.complex(4, -2)],
+  ];
+  for (const backend of ["default", "fallback"] as const) {
+    describe(`backend: ${backend}`, () => {
+      beforeAll(() => np.linalg._setBackend(backend));
+      afterAll(() => np.linalg._setBackend("default"));
+
+      it("dtypes, values, reconstruction and unit-norm vectors", () => {
+        for (const [dtype, tol] of [
+          ["complex128", 1e-12],
+          ["complex64", 1e-5],
+        ] as const) {
+          const t = np.array(T, { dtype });
+          const e = np.linalg.eig(t);
+          expect(e.eigenvalues.dtype).toBe(np[dtype]);
+          expect(e.eigenvectors.dtype).toBe(np[dtype]);
+          const want = [[-1, 0], [1, 1], [2, -1]];
+          for (const got of [sorted(e.eigenvalues), sorted(np.linalg.eigvals(t))]) {
+            got.forEach(([re, im], i) => {
+              expect(Math.abs(re! - want[i]![0]!)).toBeLessThan(10 * tol);
+              expect(Math.abs(im! - want[i]![1]!)).toBeLessThan(10 * tol);
+            });
+          }
+          expect(np.linalg.eigvals(t).dtype).toBe(np[dtype]);
+          const a = np.array(A, { dtype });
+          const r = np.linalg.eig(a);
+          const V = r.eigenvectors;
+          const res = np.subtract(np.matmul(a, V), np.multiply(V, r.eigenvalues));
+          expect(maxAbs(res)).toBeLessThan(50 * tol);
+          const norms = np.sum(np.multiply(np.conjugate(V), V), { axis: 0 });
+          for (const [re, im] of flat(norms)) {
+            expect(Math.abs(re! - 1)).toBeLessThan(10 * tol);
+            expect(Math.abs(im!)).toBeLessThan(10 * tol);
+          }
+          const d = sorted(np.linalg.eigvals(a));
+          sorted(r.eigenvalues).forEach(([re, im], i) => {
+            expect(Math.abs(re! - d[i]![0]!)).toBeLessThan(50 * tol);
+            expect(Math.abs(im! - d[i]![1]!)).toBeLessThan(50 * tol);
+          });
+        }
+      });
+
+      it("batched, empty and errors", () => {
+        const b = np.array([
+          [[1, 0], [0, np.complex(0, 1)]],
+          [[0, 1], [-1, 0]],
+        ]);
+        const bw = np.linalg.eigvals(b);
+        expect(bw.shape).toEqual([2, 2]);
+        expect(np.linalg.eig(b).eigenvectors.shape).toEqual([2, 2, 2]);
+        const s = flat(np.sum(bw, { axis: 1 }));
+        expect(s[0]![0]).toBeCloseTo(1, 12);
+        expect(s[0]![1]).toBeCloseTo(1, 12);
+        expect(Math.hypot(s[1]![0]!, s[1]![1]!)).toBeLessThan(1e-12);
+        const z = np.linalg.eig(np.zeros([0, 0], { dtype: "complex64" }));
+        expect(z.eigenvalues.shape).toEqual([0]);
+        expect(z.eigenvalues.dtype).toBe(np.complex64);
+        expect(() => np.linalg.eig([[np.complex(NaN, 0), 0], [0, 1]])).toThrow(np.LinAlgError);
+        expect(() => np.linalg.eigvals([[np.complex(0, Infinity)]])).toThrow(np.LinAlgError);
+        expect(() => np.linalg.eig(np.zeros([2, 3], { dtype: "complex128" }))).toThrow(np.LinAlgError);
+        expect(() => np.linalg.eigvals(np.zeros([3], { dtype: "complex64" }))).toThrow(np.LinAlgError);
+        // lstsq still rejects complex until P1-5e.3.
+        expect(() => np.linalg.lstsq(b.get(0), [1, 2])).toThrow(np.NotImplementedError);
       });
     });
   }

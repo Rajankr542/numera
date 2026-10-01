@@ -615,7 +615,7 @@ np.argmin(a, { axis: 1 });  // => [0, 1]`,
       {
         name: "linalg.eig",
         sig: "np.linalg.eig(a) · np.linalg.eigvals(a)",
-        desc: "Eigen-decomposition of a general square matrix. Results are always `complex128`. `eigvals` returns only the eigenvalues.",
+        desc: "Eigen-decomposition of a general square matrix. Results are always complex: `complex64` for `float32` or `complex64` input, otherwise `complex128`. `eigvals` returns only the eigenvalues, computed without eigenvectors as in NumPy.",
         args: [arrayArg()],
         returns: "{ eigenvalues: NDArray, eigenvectors: NDArray }",
         example: `const { eigenvalues } = np.linalg.eig([[2, 0], [0, 3]]);

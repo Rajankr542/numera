@@ -62,7 +62,11 @@ class Routines {
   // Hermitian eigen, layout as syevd; w real (D-042).
   virtual int cheevd(std::int64_t n, std::complex<T>* a, T* w, bool vectors) const = 0;
   // General eigen: w complex, v complex n×n (column eigenvectors, unit 2-norm).
+  // v == nullptr computes values only (JOBVR='N', D-043).
   virtual int geev(std::int64_t n, T* a, std::complex<T>* w, std::complex<T>* v) const = 0;
+  // Complex general eigen, layout as geev (D-043).
+  virtual int cgeev(std::int64_t n, std::complex<T>* a, std::complex<T>* w,
+                    std::complex<T>* v) const = 0;
   // SVD of m×n A. s: min(m,n). If u/vt null, values only. full: U m×m and
   // Vt n×n; else U m×k and Vt k×n.
   virtual int gesdd(std::int64_t m, std::int64_t n, T* a, T* s, T* u, T* vt, bool full) const = 0;

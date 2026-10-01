@@ -1097,5 +1097,35 @@ Found by the NumPy differential tests (NumPy 2.5.3):
     bit-identical 15/15 after the complex128 compute and cast); the largest
     reconstruction error is 2.6e-14.
 
-
+## D-043 — Complex eig/eigvals, native eigvals (P1-5e.2) — Accepted — 2026-10-01
+- `eig`/`eigvals` accept complex64/complex128. Eigenvalues and eigenvectors
+  keep the input's complex dtype (complex64 -> complex64, complex128 ->
+  complex128). Eigenvectors are unit 2-norm columns. Real input is unchanged
+  (complex64 for float32, else complex128; D-018).
+- As in D-038–D-042, complex input is computed in complex128 (NumPy's
+  `'D->DD'`/`'D->D'` signatures) and cast once at the end.
+- `eigvals` becomes its own native entry point (`linalg::eigvals`), calling
+  geev with JOBVR='N' as NumPy's `eigvals` gufunc does. This affects real
+  input too. A probe run in NumPy itself (n = 40–200) found `eigvals(a)` !=
+  `eig(a).eigenvalues` bitwise in 2/5 float64 and 2/5 complex128 cases
+  (n >= 160), so deriving `eigvals` from `eig` could not match NumPy.
+- Backend interface: `geev(n, a, w, v)` accepts `v == nullptr` (values only);
+  new `cgeev(n, complex* a, w, v)`. Accelerate calls
+  `sgeev_`/`dgeev_`/`cgeev_`/`zgeev_` with JOBVL='N', ld = max(n, 1), a
+  queried `lwork` and (complex) `rwork` of 2n, as NumPy's `init_geev`. The
+  fallback reuses its complex Hessenberg + shifted QR solver, now templated
+  on real or complex input; it skips back-substitution for values only.
+- Non-finite input raises `LinAlgError("Array must not contain infs or
+  NaNs")` before the backend (NumPy `_assert_finite`). Backend failure
+  (info > 0) raises `LinAlgError("Eigenvalues did not converge")`.
+- Exactness (NumPy 2.x + Accelerate, arm64; 45 random n×n inputs,
+  n = 1–12, 20, 32, 48; 15 per dtype):
+  - Default backend, complex128 and complex64: `eig` values, `eigvals`
+    values and eigenvectors bit-identical in 15/15 each.
+  - Default backend, float64: values and `eigvals` 15/15; eigenvectors
+    10/15, the rest within 1 ulp (≤ 2.2e-16). The same 5 cases differ on the
+    previous commit, so this is not new; the cause is not yet investigated.
+  - Fallback: not bit-identical (different algorithm). Reconstruction error
+    ≤ 1.7e-14 (complex128/float64) and 9.5e-7 (complex64); vectors match up
+    to phase.
 

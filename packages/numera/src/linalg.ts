@@ -35,7 +35,10 @@ export interface EigResult {
   eigenvalues: NDArray;
   eigenvectors: NDArray;
 }
-/** General eigen-decomposition; results are always complex (D-018). */
+/**
+ * General eigen-decomposition; results are always complex (D-018). Complex
+ * input is accepted and keeps its precision (D-043).
+ */
 export function eig(a: ArrayLike): EigResult {
   return wrapNative(() => {
     const r = addon.linalg.eig(toArray(a)._native);
@@ -52,7 +55,9 @@ export function eigh(a: ArrayLike): EigResult {
     return { eigenvalues: w(r.eigenvalues), eigenvectors: w(r.eigenvectors) };
   });
 }
-export const eigvals = (a: ArrayLike): NDArray => eig(a).eigenvalues;
+/** Eigenvalues only (LAPACK JOBVR='N', like NumPy), D-043. */
+export const eigvals = (a: ArrayLike): NDArray =>
+  wrapNative(() => w(addon.linalg.eigvals(toArray(a)._native)));
 /** Eigenvalues only (LAPACK JOBZ='N', like NumPy), D-042. */
 export const eigvalsh = (a: ArrayLike): NDArray =>
   wrapNative(() => w(addon.linalg.eigvalsh(toArray(a)._native)));

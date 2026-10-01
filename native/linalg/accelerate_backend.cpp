@@ -122,15 +122,29 @@ void syevd_(const char* jobz, const lint* n, const lint* lda, std::complex<doubl
             const lint* liw, lint* info) {
   zheevd_(jobz, "L", n, a, lda, w, work, lw, rw, lrw, iw, liw, info);
 }
-void geev_(const lint* n, float* a, float* wr, float* wi, float* vr, float* work,
-           const lint* lw, lint* info) {
+// ?geev with JOBVL='N'; ld = max(n, 1) and ldvl = 1, as NumPy's init_geev.
+void geev_(const char* jobvr, const lint* n, const lint* ld, float* a, float* wr, float* wi,
+           float* vr, float* work, const lint* lw, lint* info) {
   const lint one = 1;
-  sgeev_("N", "V", n, a, n, wr, wi, nullptr, &one, vr, n, work, lw, info);
+  sgeev_("N", jobvr, n, a, ld, wr, wi, nullptr, &one, vr, ld, work, lw, info);
 }
-void geev_(const lint* n, double* a, double* wr, double* wi, double* vr, double* work,
-           const lint* lw, lint* info) {
+void geev_(const char* jobvr, const lint* n, const lint* ld, double* a, double* wr, double* wi,
+           double* vr, double* work, const lint* lw, lint* info) {
   const lint one = 1;
-  dgeev_("N", "V", n, a, n, wr, wi, nullptr, &one, vr, n, work, lw, info);
+  dgeev_("N", jobvr, n, a, ld, wr, wi, nullptr, &one, vr, ld, work, lw, info);
+}
+// Complex ?geev: rwork holds 2n reals (D-043).
+void cgeev_w(const char* jobvr, const lint* n, const lint* ld, std::complex<float>* a,
+             std::complex<float>* w, std::complex<float>* vr, std::complex<float>* work,
+             const lint* lw, float* rw, lint* info) {
+  const lint one = 1;
+  cgeev_("N", jobvr, n, a, ld, w, nullptr, &one, vr, ld, work, lw, rw, info);
+}
+void cgeev_w(const char* jobvr, const lint* n, const lint* ld, std::complex<double>* a,
+             std::complex<double>* w, std::complex<double>* vr, std::complex<double>* work,
+             const lint* lw, double* rw, lint* info) {
+  const lint one = 1;
+  zgeev_("N", jobvr, n, a, ld, w, nullptr, &one, vr, ld, work, lw, rw, info);
 }
 void gesdd_(const char* job, const lint* m, const lint* n, float* a, float* s, float* u,
             const lint* ldu, float* vt, const lint* ldvt, float* work, const lint* lw,
@@ -318,23 +332,29 @@ class AccelRoutines final : public Routines<T> {
   }
   int geev(idx n, T* a, std::complex<T>* w, std::complex<T>* v) const override {
     const lint nn = li(n);
+    const lint ld = std::max<lint>(nn, 1);
+    const char* jobvr = v != nullptr ? "V" : "N";
     const auto sz = static_cast<std::size_t>(n);
     std::vector<T> wr(sz);
     std::vector<T> wi(sz);
-    std::vector<T> vr(sz * sz);
+    std::vector<T> vr(v != nullptr ? sz * sz : 1);
     lint info = 0;
     T wq{};
     const lint q = -1;
-    geev_(&nn, a, wr.data(), wi.data(), vr.data(), &wq, &q, &info);
+    geev_(jobvr, &nn, &ld, a, wr.data(), wi.data(), vr.data(), &wq, &q, &info);
     if (info != 0) return static_cast<int>(info);
     const lint lw = lwork_from(wq);
     std::vector<T> work(static_cast<std::size_t>(lw));
-    geev_(&nn, a, wr.data(), wi.data(), vr.data(), work.data(), &lw, &info);
+    geev_(jobvr, &nn, &ld, a, wr.data(), wi.data(), vr.data(), work.data(), &lw, &info);
     if (info != 0) return static_cast<int>(info);
-    // Unpack LAPACK's real storage of complex-conjugate eigenvector pairs.
     for (idx j = 0; j < n; ++j) {
       const auto js = static_cast<std::size_t>(j);
       w[j] = std::complex<T>(wr[js], wi[js]);
+    }
+    if (v == nullptr) return 0;
+    // Unpack LAPACK's real storage of complex-conjugate eigenvector pairs.
+    for (idx j = 0; j < n; ++j) {
+      const auto js = static_cast<std::size_t>(j);
       if (wi[js] == T{0}) {
         for (idx i = 0; i < n; ++i) v[i + j * n] = vr[static_cast<std::size_t>(i + j * n)];
       } else if (j + 1 < n) {
@@ -344,11 +364,30 @@ class AccelRoutines final : public Routines<T> {
           v[i + j * n] = std::complex<T>(re, im);
           v[i + (j + 1) * n] = std::complex<T>(re, -im);
         }
-        w[j + 1] = std::complex<T>(wr[js + 1], wi[js + 1]);
         ++j;
       }
     }
     return 0;
+  }
+  // cgeev_/zgeev_ with a workspace query and rwork of 2n, as NumPy's
+  // complex init_geev (D-043).
+  int cgeev(idx n, std::complex<T>* a, std::complex<T>* w,
+            std::complex<T>* v) const override {
+    const lint nn = li(n);
+    const lint ld = std::max<lint>(nn, 1);
+    const char* jobvr = v != nullptr ? "V" : "N";
+    std::complex<T> vdummy{};
+    std::complex<T>* vp = v != nullptr ? v : &vdummy;
+    std::vector<T> rw(static_cast<std::size_t>(std::max<idx>(2 * n, 1)));
+    lint info = 0;
+    std::complex<T> wq{};
+    const lint q = -1;
+    cgeev_w(jobvr, &nn, &ld, a, w, vp, &wq, &q, rw.data(), &info);
+    if (info != 0) return static_cast<int>(info);
+    const lint lw = lwork_from(wq);
+    std::vector<std::complex<T>> work(static_cast<std::size_t>(lw));
+    cgeev_w(jobvr, &nn, &ld, a, w, vp, work.data(), &lw, rw.data(), &info);
+    return static_cast<int>(info);
   }
   int gesdd(idx m, idx n, T* a, T* s, T* u, T* vt, bool full) const override {
     const lint mm = li(m);
