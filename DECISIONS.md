@@ -1151,3 +1151,28 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   - 'nuc' and matrix ±2 use the complex SVD's singular values (D-041).
   - Values match NumPy within tolerance (different summation order).
 
+
+## D-045 — Casting rules and `canCast` (P2-1) — Accepted — 2026-10-01
+- Native `enum class Casting { No, Equiv, Safe, SameKind, Unsafe }` and
+  `can_cast(from, to, casting)` in `native/core/dtype.hpp`. All later ufunc
+  `out=`/`casting=` checks (P2-2 onward) use this function, so no other code
+  duplicates the casting rules.
+- Rules for the 14 supported dtypes (all native byte order). A check against
+  NumPy 2.5.3 `np.can_cast` over all 5 × 14 × 14 combinations found 0
+  mismatches:
+  - `no` and `equiv`: `from == to`. They differ only for byte order, which
+    numera does not support.
+  - `safe`: `promote_types(from, to) == to`.
+  - `same_kind`: `safe`, or kind(from) ≤ kind(to) in the order
+    b < u < i < f < c. For example float64 → float32 and int64 → int8 are
+    allowed, but int64 → uint8 and float → int are not.
+  - `unsafe`: always true.
+- Public `np.canCast(from, to, casting = "safe")`:
+  - `from` is a `DTypeLike` or an `NDArray`, whose dtype is used. Value-based
+    casting does not apply, as in NumPy 2.
+  - JS number, boolean and bigint arguments raise `DTypeError`, like NumPy 2's
+    `TypeError` for Python scalars (NEP 50).
+  - An unknown casting name raises `ValueError`, as in NumPy.
+  - An unknown dtype raises `DTypeError` (NumPy `TypeError`).
+- `canCast` comes forward from P3 (dtype introspection) because P2 needs it.
+

@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import np, {
+  type Casting,
   Complex,
   type IndexSpec,
   type NDArray,
@@ -352,6 +353,22 @@ describe("differential: promote_types", () => {
       expect(np.promoteTypes(c.a!, c.b!).name).toBe(c.expected);
     },
   );
+});
+
+describe("differential: can_cast (D-045)", () => {
+  const { numpy_version, cases } = load("casting");
+  const label = (c: Case): string =>
+    `${c.op} ${c.a} -> ${c.b}${c.arg === undefined ? "" : ` (${String(c.arg)})`}`;
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    const from = c.op === "can_cast_array" ? np.array(decodeInput(c.data!), { dtype: c.a! }) : c.a!;
+    const run = (): boolean =>
+      c.arg === undefined ? np.canCast(from, c.b!) : np.canCast(from, c.b!, c.arg as Casting);
+    if (c.error !== undefined) {
+      expect(run).toThrow(c.error === "ValueError" ? np.ValueError : np.DTypeError);
+      return;
+    }
+    expect(run()).toBe(c.expected);
+  });
 });
 
 describe("differential: indexing (M6)", () => {

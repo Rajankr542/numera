@@ -129,6 +129,25 @@ describe("astype / typed arrays", () => {
     expect(np.promoteTypes(np.int64, np.uint64)).toBe(np.float64);
     expect(np.promoteTypes("float16", "int16")).toBe(np.float32);
   });
+  it("canCast follows NumPy casting rules (D-045)", () => {
+    expect(np.canCast("float64", "float32")).toBe(false); // default "safe"
+    expect(np.canCast("float64", "float32", "same_kind")).toBe(true);
+    expect(np.canCast(np.int8, np.int16)).toBe(true);
+    expect(np.canCast("int64", "uint8", "same_kind")).toBe(false);
+    expect(np.canCast("complex128", "float64", "unsafe")).toBe(true);
+    expect(np.canCast("int32", "int32", "no")).toBe(true);
+    expect(np.canCast("int32", "int64", "equiv")).toBe(false);
+    expect(np.canCast("double", "complex")).toBe(true); // aliases
+    // Arrays contribute their dtype; values are ignored (NumPy 2).
+    expect(np.canCast(np.array([1000]), "int8")).toBe(false);
+    expect(np.canCast(np.zeros([2], { dtype: "int8" }), np.int16)).toBe(true);
+    expect(() => np.canCast(1 as never, "int8")).toThrow(np.DTypeError);
+    expect(() => np.canCast(true as never, "int8")).toThrow(np.DTypeError);
+    expect(() => np.canCast(1n as never, "int8")).toThrow(np.DTypeError);
+    expect(() => np.canCast("int8", "int16", "bogus" as never)).toThrow(ValueError);
+    expect(() => np.canCast("int8", "foo")).toThrow(np.DTypeError);
+    expect(() => np.canCast("foo", "int8")).toThrow(np.DTypeError);
+  });
 });
 
 describe("error translation (D-006)", () => {

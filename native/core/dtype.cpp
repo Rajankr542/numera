@@ -64,6 +64,51 @@ DType promote_types(DType a, DType b) noexcept {
       kPromote[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)]);
 }
 
+namespace {
+// Kind order used by same_kind casting: b < u < i < f < c.
+int kind_rank(DType dt) noexcept {
+  switch (dtype_info(dt).kind) {
+    case 'b': return 0;
+    case 'u': return 1;
+    case 'i': return 2;
+    case 'f': return 3;
+    default: return 4;  // 'c'
+  }
+}
+}  // namespace
+
+std::optional<Casting> casting_from_name(std::string_view name) noexcept {
+  if (name == "no") return Casting::No;
+  if (name == "equiv") return Casting::Equiv;
+  if (name == "safe") return Casting::Safe;
+  if (name == "same_kind") return Casting::SameKind;
+  if (name == "unsafe") return Casting::Unsafe;
+  return std::nullopt;
+}
+
+std::string_view casting_name(Casting c) noexcept {
+  switch (c) {
+    case Casting::No: return "no";
+    case Casting::Equiv: return "equiv";
+    case Casting::Safe: return "safe";
+    case Casting::SameKind: return "same_kind";
+    case Casting::Unsafe: return "unsafe";
+  }
+  return "?";
+}
+
+bool can_cast(DType from, DType to, Casting casting) noexcept {
+  switch (casting) {
+    case Casting::No:
+    case Casting::Equiv: return from == to;
+    case Casting::Unsafe: return true;
+    case Casting::Safe: return promote_types(from, to) == to;
+    case Casting::SameKind:
+      return promote_types(from, to) == to || kind_rank(from) <= kind_rank(to);
+  }
+  return false;
+}
+
 // Conversion via float32 intermediate would double-round; convert directly
 // from the double bit pattern with round-to-nearest-even.
 float16_t double_to_half(double value) noexcept {

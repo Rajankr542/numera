@@ -53,8 +53,8 @@ import {
   isrealobj,
   real,
 } from "./ufunc.js";
-export { DType, dtype, promoteTypes } from "./dtype.js";
-export type { DTypeLike, DTypeName } from "./dtype.js";
+export { canCast, DType, dtype, promoteTypes } from "./dtype.js";
+export type { Casting, DTypeLike, DTypeName } from "./dtype.js";
 export {
   bool,
   int8,
@@ -158,6 +158,7 @@ const np = {
   DType: dtypes.DType,
   dtype: dtypes.dtype,
   promoteTypes: dtypes.promoteTypes,
+  canCast: dtypes.canCast,
   array,
   asarray,
   empty,

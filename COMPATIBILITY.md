@@ -14,6 +14,7 @@ differential tests (`pnpm test:diff`).
 | strided views | `asStrided`; shape, strides, flags, values, `copy()` strides |
 | `mayShareMemory` | NumPy `may_share_memory` bounds semantics |
 | `promoteTypes` | full 14×14 table incl. complex |
+| `canCast` | all 5 casting rules × 14×14 dtype pairs (980 cases), default `"safe"`, array arguments (dtype only, no value-based casting), unknown rule → `ValueError` (D-045) |
 | `ones` / `full` / `eye` | all real dtypes (`ones` shape/strides also verified for complex); `full` dtype inference |
 | `arange` | int/float args, negative steps, empty ranges; int8/int32/float16/float32/float64 targets; bool ≤ 2 elements |
 | `linspace` | `endpoint`, `num` 0/1, integer targets (floor, NumPy ≥ 2) |

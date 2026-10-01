@@ -1,5 +1,38 @@
 # PROGRESS
 
+## 2026-10-01 — P2 sliced; P2-1: casting rules and `canCast` (D-045)
+
+- P2 (ufunc machinery) is split into P2-1 to P2-11 in
+  `docs/plan/TASK_SLICES.md`.
+- Before slicing, NumPy 2.5.3's `out=` behaviour was checked by hand. Findings
+  that P2-2/P2-3 must reproduce:
+  - The loop dtype comes from the inputs only. For example, int8 + int8 into
+    an int16 `out` wraps to -56. The result is then cast to `out` under
+    `same_kind`; failures raise `UFuncTypeError`, which is a `TypeError`.
+  - `out` must have exactly the broadcast shape. A smaller `out` raises
+    `ValueError`.
+  - A read-only `out` raises `ValueError`.
+  - Overlapping operands behave as if the inputs were copied first.
+  - The ufunc returns the `out` object itself.
+- P2-1 adds native `Casting` and `can_cast` (`native/core/dtype.{hpp,cpp}`),
+  which later P2 slices build on, and a public
+  `np.canCast(from, to, casting = "safe")`.
+  - Before implementing, the rules were checked against `np.can_cast` over
+    all 5 rules × 14 × 14 dtypes: 0 mismatches.
+  - New tests:
+    - C++ test `dtype: can_cast rules`.
+    - vitest cases in `views.test.ts`.
+    - Differential group `casting` with 987 cases: the full table, the
+      default rule, array arguments and bad rule names.
+  - Bench case `api/canCast` added to both suites, plus a docs site entry.
+- Verification:
+  - `pnpm test`: 247 tests pass.
+  - `pnpm test:diff`: 6111 tests pass.
+  - `pnpm test:native` and `pnpm test:asan` pass.
+  - `pnpm typecheck` is clean.
+  - `pnpm api:check` passes. API coverage is 16.1% (171/1060), and 0
+    callables are missing a benchmark.
+
 ## 2026-10-01 — P1-5e.6: complex bench cases; P1 complete
 
 P1 (complex numbers, D-033) is done. Every existing path accepts complex64 and

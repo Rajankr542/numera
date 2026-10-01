@@ -28,6 +28,7 @@ export interface NativeAddon {
   napiVersion: number;
   dtypes: Record<string, { itemsize: number; alignment: number; kind: string }>;
   promoteTypes(a: string, b: string): string;
+  canCast(from: string, to: string, casting: string): boolean;
   NativeNDArray: new (...args: never[]) => NativeNDArray;
   empty(shape: number[], dtype: string): NativeNDArray;
   zeros(shape: number[], dtype: string): NativeNDArray;

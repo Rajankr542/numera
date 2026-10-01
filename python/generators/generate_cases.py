@@ -394,6 +394,30 @@ def promotion_cases() -> list[dict]:
             for a in all_dt for b in all_dt]
 
 
+def casting_cases() -> list[dict]:
+    """np.can_cast over every dtype pair and casting rule (D-045)."""
+    all_dt = REAL_DTYPES + ["complex64", "complex128"]
+    rules = ["no", "equiv", "safe", "same_kind", "unsafe"]
+    cases = [{"op": "can_cast", "a": a, "b": b, "arg": r, "expected": bool(np.can_cast(a, b, r))}
+             for r in rules for a in all_dt for b in all_dt]
+    # Default rule is "safe".
+    cases += [{"op": "can_cast", "a": a, "b": b, "expected": bool(np.can_cast(a, b))}
+              for a, b in (("float64", "float32"), ("int8", "int16"), ("uint64", "int64"))]
+    # Array argument: its dtype is used, never its values (NumPy 2).
+    cases.append({"op": "can_cast_array", "a": "int64", "data": 1000, "b": "int8",
+                  "expected": bool(np.can_cast(np.array(1000), np.int8))})
+    cases.append({"op": "can_cast_array", "a": "int8", "data": [1, 2], "b": "int16",
+                  "expected": bool(np.can_cast(np.array([1, 2], np.int8), np.int16))})
+    for bad in ("bogus", "SAFE"):
+        try:
+            np.can_cast("int8", "int16", bad)
+            err = None
+        except (TypeError, ValueError) as e:
+            err = type(e).__name__
+        cases.append({"op": "can_cast", "a": "int8", "b": "int16", "arg": bad, "error": err})
+    return cases
+
+
 # ---- indexing (M6) ----
 # Index items are JSON-encoded: {"i": n} integer, {"s": [start, stop, step]}
 # slice (null = None), "newaxis", "...", {"b": bool} 0-d bool, and
@@ -1489,6 +1513,7 @@ def main() -> None:
         "shape_ops": shape_op_cases(),
         "ufuncs": ufunc_cases(),
         "promotion": promotion_cases(),
+        "casting": casting_cases(),
         "indexing": index_cases(),
         "writeable": writeable_cases(),
         "reduce": reduce_cases(),

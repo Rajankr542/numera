@@ -1,5 +1,5 @@
 import { addon } from "./addon.js";
-import { DTypeError } from "./errors.js";
+import { DTypeError, wrapNative } from "./errors.js";
 
 export type DTypeName =
   | "bool"
@@ -89,4 +89,27 @@ export const complex128 = get("complex128");
 /** Equivalent of numpy.promote_types. */
 export function promoteTypes(a: DTypeLike, b: DTypeLike): DType {
   return dtype(addon.promoteTypes(dtype(a).name, dtype(b).name));
+}
+
+/** NumPy casting rule names (D-045). */
+export type Casting = "no" | "equiv" | "safe" | "same_kind" | "unsafe";
+
+/**
+ * Equivalent of numpy.can_cast: whether `from` can be cast to `to` under the
+ * `casting` rule. `from` may be a dtype or an array (its dtype is used).
+ * NumPy 2 has no value-based casting, so JS scalars are rejected (D-045).
+ */
+export function canCast(
+  from: DTypeLike | { readonly dtype: DType },
+  to: DTypeLike,
+  casting: Casting = "safe",
+): boolean {
+  const kind = typeof from;
+  if (kind === "number" || kind === "boolean" || kind === "bigint") {
+    throw new DTypeError(
+      "canCast() does not support JS numbers, booleans or bigints because the result used to depend on the value (NEP 50)",
+    );
+  }
+  const src = typeof from === "object" && !(from instanceof DType) ? from.dtype : from;
+  return wrapNative(() => addon.canCast(dtype(src).name, dtype(to).name, casting));
 }

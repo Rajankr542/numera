@@ -854,6 +854,21 @@ d === np.float32;    // => true`,
         example: `np.promoteTypes("int32", "float32").name; // => "float64"
 np.promoteTypes("uint8", "int8").name;    // => "int16"`,
       },
+      {
+        name: "canCast",
+        sig: "np.canCast(from, to, casting = \"safe\")",
+        desc: "Whether `from` can be cast to `to` under a NumPy casting rule: `\"no\"`, `\"equiv\"`, `\"safe\"` (the default), `\"same_kind\"` or `\"unsafe\"`. `from` can be a dtype or an array, in which case only its dtype is used. JS numbers raise `DTypeError`, as Python scalars do in NumPy 2. An unknown rule raises `ValueError`.",
+        args: [
+          { name: "from", type: "DTypeLike | NDArray", desc: "Source dtype, or an array whose dtype is used." },
+          { name: "to", type: "DTypeLike", desc: "Target dtype." },
+          { name: "casting", type: "string", desc: "Casting rule." },
+        ],
+        returns: "boolean",
+        example: `np.canCast("int8", "int16");                   // => true
+np.canCast("float64", "float32");              // => false
+np.canCast("float64", "float32", "same_kind"); // => true
+np.canCast("int64", "uint8", "same_kind");     // => false`,
+      },
     ],
   },
   {

@@ -52,6 +52,16 @@ inline bool is_complex(DType dt) noexcept { return dtype_info(dt).kind == 'c'; }
 // Equivalent of numpy.promote_types for the supported dtypes.
 DType promote_types(DType a, DType b) noexcept;
 
+// NumPy casting rules (D-045). All dtypes are native byte order, so No and
+// Equiv behave the same.
+enum class Casting : std::uint8_t { No, Equiv, Safe, SameKind, Unsafe };
+
+std::optional<Casting> casting_from_name(std::string_view name) noexcept;
+std::string_view casting_name(Casting c) noexcept;
+
+// Equivalent of numpy.can_cast(from, to, casting) for dtype arguments.
+bool can_cast(DType from, DType to, Casting casting) noexcept;
+
 // IEEE-754 binary16 storage type (bit pattern), conversions round-to-nearest-even.
 struct float16_t {
   std::uint16_t bits;

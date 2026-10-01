@@ -1,9 +1,9 @@
 {
  "numpy_version": "2.5.3",
  "totals": {
-  "implemented": 170,
+  "implemented": 171,
   "total": 1060,
-  "coverage": 16
+  "coverage": 16.1
  },
  "surfaces": {
   "Generator": {
@@ -489,8 +489,8 @@
   },
   "np": {
    "total": 435,
-   "implemented": 82,
-   "coverage": 18.9,
+   "implemented": 83,
+   "coverage": 19.1,
    "excluded": 42,
    "missing": [
     "False_",
@@ -557,7 +557,6 @@
     "byte",
     "bytes_",
     "c_",
-    "can_cast",
     "cbrt",
     "cdouble",
     "ceil",

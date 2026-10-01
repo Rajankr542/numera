@@ -37,6 +37,42 @@ TEST_CASE("dtype: promotion matches NumPy samples") {
   }
 }
 
+TEST_CASE("dtype: can_cast rules (D-045)") {
+  const auto all = [](auto&& pred) {
+    for (int i = 0; i < kNumDTypes; ++i) {
+      for (int j = 0; j < kNumDTypes; ++j) pred(static_cast<DType>(i), static_cast<DType>(j));
+    }
+  };
+  all([](DType a, DType b) {
+    CHECK(can_cast(a, b, Casting::No) == (a == b));
+    CHECK(can_cast(a, b, Casting::Equiv) == (a == b));
+    CHECK(can_cast(a, b, Casting::Unsafe));
+    // safe implies same_kind implies unsafe.
+    if (can_cast(a, b, Casting::Safe)) CHECK(can_cast(a, b, Casting::SameKind));
+  });
+  CHECK(can_cast(DType::Int8, DType::Int16, Casting::Safe));
+  CHECK(!can_cast(DType::Int64, DType::Float32, Casting::Safe));
+  CHECK(can_cast(DType::Int64, DType::Float64, Casting::Safe));
+  CHECK(!can_cast(DType::Float64, DType::Float32, Casting::Safe));
+  CHECK(can_cast(DType::Float64, DType::Float32, Casting::SameKind));
+  CHECK(can_cast(DType::Int64, DType::Int8, Casting::SameKind));
+  CHECK(!can_cast(DType::Int64, DType::UInt8, Casting::SameKind));
+  CHECK(can_cast(DType::UInt64, DType::Int8, Casting::SameKind));
+  CHECK(!can_cast(DType::Float64, DType::Int64, Casting::SameKind));
+  CHECK(!can_cast(DType::Complex128, DType::Float64, Casting::SameKind));
+  CHECK(can_cast(DType::Complex128, DType::Complex64, Casting::SameKind));
+  CHECK(can_cast(DType::Bool, DType::UInt8, Casting::Safe));
+  CHECK(!can_cast(DType::Int8, DType::Bool, Casting::SameKind));
+  CHECK(can_cast(DType::Float16, DType::Complex64, Casting::Safe));
+  for (const char* n : {"no", "equiv", "safe", "same_kind", "unsafe"}) {
+    const auto c = casting_from_name(n);
+    CHECK(c.has_value());
+    CHECK(casting_name(*c) == n);
+  }
+  CHECK(!casting_from_name("bogus").has_value());
+  CHECK(!casting_from_name("samekind").has_value());
+}
+
 TEST_CASE("float16: round trip and rounding") {
   CHECK_EQ(half_to_double(double_to_half(1.0)), 1.0);
   CHECK_EQ(half_to_double(double_to_half(-2.5)), -2.5);

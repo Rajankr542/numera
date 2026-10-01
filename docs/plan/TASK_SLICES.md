@@ -51,7 +51,28 @@ P1-5e is larger than the ~300-line slice rule allows. Its sub-steps (1)–(6)
 are done in order, and each one is green and committed before the next
 starts.
 
-## P2–P15
+## P2 — Ufunc machinery
+Scope (`NUMPY_PARITY.md`): `out=`, `where=`, `dtype=`, `casting=`, `order=`,
+`ufunc.reduce/accumulate/reduceat/outer/at`, `errstate`/`seterr`, and a
+table-driven native ufunc registry. The slices below apply to the 12 existing
+ufuncs (`add` … `angle`). Later ufunc families (P4/P5) are written to the same
+machinery.
+
+| Slice | Content |
+|-------|---------|
+| P2-1 ✅ | Casting rules (D-045): native `Casting` + `can_cast` (`no`/`equiv`/`safe`/`same_kind`/`unsafe`), public `np.canCast` (moved forward from P3 because `out=`/`casting=` need it). C++ test, vitest, differential `casting` group, bench case. |
+| P2-2 | Native `out=` for `binary`/`unary`: result broadcast into `out` (`out` shape must equal the broadcast shape), `same_kind` output cast, read-only check, inputs copied first when they overlap `out` (except identical in-place). C++ tests. |
+| P2-3 | TS `{ out }` option on all 12 ufuncs (returns `out` itself), vitest, and differential group `ufunc_out` (dtype casts, broadcast, strided/overlapping `out`, errors). |
+| P2-4 | `casting=` and `dtype=` (loop-dtype override with input casting). C++ + TS + differential cases. |
+| P2-5 | `where=` mask (with and without `out`; unmasked elements stay uninitialized/`out`). C++ + TS + differential cases. |
+| P2-6 | `order=` (`'C'`/`'F'`/`'A'`/`'K'`) for ufunc results, including NumPy's `'K'` stride order. Revisits the D-014 C-contiguous divergence. |
+| P2-7 | Table-driven native ufunc registry replacing the `BinaryOp`/`UnaryOp` enums (name → loops per dtype, identity, type resolver). Pure refactor: every existing test stays green. |
+| P2-8 | `ufunc.reduce` and `ufunc.accumulate` (`np.add.reduce(a, {axis, dtype, out, keepdims, initial, where})`), routed through the registry. |
+| P2-9 | `ufunc.outer`, `ufunc.reduceat`, `ufunc.at`. |
+| P2-10 | `errstate`/`seterr`/`geterr` (`divide`/`over`/`under`/`invalid` → `ignore`/`warn`/`raise`) via native FP-exception flags plus the integer divide-by-zero path. |
+| P2-11 | Bench cases for every new kwarg/method in both suites, ROADMAP/PROGRESS/COMPATIBILITY updates, and marking P2 ✅. |
+
+## P3–P15
 Slice each milestone just before it starts, using the same rules. As a rule of
 thumb, one ufunc family, one function group, or one kwarg (`out=`, `where=`, …)
 per slice.

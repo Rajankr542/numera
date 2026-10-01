@@ -26,6 +26,23 @@ Napi::Value promote_types_js(const Napi::CallbackInfo& info) {
     return Napi::String::New(env, std::string(dtype_name(promote_types(a, b))));
   });
 }
+
+// canCast(from, to, casting): dtype names and a casting rule name (D-045).
+Napi::Value can_cast_js(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  return translate_errors(env, [&]() -> Napi::Value {
+    const DType from = parse_dtype(info[0]);
+    const DType to = parse_dtype(info[1]);
+    const std::string name = info[2].IsString() ? info[2].As<Napi::String>().Utf8Value() : "";
+    const auto casting = casting_from_name(name);
+    if (!casting) {
+      throw_error(ErrorKind::Value,
+                  "casting must be one of 'no', 'equiv', 'safe', 'same_kind', 'unsafe' (got '" +
+                      name + "')");
+    }
+    return Napi::Boolean::New(env, can_cast(from, to, *casting));
+  });
+}
 }  // namespace
 
 void init_dtype_binding(Napi::Env env, Napi::Object exports) {
@@ -40,6 +57,7 @@ void init_dtype_binding(Napi::Env env, Napi::Object exports) {
   }
   exports.Set("dtypes", table);
   exports.Set("promoteTypes", Napi::Function::New(env, promote_types_js, "promoteTypes"));
+  exports.Set("canCast", Napi::Function::New(env, can_cast_js, "canCast"));
 }
 
 }  // namespace nativpy::bindings
