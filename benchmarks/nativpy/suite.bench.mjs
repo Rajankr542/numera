@@ -109,6 +109,12 @@ for (const n of VEC) {
 
   run("fft", "fft f64", s, () => np.fft.fft(a));
   run("fft", "rfft f64", s, () => np.fft.rfft(a));
+  // P1-5e complex FFT input: c = a + i*b
+  const c = np.add(a, np.multiply(b, np.complex(0, 1)));
+  const c64 = c.astype("complex64");
+  run("fft", "fft c128", s, () => np.fft.fft(c));
+  run("fft", "fft c64", s, () => np.fft.fft(c64));
+  run("fft", "ifft c128", s, () => np.fft.ifft(c));
 
   run("random", "rng.random", s, () => rng.random([n]));
   run("random", "rng.standardNormal", s, () => rng.standardNormal([n]));
@@ -160,6 +166,18 @@ for (const m of DECOMP) {
   run("linalg", "qr", s, () => np.linalg.qr(A));
   run("linalg", "eigh", s, () => np.linalg.eigh(S));
   if (m <= 512) run("linalg", "eig", s, () => np.linalg.eig(A));
+  // P1-5 complex linalg (D-038–D-044): CA = A + i*A.T (diagonally dominant),
+  // CH = CA + CA^H (Hermitian), cb = (1+i)*b
+  const CA = np.add(A, np.multiply(A.T, np.complex(0, 1)));
+  const CH = np.add(CA, np.conj(CA).T);
+  const cb = np.multiply(b, np.complex(1, 1));
+  run("linalg", "inv c128", s, () => np.linalg.inv(CA));
+  run("linalg", "solve c128", s, () => np.linalg.solve(CA, cb));
+  run("linalg", "det c128", s, () => np.linalg.det(CA));
+  run("linalg", "svd c128", s, () => np.linalg.svd(CA));
+  run("linalg", "qr c128", s, () => np.linalg.qr(CA));
+  run("linalg", "eigh c128", s, () => np.linalg.eigh(CH));
+  if (m <= 512) run("linalg", "eig c128", s, () => np.linalg.eig(CA));
 }
 
 // ---- api coverage (D-032): every implemented callable timed at a small size ----
@@ -319,6 +337,12 @@ for (const m of DECOMP) {
     api("complex.outer", [100, 100], () => np.outer(a.slice([[0, 100]]), b.slice([[0, 100]])));
     api("complex.matmul", ms, () => np.matmul(CM, CM));
     api("complex.matmul matvec", ms, () => np.matmul(CM, cv));
+    // P1-5 complex linalg API cases (D-042–D-044); CH is Hermitian
+    const CH = np.add(CM, np.conj(CM).T);
+    api("complex.linalg.norm", ms, () => np.linalg.norm(CM));
+    api("complex.linalg.eigvals", ms, () => np.linalg.eigvals(CM));
+    api("complex.linalg.eigvalsh", ms, () => np.linalg.eigvalsh(CH));
+    api("complex.linalg.lstsq", ms, () => np.linalg.lstsq(CM, cv));
   }
 }
 

@@ -110,6 +110,12 @@ for n in VEC:
 
     run("fft", "fft f64", s, lambda: np.fft.fft(a))
     run("fft", "rfft f64", s, lambda: np.fft.rfft(a))
+    # P1-5e complex FFT input: c = a + i*b
+    c = a + b * 1j
+    c64 = c.astype(np.complex64)
+    run("fft", "fft c128", s, lambda: np.fft.fft(c))
+    run("fft", "fft c64", s, lambda: np.fft.fft(c64))
+    run("fft", "ifft c128", s, lambda: np.fft.ifft(c))
 
     run("random", "rng.random", s, lambda: rng.random(n))
     run("random", "rng.standardNormal", s, lambda: rng.standard_normal(n))
@@ -160,6 +166,19 @@ for m in DECOMP:
     run("linalg", "eigh", s, lambda: np.linalg.eigh(S))
     if m <= 512:
         run("linalg", "eig", s, lambda: np.linalg.eig(A))
+    # P1-5 complex linalg (D-038–D-044): CA = A + i*A.T (diagonally dominant),
+    # CH = CA + CA^H (Hermitian), cb = (1+i)*b
+    CA = A + A.T * 1j
+    CH = CA + CA.conj().T
+    cb = b * (1 + 1j)
+    run("linalg", "inv c128", s, lambda: np.linalg.inv(CA))
+    run("linalg", "solve c128", s, lambda: np.linalg.solve(CA, cb))
+    run("linalg", "det c128", s, lambda: np.linalg.det(CA))
+    run("linalg", "svd c128", s, lambda: np.linalg.svd(CA))
+    run("linalg", "qr c128", s, lambda: np.linalg.qr(CA))
+    run("linalg", "eigh c128", s, lambda: np.linalg.eigh(CH))
+    if m <= 512:
+        run("linalg", "eig c128", s, lambda: np.linalg.eig(CA))
 
 # ---- api coverage (D-032): every implemented callable timed at a small size ----
 n = 1_000
@@ -320,6 +339,12 @@ api("complex.inner", vs, lambda: np.inner(a, b))
 api("complex.outer", [100, 100], lambda: np.outer(a[:100], b[:100]))
 api("complex.matmul", ms, lambda: np.matmul(CM, CM))
 api("complex.matmul matvec", ms, lambda: np.matmul(CM, cv))
+# P1-5 complex linalg API cases (D-042–D-044); CH is Hermitian
+CH = CM + CM.conj().T
+api("complex.linalg.norm", ms, lambda: np.linalg.norm(CM))
+api("complex.linalg.eigvals", ms, lambda: np.linalg.eigvals(CM))
+api("complex.linalg.eigvalsh", ms, lambda: np.linalg.eigvalsh(CH))
+api("complex.linalg.lstsq", ms, lambda: np.linalg.lstsq(CM, cv))
 
 
 def blas_name():

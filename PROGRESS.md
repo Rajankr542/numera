@@ -1,5 +1,50 @@
 # PROGRESS
 
+## 2026-10-01 — P1-5e.6: complex bench cases; P1 complete
+
+P1 (complex numbers, D-033) is done. Every existing path accepts complex64 and
+complex128: conversion, ufuncs, reductions, the matmul family, all of
+`linalg` on both backends, and FFT. Each path is checked against NumPy by a
+differential group: `complex`, `complex_ufuncs`, `complex_reductions`,
+`complex_matmul`, `complex_linalg` and `complex_fft`.
+- Benchmarks, added to both suites with the same names and inputs:
+  - `linalg/{inv,solve,det,svd,qr,eigh,eig} c128` at 32², 128² and 512²
+    (`eig` only up to 512², as for real input). The inputs are
+    CA = A + i·Aᵀ (diagonally dominant), the Hermitian CH = CA + CAᴴ for
+    `eigh`, and cb = (1+i)·b.
+  - `fft/{fft c128, fft c64, ifft c128}` at 1e3, 1e5 and 1e6 elements.
+  - API cases `complex.linalg.norm`/`eigvals`/`eigvalsh`/`lstsq` at 32².
+- Smoke run with `NATIVPY_BENCH_FILTER=c128` on one machine (M2 Pro,
+  Accelerate, NumPy 2.5.3, median ms, nativpy vs NumPy):
+  - `fft c128` 1e6: 9.96 vs 9.92.
+  - `svd c128` 512²: 63.5 vs 68.4. `eig c128` 512²: 339 vs 352.
+  - `solve c128` 512²: 4.08 vs 2.96. `det c128` 512²: 3.78 vs 2.53.
+    These are the slowest cases, possibly the complex128 copy/promotion
+    around `zgetrf`/`zgesv`. Not profiled yet.
+  - The geometric mean over the 31 filtered cases was 0.958.
+  These are single runs, not a performance claim, so they were not added to
+  PERFORMANCE.md.
+- `pnpm api:check` passes: 0 callables without a benchmark, and API coverage
+  is 16% (170/1060).
+- Checked by hand (temporary probe test, removed afterwards):
+  - `where`, `take`, boolean indexing, `set`, `broadcastTo`, `full`, and
+    `zeros`/`ones`/`empty`/`eye` with a complex dtype all work.
+  - `mod`/`floorDivide` raise `DTypeError` (D-033).
+  - `arange`/`linspace` with complex arguments raise `ValueError`. This is
+    already listed as not supported in COMPATIBILITY.md.
+- Still not in P1, by plan:
+  - Complex `sort` waits for `sort` itself (P9).
+  - Complex trig/comparison ufuncs wait for those ufuncs (P4/P5).
+  - Complex versions of the linalg functions that don't exist yet
+    (`pinv`, `cholesky`, …) belong to P11.
+- Docs: ROADMAP (P1 ✅, coverage 16%), TASK_SLICES (P1-5e ✅), and the
+  COMPATIBILITY "Not implemented" note on complex trig/comparisons, which no
+  longer points to a P1 step.
+
+Next: split P2 (ufunc machinery: `out=`, `where=`, `dtype=`, `casting=`,
+`order=`, `ufunc.reduce/accumulate/...`, `errstate`) into slices in
+`docs/plan/TASK_SLICES.md`, then start P2-1.
+
 ## 2026-10-01 — P1-5e.5: FFT accepts np.Complex input end to end
 
 Checked that every complex FFT path works from JS `Complex` values in to

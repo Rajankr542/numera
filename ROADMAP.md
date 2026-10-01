@@ -24,11 +24,11 @@ and a benchmark case in both suites.
 
 | Milestone | Status |
 |---|---|
-| P0 coverage tooling (`pnpm api:coverage` / `api:check` in CI) | ✅ API coverage is 14.9% (158/1060), and every implemented callable is benchmarked in both suites |
-| P1 complex numbers (D-008, D-033) | 🟡 in progress. Steps 1 (conversion), 2 (ufuncs plus `real`/`imag`/`conj`/`angle`/`iscomplex*`/`isreal*`), 3 (reductions, D-034) and 4 (`matmul`/`dot`/`inner`/`outer`, D-035–D-037) are done. Still to do: complex linalg (step 5). |
+| P0 coverage tooling (`pnpm api:coverage` / `api:check` in CI) | ✅ API coverage is 16.0% (170/1060) after P1 (14.9%, 158/1060, at P0), and every implemented callable is benchmarked in both suites |
+| P1 complex numbers (D-008, D-033) | ✅ Complex64/complex128 work in every existing path: conversion, ufuncs plus `real`/`imag`/`conj`/`angle`/`iscomplex*`/`isreal*`, reductions (D-034), `matmul`/`dot`/`inner`/`outer` (D-035–D-037), all of `linalg` on both backends (D-038–D-044), and FFT with `np.Complex` input. Verified by the differential groups `complex_ufuncs`, `complex_reductions`, `complex_matmul`, `complex_linalg` and `complex_fft`; benchmarked in both suites. Complex `sort` waits for `sort` itself (P9); complex trig and comparisons wait for P4/P5. |
 | P2–P15 | ⬜ |
 
-Work is done in small slices, one per session (see `docs/plan/TASK_SLICES.md`). Next slice: **P1-5e** sub-step 6, bench cases, docs updates and marking P1 ✅ (P1-5a–5d and 5e.1–5e.5 done, D-038–D-044).
+Work is done in small slices, one per session (see `docs/plan/TASK_SLICES.md`). Next slice: **P2 slicing**, i.e. splitting P2 (ufunc machinery) into slices in `TASK_SLICES.md`, then P2-1 (P1 is done).
 
 ## Next steps
 1. M11 per PLAN §86. Next targets, from PERFORMANCE.md findings:
