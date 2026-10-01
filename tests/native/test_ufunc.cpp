@@ -323,3 +323,79 @@ TEST_CASE("ufunc: dtype= missing loops and error order") {
                     ErrorKind::Value);
 }
 
+
+// where= (D-049). Expected values from NumPy 2.5.3.
+TEST_CASE("ufunc: where= with and without out") {
+  const NDArray a = vec_d({1, 2, 3});
+  const NDArray b = vec_d({10, 20, 30});
+  const NDArray m = vec_i({1, 0, 1}, DType::Int64).astype(DType::Bool);
+  UfuncParams p;
+  p.where = m;
+  NDArray out = vec_d({7.5, 7.5, 7.5});
+  binary(BinaryOp::Add, a, b, &out, p);
+  CHECK_EQ(out.get_double(0), 11.0);
+  CHECK_EQ(out.get_double(1), 7.5);  // untouched
+  CHECK_EQ(out.get_double(2), 33.0);
+  // Without out: masked positions are zero (numera's deterministic choice).
+  NDArray r = binary(BinaryOp::Add, a, b, nullptr, p);
+  CHECK_EQ(r.get_double(1), 0.0);
+  CHECK_EQ(r.get_double(2), 33.0);
+  // Unary into a narrower out with an unsafe cast.
+  NDArray o8 = vec_i({5, 5, 5}, DType::Int8);
+  p.casting = Casting::Unsafe;
+  unary(UnaryOp::Sqrt, vec_d({4, 9, 16}), &o8, p);
+  CHECK_EQ(o8.get_int64(0), 2);
+  CHECK_EQ(o8.get_int64(1), 5);
+  CHECK_EQ(o8.get_int64(2), 4);
+}
+
+TEST_CASE("ufunc: where= broadcasting and shape errors") {
+  // The mask expands the result shape: add(1., 2., where=ones((2,3))).
+  UfuncParams p;
+  NDArray mrow = NDArray::zeros({2, 1}, DType::Bool);
+  mrow.set_int64(0, 1);
+  p.where = mrow;
+  NDArray r = binary(BinaryOp::Add, vec_d({1, 2, 3}), vec_d({10}), nullptr, p);
+  CHECK((r.shape() == Shape{2, 3}));
+  CHECK_EQ(r.get_double(2), 13.0);
+  CHECK_EQ(r.get_double(3), 0.0);
+  // Incompatible mask, and a mask larger than out.
+  p.where = NDArray::zeros({2}, DType::Bool);
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, vec_d({1, 2, 3}), vec_d({1}), nullptr, p), ErrorKind::Broadcast);
+  CHECK_THROWS_KIND(unary(UnaryOp::Negative, vec_d({1, 2, 3}), nullptr, p), ErrorKind::Broadcast);
+  p.where = NDArray::zeros({2, 3}, DType::Bool);
+  NDArray out = NDArray::zeros({3}, DType::Float64);
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, vec_d({1, 2, 3}), vec_d({1}), &out, p), ErrorKind::Broadcast);
+}
+
+TEST_CASE("ufunc: where= dtype, error order and masked values") {
+  const NDArray i64 = vec_i({2, 2}, DType::Int64);
+  UfuncParams p;
+  p.where = vec_i({1, 0}, DType::Int64);  // not bool: refused (safe cast)
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, i64, i64, nullptr, p), ErrorKind::DType);
+  // read-only out is reported before the mask dtype.
+  NDArray ro = NDArray::zeros({2}, DType::Int64).as_readonly();
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, i64, i64, &ro, p), ErrorKind::Value);
+  // Input cast errors come before mask shape errors.
+  p.where = NDArray::zeros({3}, DType::Bool);
+  p.casting = Casting::No;
+  CHECK_THROWS_KIND(binary(BinaryOp::Add, i64, vec_d({1.5}), nullptr, p), ErrorKind::DType);
+  // Negative exponent only matters where the mask is true.
+  const NDArray e = vec_i({1, -1}, DType::Int64);
+  p = UfuncParams{};
+  p.where = vec_i({1, 0}, DType::Int64).astype(DType::Bool);
+  NDArray out = NDArray::zeros({2}, DType::Int64);
+  binary(BinaryOp::Power, i64, e, &out, p);
+  CHECK_EQ(out.get_int64(0), 2);
+  CHECK_EQ(out.get_int64(1), 0);
+  p.where = vec_i({1, 1}, DType::Int64).astype(DType::Bool);
+  CHECK_THROWS_KIND(binary(BinaryOp::Power, i64, e, &out, p), ErrorKind::Value);
+  // A mask aliasing out: computed as if the mask were read first.
+  NDArray o = vec_i({1, 0, 1}, DType::Int8);
+  p.where = NDArray{o.buffer(), DType::Bool, o.shape(), o.strides(), o.offset()};
+  binary(BinaryOp::Add, o, o, &o, p);
+  CHECK_EQ(o.get_int64(0), 2);
+  CHECK_EQ(o.get_int64(1), 0);
+  CHECK_EQ(o.get_int64(2), 2);
+}
+

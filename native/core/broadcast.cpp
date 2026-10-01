@@ -120,4 +120,27 @@ void copy_into(const NDArray& dst, const NDArray& src_in) {
   });
 }
 
+void masked_copy_into(const NDArray& dst, const NDArray& src_in, const NDArray& mask_in) {
+  const NDArray bsrc = broadcast_to(src_in, dst.shape());
+  const NDArray src = bsrc.may_share_memory(dst) ? bsrc.copy() : bsrc;
+  const NDArray bmask = broadcast_to(mask_in, dst.shape());
+  const NDArray mask = bmask.may_share_memory(dst) ? bmask.copy() : bmask;
+  const auto plan = make_plan<3>(dst.shape(), {&dst, &src, &mask});
+  dispatch_dtype(src.dtype(), [&](auto stag) {
+    using S = dtype_t<decltype(stag)::value>;
+    dispatch_dtype(dst.dtype(), [&](auto dtag) {
+      using D = dtype_t<decltype(dtag)::value>;
+      run_plan<3>(plan, {dst.data(), src.data(), mask.data()},
+                  [](std::array<std::byte*, 3> p, const std::array<std::int64_t, 3>& s,
+                     std::int64_t n) {
+                    for (std::int64_t i = 0; i < n; ++i) {
+                      if (load<bool>(p[2] + i * s[2])) {
+                        store<D>(p[0] + i * s[0], cast_value<D>(load<S>(p[1] + i * s[1])));
+                      }
+                    }
+                  });
+    });
+  });
+}
+
 }  // namespace nativpy

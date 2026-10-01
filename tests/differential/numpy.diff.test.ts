@@ -1545,4 +1545,79 @@ describe("differential: ufunc dtype= / casting= (P2-4, D-048)", () => {
   );
 });
 
+describe("differential: ufunc where= (P2-5, D-049)", () => {
+  interface WArg { data?: Encoded; dtype?: string; scalar?: number | boolean }
+  interface WMask { data?: Encoded; dtype?: string; list?: NestedArray; scalar?: number | boolean }
+  interface WCase {
+    op: string;
+    args: WArg[];
+    where: WMask;
+    opts: { dtype?: string; casting?: string };
+    out?: { dtype: string; shape: number[]; readonly?: boolean };
+    approx?: boolean;
+    error?: string;
+    expected?: { dtype: string; shape: number[]; values: Encoded };
+  }
+  const { numpy_version, cases } = load("ufunc_where") as unknown as { numpy_version: string; cases: WCase[] };
+  const ufuncs = np as unknown as Record<string, (...a: unknown[]) => NDArray>;
+  const errors: Record<string, typeof np.ValueError> = {
+    DTypeError: np.DTypeError,
+    ValueError: np.ValueError,
+    BroadcastError: np.BroadcastError,
+  };
+  const rtol = (dt: string): number =>
+    dt === "float16" || dt === "complex64" ? 1e-3 : dt === "float32" ? 1e-6 : 1e-14;
+  const close = (g: number, e: number, dt: string): void => {
+    if (Number.isNaN(e) || !Number.isFinite(e) || e === 0) expect(g).toEqual(e);
+    else expect(Math.abs(g - e)).toBeLessThanOrEqual(rtol(dt) * Math.abs(e));
+  };
+  const mask = (w: WMask): NDArray | NestedArray | number | boolean => {
+    if (w.scalar !== undefined) return w.scalar;
+    if (w.list !== undefined) return w.list;
+    return np.array(decodeInput(w.data!) as NestedArray, { dtype: w.dtype! });
+  };
+
+  it.each(cases.map((c) => [JSON.stringify({ op: c.op, args: c.args, where: c.where, opts: c.opts, out: c.out }).slice(0, 360), c] as const))(
+    `numpy ${numpy_version}: %s`,
+    (_l, c) => {
+      const xs = c.args.map((a) =>
+        a.scalar !== undefined ? a.scalar : np.array(decodeInput(a.data!) as NestedArray, { dtype: a.dtype! }),
+      );
+      let out: NDArray | undefined;
+      if (c.out) {
+        const full = np.full(c.out.shape, 7).astype(c.out.dtype);
+        out = c.out.readonly ? np.broadcastTo(full, c.out.shape) : full;
+      }
+      const opts = { ...c.opts, where: mask(c.where), ...(out ? { out } : {}) };
+      const run = (): NDArray => ufuncs[c.op]!(...xs, opts);
+      if (c.error !== undefined) {
+        expect(run).toThrow(errors[c.error]);
+        return;
+      }
+      const r = run();
+      if (out) expect(r).toBe(out);
+      const exp = c.expected!;
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      const want = ([decodeExpected(exp.values)] as unknown[]).flat(Infinity);
+      const got = ([r.toArray()] as unknown[]).flat(Infinity);
+      if (!c.approx || r.dtype.kind === "b" || r.dtype.kind === "i" || r.dtype.kind === "u") {
+        expect(got).toEqual(want);
+        return;
+      }
+      want.forEach((e, i) => {
+        const g = got[i];
+        if (typeof e === "number") close(g as number, e, exp.dtype);
+        else {
+          const ec = e as { re: number; im: number };
+          const gc = g as { re: number; im: number };
+          close(gc.re, ec.re, exp.dtype);
+          close(gc.im, ec.im, exp.dtype);
+        }
+      });
+    },
+  );
+});
+
+
 

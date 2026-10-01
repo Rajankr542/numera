@@ -20,6 +20,11 @@ NDArray broadcast_to(const NDArray& a, const Shape& shape);
 // dst's writeable flag; callers do.
 void copy_into(const NDArray& dst, const NDArray& src);
 
+// Like copy_into, but writes only where `mask` (bool, broadcast to dst's
+// shape) is true; other dst elements are left unchanged (D-049). Overlap of
+// src or mask with dst is handled by staging through a copy.
+void masked_copy_into(const NDArray& dst, const NDArray& src, const NDArray& mask);
+
 // Iteration plan for N operands over a common (output) shape (PLAN §14).
 // Adjacent dimensions that are contiguous for every operand are coalesced,
 // so a fully contiguous op becomes one inner loop.

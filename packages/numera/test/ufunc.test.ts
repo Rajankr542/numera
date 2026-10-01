@@ -156,3 +156,51 @@ describe("ufunc dtype= / casting= (P2-4, D-048)", () => {
   });
 });
 
+
+// Expected values from NumPy 2.5.3 (D-049).
+describe("ufunc where= (P2-5, D-049)", () => {
+  const f = () => np.array([1.5, 2.5, 3.5]);
+  const m = [true, false, true];
+
+  it("writes only true positions into out", () => {
+    const out = np.full(3, 7.5);
+    expect(np.add(f(), 10, { out, where: m })).toBe(out);
+    expect(out.toArray()).toEqual([11.5, 7.5, 13.5]);
+    const o2 = np.full(2, 9.5);
+    np.sqrt([4, 16], { out: o2, where: np.array([false, true]) });
+    expect(o2.toArray()).toEqual([9.5, 4]);
+  });
+
+  it("zeros unmasked positions without out", () => {
+    expect(np.multiply(f(), 2, { where: m }).toArray()).toEqual([3, 0, 7]);
+    expect(np.negative([1, 2], { where: false }).toArray()).toEqual([0, 0]);
+    expect(np.add(f(), 1, { where: true }).toArray()).toEqual([2.5, 3.5, 4.5]);
+  });
+
+  it("broadcasts the mask like an input", () => {
+    const r = np.add(f(), 1, { where: [[true], [false]] });
+    expect(r.shape).toEqual([2, 3]);
+    expect(r.toArray()).toEqual([[2.5, 3.5, 4.5], [0, 0, 0]]);
+    expect(() => np.add(f(), 1, { where: [true, false] })).toThrow(BroadcastError);
+    expect(() => np.add(f(), 1, { out: np.zeros(3), where: [[true], [false]] })).toThrow(
+      /doesn't match the broadcast shape \(2, 3\)/,
+    );
+  });
+
+  it("converts lists/scalars to bool but refuses non-bool arrays", () => {
+    expect(np.add(f(), 1, { out: np.zeros(3), where: [1.5, 0, 0] }).toArray()).toEqual([2.5, 0, 0]);
+    expect(np.add(f(), 1, { out: np.zeros(3), where: 0 }).toArray()).toEqual([0, 0, 0]);
+    expect(() => np.add(f(), 1, { where: np.array([1, 0, 1]) })).toThrow(
+      "Cannot cast array data from int64 to bool according to the rule 'safe'",
+    );
+    expect(() => np.add(f(), 1, { where: null as never })).toThrow(DTypeError);
+  });
+
+  it("checks negative integer exponents only where the mask is true", () => {
+    const out = np.zeros(2, { dtype: "int64" });
+    np.power([2, 2], [1, -1], { out, where: [true, false] });
+    expect(out.toArray()).toEqual([2, 0]);
+    expect(() => np.power([2, 2], [1, -1], { where: [true, true] })).toThrow(ValueError);
+  });
+});
+

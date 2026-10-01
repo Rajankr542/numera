@@ -1271,3 +1271,43 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   and `add(int8Arr, 1.5, {dtype: "int8"})` fails the input cast, as in
   NumPy).
 
+
+## D-049 — Ufunc `where=` mask (P2-5) — Accepted — 2026-10-01
+- Native: `UfuncParams` gains `std::optional<NDArray> where`. The mask must
+  have dtype bool. Any other dtype raises `DTypeError` "Cannot cast array data
+  from int64 to bool according to the rule 'safe'", because NumPy casts
+  `where` to bool with the `safe` rule and only bool → bool is safe.
+- Shapes: the mask takes part in broadcasting like an extra input.
+  - Without `out`: the result shape is `broadcast(a, b, where)`.
+  - With `out`: `out.shape` must equal `broadcast(a, b, where, out)`.
+  - The broadcast error lists the mask's shape after the inputs, and the
+    `out` message reports the broadcast shape including the mask, as in
+    NumPy.
+- Semantics: only elements where the mask is true are written. With `out`,
+  the other elements of `out` are left unchanged. Without `out`, NumPy
+  leaves them uninitialized; numera fills them with **zeros** so results are
+  deterministic. Zero is one of the values NumPy may happen to leave, so this
+  is a stricter guarantee than NumPy's, not a contradiction (COMPATIBILITY).
+- The value check for integer `power` with a negative exponent only applies
+  to elements where the mask is true. NumPy 2.5.3 does the same.
+- Error order (NumPy 2.5.3, checked by hand): read-only `out` → mask dtype →
+  loop resolution → input casts → output cast → shapes (including the mask)
+  → values (masked).
+- Implementation: when a mask is given, the loop runs over the full
+  broadcast shape into a fresh temporary of the loop dtype. A masked copy
+  (`masked_copy_into`, unsafe cast) then writes the true positions into
+  `out`, or into a zeroed result. The masked copy copies the mask first when
+  it overlaps the destination, so a mask that aliases `out` gives NumPy's
+  result. This costs an extra pass and computes masked-out elements
+  (harmless: the integer kernels are total). Making the loops themselves
+  masked is left to the P2-7 registry. No performance claims are made.
+- TS: `UfuncOptions.where?: ArrayLike | boolean | number`.
+  - `undefined` and `true` mean no mask.
+  - An `NDArray` mask is passed through unchanged, so a non-bool dtype
+    raises `DTypeError`.
+  - Nested lists and JS scalars are converted with
+    `array(where, {dtype: "bool"})`, like NumPy's handling of Python lists
+    and scalars (`[1.5, 0]` → `[true, false]`).
+  - `null` is not accepted. NumPy treats `where=None` as `False`, which is
+    a trap, and numera refuses to copy it.
+

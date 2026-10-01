@@ -52,6 +52,8 @@ differential tests (`pnpm test:diff`).
 | ufunc `out=(arr,)` tuple form | accepted | not accepted; pass `{ out: arr }` | D-047 |
 | ufunc `dtype=`/`casting=` input or output cast refused, no matching loop | `UFuncTypeError` / `TypeError` | `DTypeError` | D-048 |
 | ufunc `signature=` / `dtype=` as a tuple | accepted | not supported; `dtype` is a single dtype | D-048 |
+| ufunc `where=` without `out`: masked-out elements | uninitialized | zero | D-049 |
+| ufunc `where=None` | treated as `False` | rejected (`DTypeError`) | D-049 |
 | `subtract`/`negative` on bool, unsupported loops | `TypeError` | `DTypeError` | D-014 |
 | number scalar out of the array dtype's range | `OverflowError` | `ValueError` | D-009/D-014 |
 | `sqrt`/`exp`/`log`/float `power` | NumPy SIMD kernels | platform libm (may differ by a few ULP) | D-014 |

@@ -34,9 +34,12 @@ NDArray unary(UnaryOp op, const NDArray& a, const NDArray& out);
 // NumPy `dtype=` / `casting=` (D-048). `dtype` picks the loop whose output is
 // that dtype; every input must cast to its loop dtype, and the loop output to
 // `out`, under `casting`.
+// `where` (D-049): a bool mask that broadcasts like an extra input; only true
+// positions are written (others keep `out`, or are zero without `out`).
 struct UfuncParams {
   std::optional<DType> dtype;
   Casting casting = Casting::SameKind;
+  std::optional<NDArray> where = std::nullopt;
 };
 
 NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b, const NDArray* out,

@@ -64,7 +64,7 @@ machinery.
 | P2-2 ✅ | Native `out=` (D-046) for `binary`/`unary`: result broadcast into `out` (`out` shape must equal the broadcast shape), `same_kind` output cast, read-only check, inputs copied first when they overlap `out` (except identical in-place). C++ tests. |
 | P2-3 ✅ | TS `{ out }` option on all 12 ufuncs (returns `out` itself), vitest, and differential group `ufunc_out` (dtype casts, broadcast, strided/overlapping `out`, errors). |
 | P2-4 ✅ | `casting=` and `dtype=` (loop-dtype override with input casting, D-048). C++ + TS + differential cases. |
-| P2-5 | `where=` mask (with and without `out`; unmasked elements stay uninitialized/`out`). C++ + TS + differential cases. |
+| P2-5 ✅ | `where=` mask (with and without `out`; masked-out elements keep `out`, or are zero without `out`, D-049). C++ + TS + differential cases. |
 | P2-6 | `order=` (`'C'`/`'F'`/`'A'`/`'K'`) for ufunc results, including NumPy's `'K'` stride order. Revisits the D-014 C-contiguous divergence. |
 | P2-7 | Table-driven native ufunc registry replacing the `BinaryOp`/`UnaryOp` enums (name → loops per dtype, identity, type resolver). Pure refactor: every existing test stays green. |
 | P2-8 | `ufunc.reduce` and `ufunc.accumulate` (`np.add.reduce(a, {axis, dtype, out, keepdims, initial, where})`), routed through the registry. |

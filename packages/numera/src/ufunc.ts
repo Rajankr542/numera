@@ -61,6 +61,11 @@ export interface UfuncOptions {
   dtype?: DTypeLike | null;
   /** Casting rule for inputs and `out` (NumPy `casting=`, default "same_kind"). */
   casting?: Casting;
+  /**
+   * Bool mask (NumPy `where=`, D-049): only true positions are computed. With
+   * `out` the others keep their values; without `out` they are zero.
+   */
+  where?: ArrayLike | boolean | number;
 }
 
 function outArg(opts: UfuncOptions): NDArray | undefined {
@@ -74,10 +79,22 @@ function loopDtype(opts: UfuncOptions): DType | undefined {
   return opts.dtype === undefined || opts.dtype === null ? undefined : dtype(opts.dtype);
 }
 
+// where= (D-049): `true`/undefined mean no mask; NDArray masks pass through
+// (the native side requires bool); lists and scalars convert like NumPy's.
+function whereArg(opts: UfuncOptions): NDArray | undefined {
+  const w = opts.where;
+  if (w === undefined || w === true) return undefined;
+  if (w === null) throw new DTypeError("where= must be an array, nested list, boolean or number, not null");
+  if (w instanceof NDArray) return w;
+  return array(w, { dtype: "bool" });
+}
+
 function nativeParams(loop: DType | undefined, opts: UfuncOptions): NativeUfuncParams {
   const p: NativeUfuncParams = {};
   if (loop) p.dtype = loop.name;
   if (opts.casting !== undefined) p.casting = opts.casting;
+  const where = whereArg(opts);
+  if (where) p.where = where._native;
   return p;
 }
 

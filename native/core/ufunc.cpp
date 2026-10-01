@@ -203,6 +203,36 @@ void check_nonnegative_exponent(const NDArray& b) {
   });
 }
 
+// Masked variant (D-049): only positions where `mask` (broadcast to `full`)
+// is true are checked, as in NumPy.
+void check_nonnegative_exponent(const NDArray& b, const NDArray& mask, const Shape& full) {
+  if (!is_integer(b.dtype()) || dtype_info(b.dtype()).kind == 'u') return;
+  const auto plan = make_plan<2>(full, {&b, &mask});
+  dispatch_dtype(b.dtype(), [&](auto tag) {
+    using S = dtype_t<decltype(tag)::value>;
+    if constexpr (std::is_integral_v<S> && std::is_signed_v<S>) {
+      run_plan(plan, {b.data(), mask.data()},
+               [](const std::array<std::byte*, 2>& p, const std::array<std::int64_t, 2>& s,
+                  std::int64_t n) {
+                 for (std::int64_t i = 0; i < n; ++i) {
+                   if (load<bool>(p[1] + i * s[1]) && load<S>(p[0] + i * s[0]) < 0) {
+                     throw_error(ErrorKind::Value,
+                                 "Integers to negative integer powers are not allowed.");
+                   }
+                 }
+               });
+    }
+  });
+}
+
+void check_where_dtype(const NDArray& mask) {
+  if (mask.dtype() != DType::Bool) {
+    throw_error(ErrorKind::DType, "Cannot cast array data from " +
+                                      std::string(dtype_name(mask.dtype())) +
+                                      " to bool according to the rule 'safe'");
+  }
+}
+
 }  // namespace
 
 namespace {
@@ -427,23 +457,50 @@ void check_out_shape(std::vector<Shape> shapes, const Shape& out) {
 
 }  // namespace
 
+namespace {
+
+// Masked tail of binary/unary (D-049): the loop has already filled `tmp`
+// (loop dtype, full broadcast shape). Copy the true positions into `out`, or
+// into a zeroed result.
+NDArray finish_masked(const NDArray& tmp, const NDArray* out, const NDArray& mask) {
+  if (!out) {
+    NDArray res = NDArray::zeros(tmp.shape(), tmp.dtype());
+    masked_copy_into(res, tmp, mask);
+    return res;
+  }
+  masked_copy_into(*out, tmp, mask);
+  return *out;
+}
+
+}  // namespace
+
 NDArray binary(BinaryOp op, const NDArray& a_in, const NDArray& b_in, const NDArray* out,
                const UfuncParams& params) {
   if (out) check_out_writeable(*out);
+  if (params.where) check_where_dtype(*params.where);
   const char* name = binary_name(op);
   const DType dt = params.dtype ? binary_loop_for(op, *params.dtype)
                                 : binary_result_dtype(op, a_in.dtype(), b_in.dtype());
   check_cast(name, "input 0", a_in.dtype(), dt, params.casting);
   check_cast(name, "input 1", b_in.dtype(), dt, params.casting);
+  std::vector<Shape> shapes{a_in.shape(), b_in.shape()};
+  if (params.where) shapes.push_back(params.where->shape());
   if (out) {
     check_cast(name, "output", dt, out->dtype(), params.casting);
-    check_out_shape({a_in.shape(), b_in.shape()}, out->shape());
+    check_out_shape(shapes, out->shape());
   }
+  const Shape full = out ? out->shape() : broadcast_shapes(shapes);
   const NDArray a = a_in.dtype() == dt ? a_in : a_in.astype(dt);
   const NDArray b = b_in.dtype() == dt ? b_in : b_in.astype(dt);
+  if (params.where) {
+    if (op == BinaryOp::Power) check_nonnegative_exponent(b, *params.where, full);
+    const NDArray tmp = NDArray::empty(full, dt);
+    binary_into(op, dt, a, b, tmp);
+    return finish_masked(tmp, out, *params.where);
+  }
   if (op == BinaryOp::Power) check_nonnegative_exponent(b);
   if (!out) {
-    NDArray res = NDArray::empty(broadcast_shapes({a_in.shape(), b_in.shape()}), dt);
+    NDArray res = NDArray::empty(full, dt);
     binary_into(op, dt, a, b, res);
     return res;
   }
@@ -467,6 +524,7 @@ NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b, const NDArray& o
 
 NDArray unary(UnaryOp op, const NDArray& a_in, const NDArray* out, const UfuncParams& params) {
   if (out) check_out_writeable(*out);
+  if (params.where) check_where_dtype(*params.where);
   const char* name = unary_name(op);
   UnaryLoop loop{};
   if (params.dtype) {
@@ -477,13 +535,21 @@ NDArray unary(UnaryOp op, const NDArray& a_in, const NDArray* out, const UfuncPa
   }
   const DType dt = loop.out;
   check_cast(name, "input", a_in.dtype(), loop.in, params.casting);
+  std::vector<Shape> shapes{a_in.shape()};
+  if (params.where) shapes.push_back(params.where->shape());
   if (out) {
     check_cast(name, "output", dt, out->dtype(), params.casting);
-    check_out_shape({a_in.shape()}, out->shape());
+    check_out_shape(shapes, out->shape());
   }
+  const Shape full = out ? out->shape() : broadcast_shapes(shapes);
   const NDArray a = a_in.dtype() == loop.in ? a_in : a_in.astype(loop.in);
+  if (params.where) {
+    const NDArray tmp = NDArray::empty(full, dt);
+    unary_into(op, dt, a, tmp);
+    return finish_masked(tmp, out, *params.where);
+  }
   if (!out) {
-    NDArray res = NDArray::empty(a.shape(), dt);
+    NDArray res = NDArray::empty(full, dt);
     unary_into(op, dt, a, res);
     return res;
   }

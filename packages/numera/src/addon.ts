@@ -24,10 +24,11 @@ export interface NativeNDArray {
   getItem(index: number[]): number | boolean | { re: number; im: number };
 }
 
-/** Ufunc `dtype=` / `casting=` (D-048): dtype and casting rule names. */
+/** Ufunc `dtype=` / `casting=` (D-048) and `where=` mask (D-049). */
 export interface NativeUfuncParams {
   dtype?: string;
   casting?: string;
+  where?: NativeNDArray;
 }
 
 

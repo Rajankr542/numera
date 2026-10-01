@@ -1,5 +1,22 @@
 # PROGRESS
 
+## 2026-10-01 — P2-5: ufunc `where=` mask (D-049)
+- Native: `UfuncParams::where` holds an optional bool mask, used by both binary and unary ufuncs.
+  - The mask broadcasts like an extra input: it can expand the result, and it is checked against `out`.
+  - When a mask is given, the loop writes to a temporary. `masked_copy_into` then copies the true positions into `out`, or into a zeroed result.
+  - Integer `power` checks for negative exponents only at masked-in positions.
+  - Error order matches NumPy 2.5.3: read-only `out` → mask dtype → loop → casts → shapes → values.
+- TS: `UfuncOptions.where` accepts an NDArray (must be bool), a nested list, a boolean or a number.
+  - Lists and scalars are converted to bool, like NumPy.
+  - `null` is rejected.
+- Tests:
+  - 813 new NumPy differential cases (`ufunc_where`), 55 of them errors.
+  - 3 native test cases and 5 numera tests.
+- Verified: `pnpm build`, `test`, `test:native`, `test:asan`, `test:diff` (9469 passed) and `api:check` all pass.
+  - `tsc` adds no new errors. The 3 type errors in `complex.test.ts` predate this slice.
+- Limitation: the masked path computes every element and then makes an extra pass to apply the mask. It has not been benchmarked, so no performance claims are made.
+
+
 ## 2026-10-01 — P2-4: ufunc `dtype=` and `casting=` (D-048)
 
 - Native: `struct UfuncParams { optional<DType> dtype; Casting casting; }`

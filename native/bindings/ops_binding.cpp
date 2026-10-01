@@ -66,6 +66,9 @@ UfuncParams ufunc_params(const Napi::CallbackInfo& info, std::size_t i) {
   if (!dt.IsUndefined() && !dt.IsNull()) p.dtype = parse_dtype(dt);
   const Napi::Value casting = o.Get("casting");
   if (!casting.IsUndefined()) p.casting = parse_casting(casting);
+  // where= (D-049): a native bool array; TS normalises lists/scalars.
+  const Napi::Value where = o.Get("where");
+  if (!where.IsUndefined() && !where.IsNull()) p.where = NDArrayWrap::unwrap(where);
   return p;
 }
 
