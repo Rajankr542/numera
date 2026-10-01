@@ -181,6 +181,27 @@ C rmul(C a, C b) noexcept {
   else return kernels::mul<C>(a, b);
 }
 
+// Complex maximum/minimum step (NumPy CGE/CLE in loops.c.src): lexicographic
+// (real, then imag); the first NaN in either part wins; ties keep `acc`.
+template <typename Z>
+bool cnan(Z z) noexcept {
+  return std::isnan(z.real()) || std::isnan(z.imag());
+}
+template <typename Z, bool IsMax>
+Z cminmax(Z acc, Z v) noexcept {
+  const auto xr = acc.real(), xi = acc.imag(), yr = v.real(), yi = v.imag();
+  const bool keep = IsMax ? ((xr > yr && !std::isnan(xi) && !std::isnan(yi)) || (xr == yr && xi >= yi))
+                          : ((xr < yr && !std::isnan(xi) && !std::isnan(yi)) || (xr == yr && xi <= yi));
+  return (keep || cnan(acc)) ? acc : v;
+}
+// argmax/argmin "strictly better" test (NumPy @TYPE@_argmax for complex).
+template <typename Z, bool IsMax>
+bool cbetter(Z v, Z best) noexcept {
+  const bool gt = IsMax ? (v.real() > best.real() || (v.real() == best.real() && v.imag() > best.imag()))
+                        : (v.real() < best.real() || (v.real() == best.real() && v.imag() < best.imag()));
+  return gt || cnan(v);
+}
+
 // min/max of a contiguous, non-empty row with D-017 NaN/signed-zero rules.
 // Lanes use a plain compare-select; NaN is detected by accumulating `v - v`
 // (NaN for NaN or ±inf input, so hits are confirmed by an exact rescan). A bool
@@ -270,7 +291,10 @@ void fold_rows(ReduceOp op, const Work& w, const std::optional<double>& initial,
       case ReduceOp::Prod: return rmul<C>(acc, v);
       default: break;
     }
-    if constexpr (!is_complex_v<C>) {  // complex min/max: P1-3c
+    if constexpr (is_complex_v<C>) {
+      if (op == ReduceOp::Min) return cminmax<C, false>(acc, v);
+      if (op == ReduceOp::Max) return cminmax<C, true>(acc, v);
+    } else {
       if (op == ReduceOp::Min) {
         return (!is_nan(acc) && (is_nan(v) || v < acc || (v == acc && sign_bit(v)))) ? v : acc;
       }
@@ -449,8 +473,8 @@ void moment_rows(ReduceOp op, const Work& w, std::int64_t ddof, NDArray& out) {
 }  // namespace
 
 DType reduce_result_dtype(ReduceOp op, DType in) {
-  const bool complex_ok = op == ReduceOp::Sum || op == ReduceOp::Prod || op == ReduceOp::Mean;
-  if (!complex_ok) reject_complex(in);  // complex var/std/min/max: P1-3c..3d
+  const bool complex_ok = op != ReduceOp::Var && op != ReduceOp::Std;
+  if (!complex_ok) reject_complex(in);  // complex var/std: P1-3d
   const bool intlike = in == DType::Bool || is_integer(in);
   switch (op) {
     case ReduceOp::Sum:
@@ -465,7 +489,7 @@ DType reduce_result_dtype(ReduceOp op, DType in) {
 
 NDArray reduce(ReduceOp op, const NDArray& a, const ReduceOptions& opts) {
   const bool sum_prod = op == ReduceOp::Sum || op == ReduceOp::Prod;
-  const bool complex_ok = sum_prod || op == ReduceOp::Mean;
+  const bool complex_ok = op != ReduceOp::Var && op != ReduceOp::Std;
   if (!complex_ok) reject_complex(a.dtype());
   const DType rdt = opts.dtype.value_or(reduce_result_dtype(op, a.dtype()));
   if (!complex_ok) reject_complex(rdt);
@@ -498,7 +522,6 @@ NDArray reduce(ReduceOp op, const NDArray& a, const ReduceOptions& opts) {
 
 NDArray arg_reduce(bool is_max, const NDArray& a, std::optional<std::int64_t> axis,
                    bool keepdims) {
-  reject_complex(a.dtype());
   std::optional<std::vector<std::int64_t>> axes;
   if (axis) axes = std::vector<std::int64_t>{*axis};
   const Work w = prepare(a, axes, false, a.dtype());
@@ -518,7 +541,22 @@ NDArray arg_reduce(bool is_max, const NDArray& a, std::optional<std::int64_t> ax
   auto* dst = reinterpret_cast<std::int64_t*>(out.data());
   dispatch_dtype(a.dtype(), [&](auto tag) {
     using S = dtype_t<decltype(tag)::value>;
-    if constexpr (!is_complex_v<S>) {
+    if constexpr (is_complex_v<S>) {
+      // NumPy complex argmax/argmin: first strictly-better index; first NaN wins.
+      const std::byte* src = w.data.data();
+      for (std::int64_t r = 0; r < w.rows; ++r) {
+        const auto* x = reinterpret_cast<const S*>(src + static_cast<std::size_t>(r * w.n) * sizeof(S));
+        S best = x[0];
+        std::int64_t bi = 0;
+        for (std::int64_t i = 1; i < w.n && !cnan(best); ++i) {
+          if (is_max ? cbetter<S, true>(x[i], best) : cbetter<S, false>(x[i], best)) {
+            best = x[i];
+            bi = i;
+          }
+        }
+        dst[r] = bi;
+      }
+    } else {
       using C = compute_t<S>;
       const std::byte* src = w.data.data();
       for (std::int64_t r = 0; r < w.rows; ++r) {

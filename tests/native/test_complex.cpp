@@ -174,3 +174,58 @@ TEST_CASE("complex reductions: mean (P1-3b)") {
 }
 
 
+
+TEST_CASE("complex reductions: min/max/argmin/argmax (P1-3c)") {
+  const double nan = std::nan("");
+  const auto mx = [](const NDArray& a) { return at(reduce(ReduceOp::Max, a, {}), 0); };
+  const auto mn = [](const NDArray& a) { return at(reduce(ReduceOp::Min, a, {}), 0); };
+  const auto amax = [](const NDArray& a) { return arg_reduce(true, a, std::nullopt, false).get_int64(0); };
+  const auto amin = [](const NDArray& a) { return arg_reduce(false, a, std::nullopt, false).get_int64(0); };
+  // Lexicographic order: real part, then imag.
+  const NDArray lex = cvec({C{1, 5}, C{2, 0}, C{2, -1}, C{1, 9}});
+  CHECK(same(mx(lex), C{2, 0}) && same(mn(lex), C{1, 5}));
+  CHECK_EQ(amax(lex), std::int64_t{1});
+  CHECK_EQ(amin(lex), std::int64_t{0});
+  // The first NaN in either part wins (values below are from NumPy 2.5.3).
+  const NDArray ni = cvec({C{1, 1}, C{0, nan}, C{nan, 0}});
+  CHECK(same(mx(ni), C{0, nan}) && same(mn(ni), C{0, nan}));
+  CHECK_EQ(amax(ni), std::int64_t{1});
+  CHECK_EQ(amin(ni), std::int64_t{1});
+  const NDArray nr = cvec({C{1, 1}, C{nan, 0}, C{0, nan}});
+  CHECK(same(mx(nr), C{nan, 0}) && same(mn(nr), C{nan, 0}));
+  // Signed zeros compare equal, so ties keep the first value.
+  CHECK(same(mx(cvec({C{-0.0, -0.0}, C{0.0, -0.0}})), C{-0.0, -0.0}));
+  CHECK(same(mn(cvec({C{0.0, 0.0}, C{-0.0, 0.0}})), C{0.0, 0.0}));
+  const NDArray ties = cvec({C{3, 1}, C{3, 1}, C{1, 0}});
+  CHECK_EQ(amax(ties), std::int64_t{0});
+  CHECK_EQ(amin(ties), std::int64_t{2});
+  // Axis reductions: [[1+2j, 3-1j], [3, -1j]].
+  const NDArray m = cvec({C{1, 2}, C{3, -1}, C{3, 0}, C{0, -1}}).reshape({2, 2});
+  ReduceOptions a0;
+  a0.axis = std::vector<std::int64_t>{0};
+  const NDArray m0 = reduce(ReduceOp::Max, m, a0);
+  CHECK(same(at(m0, 0), C{3, 0}) && same(at(m0, 1), C{3, -1}));
+  const NDArray n0 = reduce(ReduceOp::Min, m, a0);
+  CHECK(same(at(n0, 0), C{1, 2}) && same(at(n0, 1), C{0, -1}));
+  const NDArray am0 = arg_reduce(true, m, 0, false);
+  CHECK_EQ(am0.get_int64(0), std::int64_t{1});
+  CHECK_EQ(am0.get_int64(1), std::int64_t{0});
+  const NDArray an1 = arg_reduce(false, m, 1, true);
+  CHECK(an1.shape() == Shape({2, 1}));
+  CHECK_EQ(an1.get_int64(1), std::int64_t{1});
+  // initial, empty input and complex64.
+  ReduceOptions init;
+  init.initial = 5;
+  CHECK(same(at(reduce(ReduceOp::Max, cvec({C{1, 1}}), init), 0), C{5, 0}));
+  CHECK(same(at(reduce(ReduceOp::Max, cvec({}), init), 0), C{5, 0}));
+  CHECK_THROWS_KIND(reduce(ReduceOp::Max, cvec({}), {}), ErrorKind::Value);
+  CHECK_THROWS_KIND(arg_reduce(true, cvec({}), std::nullopt, false), ErrorKind::Value);
+  NDArray f = NDArray::empty({2}, DType::Complex64);
+  auto* fp = reinterpret_cast<std::complex<float>*>(f.data());
+  fp[0] = {1, 2};
+  fp[1] = {1, 3};
+  const NDArray fm = reduce(ReduceOp::Max, f, {});
+  CHECK(fm.dtype() == DType::Complex64);
+  CHECK_EQ(reinterpret_cast<const std::complex<float>*>(fm.data())[0].imag(), 3.0f);
+}
+
