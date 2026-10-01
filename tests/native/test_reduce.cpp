@@ -29,7 +29,7 @@ TEST_CASE("reduce: result dtypes follow NumPy (D-017)") {
   CHECK(reduce_result_dtype(ReduceOp::Max, DType::UInt16) == DType::UInt16);
   CHECK(reduce_result_dtype(ReduceOp::Mean, DType::Int32) == DType::Float64);
   CHECK(reduce_result_dtype(ReduceOp::Var, DType::Float16) == DType::Float16);
-  CHECK_THROWS_KIND(reduce_result_dtype(ReduceOp::Sum, DType::Complex128),
+  CHECK_THROWS_KIND(reduce_result_dtype(ReduceOp::Max, DType::Complex128),
                     ErrorKind::NotImplemented);
 }
 

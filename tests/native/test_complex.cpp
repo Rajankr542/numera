@@ -5,6 +5,7 @@
 #include "complex_kernels.hpp"
 #include "error.hpp"
 #include "ndarray.hpp"
+#include "reduce.hpp"
 #include "test_harness.hpp"
 #include "ufunc.hpp"
 
@@ -85,3 +86,45 @@ TEST_CASE("complex ufuncs: dtypes, mod rejection and real/imag views") {
   NDArray ri = complex_part(NDArray::zeros({2}, DType::Int8), true);
   CHECK(!ri.writeable() && ri.dtype() == DType::Int8);
 }
+
+TEST_CASE("complex reductions: sum/prod (P1-3a)") {
+  CHECK(reduce_result_dtype(ReduceOp::Sum, DType::Complex64) == DType::Complex64);
+  CHECK(reduce_result_dtype(ReduceOp::Prod, DType::Complex128) == DType::Complex128);
+  CHECK_THROWS_KIND(reduce_result_dtype(ReduceOp::Mean, DType::Complex128),
+                    ErrorKind::NotImplemented);
+  // [[1+2j, 3-1j, 0.5j], [2, -1j, 1+1j]]
+  const NDArray m =
+      cvec({C{1, 2}, C{3, -1}, C{0, 0.5}, C{2, 0}, C{0, -1}, C{1, 1}}).reshape({2, 3});
+  ReduceOptions a0;
+  a0.axis = std::vector<std::int64_t>{0};
+  const NDArray s0 = reduce(ReduceOp::Sum, m, a0);
+  CHECK(s0.dtype() == DType::Complex128 && s0.shape() == Shape({3}));
+  CHECK(same(at(s0, 0), C{3, 2}) && same(at(s0, 2), C{1, 1.5}));
+  const NDArray p0 = reduce(ReduceOp::Prod, m, a0);
+  CHECK(same(at(p0, 0), C{2, 4}) && same(at(p0, 1), C{-1, -3}) && same(at(p0, 2), C{-0.5, 0.5}));
+  ReduceOptions a1;
+  a1.axis = std::vector<std::int64_t>{1};
+  a1.initial = 1;
+  const NDArray s1 = reduce(ReduceOp::Sum, m, a1);
+  CHECK(same(at(s1, 0), C{5, 1.5}) && same(at(s1, 1), C{4, 0}));
+  // Empty input gives the identity; an all -0.0 sum is +0.0 (NumPy).
+  CHECK(same(at(reduce(ReduceOp::Prod, cvec({}), {}), 0), C{1, 0}));
+  CHECK(same(at(reduce(ReduceOp::Sum, cvec({C{-0.0, -0.0}}), {}), 0), C{0, 0}));
+  // NumPy's multiply formula: (inf+0j)^2 -> nan+nanj (no Annex G recovery).
+  const C pi = at(reduce(ReduceOp::Prod, cvec({C{kInf, 0}, C{kInf, 0}}), {}), 0);
+  CHECK(std::isnan(pi.real()) && std::isnan(pi.imag()));
+  // Pairwise along the trailing axis, sequential along a leading one (NumPy).
+  NDArray big = NDArray::empty({200}, DType::Complex128);
+  auto* bp = reinterpret_cast<C*>(big.data());
+  bp[0] = C{1e16, 1e16};
+  for (int i = 1; i < 200; ++i) bp[i] = C{1, 1};
+  CHECK(same(at(reduce(ReduceOp::Sum, big, {}), 0),
+             C{1.0000000000000188e16, 1.0000000000000188e16}));
+  CHECK(same(at(reduce(ReduceOp::Sum, big.reshape({200, 1}), a0), 0), C{1e16, 1e16}));
+  // Real input with a complex64 dtype override.
+  ReduceOptions d;
+  d.dtype = DType::Complex64;
+  const NDArray f = reduce(ReduceOp::Sum, NDArray::zeros({3}, DType::Int8), d);
+  CHECK(f.dtype() == DType::Complex64 && f.ndim() == 0);
+}
+

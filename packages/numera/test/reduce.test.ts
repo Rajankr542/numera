@@ -31,7 +31,8 @@ describe("reductions (M7, D-017)", () => {
     expect(np.mean(np.array([1, 2], { dtype: "float32" })).dtype.name).toBe("float32");
     expect(np.max(np.array([1, 2], { dtype: "int16" })).dtype.name).toBe("int16");
     expect(np.sum(np.array([100, 100], { dtype: "int8" }), { dtype: "int8" }).item()).toBe(-56);
-    expect(() => np.sum(np.zeros([2], { dtype: "complex128" }))).toThrow(NotImplementedError);
+    // Complex mean is P1-3b; complex sum/prod are covered in complex vitest cases (P1-3e).
+    expect(() => np.mean(np.zeros([2], { dtype: "complex128" }))).toThrow(NotImplementedError);
   });
 
   it("initial, empty inputs and NaN", () => {

@@ -19,7 +19,7 @@ Steps 1–2 are done (conversion, ufuncs). Slices left:
 ### Step 3: reductions (`native/core/reduce.cpp`)
 | Slice | Work |
 |---|---|
-| P1-3a | `sum`, `prod` on complex64/128: remove the `reject_complex` calls on those paths and add complex accumulators. C++ test. |
+| P1-3a ✅ | `sum`, `prod` on complex64/128: remove the `reject_complex` calls on those paths and add complex accumulators. C++ test. |
 | P1-3b | `mean` on complex. C++ test. |
 | P1-3c | `min`/`max`/`argmin`/`argmax`, using lexicographic order (re, then im) with NaN propagation. C++ test. |
 | P1-3d | `var`/`std` return the real dtype (mean of `\|x−mean\|²`), with `ddof`. C++ test. |

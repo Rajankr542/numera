@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "cast.hpp"
+#include "complex_kernels.hpp"
 #include "error.hpp"
 #include "shape.hpp"
 #include "shape_ops.hpp"
@@ -125,6 +126,54 @@ C pairwise_sum(const F& get, std::int64_t lo, std::int64_t n) {
   return pairwise_sum<C>(get, lo, n2) + pairwise_sum<C>(get, lo + n2, n - n2);
 }
 
+// NumPy's complex pairwise sum (pairwise_sum_C*, loops_utils.h.src) over n
+// interleaved re/im scalars: 8 scalar lanes = 4 complex accumulators.
+template <typename T>
+std::complex<T> pairwise_csum(const T* x, std::int64_t n) {
+  if (n < 8) {
+    T rr = T(-0.0);  // NumPy's seed; callers add 0 so an all -0.0 sum is +0.0
+    T ri = T(-0.0);
+    for (std::int64_t i = 0; i < n; i += 2) {
+      rr += x[i];
+      ri += x[i + 1];
+    }
+    return {rr, ri};
+  }
+  if (n <= 128) {
+    T r[8];
+    for (int j = 0; j < 8; ++j) r[j] = x[j];
+    std::int64_t i = 8;
+    for (; i < n - (n % 8); i += 8) {
+      for (int j = 0; j < 8; ++j) r[j] += x[i + j];
+    }
+    T rr = (r[0] + r[2]) + (r[4] + r[6]);
+    T ri = (r[1] + r[3]) + (r[5] + r[7]);
+    for (; i < n; i += 2) {
+      rr += x[i];
+      ri += x[i + 1];
+    }
+    return {rr, ri};
+  }
+  std::int64_t n2 = n / 2;
+  n2 -= n2 % 8;
+  const std::complex<T> a = pairwise_csum(x, n2);
+  const std::complex<T> b = pairwise_csum(x + n2, n - n2);
+  return {a.real() + b.real(), a.imag() + b.imag()};
+}
+
+// Sum/prod steps; complex uses NumPy's loop formulas (D-033), not std::complex
+// operator* (C99 Annex G NaN recovery differs from NumPy).
+template <typename C>
+C radd(C a, C b) noexcept {
+  if constexpr (is_complex_v<C>) return kernels::cadd(a, b);
+  else return kernels::add<C>(a, b);
+}
+template <typename C>
+C rmul(C a, C b) noexcept {
+  if constexpr (is_complex_v<C>) return kernels::cmul(a, b);
+  else return kernels::mul<C>(a, b);
+}
+
 // min/max of a contiguous, non-empty row with D-017 NaN/signed-zero rules.
 // Lanes use a plain compare-select; NaN is detected by accumulating `v - v`
 // (NaN for NaN or ±inf input, so hits are confirmed by an exact rescan). A bool
@@ -210,14 +259,19 @@ void fold_rows(ReduceOp op, const Work& w, const std::optional<double>& initial,
   }
   const auto step = [op](C acc, C v) {
     switch (op) {
-      case ReduceOp::Sum: return kernels::add<C>(acc, v);
-      case ReduceOp::Prod: return kernels::mul<C>(acc, v);
-      case ReduceOp::Min:
-        return (!is_nan(acc) && (is_nan(v) || v < acc || (v == acc && sign_bit(v)))) ? v : acc;
-      case ReduceOp::Max:
-        return (!is_nan(acc) && (is_nan(v) || v > acc || (v == acc && !sign_bit(v)))) ? v : acc;
-      default: return acc;
+      case ReduceOp::Sum: return radd<C>(acc, v);
+      case ReduceOp::Prod: return rmul<C>(acc, v);
+      default: break;
     }
+    if constexpr (!is_complex_v<C>) {  // complex min/max: P1-3c
+      if (op == ReduceOp::Min) {
+        return (!is_nan(acc) && (is_nan(v) || v < acc || (v == acc && sign_bit(v)))) ? v : acc;
+      }
+      if (op == ReduceOp::Max) {
+        return (!is_nan(acc) && (is_nan(v) || v > acc || (v == acc && !sign_bit(v)))) ? v : acc;
+      }
+    }
+    return acc;
   };
   if (w.cols) {
     // n × rows input: stream whole rows into per-output accumulators. Same
@@ -242,8 +296,8 @@ void fold_rows(ReduceOp op, const Work& w, const std::optional<double>& initial,
         }
       };
       switch (op) {
-        case ReduceOp::Sum: sweep([](C a, C v) { return kernels::add<C>(a, v); }); break;
-        case ReduceOp::Prod: sweep([](C a, C v) { return kernels::mul<C>(a, v); }); break;
+        case ReduceOp::Sum: sweep([](C a, C v) { return radd<C>(a, v); }); break;
+        case ReduceOp::Prod: sweep([](C a, C v) { return rmul<C>(a, v); }); break;
         default: sweep(step); break;
       }
     }
@@ -274,6 +328,16 @@ void fold_rows(ReduceOp op, const Work& w, const std::optional<double>& initial,
         continue;
       }
     }
+    if constexpr (is_complex_v<W>) {
+      // NumPy complex sum: initial (or 0) + pairwise over interleaved scalars.
+      if (w.trailing && op == ReduceOp::Sum) {
+        using T = typename W::value_type;
+        const W s = pairwise_csum(reinterpret_cast<const T*>(row), 2 * w.n);
+        const W init = initial ? cast_value<W>(*initial) : W{};
+        store<W>(dst + static_cast<std::size_t>(r) * isz, radd<W>(init, s));
+        continue;
+      }
+    }
     C acc{};
     std::int64_t start = 0;
     if (initial) {
@@ -292,8 +356,8 @@ void fold_rows(ReduceOp op, const Work& w, const std::optional<double>& initial,
       for (std::int64_t i = start; i < w.n; ++i) acc = f(acc, ld<W>(row + static_cast<std::size_t>(i) * isz));
     };
     switch (op) {
-      case ReduceOp::Sum: run([](C a, C v) { return kernels::add<C>(a, v); }); break;
-      case ReduceOp::Prod: run([](C a, C v) { return kernels::mul<C>(a, v); }); break;
+      case ReduceOp::Sum: run([](C a, C v) { return radd<C>(a, v); }); break;
+      case ReduceOp::Prod: run([](C a, C v) { return rmul<C>(a, v); }); break;
       default: run(step); break;
     }
     store<W>(dst + static_cast<std::size_t>(r) * isz, cast_value<W>(acc));
@@ -363,7 +427,8 @@ void moment_rows(ReduceOp op, const Work& w, std::int64_t ddof, NDArray& out) {
 }  // namespace
 
 DType reduce_result_dtype(ReduceOp op, DType in) {
-  reject_complex(in);
+  const bool sum_prod = op == ReduceOp::Sum || op == ReduceOp::Prod;
+  if (!sum_prod) reject_complex(in);  // complex mean/var/std/min/max: P1-3b..3d
   const bool intlike = in == DType::Bool || is_integer(in);
   switch (op) {
     case ReduceOp::Sum:
@@ -377,16 +442,16 @@ DType reduce_result_dtype(ReduceOp op, DType in) {
 }
 
 NDArray reduce(ReduceOp op, const NDArray& a, const ReduceOptions& opts) {
-  reject_complex(a.dtype());
+  const bool sum_prod = op == ReduceOp::Sum || op == ReduceOp::Prod;
+  if (!sum_prod) reject_complex(a.dtype());
   const DType rdt = opts.dtype.value_or(reduce_result_dtype(op, a.dtype()));
-  reject_complex(rdt);
-  if (op == ReduceOp::Min || op == ReduceOp::Max || op == ReduceOp::Sum ||
-      op == ReduceOp::Prod) {
+  if (!sum_prod) reject_complex(rdt);
+  if (op == ReduceOp::Min || op == ReduceOp::Max || sum_prod) {
     const Work w = prepare(a, opts.axis, opts.keepdims, rdt, /*allow_cols=*/true);
     NDArray out = NDArray::empty(w.out_shape, rdt);
     dispatch_dtype(rdt, [&](auto tag) {
       using W = dtype_t<decltype(tag)::value>;
-      if constexpr (!is_complex_v<W>) fold_rows<W>(op, w, opts.initial, out);
+      fold_rows<W>(op, w, opts.initial, out);
     });
     return out;
   }
