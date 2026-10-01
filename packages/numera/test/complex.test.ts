@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import np, { Complex, DTypeError } from "../src/index.js";
 
 describe("complex conversion (D-033)", () => {
@@ -232,5 +232,92 @@ describe("complex reductions (P1 step 3, D-034)", () => {
     expect(() => np.argmin(e)).toThrow(np.ValueError);
     expect(() => np.std(m, { dtype: "complex64" })).toThrow(np.NotImplementedError);
   });
+});
+
+describe("complex matmul/dot/inner/outer (P1 step 4, D-035/D-036)", () => {
+  // Expected values from NumPy 2.5.3. No conjugation anywhere (that is vdot).
+  const a = np.array([np.complex(1, 2), np.complex(3, -1)]);
+  const b = np.array([np.complex(2, -1), np.complex(0, 1)]);
+  const M = np.array([
+    [np.complex(1, 1), np.complex(2, 0)],
+    [np.complex(0, 0), np.complex(1, -1)],
+  ]);
+  const flat = (x: InstanceType<typeof np.NDArray>): number[][] => parts(x.flatten());
+  const z = (x: InstanceType<typeof np.NDArray>): number[] => {
+    const v = x.item() as Complex;
+    return [v.re, v.im];
+  };
+
+  for (const backend of ["default", "fallback"] as const) {
+    describe(`backend: ${backend}`, () => {
+      beforeAll(() => np.linalg._setBackend(backend));
+      afterAll(() => np.linalg._setBackend("default"));
+
+      it("1-D dot, inner and matmul do not conjugate", () => {
+        expect(z(np.dot(a, b))).toEqual([5, 6]);
+        expect(z(np.inner(a, b))).toEqual([5, 6]);
+        expect(z(np.matmul(a, b))).toEqual([5, 6]);
+        expect(np.dot(a, b).shape).toEqual([]);
+      });
+
+      it("outer", () => {
+        const r = np.outer(a, b);
+        expect(r.shape).toEqual([2, 2]);
+        expect(flat(r)).toEqual([[4, 3], [-2, 1], [5, -5], [1, 3]]);
+        expect(np.outer(M, a).shape).toEqual([4, 2]); // inputs are flattened
+      });
+
+      it("2-D and N-D dot, 2-D inner, matmul", () => {
+        expect(flat(np.dot(M, M))).toEqual([[0, 2], [4, 0], [0, 0], [0, -2]]);
+        expect(flat(np.matmul(M, M))).toEqual([[0, 2], [4, 0], [0, 0], [0, -2]]);
+        expect(flat(np.inner(M, M))).toEqual([[4, 2], [2, -2], [2, -2], [0, -2]]);
+        // T = arange(8).reshape(2,2,2) * (1-1j); dot sums a's last axis with T's axis -2.
+        const T = np.multiply(np.arange(8).reshape([2, 2, 2]), np.complex(1, -1));
+        const d = np.dot(M, T);
+        expect(d.shape).toEqual([2, 2, 2]);
+        expect(flat(d)).toEqual([
+          [4, -4], [8, -6], [20, -12], [24, -14], [0, -4], [0, -6], [0, -12], [0, -14],
+        ]);
+      });
+
+      it("scalar operands broadcast-multiply", () => {
+        expect(flat(np.dot(np.complex(0, 2), a))).toEqual([[-4, 2], [2, 6]]);
+        expect(flat(np.dot(np.array(np.complex(0, 2)), M))).toEqual([[-2, 2], [0, 4], [0, 0], [2, 2]]);
+      });
+
+      it("promotes mixed real/complex inputs", () => {
+        const b64 = b.astype("complex64");
+        expect(np.dot(np.array([1, 2], { dtype: "float32" }), b64).dtype).toBe(np.complex64);
+        const di = np.dot(np.array([1, 2], { dtype: "int32" }), b64);
+        expect(di.dtype).toBe(np.complex128);
+        expect(z(di)).toEqual([2, 1]);
+        expect(np.outer(np.array([1, 2], { dtype: "float32" }), b64).dtype).toBe(np.complex64);
+        expect(np.inner(np.array([1, 2], { dtype: "float32" }), b64).dtype).toBe(np.complex64);
+      });
+
+      it("empty contractions give +0+0j; inf follows NumPy (no Annex G recovery)", () => {
+        const e = np.zeros([0], { dtype: "complex128" });
+        const s = z(np.dot(e, e));
+        expect(s).toEqual([0, 0]);
+        expect(s.every((v) => !Object.is(v, -0))).toBe(true);
+        const ie = np.inner(np.zeros([2, 0], { dtype: "complex128" }), np.zeros([3, 0], { dtype: "complex128" }));
+        expect(ie.shape).toEqual([2, 3]);
+        expect(flat(ie).every(([re, im]) => re === 0 && im === 0)).toBe(true);
+        const o = z(np.outer([np.complex(Infinity, 0)], [np.complex(1, 0)]).reshape([]));
+        expect(o[0]).toBe(Infinity);
+        expect(Number.isNaN(o[1])).toBe(true);
+        const o2 = z(np.outer([np.complex(Infinity, Infinity)], [np.complex(0, 1)]).reshape([]));
+        expect(o2.every(Number.isNaN)).toBe(true);
+        const mm = z(np.matmul([[np.complex(Infinity, 0)]], [[np.complex(1, 0)]]).reshape([]));
+        expect(mm[0]).toBe(Infinity);
+        expect(Number.isNaN(mm[1])).toBe(true);
+      });
+
+      it("shape errors stay typed", () => {
+        expect(() => np.dot(a, M.reshape([4]))).toThrow(np.ShapeError);
+        expect(() => np.inner(a, np.zeros([3], { dtype: "complex64" }))).toThrow(np.ShapeError);
+      });
+    });
+  }
 });
 
