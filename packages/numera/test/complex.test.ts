@@ -366,8 +366,71 @@ describe("complex linalg.det (P1-5a, D-038)", () => {
     });
   }
 
-  it("other decompositions still reject complex input", () => {
-    expect(() => np.linalg.inv(A)).toThrow(np.NotImplementedError);
+  it("qr still rejects complex input", () => {
+    expect(() => np.linalg.qr(A)).toThrow(np.NotImplementedError);
+  });
+});
+
+describe("complex linalg.inv / solve (P1-5b, D-039)", () => {
+  const flat = (x: InstanceType<typeof np.NDArray>): number[][] =>
+    (x.flatten().toArray() as Complex[]).map((v) => [v.re, v.im]);
+  const close = (got: number[][], want: number[][], digits: number) => {
+    expect(got.length).toBe(want.length);
+    got.forEach(([re, im], i) => {
+      expect(re).toBeCloseTo(want[i]![0]!, digits);
+      expect(im).toBeCloseTo(want[i]![1]!, digits);
+    });
+  };
+  // A = [[1+2j, 3-j], [0.5j, 2]]; NumPy inv(A):
+  const A = [
+    [np.complex(1, 2), np.complex(3, -1)],
+    [np.complex(0, 0.5), np.complex(2, 0)],
+  ];
+  const invA = [[0.3529411764705883, -0.5882352941176472], [-0.235294117647059, 1.0588235294117652],
+    [-0.1470588235294118, -0.08823529411764708], [0.7647058823529413, 0.05882352941176474]];
+  for (const backend of ["default", "fallback"] as const) {
+    describe(`backend: ${backend}`, () => {
+      beforeAll(() => np.linalg._setBackend(backend));
+      afterAll(() => np.linalg._setBackend("default"));
+
+      it("inv matches NumPy for both widths", () => {
+        const r = np.linalg.inv(A);
+        expect(r.dtype).toBe(np.complex128);
+        expect(r.shape).toEqual([2, 2]);
+        close(flat(r), invA, 14);
+        const r64 = np.linalg.inv(np.array(A, { dtype: "complex64" }));
+        expect(r64.dtype).toBe(np.complex64);
+        close(flat(r64), invA, 6);
+        expect(np.linalg.inv(np.zeros([0, 0], { dtype: "complex64" })).shape).toEqual([0, 0]);
+      });
+
+      it("solve with vector, matrix and broadcast right-hand sides", () => {
+        const x = np.linalg.solve(A, [1, np.complex(0, 1)]);
+        expect(x.shape).toEqual([2]);
+        // NumPy: [-0.7058823529411768-0.8235294117647061j, -0.20588235294117654+0.6764705882352944j]
+        close(flat(x), [[-0.7058823529411768, -0.8235294117647061], [-0.20588235294117654, 0.6764705882352944]], 14);
+        // Batch of two systems ([A, j*I]) against one broadcast (2,1) b.
+        const stackA = np.array([A, [[np.complex(0, 1), 0], [0, np.complex(0, 1)]]]);
+        const X = np.linalg.solve(stackA, [[1], [2]]);
+        expect(X.shape).toEqual([2, 2, 1]);
+        close(flat(X), [[-0.11764705882352955, 1.5294117647058831], [1.382352941176471, 0.0294117647058824], [0, -1], [0, -2]], 14);
+      });
+
+      it("singular input raises LinAlgError", () => {
+        const S = [[np.complex(1, 1), np.complex(2, 2)], [np.complex(1, 1), np.complex(2, 2)]];
+        expect(() => np.linalg.inv(S)).toThrow(np.LinAlgError);
+        expect(() => np.linalg.solve(S, [1, 2])).toThrow(np.LinAlgError);
+      });
+    });
+  }
+
+  it("result dtype follows NumPy (_commonType)", () => {
+    const a64 = np.array(A, { dtype: "complex64" });
+    expect(np.linalg.solve(a64, np.array([1, 2], { dtype: "float32" })).dtype).toBe(np.complex64);
+    expect(np.linalg.solve(a64, np.array([1, 2], { dtype: "float64" })).dtype).toBe(np.complex128);
+    expect(np.linalg.solve(a64, np.array([1, 2], { dtype: "int8" })).dtype).toBe(np.complex128);
+    expect(np.linalg.solve(np.eye(2, undefined, { dtype: "float32" }), a64).dtype).toBe(np.complex64);
+    expect(() => np.linalg.solve(a64, np.array([1, 2], { dtype: "float16" }))).toThrow(np.DTypeError);
   });
 });
 

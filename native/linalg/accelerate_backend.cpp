@@ -93,6 +93,14 @@ void gesv_(const lint* n, const lint* r, double* a, const lint* lda, lint* p, do
            const lint* ldb, lint* info) {
   dgesv_(n, r, a, lda, p, b, ldb, info);
 }
+void gesv_(const lint* n, const lint* r, std::complex<float>* a, const lint* lda, lint* p,
+           std::complex<float>* b, const lint* ldb, lint* info) {
+  cgesv_(n, r, a, lda, p, b, ldb, info);
+}
+void gesv_(const lint* n, const lint* r, std::complex<double>* a, const lint* lda, lint* p,
+           std::complex<double>* b, const lint* ldb, lint* info) {
+  zgesv_(n, r, a, lda, p, b, ldb, info);
+}
 void syevd_(const lint* n, float* a, float* w, float* work, const lint* lw, lint* iw,
             const lint* liw, lint* info) {
   ssyevd_("V", "L", n, a, n, w, work, lw, iw, liw, info);
@@ -155,6 +163,19 @@ int lu(idx n, E* a, idx* piv) {
   return static_cast<int>(info);
 }
 
+// ?gesv on a column-major n×n A and n×nrhs B; ld = max(n, 1) like NumPy's
+// init_gesv (D-039).
+template <typename E>
+int lu_solve(idx n, idx nrhs, E* a, E* b) {
+  const lint nn = li(n);
+  const lint r = li(nrhs);
+  const lint ld = std::max<lint>(nn, 1);
+  std::vector<lint> p(static_cast<std::size_t>(std::max<idx>(n, 1)));
+  lint info = 0;
+  gesv_(&nn, &r, a, &ld, p.data(), b, &ld, &info);
+  return static_cast<int>(info);
+}
+
 template <typename T>
 class AccelRoutines final : public Routines<T> {
  public:
@@ -188,13 +209,9 @@ class AccelRoutines final : public Routines<T> {
   }
   int getrf(idx n, T* a, idx* piv) const override { return lu(n, a, piv); }
   int cgetrf(idx n, std::complex<T>* a, idx* piv) const override { return lu(n, a, piv); }
-  int gesv(idx n, idx nrhs, T* a, T* b) const override {
-    const lint nn = li(n);
-    const lint r = li(nrhs);
-    std::vector<lint> p(static_cast<std::size_t>(std::max<idx>(n, 1)));
-    lint info = 0;
-    gesv_(&nn, &r, a, &nn, p.data(), b, &nn, &info);
-    return static_cast<int>(info);
+  int gesv(idx n, idx nrhs, T* a, T* b) const override { return lu_solve(n, nrhs, a, b); }
+  int cgesv(idx n, idx nrhs, std::complex<T>* a, std::complex<T>* b) const override {
+    return lu_solve(n, nrhs, a, b);
   }
   int syevd(idx n, T* a, T* w) const override {
     const lint nn = li(n);

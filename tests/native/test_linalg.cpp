@@ -320,7 +320,79 @@ TEST_CASE("linalg: complex det (D-038)") {
     run(double{}, 1e-12);
     run(float{}, 1e-5);
     // Other decompositions still reject complex until their slice lands.
-    CHECK_THROWS_KIND(inv(cmat<double>(1, 1, {C(1, 1)})), ErrorKind::NotImplemented);
+    CHECK_THROWS_KIND(qr(cmat<double>(1, 1, {C(1, 1)}), QrMode::Reduced), ErrorKind::NotImplemented);
+  });
+}
+
+TEST_CASE("linalg: complex inv/solve (D-039)") {
+  using C = std::complex<double>;
+  const auto near_c = [](C got, C want, double tol) {
+    return std::abs(got - want) <= tol * (1.0 + std::abs(want));
+  };
+  each_backend([&near_c] {
+    const auto run = [&near_c](auto tag, double tol) {
+      using R = decltype(tag);
+      const DType cdt = std::is_same_v<R, float> ? DType::Complex64 : DType::Complex128;
+      // A = [[1+2j, 3-j], [0.5j, 2]], det = 1.5+2.5j.
+      // inv(A) = [[2, -3+j], [-0.5j, 1+2j]] / (1.5+2.5j).
+      const NDArray a = cmat<R>(2, 2, {C(1, 2), C(3, -1), C(0, 0.5), C(2, 0)});
+      const C d(1.5, 2.5);
+      const C want[4] = {C(2, 0) / d, C(-3, 1) / d, C(0, -0.5) / d, C(1, 2) / d};
+      const NDArray ai = inv(a);
+      CHECK(ai.dtype() == cdt);
+      CHECK(ai.shape() == Shape({2, 2}));
+      for (int i = 0; i < 4; ++i) CHECK(near_c(C(cat<R>(ai, i)), want[i], tol));
+      // solve with a vector b: x = inv(A) b.
+      const NDArray bv = NDArray::empty({2}, cdt);
+      auto* bp = reinterpret_cast<std::complex<R>*>(bv.data());
+      bp[0] = {1, 0};
+      bp[1] = {0, 1};
+      const NDArray x = solve(a, bv);
+      CHECK(x.dtype() == cdt);
+      CHECK(x.shape() == Shape({2}));
+      const C j(0, 1);
+      CHECK(near_c(C(cat<R>(x, 0)), want[0] + want[1] * j, tol));
+      CHECK(near_c(C(cat<R>(x, 1)), want[2] + want[3] * j, tol));
+      // Matrix b, broadcast batch: (2,2,2) a stack against one (2,1) b.
+      NDArray st = NDArray::empty({2, 2, 2}, cdt);
+      auto* sp = reinterpret_cast<std::complex<R>*>(st.data());
+      for (int i = 0; i < 4; ++i) sp[i] = cat<R>(a, i);
+      sp[4] = {0, 1};  // [[j, 0], [0, 2]]
+      sp[5] = {0, 0};
+      sp[6] = {0, 0};
+      sp[7] = {2, 0};
+      const NDArray xb = solve(st, bv.reshape({2, 1}));
+      CHECK(xb.shape() == Shape({2, 2, 1}));
+      // Second system: [[j, 0], [0, 2]] x = [1, j] -> x = [-j, 0.5j].
+      CHECK(near_c(C(cat<R>(xb, 2)), C(0, -1), tol));
+      CHECK(near_c(C(cat<R>(xb, 3)), C(0, 0.5), tol));
+      // Row swap needed: [[0, j], [2, 3]].
+      const NDArray sw = inv(cmat<R>(2, 2, {C(0, 0), C(0, 1), C(2, 0), C(3, 0)}));
+      CHECK(near_c(C(cat<R>(sw, 0)), C(0, 1.5), tol));
+      CHECK(near_c(C(cat<R>(sw, 1)), C(0.5, 0), tol));
+      CHECK(near_c(C(cat<R>(sw, 2)), C(0, -1), tol));
+      CHECK(near_c(C(cat<R>(sw, 3)), C(0, 0), tol));
+      // Singular -> LinAlgError; empty -> empty; shape errors unchanged.
+      CHECK_THROWS_KIND(inv(cmat<R>(2, 2, {C(1, 1), C(2, 2), C(1, 1), C(2, 2)})), ErrorKind::LinAlg);
+      CHECK_THROWS_KIND(solve(cmat<R>(2, 2, {C(1, 1), C(2, 2), C(1, 1), C(2, 2)}), bv), ErrorKind::LinAlg);
+      CHECK(inv(NDArray::zeros({0, 0}, cdt)).shape() == Shape({0, 0}));
+      CHECK(inv(NDArray::zeros({0, 0}, cdt)).dtype() == cdt);
+      CHECK_THROWS_KIND(inv(NDArray::zeros({2, 3}, cdt)), ErrorKind::LinAlg);
+      CHECK_THROWS_KIND(solve(a, NDArray::zeros({3}, cdt)), ErrorKind::Shape);
+    };
+    run(double{}, 1e-12);
+    run(float{}, 1e-5);
+    // Result dtype follows NumPy _commonType (D-039).
+    const NDArray a64 = cmat<float>(2, 2, {C(1, 0), C(0, 1), C(0, -1), C(3, 0)});
+    CHECK(solve(a64, mat(2, 1, {1, 2}, DType::Float32)).dtype() == DType::Complex64);
+    CHECK(solve(a64, mat(2, 1, {1, 2}, DType::Float64)).dtype() == DType::Complex128);
+    CHECK(solve(a64, mat(2, 1, {1, 2}, DType::Int8)).dtype() == DType::Complex128);
+    CHECK(solve(mat(2, 2, {1, 0, 0, 1}, DType::Float32), a64).dtype() == DType::Complex64);
+    CHECK_THROWS_KIND(solve(a64, mat(2, 1, {1, 2}, DType::Float16)), ErrorKind::DType);
+    // NaN input does not raise (NumPy only flags gesv info > 0).
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const NDArray ni = inv(cmat<double>(2, 2, {C(nan, 0), C(1, 0), C(1, 0), C(1, 0)}));
+    CHECK(std::isnan(cat<double>(ni, 0).real()));
   });
 }
 

@@ -5,7 +5,10 @@
 #include <cmath>
 #include <complex>
 #include <cstring>
+#include <initializer_list>
 #include <limits>
+#include <string>
+#include <type_traits>
 #include <vector>
 
 #include "backend.hpp"
@@ -232,6 +235,36 @@ std::complex<R> cdet_one(const std::complex<R>* rowmajor, idx n,
   return {sr * e - si * R{0}, sr * R{0} + si * e};
 }
 
+// NumPy `_commonType` when some operand is complex (D-039): complex64 only if
+// every operand is float32 or complex64, else complex128. float16 rejected.
+DType complex_result(std::initializer_list<const NDArray*> ops, const char* fn) {
+  bool single = true;
+  for (const NDArray* op : ops) {
+    const DType d = op->dtype();
+    if (d == DType::Float16) {
+      throw_error(ErrorKind::DType, std::string(fn) + ": array type float16 is unsupported in linalg");
+    }
+    single = single && (d == DType::Float32 || d == DType::Complex64);
+  }
+  return single ? DType::Complex64 : DType::Complex128;
+}
+
+// gesv for a real or complex element type E (D-039).
+template <typename E>
+int gesv_e(idx n, idx r, E* a, E* b) {
+  if constexpr (std::is_floating_point_v<E>) return routines<E>().gesv(n, r, a, b);
+  else return routines<typename E::value_type>().cgesv(n, r, a, b);
+}
+
+// Dispatches fn(E{}) for the inv/solve compute dtype: float32, float64 or
+// complex128 (complex input always computes in complex128, D-039).
+template <typename Fn>
+void dispatch_solve(DType ct, Fn&& fn) {
+  if (ct == DType::Complex128) fn(std::complex<double>{});
+  else if (ct == DType::Float32) fn(float{});
+  else fn(double{});
+}
+
 }  // namespace
 
 NDArray matmul(const NDArray& a, const NDArray& b) {
@@ -328,13 +361,15 @@ NDArray det(const NDArray& a) {
 }
 
 NDArray inv(const NDArray& a) {
-  const DType dt = decomp_dtype(a, "inv");
+  const bool cplx = is_complex(a.dtype());
+  const DType dt = cplx ? complex_result({&a}, "inv") : decomp_dtype(a, "inv");
   require_square(a, "inv");
+  const DType ct = cplx ? DType::Complex128 : dt;  // NumPy 'D->D' (D-039)
   const idx n = a.shape().back();
-  const NDArray ac = as_compute(a, dt);
-  NDArray out = NDArray::empty(a.shape(), dt);
+  const NDArray ac = as_compute(a, ct);
+  NDArray out = NDArray::empty(a.shape(), ct);
   const idx nb = shape_size(batch_of(a.shape(), 2));
-  dispatch_real(dt, [&](auto tag) {
+  dispatch_solve(ct, [&](auto tag) {
     using T = decltype(tag);
     std::vector<T> am(sz(n * n));
     std::vector<T> bm(sz(n * n));
@@ -342,15 +377,18 @@ NDArray inv(const NDArray& a) {
       to_colmajor(ptr<T>(ac) + t * n * n, am.data(), n, n);
       std::fill(bm.begin(), bm.end(), T{0});
       for (idx i = 0; i < n; ++i) bm[sz(i + i * n)] = T{1};
-      if (routines<T>().gesv(n, n, am.data(), bm.data()) > 0) linalg_fail("Singular matrix");
+      if (gesv_e(n, n, am.data(), bm.data()) > 0) linalg_fail("Singular matrix");
       from_colmajor(bm.data(), ptr<T>(out) + t * n * n, n, n);
     }
   });
-  return out;
+  return ct == dt ? out : out.astype(dt);
 }
 
 NDArray solve(const NDArray& a, const NDArray& b) {
-  const DType dt = promote_types(decomp_dtype(a, "solve"), decomp_dtype(b, "solve"));
+  const bool cplx = is_complex(a.dtype()) || is_complex(b.dtype());
+  const DType dt = cplx ? complex_result({&a, &b}, "solve")
+                        : promote_types(decomp_dtype(a, "solve"), decomp_dtype(b, "solve"));
+  const DType ct = cplx ? DType::Complex128 : dt;  // NumPy 'DD->D' (D-039)
   require_square(a, "solve");
   const idx n = a.shape().back();
   // NumPy 2: b is a vector only when b.ndim == 1.
@@ -363,10 +401,10 @@ NDArray solve(const NDArray& a, const NDArray& b) {
   }
   const idx r = b2.shape().back();
   const Shape batch = broadcast_shapes({batch_of(a.shape(), 2), batch_of(b2.shape(), 2)});
-  const NDArray ac = broadcast_to(a, concat(batch, {n, n})).astype(dt);
-  const NDArray bc = broadcast_to(b2, concat(batch, {n, r})).astype(dt);
-  NDArray out = NDArray::empty(concat(batch, {n, r}), dt);
-  dispatch_real(dt, [&](auto tag) {
+  const NDArray ac = broadcast_to(a, concat(batch, {n, n})).astype(ct);
+  const NDArray bc = broadcast_to(b2, concat(batch, {n, r})).astype(ct);
+  NDArray out = NDArray::empty(concat(batch, {n, r}), ct);
+  dispatch_solve(ct, [&](auto tag) {
     using T = decltype(tag);
     std::vector<T> am(sz(n * n));
     std::vector<T> bm(sz(n * r));
@@ -374,10 +412,11 @@ NDArray solve(const NDArray& a, const NDArray& b) {
       if (n == 0 || r == 0) break;
       to_colmajor(ptr<T>(ac) + t * n * n, am.data(), n, n);
       to_colmajor(ptr<T>(bc) + t * n * r, bm.data(), n, r);
-      if (routines<T>().gesv(n, r, am.data(), bm.data()) > 0) linalg_fail("Singular matrix");
+      if (gesv_e(n, r, am.data(), bm.data()) > 0) linalg_fail("Singular matrix");
       from_colmajor(bm.data(), ptr<T>(out) + t * n * r, n, r);
     }
   });
+  if (ct != dt) out = out.astype(dt);
   if (vec) return out.reshape(concat(batch, {n}));
   return out;
 }

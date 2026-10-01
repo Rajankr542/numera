@@ -80,6 +80,16 @@ void lu_solve(idx n, idx nrhs, const T* a, const idx* piv, T* b) {
   }
 }
 
+// LU with partial pivoting, then substitution; real or complex E (D-039).
+template <typename E>
+int lu_gesv(idx n, idx nrhs, E* a, E* b) {
+  std::vector<idx> piv(static_cast<std::size_t>(std::max<idx>(n, 1)));
+  const int info = lu(n, a, piv.data());
+  if (info != 0) return info;
+  lu_solve(n, nrhs, a, piv.data(), b);
+  return 0;
+}
+
 // Cyclic Jacobi on symmetric n×n (lower triangle is mirrored first).
 template <typename T>
 int jacobi_eigh(idx n, T* a, T* w) {
@@ -522,12 +532,9 @@ class FallbackRoutines final : public Routines<T> {
   }
   int getrf(idx n, T* a, idx* piv) const override { return lu(n, a, piv); }
   int cgetrf(idx n, std::complex<T>* a, idx* piv) const override { return lu(n, a, piv); }
-  int gesv(idx n, idx nrhs, T* a, T* b) const override {
-    std::vector<idx> piv(static_cast<std::size_t>(n));
-    const int info = lu(n, a, piv.data());
-    if (info != 0) return info;
-    lu_solve(n, nrhs, a, piv.data(), b);
-    return 0;
+  int gesv(idx n, idx nrhs, T* a, T* b) const override { return lu_gesv(n, nrhs, a, b); }
+  int cgesv(idx n, idx nrhs, std::complex<T>* a, std::complex<T>* b) const override {
+    return lu_gesv(n, nrhs, a, b);
   }
   int syevd(idx n, T* a, T* w) const override { return jacobi_eigh(n, a, w); }
   int geev(idx n, T* a, std::complex<T>* w, std::complex<T>* v) const override {

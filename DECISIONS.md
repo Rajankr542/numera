@@ -966,3 +966,28 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   fallback LU uses a different elimination order: complex128 is within
   ~2e-14 relative, so it is tolerance-level (D-018). Its complex64 results
   matched after the final rounding.
+
+## D-039 — Complex inv/solve (P1-5b) — Accepted — 2026-10-01
+- `inv` and `solve` accept complex64/complex128.
+- Result dtype follows NumPy's `_commonType`: complex if any operand is
+  complex, and double width if any operand is float64/complex128 or is an
+  integer/bool. So `solve(complex64, float32)` is complex64, while
+  `solve(complex64, int8)` and `solve(complex64, float64)` are complex128.
+  float16 still raises `DTypeError`.
+- Like `det` (D-038), complex input is computed in complex128 (NumPy's
+  `'D->D'`/`'DD->D'` signatures) and the result is cast once at the end.
+- `Routines<T>::cgesv(n, nrhs, a, b)` (column-major, A overwritten by its LU,
+  B by X) is part of the backend interface. Accelerate calls `cgesv_`/`zgesv_`
+  with `lda = ldb = max(n, 1)`, as NumPy's `init_gesv` does. The fallback runs
+  its partial-pivot LU (|re| + |im| pivoting) and then forward/back
+  substitution.
+- `inv` solves `A X = I`, the same `gesv` call NumPy makes. If `info > 0` the
+  call raises `LinAlgError("Singular matrix")`, as for real input. NaN input
+  does not raise, also as in NumPy.
+- Real `inv`/`solve` are unchanged: float32 stays float32 (D-018).
+- Exactness (NumPy 2.x + Accelerate, arm64; 210 random cases: `inv`, `solve`
+  with an n×3 b, and `solve` with a vector b, for n = 1–40 at both widths):
+  the default backend was bit-identical to NumPy in 210/210 cases. The
+  fallback LU is tolerance-level (D-018): its complex128 results are within
+  ~2e-14 relative, and its complex64 results matched after the final
+  rounding.

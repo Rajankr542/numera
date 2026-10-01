@@ -1,6 +1,18 @@
 # PROGRESS
 
-## 2026-10-01 — P1 step 5: complex linalg (in progress, D-038)
+## 2026-10-01 — P1 step 5: complex linalg (in progress, D-038/D-039)
+
+P1-5b done: `linalg.inv` and `linalg.solve` accept complex64/complex128.
+- New backend routine `cgesv`: Accelerate `cgesv_`/`zgesv_` with
+  `ld = max(n, 1)`, as in NumPy; the fallback runs LU, then substitution.
+- Matches NumPy's `_commonType`: complex input runs in complex128, then is
+  cast. The result is complex64 only when every operand is float32/complex64.
+- Measured against NumPy 2.x + Accelerate (arm64) on 210 random cases (`inv`,
+  matrix `solve` and vector `solve`; n = 1–40; both widths). The default
+  backend was bit-identical 210/210. The fallback backend's complex128
+  results are within ~2e-14 relative.
+- Tests: C++ `linalg: complex inv/solve (D-039)`; vitest `complex
+  linalg.inv / solve`. Both run on both backends.
 
 P1-5a done: `linalg.det` accepts complex64/complex128.
 - New backend routine `cgetrf`: Accelerate `cgetrf_`/`zgetrf_`; the fallback
@@ -18,7 +30,7 @@ P1-5a done: `linalg.det` accepts complex64/complex128.
   `pnpm test:diff` (4580), `pnpm typecheck` and root `tsc` all pass.
 - Not yet: differential cases (P1-5h) and benchmarks (P1-5j).
 
-Next: P1-5b, complex `inv`/`solve`.
+Next: P1-5c, complex `qr`.
 
 ## 2026-10-01 — P1 step 4: complex matmul family (done, D-035–D-037)
 
