@@ -366,8 +366,8 @@ describe("complex linalg.det (P1-5a, D-038)", () => {
     });
   }
 
-  it("svd still rejects complex input", () => {
-    expect(() => np.linalg.svd(A)).toThrow(np.NotImplementedError);
+  it("eigh still rejects complex input", () => {
+    expect(() => np.linalg.eigh(A)).toThrow(np.NotImplementedError);
   });
 });
 
@@ -487,6 +487,83 @@ describe("complex linalg.qr (P1-5c, D-040)", () => {
         const n = np.linalg.qr([[np.complex(NaN, 0), 1], [1, 1]]);
         expect(Number.isNaN(flat(n.R)[0]![0])).toBe(true);
         expect(() => np.linalg.qr([np.complex(1, 1)])).toThrow(np.LinAlgError);
+      });
+    });
+  }
+});
+
+
+describe("complex linalg.svd (P1-5d, D-041)", () => {
+  const flat = (x: InstanceType<typeof np.NDArray>): number[][] =>
+    (x.flatten().toArray() as Complex[]).map((v) => [v.re, v.im]);
+  const reals = (x: InstanceType<typeof np.NDArray>): number[] => x.toArray() as number[];
+  // A (3x2) = [[1+2j, 3-j], [0.5j, 2], [1, j]]; NumPy S = [4.352020701327292, 1.5198407203449662].
+  const A = [
+    [np.complex(1, 2), np.complex(3, -1)],
+    [np.complex(0, 0.5), 2],
+    [1, np.complex(0, 1)],
+  ];
+  const S = [4.352020701327292, 1.5198407203449662];
+  const maxAbs = (x: InstanceType<typeof np.NDArray>): number =>
+    Math.max(0, ...flat(x).map(([re, im]) => Math.hypot(re, im)));
+  for (const backend of ["default", "fallback"] as const) {
+    describe(`backend: ${backend}`, () => {
+      beforeAll(() => np.linalg._setBackend(backend));
+      afterAll(() => np.linalg._setBackend("default"));
+
+      it("dtypes, shapes, singular values and reconstruction", () => {
+        for (const [dtype, sdt, digits, tol] of [
+          ["complex128", "float64", 13, 1e-13],
+          ["complex64", "float32", 5, 1e-5],
+        ] as const) {
+          const a = np.array(A, { dtype });
+          for (const fullMatrices of [true, false]) {
+            const { U, S: s, Vh } = np.linalg.svd(a, { fullMatrices });
+            expect(U!.dtype).toBe(np[dtype]);
+            expect(Vh!.dtype).toBe(np[dtype]);
+            expect(s.dtype).toBe(np[sdt]);
+            expect(U!.shape).toEqual([3, fullMatrices ? 3 : 2]);
+            expect(Vh!.shape).toEqual([2, 2]);
+            reals(s).forEach((v, i) => expect(v).toBeCloseTo(S[i]!, digits));
+            // U[:, :2] * S @ Vh == A, and U^H U == I.
+            const u2 = fullMatrices ? U!.slice([null, [0, 2]]) : U!;
+            const rec = np.matmul(np.multiply(u2, s), Vh!);
+            expect(maxAbs(np.subtract(rec, a))).toBeLessThan(10 * tol);
+            const gram = np.matmul(np.conjugate(np.transpose(U!)), U!);
+            expect(maxAbs(np.subtract(gram, np.eye(U!.shape[1]!)))).toBeLessThan(10 * tol);
+          }
+          const sv = np.linalg.svd(a, { computeUV: false });
+          expect(sv.U).toBeNull();
+          expect(sv.Vh).toBeNull();
+          expect(sv.S.dtype).toBe(np[sdt]);
+          reals(sv.S).forEach((v, i) => expect(v).toBeCloseTo(S[i]!, digits));
+        }
+      });
+
+      it("wide, batched, empty and non-finite inputs", () => {
+        const wide = np.conjugate(np.transpose(np.array(A)));
+        const w = np.linalg.svd(wide);
+        expect(w.U!.shape).toEqual([2, 2]);
+        expect(w.Vh!.shape).toEqual([3, 3]);
+        reals(w.S).forEach((v, i) => expect(v).toBeCloseTo(S[i]!, 13));
+        const b = np.array([
+          [[np.complex(0, 1), 0], [0, 2]],
+          [[1, np.complex(0, 1)], [np.complex(0, 1), 1]],
+        ]);
+        const bs = np.linalg.svd(b, { computeUV: false }).S;
+        expect(bs.shape).toEqual([2, 2]);
+        (bs.toArray() as number[][]).flat().forEach((v, i) =>
+          expect(v).toBeCloseTo([2, 1, Math.SQRT2, Math.SQRT2][i]!, 13));
+        const e = np.linalg.svd(np.zeros([3, 0], { dtype: "complex128" }));
+        expect(e.U!.shape).toEqual([3, 3]);
+        expect(e.U!.dtype).toBe(np.complex128);
+        expect(flat(e.U!)[4]).toEqual([1, 0]);
+        expect(e.Vh!.shape).toEqual([0, 0]);
+        expect(e.S.dtype).toBe(np.float64);
+        expect(() => np.linalg.svd([[np.complex(NaN, 0), 1], [1, 1]])).toThrow(np.LinAlgError);
+        expect(() => np.linalg.svd([[np.complex(1, Infinity)]], { computeUV: false })).toThrow(
+          "SVD did not converge",
+        );
       });
     });
   }

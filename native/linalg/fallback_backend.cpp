@@ -30,6 +30,30 @@ auto pivot_mag(const T& x) {
   else return std::abs(x.real()) + std::abs(x.imag());
 }
 
+// Real scalar type of a real or complex element type.
+template <typename E>
+struct real_of {
+  using type = E;
+};
+template <typename R>
+struct real_of<std::complex<R>> {
+  using type = R;
+};
+template <typename E>
+using real_t = typename real_of<E>::type;
+
+// Conjugate (identity for real) and squared magnitude (x*x for real).
+template <typename E>
+E cj(const E& x) {
+  if constexpr (std::is_floating_point_v<E>) return x;
+  else return std::conj(x);
+}
+template <typename E>
+real_t<E> abs2(const E& x) {
+  if constexpr (std::is_floating_point_v<E>) return x * x;
+  else return std::norm(x);
+}
+
 template <typename T>
 int lu(idx n, T* a, idx* piv) {
   Mat<T> A{a, n};
@@ -212,12 +236,15 @@ void form_q(idx m, idx cols, idx k, T* q, const T* tau) {
 
 // One-sided Jacobi SVD of m×n A with m >= n. On return a holds U (m×n),
 // s singular values (descending), v (n×n) right singular vectors (columns).
-template <typename T>
-int jacobi_svd_tall(idx m, idx n, T* a, T* s, T* v) {
-  Mat<T> U{a, m};
-  Mat<T> V{v, n};
+// E real or complex; complex pairs are phase-aligned so γ = u_pᴴu_q is real
+// before the real rotation (D-041). The real path is unchanged.
+template <typename E>
+int jacobi_svd_tall(idx m, idx n, E* a, real_t<E>* s, E* v) {
+  using T = real_t<E>;
+  Mat<E> U{a, m};
+  Mat<E> V{v, n};
   for (idx j = 0; j < n; ++j) {
-    for (idx i = 0; i < n; ++i) V(i, j) = (i == j) ? T{1} : T{0};
+    for (idx i = 0; i < n; ++i) V(i, j) = (i == j) ? E{1} : E{0};
   }
   const T eps = std::numeric_limits<T>::epsilon();
   bool converged = n <= 1;
@@ -227,28 +254,36 @@ int jacobi_svd_tall(idx m, idx n, T* a, T* s, T* v) {
       for (idx q = p + 1; q < n; ++q) {
         T alpha = 0;
         T beta = 0;
-        T gamma = 0;
+        E gamma = 0;
         for (idx i = 0; i < m; ++i) {
-          alpha += U(i, p) * U(i, p);
-          beta += U(i, q) * U(i, q);
-          gamma += U(i, p) * U(i, q);
+          alpha += abs2(U(i, p));
+          beta += abs2(U(i, q));
+          gamma += cj(U(i, p)) * U(i, q);
         }
-        if (gamma == T{0} || std::abs(gamma) <= eps * std::sqrt(alpha * beta)) continue;
+        T g;
+        if constexpr (std::is_floating_point_v<E>) g = gamma;
+        else g = std::abs(gamma);
+        if (g == T{0} || std::abs(g) <= eps * std::sqrt(alpha * beta)) continue;
         converged = false;
-        const T zeta = (beta - alpha) / (T{2} * gamma);
+        if constexpr (!std::is_floating_point_v<E>) {
+          const E ph = std::conj(gamma) / g;  // makes column q's γ real, = g
+          for (idx i = 0; i < m; ++i) U(i, q) *= ph;
+          for (idx i = 0; i < n; ++i) V(i, q) *= ph;
+        }
+        const T zeta = (beta - alpha) / (T{2} * g);
         const T t = (zeta >= 0 ? T{1} : T{-1}) /
                     (std::abs(zeta) + std::sqrt(T{1} + zeta * zeta));
         const T c = T{1} / std::sqrt(T{1} + t * t);
         const T sn = c * t;
         for (idx i = 0; i < m; ++i) {
-          const T up = U(i, p);
-          const T uq = U(i, q);
+          const E up = U(i, p);
+          const E uq = U(i, q);
           U(i, p) = c * up - sn * uq;
           U(i, q) = sn * up + c * uq;
         }
         for (idx i = 0; i < n; ++i) {
-          const T vp = V(i, p);
-          const T vq = V(i, q);
+          const E vp = V(i, p);
+          const E vq = V(i, q);
           V(i, p) = c * vp - sn * vq;
           V(i, q) = sn * vp + c * vq;
         }
@@ -258,15 +293,15 @@ int jacobi_svd_tall(idx m, idx n, T* a, T* s, T* v) {
   if (!converged) return 1;
   for (idx j = 0; j < n; ++j) {
     T nrm = 0;
-    for (idx i = 0; i < m; ++i) nrm += U(i, j) * U(i, j);
+    for (idx i = 0; i < m; ++i) nrm += abs2(U(i, j));
     s[j] = std::sqrt(nrm);
   }
   // Sort descending, permuting U and V columns.
   std::vector<idx> order(static_cast<std::size_t>(n));
   for (idx i = 0; i < n; ++i) order[static_cast<std::size_t>(i)] = i;
   std::stable_sort(order.begin(), order.end(), [&](idx x, idx y) { return s[x] > s[y]; });
-  std::vector<T> ucopy(a, a + m * n);
-  std::vector<T> vcopy(v, v + n * n);
+  std::vector<E> ucopy(a, a + m * n);
+  std::vector<E> vcopy(v, v + n * n);
   std::vector<T> scopy(s, s + n);
   for (idx c = 0; c < n; ++c) {
     const idx src = order[static_cast<std::size_t>(c)];
@@ -475,22 +510,23 @@ void complex_form_q(idx m, idx cols, idx k, std::complex<T>* q, const std::compl
   }
 }
 
-template <typename T>
-void complete_basis(idx m, idx k, T* q) {
-  Mat<T> Q{q, m};
+template <typename E>
+void complete_basis(idx m, idx k, E* q) {
+  using T = real_t<E>;
+  Mat<E> Q{q, m};
   idx col = k;
   for (idx e = 0; e < m && col < m; ++e) {
-    std::vector<T> v(static_cast<std::size_t>(m), T{0});
-    v[static_cast<std::size_t>(e)] = T{1};
+    std::vector<E> v(static_cast<std::size_t>(m), E{0});
+    v[static_cast<std::size_t>(e)] = E{1};
     for (int pass = 0; pass < 2; ++pass) {
       for (idx j = 0; j < col; ++j) {
-        T d = 0;
-        for (idx i = 0; i < m; ++i) d += Q(i, j) * v[static_cast<std::size_t>(i)];
+        E d = 0;
+        for (idx i = 0; i < m; ++i) d += cj(Q(i, j)) * v[static_cast<std::size_t>(i)];
         for (idx i = 0; i < m; ++i) v[static_cast<std::size_t>(i)] -= d * Q(i, j);
       }
     }
     T nrm = 0;
-    for (const T x : v) nrm += x * x;
+    for (const E& x : v) nrm += abs2(x);
     nrm = std::sqrt(nrm);
     if (nrm < T{0.5}) continue;
     for (idx i = 0; i < m; ++i) Q(i, col) = v[static_cast<std::size_t>(i)] / nrm;
@@ -500,15 +536,16 @@ void complete_basis(idx m, idx k, T* q) {
 
 // Zero-norm U columns (rank deficiency) are replaced by an orthonormal
 // completion so U stays orthonormal.
-template <typename T>
-void fix_null_columns(idx m, idx k, T* u, const T* s) {
+template <typename E>
+void fix_null_columns(idx m, idx k, E* u, const real_t<E>* s) {
+  using T = real_t<E>;
   idx good = 0;
-  Mat<T> U{u, m};
+  Mat<E> U{u, m};
   const T tol = std::numeric_limits<T>::epsilon() * (k > 0 ? s[0] : T{0}) * static_cast<T>(m);
   while (good < k && s[good] > tol && s[good] > T{0}) ++good;
   if (good == k) return;
-  std::vector<T> full(static_cast<std::size_t>(m * m), T{0});
-  Mat<T> F{full.data(), m};
+  std::vector<E> full(static_cast<std::size_t>(m * m), E{0});
+  Mat<E> F{full.data(), m};
   for (idx j = 0; j < good; ++j) {
     for (idx i = 0; i < m; ++i) F(i, j) = U(i, j);
   }
@@ -518,35 +555,37 @@ void fix_null_columns(idx m, idx k, T* u, const T* s) {
   }
 }
 
-template <typename T>
-int svd(idx m, idx n, T* a, T* s, T* u, T* vt, bool full) {
+// E real or complex. Wide A works on B = Aᴴ: A = V_B Σ U_Bᴴ (D-041).
+template <typename E>
+int svd(idx m, idx n, E* a, real_t<E>* s, E* u, E* vt, bool full) {
+  using T = real_t<E>;
   const idx k = std::min(m, n);
   const bool tall = m >= n;
-  // Work on B = A (m×n) if tall, else B = A^T (n×m); B is r×c with r >= c.
+  // Work on B = A (m×n) if tall, else B = A^H (n×m); B is r×c with r >= c.
   const idx r = tall ? m : n;
   const idx c = tall ? n : m;
-  std::vector<T> b(static_cast<std::size_t>(r * c));
+  std::vector<E> b(static_cast<std::size_t>(r * c));
   for (idx j = 0; j < c; ++j) {
     for (idx i = 0; i < r; ++i) {
-      b[static_cast<std::size_t>(i + j * r)] = tall ? a[i + j * m] : a[j + i * m];
+      b[static_cast<std::size_t>(i + j * r)] = tall ? a[i + j * m] : cj(a[j + i * m]);
     }
   }
-  std::vector<T> v(static_cast<std::size_t>(c * c));
+  std::vector<E> v(static_cast<std::size_t>(c * c));
   if (jacobi_svd_tall(r, c, b.data(), s, v.data()) != 0) return 1;
   if (u == nullptr) return 0;
   // Left vectors of B: normalised columns of b.
   for (idx j = 0; j < c; ++j) {
     const T sj = s[j];
     for (idx i = 0; i < r; ++i) {
-      b[static_cast<std::size_t>(i + j * r)] = sj > T{0} ? b[static_cast<std::size_t>(i + j * r)] / sj : T{0};
+      b[static_cast<std::size_t>(i + j * r)] = sj > T{0} ? b[static_cast<std::size_t>(i + j * r)] / sj : E{0};
     }
   }
   fix_null_columns(r, c, b.data(), s);
   // Map to A's U (m×ucols) and Vt (vrows×n).
   const idx ucols = full ? m : k;
   const idx vrows = full ? n : k;
-  std::vector<T> left(static_cast<std::size_t>(m * m), T{0});   // U candidates, ld m
-  std::vector<T> right(static_cast<std::size_t>(n * n), T{0});  // V candidates, ld n
+  std::vector<E> left(static_cast<std::size_t>(m * m), E{0});   // U candidates, ld m
+  std::vector<E> right(static_cast<std::size_t>(n * n), E{0});  // V candidates, ld n
   for (idx j = 0; j < k; ++j) {
     for (idx i = 0; i < m; ++i) {
       left[static_cast<std::size_t>(i + j * m)] =
@@ -564,9 +603,9 @@ int svd(idx m, idx n, T* a, T* s, T* u, T* vt, bool full) {
   for (idx j = 0; j < ucols; ++j) {
     for (idx i = 0; i < m; ++i) u[i + j * m] = left[static_cast<std::size_t>(i + j * m)];
   }
-  // Vt (vrows×n) column-major: Vt(i, j) = V(j, i).
+  // Vh (vrows×n) column-major: Vh(i, j) = conj(V(j, i)).
   for (idx j = 0; j < n; ++j) {
-    for (idx i = 0; i < vrows; ++i) vt[i + j * vrows] = right[static_cast<std::size_t>(j + i * n)];
+    for (idx i = 0; i < vrows; ++i) vt[i + j * vrows] = cj(right[static_cast<std::size_t>(j + i * n)]);
   }
   return 0;
 }
@@ -600,6 +639,10 @@ class FallbackRoutines final : public Routines<T> {
     return complex_eig(n, a, w, v);
   }
   int gesdd(idx m, idx n, T* a, T* s, T* u, T* vt, bool full) const override {
+    return svd(m, n, a, s, u, vt, full);
+  }
+  int cgesdd(idx m, idx n, std::complex<T>* a, T* s, std::complex<T>* u, std::complex<T>* vt,
+             bool full) const override {
     return svd(m, n, a, s, u, vt, full);
   }
   int geqrf(idx m, idx n, T* a, T* tau) const override {

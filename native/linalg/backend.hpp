@@ -63,6 +63,9 @@ class Routines {
   // SVD of m×n A. s: min(m,n). If u/vt null, values only. full: U m×m and
   // Vt n×n; else U m×k and Vt k×n.
   virtual int gesdd(std::int64_t m, std::int64_t n, T* a, T* s, T* u, T* vt, bool full) const = 0;
+  // Complex SVD, layout as gesdd; s is real (D-041).
+  virtual int cgesdd(std::int64_t m, std::int64_t n, std::complex<T>* a, T* s, std::complex<T>* u,
+                     std::complex<T>* vt, bool full) const = 0;
   // Householder QR of m×n A: a -> R in upper triangle + reflectors; tau: min(m,n).
   virtual int geqrf(std::int64_t m, std::int64_t n, T* a, T* tau) const = 0;
   // Forms the first `cols` columns of Q (m×cols) from geqrf output in q

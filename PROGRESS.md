@@ -1,6 +1,34 @@
 # PROGRESS
 
-## 2026-10-01 — P1 step 5: complex linalg (in progress, D-038–D-040)
+## 2026-10-01 — P1 step 5: complex linalg (in progress, D-038–D-041)
+
+P1-5d done: `linalg.svd` accepts complex64/complex128 with every
+`fullMatrices`/`computeUV` combination. U and Vh keep the complex dtype; S is
+real (float32 for complex64, float64 for complex128).
+- New backend routine `cgesdd`: Accelerate `cgesdd_`/`zgesdd_`, with
+  LAPACK's documented `lrwork`. The fallback reuses the one-sided Jacobi SVD:
+  it phase-aligns each column pair, uses Aᴴ for wide input, and completes
+  the basis with Hermitian inner products. The real path is unchanged.
+- As in NumPy, complex input runs in complex128 and is cast at the end.
+  Non-finite input (real or complex) raises `LinAlgError("SVD did not
+  converge")` before LAPACK is called, matching NumPy's `svd_wrapper`.
+- Measured against NumPy 2.x + Accelerate (arm64) on 60 random m×n cases
+  (m, n = 1–29; both dtypes; full and reduced):
+  - Default backend: S bit-identical 60/60; U and Vh bit-identical 57/60.
+    The other 3 differ by at most 5.6e-17 absolute, in near-zero entries.
+    The cause is not known. Our output is deterministic, and NumPy's is too.
+  - Fallback: S bit-identical 32/60, largest |ΔS| 5e-14. Vectors are checked
+    by reconstruction and unitarity only, since they are unique up to phase
+    (D-018).
+- Tests: C++ `linalg: complex svd (D-041)`; vitest `complex linalg.svd`. Both
+  run on both backends.
+- Checks: `pnpm test:native`, `pnpm test:asan`, `pnpm test` (233),
+  `pnpm test:diff` (4580) all pass.
+
+Next: P1-5e completes P1, in six sub-steps (see TASK_SLICES.md). It starts
+with complex `eigh`/`eigvalsh`.
+
+## 2026-10-01 — P1-5c (D-040)
 
 P1-5c done: `linalg.qr` accepts complex64/complex128 in all modes
 ('reduced', 'complete', 'r').
@@ -17,8 +45,7 @@ P1-5c done: `linalg.qr` accepts complex64/complex128 in all modes
 - Checks: `pnpm test:native`, `pnpm test:asan`, `pnpm test` (229),
   `pnpm test:diff` (4580) all pass.
 
-Next: P1-5d, complex `svd`. After that, P1-5e completes P1 (remaining
-complex linalg, differential group, FFT check, benchmarks and docs).
+Next: P1-5d, complex `svd`. (Done; see above.)
 
 P1-5b done: `linalg.inv` and `linalg.solve` accept complex64/complex128.
 - New backend routine `cgesv`: Accelerate `cgesv_`/`zgesv_` with

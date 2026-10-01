@@ -187,6 +187,10 @@ bool all_finite(const T* p, idx n) {
     if (!std::isfinite(p[i])) return false;
   return true;
 }
+template <typename R>
+bool all_finite(const std::complex<R>* p, idx n) {
+  return all_finite(reinterpret_cast<const R*>(p), 2 * n);
+}
 
 template <typename T>
 T det_one(const T* rowmajor, idx n, std::vector<T>& work, std::vector<idx>& piv) {
@@ -266,6 +270,17 @@ template <typename E>
 int orgqr_e(idx m, idx cols, idx k, E* q, const E* tau) {
   if constexpr (std::is_floating_point_v<E>) return routines<E>().orgqr(m, cols, k, q, tau);
   else return routines<typename E::value_type>().cungqr(m, cols, k, q, tau);
+}
+
+// Real scalar type of E (E itself when real).
+template <typename E>
+using real_of_t = decltype(std::real(E{}));
+
+// gesdd for a real or complex element type E; s is real (D-041).
+template <typename E>
+int gesdd_e(idx m, idx n, E* a, real_of_t<E>* s, E* u, E* vt, bool full) {
+  if constexpr (std::is_floating_point_v<E>) return routines<E>().gesdd(m, n, a, s, u, vt, full);
+  else return routines<typename E::value_type>().cgesdd(m, n, a, s, u, vt, full);
 }
 
 // Dispatches fn(E{}) for the inv/solve compute dtype: float32, float64 or
@@ -484,7 +499,12 @@ EigResult eig(const NDArray& a) {
 }
 
 SvdResult svd(const NDArray& a, bool full_matrices, bool compute_uv) {
-  const DType dt = decomp_dtype(a, "svd");
+  const bool cplx = is_complex(a.dtype());
+  const DType dt = cplx ? a.dtype() : decomp_dtype(a, "svd");
+  const DType ct = cplx ? DType::Complex128 : dt;  // NumPy 'D->DdD' (D-041)
+  // Real dtypes of the computed and the returned S.
+  const DType sct = cplx ? DType::Float64 : dt;
+  const DType sdt = dt == DType::Complex64 ? DType::Float32 : (cplx ? DType::Float64 : dt);
   require_2d(a, "svd");
   const Shape& s = a.shape();
   const idx m = s[s.size() - 2];
@@ -496,16 +516,17 @@ SvdResult svd(const NDArray& a, bool full_matrices, bool compute_uv) {
   const idx uc = full_matrices ? m : k;
   const idx vr = full_matrices ? n : k;
   const idx vc = n;
-  const NDArray ac = as_compute(a, dt);
-  NDArray sv = NDArray::zeros(concat(batch, {k}), dt);
+  const NDArray ac = as_compute(a, ct);
+  NDArray sv = NDArray::zeros(concat(batch, {k}), sct);
   std::optional<NDArray> u;
   std::optional<NDArray> vh;
   if (compute_uv) {
-    u = NDArray::zeros(concat(batch, {ur, uc}), dt);
-    vh = NDArray::zeros(concat(batch, {vr, vc}), dt);
+    u = NDArray::zeros(concat(batch, {ur, uc}), ct);
+    vh = NDArray::zeros(concat(batch, {vr, vc}), ct);
   }
-  dispatch_real(dt, [&](auto tag) {
+  dispatch_solve(ct, [&](auto tag) {
     using T = decltype(tag);
+    using R = real_of_t<T>;
     std::vector<T> am(sz(m * n));
     std::vector<T> um(sz(ur * uc));
     std::vector<T> vm(sz(vr * vc));
@@ -518,10 +539,13 @@ SvdResult svd(const NDArray& a, bool full_matrices, bool compute_uv) {
         }
         continue;
       }
-      to_colmajor(ptr<T>(ac) + t * m * n, am.data(), m, n);
-      const int info = routines<T>().gesdd(m, n, am.data(), ptr<T>(sv) + t * k,
-                                           compute_uv ? um.data() : nullptr,
-                                           compute_uv ? vm.data() : nullptr, full_matrices);
+      const T* src = ptr<T>(ac) + t * m * n;
+      // NumPy's svd_wrapper rejects non-finite input before LAPACK (D-041).
+      if (!all_finite(src, m * n)) linalg_fail("SVD did not converge");
+      to_colmajor(src, am.data(), m, n);
+      const int info = gesdd_e(m, n, am.data(), ptr<R>(sv) + t * k,
+                               compute_uv ? um.data() : nullptr,
+                               compute_uv ? vm.data() : nullptr, full_matrices);
       if (info != 0) linalg_fail("SVD did not converge");
       if (compute_uv) {
         from_colmajor(um.data(), ptr<T>(*u) + t * ur * uc, ur, uc);
@@ -529,6 +553,11 @@ SvdResult svd(const NDArray& a, bool full_matrices, bool compute_uv) {
       }
     }
   });
+  if (ct != dt) {
+    if (u) u = u->astype(dt);
+    if (vh) vh = vh->astype(dt);
+  }
+  if (sct != sdt) sv = sv.astype(sdt);
   return {u, sv, vh};
 }
 

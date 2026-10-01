@@ -1014,3 +1014,41 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   NumPy in 60/60 cases. The fallback is tolerance-level (D-018). It was
   bit-identical in 30/60 cases, and its largest absolute difference was ~5e-15.
 
+## D-041 — Complex svd (P1-5d) — Accepted — 2026-10-01
+- `svd` accepts complex64/complex128 with every `fullMatrices`/`computeUV`
+  combination. U and Vh keep the input's complex dtype. S is real:
+  float64 for complex128 input, float32 for complex64 input (NumPy
+  `_realType`).
+- Like D-038–D-040, complex input is computed in complex128 (NumPy's
+  `'D->DdD'`/`'D->d'` signatures) and the results are cast once at the end.
+  Real `svd` is unchanged: float32 stays float32 (D-018).
+- `Routines<T>::cgesdd(m, n, a, s, u, vt, full)` is part of the backend
+  interface. It uses the same column-major layout and job selection as
+  `gesdd`, but `s` is real. Accelerate calls `cgesdd_`/`zgesdd_` with the
+  queried optimal `lwork`, `iwork` = 8·min(m,n), and LAPACK's documented
+  `lrwork` minimum: 7·mn for job 'N', else
+  max(5·mn² + 5·mn, 2·mx·mn + 2·mn² + mn).
+- The fallback reuses the one-sided Jacobi SVD. For the complex rotation of
+  columns p and q with γ = u_pᴴu_q, column q of both U and V is first scaled
+  by conj(γ/|γ|), which makes γ real; then the real rotation is applied.
+  Wide input works on B = Aᴴ. Then A = V_B Σ U_Bᴴ, so U = V_B and
+  Vh = U_Bᴴ. The basis completion (`full_matrices`, rank deficiency) uses
+  Hermitian inner products. The real fallback path is unchanged.
+- As in NumPy's `svd_wrapper`, any non-finite input element raises
+  `LinAlgError("SVD did not converge")` before LAPACK is called. This
+  explicit check also applies to real input (both backends already raised
+  there).
+- With k = min(m, n) = 0 and `fullMatrices`, U and Vh are identity
+  matrices, as in NumPy.
+- Singular vectors are unique only up to a unit phase per pair. The
+  fallback is checked by reconstruction and unitarity (D-018), not by
+  element-wise comparison of U/Vh.
+- Exactness (NumPy 2.x + Accelerate, arm64; 60 random m×n cases, m, n = 1–29,
+  both dtypes, full and reduced): with the default backend, S was
+  bit-identical in 60/60 cases and U/Vh in 57/60. The other 3 differ by at
+  most 5.6e-17 absolute, in near-zero entries. Both sides are deterministic
+  and the cause is not known; giving it the exact queried `lwork` made no
+  difference. With the fallback, S was bit-identical in 32/60 cases, largest
+  |ΔS| 5e-14.
+
+

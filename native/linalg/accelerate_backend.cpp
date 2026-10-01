@@ -129,6 +129,16 @@ void gesdd_(const char* job, const lint* m, const lint* n, double* a, double* s,
             lint* iw, lint* info) {
   dgesdd_(job, m, n, a, m, s, u, ldu, vt, ldvt, work, lw, iw, info);
 }
+void gesdd_(const char* job, const lint* m, const lint* n, std::complex<float>* a, float* s,
+            std::complex<float>* u, const lint* ldu, std::complex<float>* vt, const lint* ldvt,
+            std::complex<float>* work, const lint* lw, float* rw, lint* iw, lint* info) {
+  cgesdd_(job, m, n, a, m, s, u, ldu, vt, ldvt, work, lw, rw, iw, info);
+}
+void gesdd_(const char* job, const lint* m, const lint* n, std::complex<double>* a, double* s,
+            std::complex<double>* u, const lint* ldu, std::complex<double>* vt, const lint* ldvt,
+            std::complex<double>* work, const lint* lw, double* rw, lint* iw, lint* info) {
+  zgesdd_(job, m, n, a, m, s, u, ldu, vt, ldvt, work, lw, rw, iw, info);
+}
 void geqrf_(const lint* m, const lint* n, float* a, float* tau, float* w, const lint* lw,
             lint* info) {
   sgeqrf_(m, n, a, m, tau, w, lw, info);
@@ -333,6 +343,35 @@ class AccelRoutines final : public Routines<T> {
     const lint lw = lwork_from(wq);
     std::vector<T> work(static_cast<std::size_t>(lw));
     gesdd_(job, &mm, &nn, a, s, up, &ldu, vp, &ldvt, work.data(), &lw, iw.data(), &info);
+    return static_cast<int>(info);
+  }
+  int cgesdd(idx m, idx n, std::complex<T>* a, T* s, std::complex<T>* u, std::complex<T>* vt,
+             bool full) const override {
+    using C = std::complex<T>;
+    const lint mm = li(m);
+    const lint nn = li(n);
+    const idx k = std::min(m, n);
+    const idx mx = std::max(m, n);
+    const char* job = u == nullptr ? "N" : (full ? "A" : "S");
+    const lint ldu = std::max<lint>(1, mm);
+    const lint ldvt = std::max<lint>(1, li(full ? n : k));
+    std::vector<lint> iw(static_cast<std::size_t>(std::max<idx>(8 * k, 1)));
+    // LAPACK's documented lrwork minimum (D-041).
+    const idx lrw = u == nullptr ? 7 * k
+                                 : std::max(5 * k * k + 5 * k, 2 * mx * k + 2 * k * k + k);
+    std::vector<T> rw(static_cast<std::size_t>(std::max<idx>(lrw, 1)));
+    C dummy{};
+    C* up = u != nullptr ? u : &dummy;
+    C* vp = vt != nullptr ? vt : &dummy;
+    lint info = 0;
+    C wq{};
+    const lint q = -1;
+    gesdd_(job, &mm, &nn, a, s, up, &ldu, vp, &ldvt, &wq, &q, rw.data(), iw.data(), &info);
+    if (info != 0) return static_cast<int>(info);
+    const lint lw = lwork_from(wq);
+    std::vector<C> work(static_cast<std::size_t>(lw));
+    gesdd_(job, &mm, &nn, a, s, up, &ldu, vp, &ldvt, work.data(), &lw, rw.data(), iw.data(),
+           &info);
     return static_cast<int>(info);
   }
   int geqrf(idx m, idx n, T* a, T* tau) const override { return qr_factor(m, n, a, tau); }

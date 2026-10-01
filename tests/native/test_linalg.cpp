@@ -320,7 +320,7 @@ TEST_CASE("linalg: complex det (D-038)") {
     run(double{}, 1e-12);
     run(float{}, 1e-5);
     // Other decompositions still reject complex until their slice lands.
-    CHECK_THROWS_KIND(svd(cmat<double>(1, 1, {C(1, 1)}), false, true), ErrorKind::NotImplemented);
+    CHECK_THROWS_KIND(eigh(cmat<double>(1, 1, {C(1, 0)})), ErrorKind::NotImplemented);
   });
 }
 
@@ -393,6 +393,110 @@ TEST_CASE("linalg: complex inv/solve (D-039)") {
     const double nan = std::numeric_limits<double>::quiet_NaN();
     const NDArray ni = inv(cmat<double>(2, 2, {C(nan, 0), C(1, 0), C(1, 0), C(1, 0)}));
     CHECK(std::isnan(cat<double>(ni, 0).real()));
+  });
+}
+
+TEST_CASE("linalg: complex svd (D-041)") {
+  using C = std::complex<double>;
+  each_backend([] {
+    const auto run = [](auto tag, double tol) {
+      using R = decltype(tag);
+      const DType cdt = std::is_same_v<R, float> ? DType::Complex64 : DType::Complex128;
+      const DType rdt = std::is_same_v<R, float> ? DType::Float32 : DType::Float64;
+      const auto sat = [](const NDArray& x, std::int64_t i) {
+        return static_cast<double>(reinterpret_cast<const R*>(x.data())[i]);
+      };
+      const auto near = [tol](double got, double want) {
+        return std::abs(got - want) <= tol * (1.0 + std::abs(want));
+      };
+      // A (3x2) = [[1+2j, 3-j], [0.5j, 2], [1, j]]; NumPy S = [4.352..., 1.5198...].
+      const NDArray a = cmat<R>(3, 2, {C(1, 2), C(3, -1), C(0, 0.5), C(2, 0), C(1, 0), C(0, 1)});
+      const double ws[2] = {4.352020701327292, 1.5198407203449662};
+      for (const bool full : {true, false}) {
+        const SvdResult r = svd(a, full, true);
+        CHECK(r.u->dtype() == cdt);
+        CHECK(r.vh->dtype() == cdt);
+        CHECK(r.s.dtype() == rdt);
+        const std::int64_t uc = full ? 3 : 2;
+        CHECK(r.u->shape() == Shape({3, uc}));
+        CHECK(r.vh->shape() == Shape({2, 2}));
+        CHECK(near(sat(r.s, 0), ws[0]));
+        CHECK(near(sat(r.s, 1), ws[1]));
+        // U^H U = I.
+        for (int i = 0; i < uc; ++i)
+          for (int j = 0; j < uc; ++j) {
+            C d{};
+            for (int p = 0; p < 3; ++p)
+              d += std::conj(C(cat<R>(*r.u, p * uc + i))) * C(cat<R>(*r.u, p * uc + j));
+            CHECK(std::abs(d - (i == j ? C(1, 0) : C(0, 0))) <= 10 * tol);
+          }
+        // U[:, :2] diag(S) Vh reconstructs A.
+        for (int i = 0; i < 3; ++i)
+          for (int j = 0; j < 2; ++j) {
+            C acc{};
+            for (int p = 0; p < 2; ++p)
+              acc += C(cat<R>(*r.u, i * uc + p)) * sat(r.s, p) * C(cat<R>(*r.vh, p * 2 + j));
+            CHECK(std::abs(acc - C(cat<R>(a, i * 2 + j))) <= 10 * tol);
+          }
+      }
+      // Wide input Aᴴ (2x3): same S, reconstructs.
+      const NDArray w = cmat<R>(2, 3, {C(1, -2), C(0, -0.5), C(1, 0), C(3, 1), C(2, 0), C(0, -1)});
+      const SvdResult rw = svd(w, true, true);
+      CHECK(rw.u->shape() == Shape({2, 2}));
+      CHECK(rw.vh->shape() == Shape({3, 3}));
+      CHECK(near(sat(rw.s, 0), ws[0]));
+      for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 3; ++j) {
+          C acc{};
+          for (int p = 0; p < 2; ++p)
+            acc += C(cat<R>(*rw.u, i * 2 + p)) * sat(rw.s, p) * C(cat<R>(*rw.vh, p * 3 + j));
+          CHECK(std::abs(acc - C(cat<R>(w, i * 3 + j))) <= 10 * tol);
+        }
+      const SvdResult nv = svd(a, true, false);
+      CHECK(!nv.u.has_value());
+      CHECK(!nv.vh.has_value());
+      CHECK(nv.s.dtype() == rdt);
+      CHECK(near(sat(nv.s, 1), ws[1]));
+      // [[j]] -> S = [1]; batched [[1j,0],[0,2]], [[1,1j],[1j,1]] -> [2,1], [√2,√2].
+      CHECK(near(sat(svd(cmat<R>(1, 1, {C(0, 1)}), true, false).s, 0), 1.0));
+      NDArray b = NDArray::empty({2, 2, 2}, cdt);
+      auto* bp = reinterpret_cast<std::complex<R>*>(b.data());
+      const C bv[8] = {C(0, 1), C(0, 0), C(0, 0), C(2, 0), C(1, 0), C(0, 1), C(0, 1), C(1, 0)};
+      for (int i = 0; i < 8; ++i) bp[i] = {static_cast<R>(bv[i].real()), static_cast<R>(bv[i].imag())};
+      const SvdResult bs = svd(b, false, false);
+      CHECK(bs.s.shape() == Shape({2, 2}));
+      CHECK(near(sat(bs.s, 0), 2.0));
+      CHECK(near(sat(bs.s, 1), 1.0));
+      CHECK(near(sat(bs.s, 2), std::sqrt(2.0)));
+      CHECK(near(sat(bs.s, 3), std::sqrt(2.0)));
+      // Rank-deficient: U stays unitary.
+      const SvdResult rd = svd(cmat<R>(2, 2, {C(1, 1), C(1, 1), C(1, 1), C(1, 1)}), true, true);
+      CHECK(near(sat(rd.s, 0), 2.0 * std::sqrt(2.0)));
+      CHECK(std::abs(sat(rd.s, 1)) <= 10 * tol);
+      C d01{};
+      for (int p = 0; p < 2; ++p) d01 += std::conj(C(cat<R>(*rd.u, p * 2))) * C(cat<R>(*rd.u, p * 2 + 1));
+      CHECK(std::abs(d01) <= 10 * tol);
+      // Empty: (3,0) full -> U = I3 (complex), Vh (0,0), S (0,) real.
+      const SvdResult e = svd(NDArray::zeros({3, 0}, cdt), true, true);
+      CHECK(e.u->shape() == Shape({3, 3}));
+      CHECK(e.u->dtype() == cdt);
+      CHECK(C(cat<R>(*e.u, 4)) == C(1, 0));
+      CHECK(e.vh->shape() == Shape({0, 0}));
+      CHECK(e.s.dtype() == rdt);
+      CHECK(svd(NDArray::zeros({0, 2}, cdt), false, false).s.shape() == Shape({0}));
+      CHECK_THROWS_KIND(svd(NDArray::zeros({3}, cdt), true, true), ErrorKind::LinAlg);
+    };
+    run(double{}, 1e-12);
+    run(float{}, 1e-5);
+    // Non-finite input raises before LAPACK (NumPy svd_wrapper), real and complex.
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double inf = std::numeric_limits<double>::infinity();
+    CHECK_THROWS_KIND(svd(cmat<double>(2, 2, {C(nan, 0), C(1, 0), C(1, 0), C(1, 0)}), true, true),
+                      ErrorKind::LinAlg);
+    CHECK_THROWS_KIND(svd(cmat<double>(1, 2, {C(1, 0), C(0, inf)}), true, false), ErrorKind::LinAlg);
+    NDArray rn = NDArray::zeros({2, 2}, DType::Float64);
+    reinterpret_cast<double*>(rn.data())[3] = nan;
+    CHECK_THROWS_KIND(svd(rn, false, false), ErrorKind::LinAlg);
   });
 }
 
