@@ -292,6 +292,19 @@ for (const m of DECOMP) {
     api("isreal", vs, () => np.isreal(a));
     api("iscomplexobj", vs, () => np.iscomplexobj(a));
     api("isrealobj", vs, () => np.isrealobj(a));
+    // P1 complex reductions (D-034)
+    api("complex.sum", vs, () => np.sum(a));
+    api("complex.prod", vs, () => np.prod(a));
+    api("complex.mean", vs, () => np.mean(a));
+    api("complex.min", vs, () => np.min(a));
+    api("complex.max", vs, () => np.max(a));
+    api("complex.argmin", vs, () => np.argmin(a));
+    api("complex.argmax", vs, () => np.argmax(a));
+    api("complex.var", vs, () => np.var(a));
+    api("complex.std", vs, () => np.std(a));
+    const cm = a.reshape([10, n / 10]);
+    api("complex.sum axis=0", vs, () => np.sum(cm, { axis: 0 }));
+    api("complex.sum axis=1", vs, () => np.sum(cm, { axis: 1 }));
   }
 }
 

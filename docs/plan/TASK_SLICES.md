@@ -25,7 +25,7 @@ Steps 1–2 are done (conversion, ufuncs). Slices left:
 | P1-3d ✅ | `var`/`std` return the real dtype (mean of `\|x−mean\|²`), with `ddof`. C++ test. |
 | P1-3e ✅ | TS/binding pass-through and vitest cases for 3a–3d. |
 | P1-3f ✅ | Differential group `complex_reductions` (axis, keepdims, empty, nan/inf). |
-| P1-3g | Bench cases in both suites, then ROADMAP/PROGRESS/COMPATIBILITY updates. Commit. |
+| P1-3g ✅ | Bench cases in both suites, then ROADMAP/PROGRESS/COMPATIBILITY updates. Commit. |
 
 ### Step 4: matmul family
 | Slice | Work |

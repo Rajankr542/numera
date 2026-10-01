@@ -1,5 +1,47 @@
 # PROGRESS
 
+## 2026-10-01 — P1 step 3: complex reductions (D-034)
+
+Done (slices P1-3a to P1-3g):
+- **`sum`/`prod`** on complex64 and complex128. Summation order follows D-021
+  (pairwise along the trailing axis, sequential along a leading one). `prod`
+  uses the project's complex multiply, so `(inf+0j)²` gives `nan+nanj` as in
+  NumPy.
+- **`mean`** keeps the complex dtype and divides with D-033 division.
+- **`min`/`max`/`argmin`/`argmax`** order by real part, then imaginary part.
+  A NaN in either part propagates, and the first NaN wins.
+- **`var`/`std`** follow NumPy's `_var` and return the real dtype (float32 for
+  complex64, float64 for complex128). `ddof` is supported.
+- A `dtype=` that differs from the input, when either side is complex, raises
+  `NotImplementedError` for `var`/`std` (D-034). Real input reduced into a
+  complex dtype works for `sum`/`prod`/`mean`.
+- `reject_complex()` was removed from `reduce.cpp`.
+- Benchmarks: 11 complex reduction cases added to both suites
+  (`complex.sum` ... `complex.std`, `complex.sum axis=0/1`). Report JSON files
+  were not regenerated; no performance claims are made.
+
+Verification:
+- `pnpm test:native` and `pnpm test:asan` (ASan + UBSan) pass.
+- `pnpm test`: 199 tests pass, including 7 new complex reduction cases.
+- `pnpm test:diff`: 4055 cases pass, including 254 new `complex_reductions`
+  cases.
+  - `sum`/`mean`/`min`/`max`/`arg*` are compared exactly. `var`/`std` are
+    exact on the 1000-element random inputs (both summation orders); on the
+    small cases they use the real-float tolerance (D-017).
+  - Complex `prod` uses rtol 1e-5 (complex64) or 1e-12 (complex128). NumPy's
+    arm64 complex64 loop fuses one multiply, which gave a 1-ulp difference (D-034).
+- `pnpm typecheck` and `pnpm api:check` pass. API coverage is still 16% (170/1060).
+- Also fixed 7 strict-mode type errors in test files that predate this step
+  (root `tsconfig.json`).
+
+Known gaps:
+- Complex `var` over non-adjacent axes (e.g. `axis=(0, 2)`) is within 1 ulp of
+  NumPy, the same as real `sum`/`var` (D-017).
+- `out=`, `where=` and the `nan*` reductions are not implemented, for real or
+  complex.
+
+Next: P1 step 4, the matmul family.
+
 ## 2026-09-30 — P1 step 2: complex ufuncs (D-033)
 
 Done:

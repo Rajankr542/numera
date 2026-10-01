@@ -864,5 +864,6 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - Complex `prod` (P1-3f) is compared with a tolerance, not bit-for-bit. Its
   rounding depends on FMA contraction in complex multiply, which is
   build-specific: NumPy 2.5.3's arm64 complex64 loop fuses one product, and a
-  24-element product differed by 1 ulp in one component. `sum`/`mean`/`var`/
-  `std`/`min`/`max`/`arg*` remain exact on the `complex_reductions` group.
+  24-element product differed by 1 ulp in one component. `sum`/`mean`/`min`/
+  `max`/`arg*` stay exact on the `complex_reductions` group; `var`/`std` are
+  exact on its large random inputs and use the D-017 tolerance on small ones.
