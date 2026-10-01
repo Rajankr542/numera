@@ -1,4 +1,4 @@
-import { addon } from "./addon.js";
+import { addon, nativeModule, type NativeNDArray } from "./addon.js";
 import { array } from "./creation.js";
 import { ValueError, wrapNative } from "./errors.js";
 import { NDArray, type NestedArray } from "./ndarray.js";
@@ -15,15 +15,38 @@ export function nonzero(a: NDArray | NestedArray): NDArray[] {
   return wrapNative(() => addon.nonzero(x._native).map((h) => NDArray._wrap(h)));
 }
 
-/** NumPy take. Without `axis`, indexes the flattened array. */
+/** NumPy out-of-bounds index handling (`mode=`, D-110). */
+export type ClipMode = "raise" | "wrap" | "clip";
+
+/** Options for `take` (NumPy `axis=`, `mode=`). */
+export interface TakeOptions {
+  /** Axis to take along; omitted/`null` indexes the flattened array. */
+  axis?: number | null;
+  /** "raise" (default), "wrap" (modulo) or "clip" (to the valid range). */
+  mode?: ClipMode;
+}
+
+interface P08TakeNative {
+  take(a: NativeNDArray, indices: NativeNDArray, axis: number | null, mode?: string): NativeNDArray;
+}
+
+/**
+ * NumPy take. Without `axis`, indexes the flattened array. `axis` may be given
+ * positionally or in the options object together with `mode` (D-110).
+ */
 export function take(
   a: NDArray | NestedArray,
   indices: NDArray | NestedArray,
-  axis?: number | null,
+  axis?: number | null | TakeOptions,
+  opts: TakeOptions = {},
 ): NDArray {
+  const o: TakeOptions = typeof axis === "object" && axis !== null ? axis : { ...opts, axis };
   const x = toArray(a);
   const i = indices instanceof NDArray ? indices : array(indices, { dtype: "int64" });
-  return wrapNative(() => NDArray._wrap(addon.take(x._native, i._native, axis ?? null)));
+  const native = nativeModule<P08TakeNative>("p08");
+  return wrapNative(() =>
+    NDArray._wrap(native.take(x._native, i._native, o.axis ?? null, o.mode ?? undefined)),
+  );
 }
 
 /**

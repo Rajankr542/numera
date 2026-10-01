@@ -1563,8 +1563,9 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `putmask` / `place`: an `NDArray` of values must cast to the target under
   `"safe"` casting, else `DTypeError` (NumPy `TypeError`). Nested JS arrays and
   scalars are converted with the target dtype first (like Python lists).
-- `choose` / `select`: result dtype is the promotion of the array/nested
-  operands; JS number/boolean scalars are weak (NEP 50, as D-014). NumPy
-  `choose` wraps out-of-range Python ints silently (`int8` + 300 → 44);
-  numera raises `ValueError` for an out-of-range weak scalar (documented
-  divergence). `select` conditions must be bool arrays (`DTypeError`).
+- `choose`: result dtype is the promotion of the array/nested choices; JS
+  number/boolean scalar choices are weak (NEP 50, as D-014). `select`:
+  `choicelist` entries are converted like `np.asarray` (strong), `default` is
+  weak, as NumPy 2. NumPy wraps an out-of-range weak Python int silently
+  (`int8` with 300 → 44); numera raises `ValueError` (documented divergence).
+  `select` conditions must be bool arrays (`DTypeError`).

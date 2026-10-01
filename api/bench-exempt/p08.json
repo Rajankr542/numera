@@ -1,1 +1,26 @@
-[]
+[
+ "ndarray.choose [nativpy] [numpy]",
+ "ndarray.compress [nativpy] [numpy]",
+ "ndarray.diagonal [nativpy] [numpy]",
+ "ndarray.nonzero [nativpy] [numpy]",
+ "ndarray.put [nativpy] [numpy]",
+ "ndarray.take [nativpy] [numpy]",
+ "ndarray.trace [nativpy] [numpy]",
+ "np.argwhere [nativpy] [numpy]",
+ "np.choose [nativpy] [numpy]",
+ "np.compress [nativpy] [numpy]",
+ "np.count_nonzero [nativpy] [numpy]",
+ "np.diagonal [nativpy] [numpy]",
+ "np.extract [nativpy] [numpy]",
+ "np.flatnonzero [nativpy] [numpy]",
+ "np.piecewise [nativpy] [numpy]",
+ "np.place [nativpy] [numpy]",
+ "np.put [nativpy] [numpy]",
+ "np.put_along_axis [nativpy] [numpy]",
+ "np.putmask [nativpy] [numpy]",
+ "np.ravel_multi_index [nativpy] [numpy]",
+ "np.select [nativpy] [numpy]",
+ "np.take_along_axis [nativpy] [numpy]",
+ "np.trace [nativpy] [numpy]",
+ "np.unravel_index [nativpy] [numpy]"
+]
