@@ -438,6 +438,12 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   on contiguous float64 input (sizes 5 to 1e5). This replaces D-017's
   sequential sum and improves accuracy. The differential tolerance for float
   sums is unchanged; it is not tightened in this step.
+- Amendment (P1-3b, 2026-10-01): NumPy drops size-1 axes before choosing the
+  loop order. So a reduction counts as "trailing" (pairwise inner loop) when the
+  non-unit axes stay in their original order. For example, `(n, 1)` over axis 0
+  is pairwise, but `(n, 2)` over axis 0 is sequential. Checked bit-for-bit for
+  float64 and complex128 over 9 shape/axis cases. Complex sums use NumPy's
+  complex pairwise variant (4 complex accumulators over interleaved re/im).
 - Integer sums are exact and unchanged. `prod` stays sequential.
 - `min`/`max` use a branch-free multi-lane loop for float/int types that
   keeps NaN propagation and the signed-zero rule (-0.0 < +0.0) from D-017.

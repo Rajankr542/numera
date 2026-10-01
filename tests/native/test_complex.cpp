@@ -3,6 +3,7 @@
 #include <limits>
 
 #include "complex_kernels.hpp"
+#include "creation.hpp"
 #include "error.hpp"
 #include "ndarray.hpp"
 #include "reduce.hpp"
@@ -90,7 +91,7 @@ TEST_CASE("complex ufuncs: dtypes, mod rejection and real/imag views") {
 TEST_CASE("complex reductions: sum/prod (P1-3a)") {
   CHECK(reduce_result_dtype(ReduceOp::Sum, DType::Complex64) == DType::Complex64);
   CHECK(reduce_result_dtype(ReduceOp::Prod, DType::Complex128) == DType::Complex128);
-  CHECK_THROWS_KIND(reduce_result_dtype(ReduceOp::Mean, DType::Complex128),
+  CHECK_THROWS_KIND(reduce_result_dtype(ReduceOp::Std, DType::Complex128),
                     ErrorKind::NotImplemented);
   // [[1+2j, 3-1j, 0.5j], [2, -1j, 1+1j]]
   const NDArray m =
@@ -113,18 +114,63 @@ TEST_CASE("complex reductions: sum/prod (P1-3a)") {
   // NumPy's multiply formula: (inf+0j)^2 -> nan+nanj (no Annex G recovery).
   const C pi = at(reduce(ReduceOp::Prod, cvec({C{kInf, 0}, C{kInf, 0}}), {}), 0);
   CHECK(std::isnan(pi.real()) && std::isnan(pi.imag()));
-  // Pairwise along the trailing axis, sequential along a leading one (NumPy).
+  // Pairwise along the inner loop, sequential along a leading one. NumPy drops
+  // size-1 axes first, so (200, 1) over axis 0 is still pairwise (verified).
   NDArray big = NDArray::empty({200}, DType::Complex128);
   auto* bp = reinterpret_cast<C*>(big.data());
   bp[0] = C{1e16, 1e16};
   for (int i = 1; i < 200; ++i) bp[i] = C{1, 1};
-  CHECK(same(at(reduce(ReduceOp::Sum, big, {}), 0),
-             C{1.0000000000000188e16, 1.0000000000000188e16}));
-  CHECK(same(at(reduce(ReduceOp::Sum, big.reshape({200, 1}), a0), 0), C{1e16, 1e16}));
+  const C pw{1.0000000000000188e16, 1.0000000000000188e16};
+  CHECK(same(at(reduce(ReduceOp::Sum, big, {}), 0), pw));
+  CHECK(same(at(reduce(ReduceOp::Sum, big.reshape({200, 1}), a0), 0), pw));
+  NDArray big2 = NDArray::empty({200, 2}, DType::Complex128);
+  auto* b2 = reinterpret_cast<C*>(big2.data());
+  for (int i = 0; i < 400; ++i) b2[i] = bp[i / 2];
+  CHECK(same(at(reduce(ReduceOp::Sum, big2, a0), 0), C{1e16, 1e16}));
   // Real input with a complex64 dtype override.
   ReduceOptions d;
   d.dtype = DType::Complex64;
   const NDArray f = reduce(ReduceOp::Sum, NDArray::zeros({3}, DType::Int8), d);
   CHECK(f.dtype() == DType::Complex64 && f.ndim() == 0);
 }
+
+TEST_CASE("complex reductions: mean (P1-3b)") {
+  CHECK(reduce_result_dtype(ReduceOp::Mean, DType::Complex64) == DType::Complex64);
+  CHECK_THROWS_KIND(reduce_result_dtype(ReduceOp::Var, DType::Complex128),
+                    ErrorKind::NotImplemented);
+  // [[1+1j, 2], [3, 4j]] over axis 0, keepdims -> [[2+0.5j, 1+2j]]
+  const NDArray m = cvec({C{1, 1}, C{2, 0}, C{3, 0}, C{0, 4}}).reshape({2, 2});
+  ReduceOptions k;
+  k.axis = std::vector<std::int64_t>{0};
+  k.keepdims = true;
+  const NDArray m0 = reduce(ReduceOp::Mean, m, k);
+  CHECK(m0.shape() == Shape({1, 2}) && m0.dtype() == DType::Complex128);
+  CHECK(same(at(m0, 0), C{2, 0.5}) && same(at(m0, 1), C{1, 2}));
+  // Empty -> nan+nanj; inf+1j -> inf+nanj (NumPy's Smith divide by count).
+  const C e = at(reduce(ReduceOp::Mean, cvec({}), {}), 0);
+  CHECK(std::isnan(e.real()) && std::isnan(e.imag()));
+  CHECK(same(at(reduce(ReduceOp::Mean, cvec({C{kInf, 1}, C{1, 0}}), {}), 0), C{kInf, std::nan("")}));
+  // Pairwise sum then divide: NumPy gives 50000000000000.94 (+same imag).
+  NDArray big = NDArray::empty({200}, DType::Complex128);
+  auto* bp = reinterpret_cast<C*>(big.data());
+  bp[0] = C{1e16, 1e16};
+  for (int i = 1; i < 200; ++i) bp[i] = C{1, 1};
+  CHECK(same(at(reduce(ReduceOp::Mean, big, {}), 0), C{50000000000000.94, 50000000000000.94}));
+  // complex64 (divide done in complex128, then rounded): [1+1j, 2, 4j] -> 1+1.6666666j
+  NDArray f = NDArray::empty({3}, DType::Complex64);
+  auto* fp = reinterpret_cast<std::complex<float>*>(f.data());
+  fp[0] = {1, 1};
+  fp[1] = {2, 0};
+  fp[2] = {0, 4};
+  const auto fm = reinterpret_cast<const std::complex<float>*>(reduce(ReduceOp::Mean, f, {}).data())[0];
+  CHECK_EQ(fm.real(), 1.0f);
+  CHECK_EQ(fm.imag(), 1.6666666269302368f);
+  // Real input with a complex dtype: int8 [0, 1, 2] -> 1+0j (complex64).
+  ReduceOptions d;
+  d.dtype = DType::Complex64;
+  const NDArray ri = reduce(ReduceOp::Mean, arange(0, 3, 1, DType::Int8), d);
+  CHECK(ri.dtype() == DType::Complex64);
+  CHECK_EQ(reinterpret_cast<const std::complex<float>*>(ri.data())[0].real(), 1.0f);
+}
+
 

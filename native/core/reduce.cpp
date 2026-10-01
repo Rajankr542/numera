@@ -76,8 +76,15 @@ Work prepare(const NDArray& a, const std::optional<std::vector<std::int64_t>>& a
   for (std::int64_t d = 0; d < nd; ++d) {
     if (red[static_cast<std::size_t>(d)]) perm.push_back(d);
   }
+  // NumPy drops size-1 axes before choosing the loop order, so "trailing" (inner
+  // pairwise loop) only compares the order of the non-unit axes (verified bit-exact).
   bool trailing = true;
-  for (std::int64_t d = 0; d < nd; ++d) trailing = trailing && perm[static_cast<std::size_t>(d)] == d;
+  std::int64_t prev = -1;
+  for (const auto d : perm) {
+    if (a.shape()[static_cast<std::size_t>(d)] == 1) continue;
+    trailing = trailing && d > prev;
+    prev = d;
+  }
   // Reduced axes all leading (e.g. axis=0 of a matrix): the untransposed input
   // is already n × rows, so callers that support it reduce down columns
   // instead of materializing a transposed copy.
@@ -364,6 +371,21 @@ void fold_rows(ReduceOp op, const Work& w, const std::optional<double>& initial,
   }
 }
 
+// Complex mean (NumPy _mean): the complex sum in W, then `sum / count` with an
+// integer count, which promotes to complex128 and uses its Smith divide before
+// casting back (so inf+1j -> inf+nanj and an empty mean is nan+nanj).
+template <typename W>
+void complex_mean_rows(const Work& w, NDArray& out) {
+  fold_rows<W>(ReduceOp::Sum, w, std::nullopt, out);
+  using Z = std::complex<double>;
+  const Z count{static_cast<double>(w.n), 0.0};
+  std::byte* dst = out.data();
+  for (std::int64_t r = 0; r < w.rows; ++r) {
+    std::byte* o = dst + static_cast<std::size_t>(r) * sizeof(W);
+    store<W>(o, cast_value<W>(kernels::cdiv(cast_value<Z>(load<W>(o)), count)));
+  }
+}
+
 // Mean/var/std in accumulator dtype W (float32 or float64).
 template <typename W>
 void moment_rows(ReduceOp op, const Work& w, std::int64_t ddof, NDArray& out) {
@@ -427,8 +449,8 @@ void moment_rows(ReduceOp op, const Work& w, std::int64_t ddof, NDArray& out) {
 }  // namespace
 
 DType reduce_result_dtype(ReduceOp op, DType in) {
-  const bool sum_prod = op == ReduceOp::Sum || op == ReduceOp::Prod;
-  if (!sum_prod) reject_complex(in);  // complex mean/var/std/min/max: P1-3b..3d
+  const bool complex_ok = op == ReduceOp::Sum || op == ReduceOp::Prod || op == ReduceOp::Mean;
+  if (!complex_ok) reject_complex(in);  // complex var/std/min/max: P1-3c..3d
   const bool intlike = in == DType::Bool || is_integer(in);
   switch (op) {
     case ReduceOp::Sum:
@@ -443,9 +465,10 @@ DType reduce_result_dtype(ReduceOp op, DType in) {
 
 NDArray reduce(ReduceOp op, const NDArray& a, const ReduceOptions& opts) {
   const bool sum_prod = op == ReduceOp::Sum || op == ReduceOp::Prod;
-  if (!sum_prod) reject_complex(a.dtype());
+  const bool complex_ok = sum_prod || op == ReduceOp::Mean;
+  if (!complex_ok) reject_complex(a.dtype());
   const DType rdt = opts.dtype.value_or(reduce_result_dtype(op, a.dtype()));
-  if (!sum_prod) reject_complex(rdt);
+  if (!complex_ok) reject_complex(rdt);
   if (op == ReduceOp::Min || op == ReduceOp::Max || sum_prod) {
     const Work w = prepare(a, opts.axis, opts.keepdims, rdt, /*allow_cols=*/true);
     NDArray out = NDArray::empty(w.out_shape, rdt);
@@ -453,6 +476,13 @@ NDArray reduce(ReduceOp op, const NDArray& a, const ReduceOptions& opts) {
       using W = dtype_t<decltype(tag)::value>;
       fold_rows<W>(op, w, opts.initial, out);
     });
+    return out;
+  }
+  if (is_complex(rdt)) {  // complex mean (P1-3b). Complex input + real dtype drops imag (NumPy cast).
+    const Work w = prepare(a, opts.axis, opts.keepdims, rdt, /*allow_cols=*/true);
+    NDArray out = NDArray::empty(w.out_shape, rdt);
+    if (rdt == DType::Complex64) complex_mean_rows<std::complex<float>>(w, out);
+    else complex_mean_rows<std::complex<double>>(w, out);
     return out;
   }
   // mean/var/std: accumulate in float64, or float32 for float16/float32
