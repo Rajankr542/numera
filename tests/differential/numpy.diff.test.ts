@@ -1248,6 +1248,95 @@ describe("differential: fft (M10, D-020)", () => {
   it.each(table)(`numpy ${numpy_version}: %s`, run);
 });
 
+describe("differential: complex_fft (P1-5e.5, D-020/D-033)", () => {
+  // Input goes through np.array(nested Complex list) and comes back through
+  // toArray(), so the whole JS <-> complex path is covered, not only the kernel.
+  interface CFCase {
+    fn: string;
+    data: Encoded;
+    dtype?: string;
+    view?: "T" | "rev" | "step";
+    plain?: boolean;
+    kw: { n?: number; axis?: number; norm?: string; s?: number[]; axes?: number[] };
+    error?: string;
+    expected?: { dtype: string; shape: number[]; values: Encoded };
+  }
+  const { numpy_version, cases } = load("complex_fft") as unknown as { numpy_version: string; cases: CFCase[] };
+  const F = np.fft;
+  /** Complex -> plain `{ re, im }` objects, the other accepted ComplexLike form (D-033). */
+  const toPlain = (v: NestedArray): NestedArray =>
+    Array.isArray(v) ? v.map(toPlain) : v instanceof Complex ? { re: v.re, im: v.im } : v;
+  const build = (c: CFCase): NDArray => {
+    const data = decodeInput(c.data);
+    const x = np.array(c.plain ? toPlain(data) : data, c.dtype === undefined ? {} : { dtype: c.dtype });
+    if (c.view === "T") return x.T;
+    if (c.view === "rev") return x.get(np.ellipsis, [null, null, -1]);
+    if (c.view === "step") return x.get(np.ellipsis, [null, null, 2]);
+    return x;
+  };
+  const call = (c: CFCase, x: NDArray): NDArray => {
+    const { n, axis, norm, s, axes } = c.kw;
+    const nm = norm as never;
+    switch (c.fn) {
+      case "fft": return F.fft(x, { n, axis, norm: nm });
+      case "ifft": return F.ifft(x, { n, axis, norm: nm });
+      case "rfft": return F.rfft(x, { n, axis, norm: nm });
+      case "irfft": return F.irfft(x, { n, axis, norm: nm });
+      case "fft2": return F.fft2(x, { s, norm: nm });
+      case "ifft2": return F.ifft2(x, { s, norm: nm });
+      case "fftn": return F.fftn(x, { s, axes, norm: nm });
+      case "ifftn": return F.ifftn(x, { s, axes, norm: nm });
+      default: throw new Error(`unknown fft fn ${c.fn}`);
+    }
+  };
+  const errorFor = (e: string): typeof np.ValueError =>
+    e === "IndexError" ? np.IndexError : e === "TypeError" ? np.DTypeError : np.ValueError;
+  /** [re, im] pairs (real results get im = 0) from toArray() or decoded values. */
+  const pairs = (v: unknown): [number, number][] =>
+    Array.isArray(v) ? v.flatMap(pairs) : v instanceof Complex ? [[v.re, v.im]] : [[v as number, 0]];
+  const tolFor = (dt: string): number => (dt === "float32" || dt === "complex64" ? 2e-6 : 1e-12);
+
+  const run = (_l: string, c: CFCase): void => {
+    if (c.error !== undefined) {
+      expect(() => call(c, build(c))).toThrow(errorFor(c.error));
+      return;
+    }
+    const x = build(c);
+    if (c.view !== undefined) expect(x.flags.cContiguous).toBe(false);
+    const r = call(c, x);
+    const exp = c.expected!;
+    expect(r.dtype.name).toBe(exp.dtype);
+    expect(r.shape).toEqual(exp.shape);
+    const out = r.toArray();
+    if (exp.dtype.startsWith("complex")) {
+      const flat = (v: unknown): unknown[] => (Array.isArray(v) ? v.flatMap(flat) : [v]);
+      flat(out).forEach((z) => expect(z).toBeInstanceOf(Complex));
+    }
+    const got = pairs(out);
+    const want = pairs(decodeExpected(exp.values));
+    expect(got.length).toBe(want.length);
+    const finite = want.flat().filter(Number.isFinite);
+    const tol = tolFor(exp.dtype) * Math.max(1, ...finite.map(Math.abs));
+    want.forEach((w, k) => {
+      for (let j = 0; j < 2; j++) {
+        const g = got[k]![j]!;
+        const e = w[j]!;
+        if (Number.isFinite(e)) expect(Math.abs(g - e), `index ${k}.${j}`).toBeLessThanOrEqual(tol);
+        else expect(g, `index ${k}.${j}`).toBe(e); // NaN/±inf must match exactly
+      }
+    });
+  };
+  const label = (c: CFCase): string =>
+    `${c.fn}(${c.dtype ?? "inferred"}${c.view ? `.${c.view}` : ""}${c.plain ? " {re,im}" : ""}, ` +
+    `${JSON.stringify(c.kw)}) <- ${JSON.stringify(c.data).slice(0, 40)}`;
+  it("covers every complex FFT entry point", () => {
+    expect(new Set(cases.map((c) => c.fn))).toEqual(
+      new Set(["fft", "ifft", "rfft", "irfft", "fft2", "ifft2", "fftn", "ifftn"]),
+    );
+  });
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, run);
+});
+
 
 describe("differential: complex conversion (P1, D-033)", () => {
   const { numpy_version, cases } = load("complex");

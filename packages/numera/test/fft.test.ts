@@ -65,4 +65,32 @@ describe("np.fft", () => {
     expect(() => np.fft.fftn([[1, 2]], [2], [0, 1])).toThrow(np.ValueError);
     expect(() => np.fft.fftfreq(0)).toThrow(np.ValueError);
   });
+
+  it("accepts np.Complex input end to end (P1-5e.5)", () => {
+    const z = np.complex;
+    // Nested Complex lists infer complex128; results read back as Complex.
+    const f = np.fft.fft([z(1, 1), z(0, -1), z(2, 0), z(0, 0)]);
+    expect(f.dtype.name).toBe("complex128");
+    expect(f.toArray()).toEqual([z(3, 0), z(-2, 1), z(3, 2), z(0, 1)]);
+    expect(f.item(1)).toBeInstanceOf(np.Complex);
+    // Mixed number/Complex and plain { re, im } objects give the same result.
+    const mixed = np.fft.fft([1, z(0, 1), 2, 3]);
+    closeTo(parts(np.fft.fft([1, { re: 0, im: 1 }, 2, { re: 3 }])), parts(mixed));
+    expect(mixed.toArray()).toEqual([z(6, 1), z(0, 3), z(0, -1), z(-2, -3)]);
+    // ifft(fft(x)) round-trips; complex64 input stays complex64.
+    const x = [z(1, 2), z(3, -4), z(0.5, 0)];
+    const back = np.fft.ifft(np.fft.fft(x)).toArray() as InstanceType<typeof np.Complex>[];
+    back.forEach((v, i) => {
+      expect(Math.abs(v.re - x[i]!.re)).toBeLessThan(1e-12);
+      expect(Math.abs(v.im - x[i]!.im)).toBeLessThan(1e-12);
+    });
+    expect(np.fft.fft(np.array(x, { dtype: "complex64" })).dtype.name).toBe("complex64");
+    // irfft takes complex (Hermitian half) input to a real result.
+    expect(np.fft.irfft([z(4, 0), z(0, -2), z(0, 0)]).toArray()).toEqual([1, 2, 1, 0]);
+    // A reversed (negative-stride) complex view equals its contiguous copy.
+    const m = np.array([[z(1, 1), z(2, -1), z(0, 3)], [z(4, 0), z(-1, -1), z(0.5, 2)]]);
+    const rev = m.get(np.ellipsis, [null, null, -1]);
+    closeTo(parts(np.fft.fft2(rev)), parts(np.fft.fft2(rev.copy())));
+    expect(() => np.fft.rfft([z(1, 1)])).toThrow(np.DTypeError);
+  });
 });

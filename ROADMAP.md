@@ -28,7 +28,7 @@ and a benchmark case in both suites.
 | P1 complex numbers (D-008, D-033) | 🟡 in progress. Steps 1 (conversion), 2 (ufuncs plus `real`/`imag`/`conj`/`angle`/`iscomplex*`/`isreal*`), 3 (reductions, D-034) and 4 (`matmul`/`dot`/`inner`/`outer`, D-035–D-037) are done. Still to do: complex linalg (step 5). |
 | P2–P15 | ⬜ |
 
-Work is done in small slices, one per session (see `docs/plan/TASK_SLICES.md`). Next slice: **P1-5e** sub-step 5, FFT accepts `np.Complex` input end to end (P1-5a–5d and 5e.1–5e.4 done, D-038–D-044).
+Work is done in small slices, one per session (see `docs/plan/TASK_SLICES.md`). Next slice: **P1-5e** sub-step 6, bench cases, docs updates and marking P1 ✅ (P1-5a–5d and 5e.1–5e.5 done, D-038–D-044).
 
 ## Next steps
 1. M11 per PLAN §86. Next targets, from PERFORMANCE.md findings:

@@ -1404,6 +1404,79 @@ def complex_linalg_cases() -> list[dict]:
     return cases
 
 
+def _view(x, v):
+    """The same strided view the JS runner builds (D-008 views, not copies)."""
+    if v == "T":
+        return x.T
+    if v == "rev":
+        return x[..., ::-1]
+    if v == "step":
+        return x[..., ::2]
+    return x
+
+
+def complex_fft_cases() -> list[dict]:
+    """P1-5e.5: FFT on np.Complex input end to end. Inputs are nested lists of
+    complex scalars (np.array(list) in JS, not fromTypedArray), optionally
+    turned into a strided view. Results are compared through toArray()."""
+    cases = []
+
+    def add(fn, data, dt, kw, call, view=None, plain=False):
+        x = np.array(data, dtype=dt) if dt else np.array(data)
+        r, err = _fft_run(lambda: call(_view(x, view)))
+        c = {"op": "complex_fft", "fn": fn, "data": enc(data), "kw": kw}
+        if dt:
+            c["dtype"] = dt
+        if view:
+            c["view"] = view
+        if plain:
+            c["plain"] = True
+        if err:
+            c["error"] = err
+        else:
+            c["expected"] = {"dtype": str(r.dtype), "shape": list(r.shape), "values": enc(r.tolist())}
+        cases.append(c)
+
+    F = np.fft
+    for dt in (None, "complex64", "complex128"):
+        v1 = _cmat("complex128", (7,), 60).tolist()
+        v8 = _cmat("complex128", (8,), 61).tolist()
+        m = _cmat("complex128", (3, 4), 62).tolist()
+        t = _cmat("complex128", (2, 3, 4), 63).tolist()
+        for fn, f in (("fft", F.fft), ("ifft", F.ifft)):
+            for data in (v1, v8, [1 + 1j], m):
+                add(fn, data, dt, {}, lambda x, f=f: f(x))
+            for n in (4, 10):
+                add(fn, v1, dt, {"n": n}, lambda x, f=f, n=n: f(x, n=n))
+            for norm in ("ortho", "forward"):
+                add(fn, m, dt, {"axis": 0, "norm": norm}, lambda x, f=f, m_=norm: f(x, axis=0, norm=m_))
+            for view in ("T", "rev", "step"):
+                add(fn, m, dt, {}, lambda x, f=f: f(x), view=view)
+        add("irfft", v1, dt, {}, lambda x: F.irfft(x))
+        add("irfft", m, dt, {"n": 6, "axis": 0}, lambda x: F.irfft(x, n=6, axis=0))
+        add("irfft", m, dt, {}, lambda x: F.irfft(x), view="T")
+        for fn, f in (("fft2", F.fft2), ("ifft2", F.ifft2)):
+            add(fn, m, dt, {}, lambda x, f=f: f(x))
+            add(fn, t, dt, {}, lambda x, f=f: f(x), view="rev")
+        for fn, f in (("fftn", F.fftn), ("ifftn", F.ifftn)):
+            add(fn, t, dt, {}, lambda x, f=f: f(x))
+            add(fn, t, dt, {"s": [3, 2], "axes": [0, 2]}, lambda x, f=f: f(x, s=[3, 2], axes=[0, 2]))
+            add(fn, m, dt, {"norm": "ortho"}, lambda x, f=f: f(x, norm="ortho"), view="T")
+        add("rfft", v1, dt, {}, lambda x: F.rfft(x))  # TypeError (D-020)
+    # Mixed real/complex/bool lists infer complex128 (D-004/D-033); plain {re, im} objects.
+    for data in ([1, 1j, 2, 3], [True, 1j], [[1j, 2], [3, 4 - 1j]], [0.5, -2 + 0.25j, 3, 1j, -1]):
+        add("fft", data, None, {}, lambda x: F.fft(x))
+        add("fft", data, None, {}, lambda x: F.fft(x), plain=True)
+    add("ifftn", [[1j, 2], [3, 4 - 1j]], None, {}, lambda x: F.ifftn(x), plain=True)
+    # Non-finite values propagate as in pocketfft.
+    nonfinite = [complex(float("nan"), 0), 1 + 0j, 2j, 3 + 0j]
+    add("fft", nonfinite, None, {}, lambda x: F.fft(x))
+    # 0-d complex scalar and empty complex input are rejected.
+    add("fft", 1 + 2j, None, {}, lambda x: F.fft(x))
+    add("fft", [], "complex128", {}, lambda x: F.fft(x))
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -1428,6 +1501,7 @@ def main() -> None:
         "complex_reductions": complex_reduction_cases(),
         "complex_matmul": complex_matmul_cases(),
         "complex_linalg": complex_linalg_cases(),
+        "complex_fft": complex_fft_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

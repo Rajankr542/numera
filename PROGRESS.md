@@ -1,5 +1,32 @@
 # PROGRESS
 
+## 2026-10-01 — P1-5e.5: FFT accepts np.Complex input end to end
+
+Checked that every complex FFT path works from JS `Complex` values in to
+`Complex` values out. No library code changed: the existing paths
+(`np.array` of nested Complex → pocketfft → `toArray()`) were already correct.
+- New differential group `complex_fft`, with 120 cases from NumPy 2.5.3.
+  - Unlike the `fft` group, which builds input with `fromTypedArray`, input
+    is built with `np.array` from nested `np.complex` lists, or from plain
+    `{ re, im }` objects.
+  - Dtypes: inferred, complex64 and complex128.
+  - Also covers mixed number/bool/complex lists, plus transposed, reversed
+    and step-2 views (asserted non-contiguous).
+  - Covers `fft`/`ifft`/`irfft`/`fft2`/`ifft2`/`fftn`/`ifftn` with
+    `n`/`axis`/`norm`/`s`/`axes`.
+  - Edge cases: NaN input (NaN/inf must match exactly), and the errors from
+    `rfft` (DTypeError), 0-d input (IndexError) and empty input (ValueError).
+  - Output is read through `toArray()`, and every complex element must be a
+    `Complex`.
+- Sanity check: with the tolerance set to −1, 115 of the 121 tests fail.
+  The 6 that still pass are the error cases and the coverage check.
+- Vitest: `np.fft` "accepts np.Complex input end to end".
+- Checks: `pnpm test:diff` (5124), `pnpm test` (245), and `pnpm typecheck`
+  all pass.
+
+Next: P1-5e.6, bench cases, docs updates, and marking P1 ✅.
+
+
 ## 2026-10-01 — P1-5e.4: differential complex_linalg group
 
 New differential group `complex_linalg`, with 211 cases from NumPy 2.5.3, run
