@@ -1459,3 +1459,28 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   broadcast together). Repeated indices apply repeatedly (unbuffered). All
   indices are validated before `a` is modified. Unary ufuncs get `.at` too.
   Slices/boolean masks as `at` indices are not supported yet.
+
+## D-054 — np.seterr / np.geterr / np.errstate (P2-10) — Accepted — 2026-10-02
+- Native `native/core/fp_errors.{hpp,cpp}`: a thread-local `ErrState`
+  (NumPy defaults divide/over/invalid = warn, under = ignore) and an RAII
+  `FpScope` that clears the C99 FP exception flags (`<cfenv>`) on entry and
+  reads them after the loop. Nested scopes (e.g. reduceat → reduce) defer to
+  the outermost one.
+- Wired into the generic `binary`/`unary` drivers (D-051) and the public
+  `ufunc_reduce`/`accumulate`/`reduceat`/`at` entry points. Other native paths
+  (`sum`, linalg, fft, ...) do not report FP errors yet.
+- Integer kernels raise the flags explicitly, as NumPy does: `x // 0` and
+  `x % 0` → divide; `MIN // -1` → over.
+- Modes: `ignore`, `warn` (Node `process.emitWarning(msg, "RuntimeWarning")`),
+  `raise` (new `FloatingPointError`, `ErrorKind::FloatingPoint`) and `print`
+  (stdout). NumPy's `call`/`log` and `seterrcall` are not supported.
+  Messages follow NumPy: "divide by zero encountered in divide", "overflow ...",
+  "underflow ...", "invalid value ..."; categories are checked in NumPy's order.
+  "raise" throws after the loop, so `out` may already be written (as in NumPy).
+- Warnings are queued natively and emitted by the binding wrapper
+  (`translate_errors`) after a successful call.
+- JS: `np.seterr({all?, divide?, over?, under?, invalid?})` returns the old
+  state, `np.geterr()`, and `np.errstate(settings, fn)` (synchronous callback
+  instead of Python's context manager; restored in `finally`).
+- Relies on the compiler not reordering FP ops across the flag reads (no
+  `-ffast-math`); Clang/GCC defaults are fine for this.

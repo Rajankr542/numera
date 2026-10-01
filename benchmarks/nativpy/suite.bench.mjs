@@ -211,6 +211,8 @@ for (const m of DECOMP) {
   api("power", vs, () => np.power(v, 2.0));
   api("mod", vs, () => np.mod(v, 0.3));
   api("floorDivide", vs, () => np.floorDivide(v, 0.3));
+  api("geterr", [], () => np.geterr());
+  api("seterr", [], () => np.seterr(np.geterr()));
   api("negative", vs, () => np.negative(v));
   api("reshape", vs, () => np.reshape(v, [10, 100]));
   api("ravel", ms, () => np.ravel(M));

@@ -348,3 +348,44 @@ describe("ufunc.outer / reduceat / at (P2-9)", () => {
     expect(() => np.add.at(a, [9], 1)).toThrow(IndexError);
   });
 });
+
+describe("errstate / seterr / geterr (P2-10, D-054)", () => {
+  it("defaults and seterr round-trip", () => {
+    expect(np.geterr()).toEqual({ divide: "warn", over: "warn", under: "ignore", invalid: "warn" });
+    const old = np.seterr({ all: "ignore", invalid: "raise" });
+    expect(np.geterr()).toEqual({ divide: "ignore", over: "ignore", under: "ignore", invalid: "raise" });
+    np.seterr(old);
+    expect(np.geterr()).toEqual(old);
+    expect(() => np.seterr({ divide: "bogus" as never })).toThrow(ValueError);
+  });
+
+  it("raise mode throws FloatingPointError, errstate restores", () => {
+    np.errstate({ divide: "raise" }, () => {
+      expect(() => np.divide([1], [0])).toThrow(np.FloatingPointError);
+      expect(() => np.divide([1], [0])).toThrow("divide by zero encountered in divide");
+      expect(() => np.floorDivide([1], [0])).toThrow(np.FloatingPointError);
+      expect(() => np.add.reduce([1, 2])).not.toThrow();
+    });
+    np.errstate({ invalid: "raise" }, () => {
+      expect(() => np.sqrt([-1])).toThrow("invalid value encountered in sqrt");
+      expect(() => np.divide([0], [0])).toThrow(np.FloatingPointError);
+    });
+    np.errstate({ over: "raise" }, () => {
+      expect(() => np.multiply([1e300], [1e300])).toThrow("overflow encountered in multiply");
+    });
+    expect(() => np.errstate({ all: "raise" }, () => { throw new Error("x"); })).toThrow("x");
+    expect(np.geterr().divide).toBe("warn");
+  });
+
+  it("warn mode emits a RuntimeWarning; ignore is silent", async () => {
+    await new Promise((r) => setImmediate(r)); // drain warnings from earlier tests
+    const seen: string[] = [];
+    const onWarn = (w: Error) => seen.push(`${w.name}: ${w.message}`);
+    process.on("warning", onWarn);
+    np.divide([1], [0]);
+    np.errstate({ all: "ignore" }, () => np.log([0]));
+    await new Promise((r) => setImmediate(r));
+    process.off("warning", onWarn);
+    expect(seen).toEqual(["RuntimeWarning: divide by zero encountered in divide"]);
+  });
+});

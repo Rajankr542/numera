@@ -1,5 +1,7 @@
 #include "ufunc_registry.hpp"
 
+#include "fp_errors.hpp"
+
 #include <cmath>
 #include <complex>
 #include <string>
@@ -553,10 +555,13 @@ NDArray binary(const Ufunc& u, const NDArray& a_in, const NDArray& b_in, const N
   const NDArray a = a_in.dtype() == lt.in ? a_in : a_in.astype(lt.in);
   const NDArray b = b_in.dtype() == lt.in ? b_in : b_in.astype(lt.in);
   if (u.check) u.check(a, &b, where, full);
-  return run_into(dt, full, layout, out, params, [&](const NDArray& dst, bool direct) {
+  const FpScope fp(u.name);
+  NDArray r = run_into(dt, full, layout, out, params, [&](const NDArray& dst, bool direct) {
     if (direct) binary_into(u, lt, safe_input(a, dst), safe_input(b, dst), dst);
     else binary_into(u, lt, a, b, dst);
   });
+  fp.check();
+  return r;
 }
 
 NDArray unary(const Ufunc& u, const NDArray& a_in, const NDArray* out, const UfuncParams& params) {
@@ -578,9 +583,12 @@ NDArray unary(const Ufunc& u, const NDArray& a_in, const NDArray* out, const Ufu
                                               {a_in.dtype() != lt.in}, where, params.order);
   const NDArray a = a_in.dtype() == lt.in ? a_in : a_in.astype(lt.in);
   if (u.check) u.check(a, nullptr, where, full);
-  return run_into(dt, full, layout, out, params, [&](const NDArray& dst, bool direct) {
+  const FpScope fp(u.name);
+  NDArray r = run_into(dt, full, layout, out, params, [&](const NDArray& dst, bool direct) {
     unary_into(u, lt, direct ? safe_input(a, dst) : a, dst);
   });
+  fp.check();
+  return r;
 }
 
 }  // namespace nativpy

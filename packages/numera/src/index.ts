@@ -26,6 +26,7 @@ import { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
 import { argmax, argmin, max, mean, min, prod, std, sum, variance } from "./reduce.js";
 import { dot, inner, linalg, matmul, outer } from "./linalg.js";
 import { random } from "./random.js";
+import { errstate, geterr, seterr } from "./errstate.js";
 import { fftModule } from "./fft.js";
 import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 import {
@@ -133,6 +134,8 @@ export type {
   UfuncReduceatOptions,
   UfuncReduceOptions,
 } from "./ufunc.js";
+export { errstate, geterr, seterr } from "./errstate.js";
+export type { ErrMode, ErrSettings, ErrState } from "./errstate.js";
 export { ellipsis, newaxis, nonzero, take, where } from "./indexing.js";
 export type { IndexSpec, SliceTuple } from "./indexing.js";
 export { argmax, argmin, max, mean, min, prod, std, sum, variance } from "./reduce.js";
@@ -212,6 +215,9 @@ const np = {
   real,
   broadcastShapes,
   broadcastTo,
+  errstate,
+  geterr,
+  seterr,
   nonzero,
   take,
   where,

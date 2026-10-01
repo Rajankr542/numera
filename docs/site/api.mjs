@@ -336,6 +336,33 @@ np.expandDims(np.zeros([3]), [0, 2]).shape; // => [1, 3, 1]`,
         returns: "number[]",
         example: `np.broadcastShapes([2, 1], [3]); // => [2, 3]`,
       },
+      {
+        name: "seterr",
+        sig: "np.seterr({ all?, divide?, over?, under?, invalid? })",
+        desc: "Sets how floating-point errors are handled: `\"ignore\"`, `\"warn\"` (a Node `RuntimeWarning`), `\"raise\"` (`FloatingPointError`) or `\"print\"`. Returns the previous settings.",
+        args: [{ name: "settings", type: "object", desc: "Modes per category; `all` sets every category." }],
+        returns: "object",
+        example: `const old = np.seterr({ all: "ignore" });
+np.seterr(old).divide; // => "ignore"`,
+      },
+      {
+        name: "geterr",
+        sig: "np.geterr()",
+        desc: "The current floating-point error settings.",
+        returns: "object",
+        example: `np.geterr().under; // => "ignore"`,
+      },
+      {
+        name: "errstate",
+        sig: "np.errstate(settings, fn)",
+        desc: "Runs `fn` synchronously with the given error settings and restores the previous ones afterwards.",
+        args: [
+          { name: "settings", type: "object", desc: "As for `seterr`." },
+          { name: "fn", type: "() => T", desc: "Function to run." },
+        ],
+        returns: "T",
+        example: `np.errstate({ divide: "ignore" }, () => np.divide([1], [0]).toArray()[0] === Infinity); // => true`,
+      },
     ],
   },
   {
@@ -911,7 +938,7 @@ np.lib.stride_tricks.asStrided(a, [3, 3], [4, 4]); // => [[0, 1, 2], [1, 2, 3], 
   {
     id: "errors",
     title: "Errors",
-    intro: "Native errors never reach JS as raw C++ exceptions. Every failure is an instance of `np.NativpyError`, with a stable `code` string and a NumPy-style message. Subclasses: `ShapeError`, `DTypeError`, `IndexError`, `BroadcastError`, `ValueError`, `MemoryError`, `NotImplementedError` and `LinAlgError`.",
+    intro: "Native errors never reach JS as raw C++ exceptions. Every failure is an instance of `np.NativpyError`, with a stable `code` string and a NumPy-style message. Subclasses: `ShapeError`, `DTypeError`, `IndexError`, `BroadcastError`, `ValueError`, `MemoryError`, `NotImplementedError`, `LinAlgError` and `FloatingPointError`.",
     entries: [
       {
         name: "NativpyError",
@@ -936,6 +963,14 @@ np.lib.stride_tricks.asStrided(a, [3, 3], [4, 4]); // => [[0, 1, 2], [1, 2, 3], 
 code(() => np.linalg.inv([[1, 2], [2, 4]])); // => "LinAlgError"
 code(() => np.add([1, 2], [1, 2, 3]));       // => "BroadcastError"
 code(() => np.array([1, 2]).get(5));         // => "IndexError"`,
+      },
+      {
+        name: "FloatingPointError",
+        sig: "np.FloatingPointError",
+        desc: "Raised for a floating-point error whose `np.seterr` mode is `\"raise\"`.",
+        returns: "—",
+        example: `const code = (f) => { try { f(); } catch (e) { return e.name; } };
+np.errstate({ divide: "raise" }, () => code(() => np.divide([1], [0]))); // => "FloatingPointError"`,
       },
     ],
   },

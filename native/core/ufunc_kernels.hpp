@@ -6,6 +6,7 @@
 #include <type_traits>
 
 #include "error.hpp"
+#include "fp_errors.hpp"
 
 namespace nativpy::kernels {
 
@@ -44,9 +45,15 @@ T div(T a, T b) noexcept { return a / b; }  // floating only
 // NumPy integer floor division: x // 0 -> 0; MIN // -1 -> MIN (wraps).
 template <typename T>
 T floordiv_int(T a, T b) noexcept {
-  if (b == 0) return 0;
+  if (b == 0) {
+    raise_fp_divbyzero();
+    return 0;
+  }
   if constexpr (std::is_signed_v<T>) {
-    if (b == -1) return static_cast<T>(U<T>{0} - static_cast<U<T>>(a));
+    if (b == -1) {
+      if (a == std::numeric_limits<T>::min()) raise_fp_overflow();
+      return static_cast<T>(U<T>{0} - static_cast<U<T>>(a));
+    }
     T q = static_cast<T>(a / b);
     if ((a % b != 0) && ((a < 0) != (b < 0))) --q;
     return q;
@@ -58,7 +65,10 @@ T floordiv_int(T a, T b) noexcept {
 // NumPy integer remainder: sign follows divisor; x % 0 -> 0.
 template <typename T>
 T mod_int(T a, T b) noexcept {
-  if (b == 0) return 0;
+  if (b == 0) {
+    raise_fp_divbyzero();
+    return 0;
+  }
   if constexpr (std::is_signed_v<T>) {
     if (b == -1) return 0;
     T r = static_cast<T>(a % b);

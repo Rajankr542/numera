@@ -53,6 +53,7 @@ add_library(nativpy_core STATIC
   native/core/ufunc.cpp
   native/core/ufunc_registry.cpp
   native/core/ufunc_methods.cpp
+  native/core/fp_errors.cpp
   native/core/indexing.cpp
   native/core/reduce.cpp
 )

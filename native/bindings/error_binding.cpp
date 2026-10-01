@@ -5,6 +5,7 @@
 #include <string>
 
 #include "error.hpp"
+#include "fp_errors.hpp"
 
 namespace nativpy::bindings {
 
@@ -32,6 +33,22 @@ void rethrow_as_js(Napi::Env env, std::exception_ptr eptr) {
     throw_js_error(env, "NativpyError", e.what());
   } catch (...) {
     throw_js_error(env, "NativpyError", "unknown native error");
+  }
+}
+
+void emit_fp_warnings(Napi::Env env) {
+  const auto warnings = take_fp_warnings();
+  if (warnings.empty()) return;
+  const Napi::Object process = env.Global().Get("process").As<Napi::Object>();
+  for (const auto& w : warnings) {
+    if (w.print) {
+      const Napi::Object out = process.Get("stdout").As<Napi::Object>();
+      out.Get("write").As<Napi::Function>().Call(
+          out, {Napi::String::New(env, "Warning: " + w.message + "\n")});
+    } else {
+      process.Get("emitWarning").As<Napi::Function>().Call(
+          process, {Napi::String::New(env, w.message), Napi::String::New(env, "RuntimeWarning")});
+    }
   }
 }
 

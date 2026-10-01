@@ -14,6 +14,7 @@ enum class ErrorKind {
   Memory,
   NotImplemented,
   LinAlg,  // numpy.linalg.LinAlgError (D-018)
+  FloatingPoint,  // numpy FloatingPointError (np.seterr "raise", D-054)
 };
 
 const char* error_kind_name(ErrorKind kind) noexcept;

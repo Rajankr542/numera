@@ -21,6 +21,8 @@ export class MemoryError extends NativpyError {}
 export class NotImplementedError extends NativpyError {}
 /** numpy.linalg.LinAlgError (DECISIONS D-018). */
 export class LinAlgError extends NativpyError {}
+/** numpy FloatingPointError: raised under np.seterr "raise" (D-054). */
+export class FloatingPointError extends NativpyError {}
 
 const byName: Record<string, new (message: string, code?: string) => NativpyError> = {
   ShapeError,
@@ -31,6 +33,7 @@ const byName: Record<string, new (message: string, code?: string) => NativpyErro
   MemoryError,
   NotImplementedError,
   LinAlgError,
+  FloatingPointError,
   NativpyError,
 };
 

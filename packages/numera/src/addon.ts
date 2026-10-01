@@ -24,6 +24,14 @@ export interface NativeNDArray {
   getItem(index: number[]): number | boolean | { re: number; im: number };
 }
 
+/** np.seterr modes (D-054). */
+export interface NativeErrState {
+  divide?: string;
+  over?: string;
+  under?: string;
+  invalid?: string;
+}
+
 /** Options for ufunc.reduce / ufunc.accumulate (D-052). `axis`: omitted = default, null = all. */
 export interface NativeUfuncMethodOptions {
   axis?: number[] | null;
@@ -89,6 +97,9 @@ export interface NativeAddon {
     opts: NativeUfuncMethodOptions | NativeUfuncParams,
     b?: NativeNDArray,
   ): NativeNDArray | undefined;
+  /** np.geterr / np.seterr state (D-054). */
+  getErr(): Required<NativeErrState>;
+  setErr(state: NativeErrState): undefined;
   /** ufunc.at (P2-9): in place on `a`. */
   ufuncAt(op: string, a: NativeNDArray, indices: NativeNDArray[], b: NativeNDArray | null): undefined;
   // P1 complex helpers (D-033)

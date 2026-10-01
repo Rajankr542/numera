@@ -1,9 +1,9 @@
 {
  "numpy_version": "2.5.3",
  "totals": {
-  "implemented": 171,
+  "implemented": 174,
   "total": 1060,
-  "coverage": 16.1
+  "coverage": 16.4
  },
  "surfaces": {
   "Generator": {
@@ -489,8 +489,8 @@
   },
   "np": {
    "total": 435,
-   "implemented": 83,
-   "coverage": 19.1,
+   "implemented": 86,
+   "coverage": 19.8,
    "excluded": 42,
    "missing": [
     "False_",
@@ -604,7 +604,6 @@
     "einsum",
     "einsum_path",
     "equal",
-    "errstate",
     "euler_gamma",
     "exp2",
     "expm1",
@@ -635,7 +634,6 @@
     "genfromtxt",
     "geomspace",
     "get_printoptions",
-    "geterr",
     "gradient",
     "greater",
     "greater_equal",
@@ -785,7 +783,6 @@
     "select",
     "set_printoptions",
     "setdiff1d",
-    "seterr",
     "setxor1d",
     "shape",
     "shares_memory",

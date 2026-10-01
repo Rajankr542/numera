@@ -6,6 +6,7 @@
 
 #include "broadcast.hpp"
 #include "error.hpp"
+#include "fp_errors.hpp"
 #include "reduce.hpp"
 #include "shape.hpp"
 #include "shape_ops.hpp"
@@ -78,7 +79,7 @@ NDArray reduction_view(const NDArray& acc, const Shape& full, const std::vector<
 
 }  // namespace
 
-NDArray ufunc_reduce(const Ufunc& u, const NDArray& a_in, const NDArray* out,
+static NDArray ufunc_reduce_impl(const Ufunc& u, const NDArray& a_in, const NDArray* out,
                      const UfuncReduceOptions& opts) {
   require_binary(u, "reduce");
   check_out_writeable(out);
@@ -206,7 +207,7 @@ NDArray ufunc_reduce(const Ufunc& u, const NDArray& a_in, const NDArray* out,
   return *out;
 }
 
-NDArray ufunc_accumulate(const Ufunc& u, const NDArray& a_in, const NDArray* out,
+static NDArray ufunc_accumulate_impl(const Ufunc& u, const NDArray& a_in, const NDArray* out,
                          const UfuncReduceOptions& opts) {
   require_binary(u, "accumulate");
   check_out_writeable(out);
@@ -253,7 +254,7 @@ NDArray ufunc_outer(const Ufunc& u, const NDArray& a, const NDArray& b, const ND
   return binary(u, a.view(shape, strides, a.offset()), b, out, params);
 }
 
-NDArray ufunc_reduceat(const Ufunc& u, const NDArray& a_in, const NDArray& indices,
+static NDArray ufunc_reduceat_impl(const Ufunc& u, const NDArray& a_in, const NDArray& indices,
                        const NDArray* out, const UfuncReduceOptions& opts) {
   require_binary(u, "reduceat");
   check_out_writeable(out);
@@ -308,8 +309,8 @@ NDArray ufunc_reduceat(const Ufunc& u, const NDArray& a_in, const NDArray& indic
   return *out;
 }
 
-void ufunc_at(const Ufunc& u, const NDArray& a, const std::vector<NDArray>& indices,
-              const NDArray* b) {
+static void ufunc_at_impl(const Ufunc& u, const NDArray& a, const std::vector<NDArray>& indices,
+                          const NDArray* b) {
   a.check_writeable();
   if (u.nin == 2 && !b) {
     throw_error(ErrorKind::Value, "second operand needed for ufunc");
@@ -376,6 +377,38 @@ void ufunc_at(const Ufunc& u, const NDArray& a, const std::vector<NDArray>& indi
       pos[d] = 0;
     }
   }
+}
+
+// Public entry points: FP error state (D-054) applies to the whole call.
+NDArray ufunc_reduce(const Ufunc& u, const NDArray& a, const NDArray* out,
+                     const UfuncReduceOptions& opts) {
+  const FpScope fp(u.name);
+  NDArray r = ufunc_reduce_impl(u, a, out, opts);
+  fp.check();
+  return r;
+}
+
+NDArray ufunc_accumulate(const Ufunc& u, const NDArray& a, const NDArray* out,
+                         const UfuncReduceOptions& opts) {
+  const FpScope fp(u.name);
+  NDArray r = ufunc_accumulate_impl(u, a, out, opts);
+  fp.check();
+  return r;
+}
+
+NDArray ufunc_reduceat(const Ufunc& u, const NDArray& a, const NDArray& indices,
+                       const NDArray* out, const UfuncReduceOptions& opts) {
+  const FpScope fp(u.name);
+  NDArray r = ufunc_reduceat_impl(u, a, indices, out, opts);
+  fp.check();
+  return r;
+}
+
+void ufunc_at(const Ufunc& u, const NDArray& a, const std::vector<NDArray>& indices,
+              const NDArray* b) {
+  const FpScope fp(u.name);
+  ufunc_at_impl(u, a, indices, b);
+  fp.check();
 }
 
 }  // namespace nativpy

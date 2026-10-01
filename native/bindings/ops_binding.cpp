@@ -16,6 +16,7 @@
 #include "shape_ops.hpp"
 #include "ufunc.hpp"
 #include "ufunc_methods.hpp"
+#include "fp_errors.hpp"
 #include "ufunc_registry.hpp"
 
 namespace nativpy::bindings {
@@ -258,6 +259,37 @@ void init_ops_binding(Napi::Env env, Napi::Object exports) {
                 }
                 if (has_out) return e.Undefined();
                 return Napi::Value(NDArrayWrap::create(e, r));
+              }));
+  // getErr() / setErr({divide?, over?, under?, invalid?}) (D-054).
+  exports.Set("getErr", fn(env, "getErr", [](Info, Napi::Env e) {
+                static const char* const names[] = {"ignore", "warn", "raise", "print"};
+                const ErrState s = get_errstate();
+                Napi::Object o = Napi::Object::New(e);
+                o.Set("divide", names[static_cast<int>(s.divide)]);
+                o.Set("over", names[static_cast<int>(s.over)]);
+                o.Set("under", names[static_cast<int>(s.under)]);
+                o.Set("invalid", names[static_cast<int>(s.invalid)]);
+                return Napi::Value(o);
+              }));
+  exports.Set("setErr", fn(env, "setErr", [](Info i, Napi::Env e) {
+                const auto o = i[0].As<Napi::Object>();
+                ErrState s = get_errstate();
+                const auto mode = [&](const char* key, FpMode& m) {
+                  const Napi::Value v = o.Get(key);
+                  if (v.IsUndefined()) return;
+                  const std::string n = v.ToString().Utf8Value();
+                  if (n == "ignore") m = FpMode::Ignore;
+                  else if (n == "warn") m = FpMode::Warn;
+                  else if (n == "raise") m = FpMode::Raise;
+                  else if (n == "print") m = FpMode::Print;
+                  else throw_error(ErrorKind::Value, "invalid error mode '" + n + "' for " + key);
+                };
+                mode("divide", s.divide);
+                mode("over", s.over);
+                mode("under", s.under);
+                mode("invalid", s.invalid);
+                set_errstate(s);
+                return e.Undefined();
               }));
   // ufuncAt(name, a, indices: NDArray[], b | null): in place (P2-9).
   exports.Set("ufuncAt", fn(env, "ufuncAt", [](Info i, Napi::Env e) {

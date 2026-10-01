@@ -70,7 +70,7 @@ machinery.
 | P2-8 ✅ | `ufunc.reduce` and `ufunc.accumulate` (`np.add.reduce(a, {axis, dtype, out, keepdims, initial, where})`), routed through the registry. **Build-first:** native implementation + binding + TS API, verified by C++ unit tests and vitest only. |
 | P2-8v | Verification pass for P2-8: NumPy differential group (`ufunc_reduce`), bit-exactness fixes (pairwise float `add`, float16 accumulation), and bench cases. |
 | P2-9 ✅ | `ufunc.outer`, `ufunc.reduceat`, `ufunc.at`. |
-| P2-10 | `errstate`/`seterr`/`geterr` (`divide`/`over`/`under`/`invalid` → `ignore`/`warn`/`raise`) via native FP-exception flags plus the integer divide-by-zero path. |
+| P2-10 ✅ | `errstate`/`seterr`/`geterr` (`divide`/`over`/`under`/`invalid` → `ignore`/`warn`/`raise`) via native FP-exception flags plus the integer divide-by-zero path. |
 | P2-11 | Bench cases for every new kwarg/method in both suites, ROADMAP/PROGRESS/COMPATIBILITY updates, and marking P2 ✅. |
 
 ## Build-first order (user direction, 2026-10-02)

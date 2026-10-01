@@ -20,6 +20,8 @@ const char* error_kind_name(ErrorKind kind) noexcept {
       return "NotImplementedError";
     case ErrorKind::LinAlg:
       return "LinAlgError";
+    case ErrorKind::FloatingPoint:
+      return "FloatingPointError";
   }
   return "NativpyError";
 }
