@@ -326,7 +326,8 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   - `axis`: an int or a pair; `keepdims` is supported.
   - Result dtype: float32/float16 inputs keep their dtype; everything else
     gives float64.
-- Complex *input* to linalg raises `NotImplementedError` (D-008).
+- Complex *input* to linalg raises `NotImplementedError` (D-008). Superseded
+  by D-035–D-044: every linalg function now accepts complex input.
 
 ## D-019 — Random module (M9) — Accepted — 2026-09-29
 - Code lives in `native/random/` as the `nativpy_random` static lib, which
@@ -1128,4 +1129,25 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   - Fallback: not bit-identical (different algorithm). Reconstruction error
     ≤ 1.7e-14 (complex128/float64) and 9.5e-7 (complex64); vectors match up
     to phase.
+
+## D-044 — Complex lstsq and norm (P1-5e.3) — Accepted — 2026-10-01
+- `lstsq` accepts complex64/complex128 `a` and/or `b`. The result type follows
+  NumPy `_commonType` (`complex_result`, D-039): complex64 only if every
+  operand is float32 or complex64, else complex128. `x` has that complex
+  dtype. `residuals` and `s` are real: float32 for complex64, else float64
+  (NumPy's `'DDd->Ddid'`). Complex input is computed in complex128 and cast
+  once at the end (as D-038–D-043).
+- Same algorithm as the real path (SVD, D-018), now generic over the element
+  type: x = V · diag(1/s) · Uᴴ · b over singular values above
+  `rcond · s_max`. Residuals are Σ|b − A·x|² per column, only when
+  rank == N and M > N. NumPy uses `?gelsd`, so results agree within
+  tolerance, not bitwise. Real input is unchanged.
+- `norm` accepts complex input; the result is real (float32 for complex64,
+  else float64).
+  - Every ord works on |x| = hypot(re, im) (NumPy: `abs(x)`). The 2-norm
+    paths (default, 'fro', vector ord=2) therefore square |x| instead of
+    NumPy's `(x.conj() * x).real`, which can differ by about 1 ulp per
+    element.
+  - 'nuc' and matrix ±2 use the complex SVD's singular values (D-041).
+  - Values match NumPy within tolerance (different summation order).
 

@@ -664,7 +664,13 @@ QrResult qr(const NDArray& a, QrMode mode) {
 }
 
 LstsqResult lstsq(const NDArray& a, const NDArray& b, double rcond) {
-  const DType dt = promote_types(decomp_dtype(a, "lstsq"), decomp_dtype(b, "lstsq"));
+  // Complex (D-044): computed in complex128, x complex, residuals/s real.
+  const bool cplx = is_complex(a.dtype()) || is_complex(b.dtype());
+  const DType dt = cplx ? complex_result({&a, &b}, "lstsq")
+                        : promote_types(decomp_dtype(a, "lstsq"), decomp_dtype(b, "lstsq"));
+  const DType ct = cplx ? DType::Complex128 : dt;
+  const DType rct = cplx ? DType::Float64 : dt;
+  const DType rdt = dt == DType::Complex64 ? DType::Float32 : rct;
   if (a.ndim() != 2) linalg_fail("lstsq: 2-dimensional array given. Array must be two-dimensional");
   if (b.ndim() != 1 && b.ndim() != 2) linalg_fail("lstsq: b must be 1- or 2-dimensional");
   const idx m = a.shape()[0];
@@ -674,26 +680,34 @@ LstsqResult lstsq(const NDArray& a, const NDArray& b, double rcond) {
   if (b2.shape()[0] != m) linalg_fail("Incompatible dimensions");
   const idx r = b2.shape()[1];
   const idx k = std::min(m, n);
-  const NDArray ac = a.astype(dt);
-  const NDArray bc = b2.astype(dt);
-  NDArray x = NDArray::zeros({n, r}, dt);
-  NDArray sv = NDArray::zeros({k}, dt);
+  const NDArray ac = a.astype(ct);
+  const NDArray bc = b2.astype(ct);
+  NDArray x = NDArray::zeros({n, r}, ct);
+  NDArray sv = NDArray::zeros({k}, rct);
   idx rank = 0;
   bool full_rank_overdetermined = false;
   std::vector<double> resid(sz(r), 0.0);
-  dispatch_real(dt, [&](auto tag) {
+  dispatch_solve(ct, [&](auto tag) {
     using T = decltype(tag);
+    using R = real_of_t<T>;
+    // Accumulator: double, or complex<double> for complex T.
+    using A = std::conditional_t<std::is_floating_point_v<T>, double, std::complex<double>>;
+    const auto up = [](T v) { return static_cast<A>(v); };
+    const auto conj_a = [](A v) {
+      if constexpr (std::is_floating_point_v<A>) return v;
+      else return std::conj(v);
+    };
     if (k == 0) return;
-    // x = V · diag(1/s) · Uᵀ · b over singular values above the cutoff.
+    // x = V · diag(1/s) · Uᴴ · b over singular values above the cutoff.
     std::vector<T> am(sz(m * n));
     std::vector<T> um(sz(m * k));
     std::vector<T> vm(sz(k * n));
     to_colmajor(ptr<T>(ac), am.data(), m, n);
-    T* s = ptr<T>(sv);
-    if (routines<T>().gesdd(m, n, am.data(), s, um.data(), vm.data(), false) != 0) {
+    R* s = ptr<R>(sv);
+    if (gesdd_e(m, n, am.data(), s, um.data(), vm.data(), false) != 0) {
       linalg_fail("SVD did not converge in Linear Least Squares");
     }
-    const double eps = static_cast<double>(std::numeric_limits<T>::epsilon());
+    const double eps = static_cast<double>(std::numeric_limits<R>::epsilon());
     const double rc = rcond < 0 ? eps * static_cast<double>(std::max(m, n)) : rcond;
     const double cutoff = rc * static_cast<double>(s[0]);
     const T* bp = ptr<T>(bc);
@@ -702,13 +716,12 @@ LstsqResult lstsq(const NDArray& a, const NDArray& b, double rcond) {
       if (static_cast<double>(s[i]) <= cutoff) continue;
       ++rank;
       for (idx c = 0; c < r; ++c) {
-        double proj = 0.0;  // (u_i · b_c)
-        for (idx p = 0; p < m; ++p)
-          proj += static_cast<double>(um[sz(p + i * m)]) * static_cast<double>(bp[p * r + c]);
+        A proj{};  // (u_i^H · b_c)
+        for (idx p = 0; p < m; ++p) proj += conj_a(up(um[sz(p + i * m)])) * up(bp[p * r + c]);
         proj /= static_cast<double>(s[i]);
+        // Vh is k×n column-major; V[j, i] = conj(Vh[i, j]).
         for (idx j = 0; j < n; ++j)
-          xp[j * r + c] = static_cast<T>(static_cast<double>(xp[j * r + c]) +
-                                         proj * static_cast<double>(vm[sz(i + j * k)]));
+          xp[j * r + c] = static_cast<T>(up(xp[j * r + c]) + proj * conj_a(up(vm[sz(i + j * k)])));
       }
     }
     full_rank_overdetermined = rank == n && m > n;
@@ -716,19 +729,24 @@ LstsqResult lstsq(const NDArray& a, const NDArray& b, double rcond) {
       for (idx c = 0; c < r; ++c) {
         double acc = 0.0;
         for (idx p = 0; p < m; ++p) {
-          double ax = 0.0;
-          for (idx j = 0; j < n; ++j)
-            ax += static_cast<double>(ptr<T>(ac)[p * n + j]) * static_cast<double>(xp[j * r + c]);
-          const double d = static_cast<double>(bp[p * r + c]) - ax;
-          acc += d * d;
+          A ax{};
+          for (idx j = 0; j < n; ++j) ax += up(ptr<T>(ac)[p * n + j]) * up(xp[j * r + c]);
+          const A d = up(bp[p * r + c]) - ax;
+          if constexpr (std::is_floating_point_v<A>) acc += d * d;
+          else acc += std::norm(d);
         }
         resid[sz(c)] = acc;
       }
     }
   });
-  NDArray residuals = NDArray::zeros({full_rank_overdetermined ? r : 0}, dt);
+  NDArray residuals = NDArray::zeros({full_rank_overdetermined ? r : 0}, rct);
   if (full_rank_overdetermined)
     for (idx c = 0; c < r; ++c) residuals.set_double(c, resid[sz(c)]);
+  if (ct != dt) x = x.astype(dt);
+  if (rct != rdt) {
+    residuals = residuals.astype(rdt);
+    sv = sv.astype(rdt);
+  }
   return {vec ? x.reshape({n}) : x, residuals, rank, sv};
 }
 
@@ -765,13 +783,16 @@ double vec_norm(const double* x, idx n, idx stride, const NormOrd& ord) {
   return std::pow(acc, 1.0 / p);
 }
 
-// Matrix norm of row-major m×n doubles.
-double mat_norm(const double* x, idx m, idx n, const NormOrd& ord) {
+// Matrix norm of row-major m×n doubles. For complex input `x` holds |a_ij|
+// and `cx` the complex values (needed by the SVD orders, D-044).
+double mat_norm(const double* x, idx m, idx n, const NormOrd& ord,
+                const std::complex<double>* cx = nullptr) {
   if (ord.kind == "default" || ord.kind == "fro") return vec_norm(x, m * n, 1, NormOrd{});
   const double p = ord.p;
   if (ord.kind == "nuc" || p == 2.0 || p == -2.0) {
-    NDArray a = NDArray::empty({m, n}, DType::Float64);
-    std::copy(x, x + m * n, ptr<double>(a));
+    NDArray a = NDArray::empty({m, n}, cx ? DType::Complex128 : DType::Float64);
+    if (cx) std::copy(cx, cx + m * n, ptr<std::complex<double>>(a));
+    else std::copy(x, x + m * n, ptr<double>(a));
     const NDArray s = svd(a, false, false).s;
     const double* sp = ptr<double>(s);
     const idx k = s.size();
@@ -802,16 +823,29 @@ double mat_norm(const double* x, idx m, idx n, const NormOrd& ord) {
 
 NDArray norm(const NDArray& a, const NormOrd& ord,
              const std::optional<std::vector<std::int64_t>>& axis, bool keepdims) {
-  reject_complex(a, "norm");
-  const DType out_dt =
-      (a.dtype() == DType::Float32 || a.dtype() == DType::Float16) ? a.dtype() : DType::Float64;
+  // Complex (D-044): reduce over |x| in float64; result float32 for complex64.
+  const bool cplx = is_complex(a.dtype());
+  const DType out_dt = a.dtype() == DType::Complex64 ? DType::Float32
+                       : (a.dtype() == DType::Float32 || a.dtype() == DType::Float16)
+                           ? a.dtype()
+                           : DType::Float64;
+  // Contiguous float64 |x| (and the complex128 values when complex).
+  const auto real_view = [cplx](const NDArray& v, std::optional<NDArray>& cvals) {
+    if (!cplx) return v.astype(DType::Float64);
+    cvals = v.astype(DType::Complex128);
+    NDArray mag = NDArray::empty(cvals->shape(), DType::Float64);
+    const auto* c = ptr<std::complex<double>>(*cvals);
+    for (idx i = 0; i < cvals->size(); ++i) ptr<double>(mag)[i] = std::abs(c[i]);
+    return mag;
+  };
+  std::optional<NDArray> cvals;
   const auto nd = static_cast<idx>(a.ndim());
   std::vector<idx> axes;
   if (axis) {
     axes = normalize_axes(*axis, nd);
   } else if (ord.kind == "default") {
     // Flattened 2-norm.
-    const NDArray flat = a.astype(DType::Float64);
+    const NDArray flat = real_view(a, cvals);
     NDArray out = NDArray::empty(keepdims ? Shape(sz(nd), 1) : Shape{}, out_dt);
     out.set_double(0, vec_norm(ptr<double>(flat), flat.size(), 1, NormOrd{}));
     return out;
@@ -828,7 +862,7 @@ NDArray norm(const NDArray& a, const NormOrd& ord,
   // Move reduced axes to the end and make a contiguous float64 copy.
   std::vector<idx> dst;
   for (std::size_t i = 0; i < axes.size(); ++i) dst.push_back(nd - static_cast<idx>(axes.size()) + static_cast<idx>(i));
-  const NDArray moved = moveaxis(a, axes, dst).astype(DType::Float64);
+  const NDArray moved = real_view(moveaxis(a, axes, dst), cvals);
   const Shape batch = batch_of(moved.shape(), axes.size());
   Shape out_shape = batch;
   if (keepdims) {
@@ -844,7 +878,9 @@ NDArray norm(const NDArray& a, const NormOrd& ord,
   } else {
     const idx m = moved.shape()[moved.ndim() - 2];
     const idx n = moved.shape().back();
-    for (idx t = 0; t < nb; ++t) out.set_double(t, mat_norm(src + t * m * n, m, n, ord));
+    const std::complex<double>* csrc = cvals ? ptr<std::complex<double>>(*cvals) : nullptr;
+    for (idx t = 0; t < nb; ++t)
+      out.set_double(t, mat_norm(src + t * m * n, m, n, ord, csrc ? csrc + t * m * n : nullptr));
   }
   return out;
 }

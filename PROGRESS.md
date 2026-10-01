@@ -1,5 +1,24 @@
 # PROGRESS
 
+## 2026-10-01 — P1-5e.3: complex lstsq and norm (D-044)
+
+`linalg.lstsq` and `linalg.norm` accept complex64/complex128.
+- `lstsq`: result type follows `_commonType` (complex64 only if every operand
+  is float32/complex64). `x` is complex; `residuals` and `s` are real (float32
+  for complex64). The real SVD route is now generic: x = V·diag(1/s)·Uᴴ·b;
+  residuals Σ|b − A·x|². Computed in complex128, cast once.
+- `norm`: every ord works on |x|; 'nuc' and matrix ±2 use the complex SVD.
+  Result float32 for complex64, else float64.
+- Values checked against NumPy 2.5.3 within tolerance (not bitwise; NumPy
+  uses `?gelsd` and a different summation order).
+- Tests: C++ `linalg: complex lstsq/norm (D-044)`; vitest `complex
+  linalg.lstsq / norm`. Both run on both backends. The earlier "lstsq rejects
+  complex" guards are removed, since no linalg entry point rejects complex now.
+- Checks: `pnpm typecheck`, `pnpm test:native` (84), `pnpm test:asan`,
+  `pnpm test` (244), `pnpm test:diff` (4580) all pass.
+
+Next: P1-5e.4, differential `complex_linalg` group.
+
 ## 2026-10-01 — P1-5e.2: complex eig/eigvals (D-043)
 
 `linalg.eig`/`eigvals` accept complex64/complex128. Results keep the input's

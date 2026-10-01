@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import np, { Complex, DTypeError } from "../src/index.js";
+import np, { Complex, DTypeError, type NormOrder } from "../src/index.js";
 
 describe("complex conversion (D-033)", () => {
   it("round-trips Complex and {re, im} inputs", () => {
@@ -718,8 +718,82 @@ describe("complex linalg.eig / eigvals (P1-5e.2, D-043)", () => {
         expect(() => np.linalg.eigvals([[np.complex(0, Infinity)]])).toThrow(np.LinAlgError);
         expect(() => np.linalg.eig(np.zeros([2, 3], { dtype: "complex128" }))).toThrow(np.LinAlgError);
         expect(() => np.linalg.eigvals(np.zeros([3], { dtype: "complex64" }))).toThrow(np.LinAlgError);
-        // lstsq still rejects complex until P1-5e.3.
-        expect(() => np.linalg.lstsq(b.get(0), [1, 2])).toThrow(np.NotImplementedError);
+      });
+    });
+  }
+});
+
+describe("complex linalg.lstsq / norm (P1-5e.3, D-044)", () => {
+  // NumPy 2.5 reference values for a = [[1+2j, 3-j], [0.5j, 2], [1, 1j]].
+  const A = [
+    [np.complex(1, 2), np.complex(3, -1)],
+    [np.complex(0, 0.5), 2],
+    [1, np.complex(0, 1)],
+  ];
+  const B = [1, np.complex(0, 2), 3];
+  for (const backend of ["default", "fallback"] as const) {
+    describe(`backend: ${backend}`, () => {
+      beforeAll(() => np.linalg._setBackend(backend));
+      afterAll(() => np.linalg._setBackend("default"));
+
+      it("lstsq dtypes, residuals and normal equations", () => {
+        for (const [dtype, rdt, tol] of [
+          ["complex128", "float64", 1e-12],
+          ["complex64", "float32", 1e-5],
+        ] as const) {
+          const a = np.array(A, { dtype });
+          const b = np.array(B, { dtype });
+          const r = np.linalg.lstsq(a, b);
+          expect(r.x.dtype).toBe(np[dtype]);
+          expect(r.residuals.dtype).toBe(np[rdt]);
+          expect(r.s.dtype).toBe(np[rdt]);
+          expect(r.rank).toBe(2);
+          expect(Math.abs((r.residuals.toArray() as number[])[0]! - 7.82285714285714)).toBeLessThan(10 * tol);
+          // Aᴴ (b - A x) = 0.
+          const res = np.subtract(b, np.matmul(a, r.x));
+          const g = np.matmul(np.conjugate(np.transpose(a)), res);
+          for (const v of g.toArray() as Complex[]) expect(Math.hypot(v.re, v.im)).toBeLessThan(10 * tol);
+        }
+        expect(np.linalg.lstsq(np.array(A), [1, 1, 1]).x.dtype).toBe(np.complex128);
+        expect(np.linalg.lstsq(np.array(A, { dtype: "complex64" }), np.ones([3], { dtype: "float32" })).x.dtype).toBe(
+          np.complex64,
+        );
+        const e = np.linalg.lstsq(np.zeros([0, 2], { dtype: "complex128" }), np.zeros([0], { dtype: "complex128" }));
+        expect(e.x.shape).toEqual([2]);
+        expect(e.rank).toBe(0);
+      });
+
+      it("norm orders, dtype and axis", () => {
+        const want: [NormOrder, number][] = [
+          [null, 4.6097722286464435],
+          ["fro", 4.6097722286464435],
+          ["nuc", 5.871861421672258],
+          [1, 6.16227766016838],
+          [-1, 3.73606797749979],
+          [2, 4.352020701327292],
+          [-2, 1.519840720344966],
+          [Infinity, 5.39834563766817],
+          [-Infinity, 2.0],
+        ];
+        for (const [dtype, rdt, tol] of [
+          ["complex128", "float64", 1e-12],
+          ["complex64", "float32", 1e-5],
+        ] as const) {
+          const a = np.array(A, { dtype });
+          for (const [ord, v] of want) {
+            const n = np.linalg.norm(a, { ord });
+            expect(n.dtype).toBe(np[rdt]);
+            expect(Math.abs((n.item() as number) - v)).toBeLessThan(10 * tol * (1 + v));
+          }
+          const b = np.array(B, { dtype });
+          for (const [ord, v] of [[null, 3.7416573867739413], [0, 3], [3, 3.3019272488946263], [-1, 0.5454545454545455]] as const) {
+            expect(Math.abs((np.linalg.norm(b, { ord }).item() as number) - v)).toBeLessThan(10 * tol);
+          }
+          const rows = np.linalg.norm(a, { axis: 1, keepdims: true });
+          expect(rows.shape).toEqual([3, 1]);
+          expect(rows.dtype).toBe(np[rdt]);
+          expect(Math.abs((rows.toArray() as number[][])[0]![0]! - Math.sqrt(15))).toBeLessThan(10 * tol);
+        }
       });
     });
   }

@@ -319,9 +319,77 @@ TEST_CASE("linalg: complex det (D-038)") {
     };
     run(double{}, 1e-12);
     run(float{}, 1e-5);
-    // Other decompositions still reject complex until their slice lands.
-    CHECK_THROWS_KIND(lstsq(cmat<double>(1, 1, {C(1, 0)}), cmat<double>(1, 1, {C(1, 0)}), -1.0),
-                      ErrorKind::NotImplemented);
+  });
+}
+
+TEST_CASE("linalg: complex lstsq/norm (D-044)") {
+  using C = std::complex<double>;
+  each_backend([] {
+    const auto run = [](auto tag, double tol) {
+      using R = decltype(tag);
+      const DType cdt = std::is_same_v<R, float> ? DType::Complex64 : DType::Complex128;
+      const DType rdt = std::is_same_v<R, float> ? DType::Float32 : DType::Float64;
+      // NumPy 2.5: a = [[1+2j, 3-j], [0.5j, 2], [1, 1j]], b = [1, 2j, 3].
+      const NDArray a = cmat<R>(3, 2, {C(1, 2), C(3, -1), C(0, 0.5), C(2, 0), C(1, 0), C(0, 1)});
+      const NDArray b = cmat<R>(3, 1, {C(1, 0), C(0, 2), C(3, 0)}).reshape({3});
+      const LstsqResult l = lstsq(a, b, -1.0);
+      CHECK(l.x.dtype() == cdt);
+      CHECK(l.x.shape() == Shape({2}));
+      CHECK(l.residuals.dtype() == rdt);
+      CHECK(l.s.dtype() == rdt);
+      CHECK(l.rank == 2);
+      CHECK(l.residuals.size() == 1);
+      CHECK(std::abs(l.residuals.get_double(0) - 7.82285714285714) < tol * 10);
+      // Normal equations: Aᴴ (b - A x) = 0.
+      const auto* ap = reinterpret_cast<const std::complex<R>*>(a.data());
+      const auto* bp = reinterpret_cast<const std::complex<R>*>(b.data());
+      const auto* xp = reinterpret_cast<const std::complex<R>*>(l.x.data());
+      for (int j = 0; j < 2; ++j) {
+        C g{};
+        for (int p = 0; p < 3; ++p) {
+          const C rp = C(bp[p]) - C(ap[p * 2]) * C(xp[0]) - C(ap[p * 2 + 1]) * C(xp[1]);
+          g += std::conj(C(ap[p * 2 + j])) * rp;
+        }
+        CHECK(std::abs(g) < tol * 10);
+      }
+      // Real b with complex a promotes x to complex.
+      CHECK(lstsq(a, ones({3}, DType::Float64), -1.0).x.dtype() == DType::Complex128);
+      // Empty: 0x2 -> x zeros(2), no residuals, rank 0.
+      const LstsqResult e = lstsq(NDArray::zeros({0, 2}, cdt), NDArray::zeros({0}, cdt), -1.0);
+      CHECK(e.x.shape() == Shape({2}));
+      CHECK(e.rank == 0);
+      CHECK(e.residuals.size() == 0);
+
+      const auto nv = [&](const NDArray& v, NormOrd o) {
+        const NDArray r = norm(v, o, std::nullopt, false);
+        CHECK(r.dtype() == rdt);
+        return r.get_double(0);
+      };
+      const auto near = [tol](double g, double w) { return std::abs(g - w) <= tol * 10 * (1 + std::abs(w)); };
+      CHECK(near(nv(a, {}), 4.6097722286464435));
+      CHECK(near(nv(a, {"fro", 0}), 4.6097722286464435));
+      CHECK(near(nv(a, {"nuc", 0}), 5.871861421672258));
+      CHECK(near(nv(a, {"p", 1}), 6.16227766016838));
+      CHECK(near(nv(a, {"p", -1}), 3.73606797749979));
+      CHECK(near(nv(a, {"p", 2}), 4.352020701327292));
+      CHECK(near(nv(a, {"p", -2}), 1.519840720344966));
+      CHECK(near(nv(a, {"p", INFINITY}), 5.39834563766817));
+      CHECK(near(nv(a, {"p", -INFINITY}), 2.0));
+      CHECK(near(nv(b, {}), 3.7416573867739413));
+      CHECK(near(nv(b, {"p", 0}), 3.0));
+      CHECK(near(nv(b, {"p", 1}), 6.0));
+      CHECK(near(nv(b, {"p", 3}), 3.3019272488946263));
+      CHECK(near(nv(b, {"p", INFINITY}), 3.0));
+      CHECK(near(nv(b, {"p", -INFINITY}), 1.0));
+      CHECK(near(nv(b, {"p", -1}), 0.5454545454545455));
+      // axis + keepdims: row 2-norms of a.
+      const NDArray rn = norm(a, {}, std::vector<std::int64_t>{1}, true);
+      CHECK(rn.shape() == Shape({3, 1}));
+      CHECK(rn.dtype() == rdt);
+      CHECK(near(rn.get_double(0), std::sqrt(15.0)));
+    };
+    run(double{}, 1e-12);
+    run(float{}, 1e-5);
   });
 }
 
