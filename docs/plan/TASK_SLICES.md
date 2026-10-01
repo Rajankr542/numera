@@ -43,15 +43,13 @@ Steps 1–4 are done (conversion, ufuncs, reductions, matmul family). Slices lef
 | P1-5b ✅ | `inv`, `solve` (`?gesv`) (D-039). |
 | P1-5c ✅ | `qr` (`?geqrf`/`?ungqr`) (D-040). |
 | P1-5d | `svd` (`?gesdd`). Singular values are real. |
-| P1-5e | `eigh`/`eigvalsh` (`?heevd`). Eigenvalues are real. |
-| P1-5f | `eig`/`eigvals` on complex input (`?geev`). |
-| P1-5g | `lstsq`, `norm` (complex magnitudes). |
-| P1-5h | Differential `complex_linalg` group (results compared up to sign/phase where needed). |
-| P1-5i | FFT check: confirm the complex paths accept `np.Complex` input end to end. |
-| P1-5j | Bench cases + ROADMAP/PROGRESS/COMPATIBILITY; mark P1 ✅. Commit. |
+| P1-5e | Rest of P1, combined into one slice (formerly P1-5e–5j): (1) `eigh`/`eigvalsh` (`?heevd`), with real eigenvalues; (2) `eig`/`eigvals` on complex input (`?geev`); (3) `lstsq` and `norm` (complex magnitudes); (4) a differential `complex_linalg` group, comparing results up to sign/phase where needed; (5) an FFT check that the complex paths accept `np.Complex` input end to end; (6) bench cases, ROADMAP/PROGRESS/COMPATIBILITY updates, and marking P1 ✅. Commit after each sub-step. |
 
 Each 5x slice: C++ kernel + C++ test first, then binding/TS + vitest, all in
 the same slice only if the diff stays small; otherwise split into 5x-1 / 5x-2.
+P1-5e is larger than the ~300-line slice rule allows. Its sub-steps (1)–(6)
+are done in order, and each one is green and committed before the next
+starts.
 
 ## P2–P15
 Slice each milestone just before it starts, using the same rules. As a rule of

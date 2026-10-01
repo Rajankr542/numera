@@ -17,7 +17,8 @@ P1-5c done: `linalg.qr` accepts complex64/complex128 in all modes
 - Checks: `pnpm test:native`, `pnpm test:asan`, `pnpm test` (229),
   `pnpm test:diff` (4580) all pass.
 
-Next: P1-5d, complex `svd`.
+Next: P1-5d, complex `svd`. After that, P1-5e completes P1 (remaining
+complex linalg, differential group, FFT check, benchmarks and docs).
 
 P1-5b done: `linalg.inv` and `linalg.solve` accept complex64/complex128.
 - New backend routine `cgesv`: Accelerate `cgesv_`/`zgesv_` with
@@ -45,7 +46,7 @@ P1-5a done: `linalg.det` accepts complex64/complex128.
   `complex linalg.det` on both backends.
 - Checks: `pnpm test:native`, `pnpm test:asan`, `pnpm test` (218),
   `pnpm test:diff` (4580), `pnpm typecheck` and root `tsc` all pass.
-- Not yet: differential cases (P1-5h) and benchmarks (P1-5j).
+- Not yet: differential cases and benchmarks (now part of P1-5e).
 
 Next: P1-5c, complex `qr`.
 
