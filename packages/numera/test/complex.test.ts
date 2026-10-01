@@ -156,3 +156,81 @@ describe("real/imag views and predicates (D-033)", () => {
     expect(np.isrealobj([true])).toBe(true);
   });
 });
+
+describe("complex reductions (P1 step 3, D-034)", () => {
+  // [[1+2j, 3-1j], [0.5j, -2]]; expected values from NumPy 2.5.3.
+  const m = np.array([
+    [np.complex(1, 2), np.complex(3, -1)],
+    [np.complex(0, 0.5), np.complex(-2, 0)],
+  ]);
+  const z = (a: InstanceType<typeof np.NDArray>): number[] => {
+    const v = a.item() as Complex;
+    return [v.re, v.im];
+  };
+
+  it("sum and prod, over all axes and per axis", () => {
+    expect(z(np.sum(m))).toEqual([2, 1.5]);
+    expect(parts(np.sum(m, { axis: 0 }))).toEqual([[1, 2.5], [1, -1]]);
+    expect(z(np.prod(m))).toEqual([5, -5]);
+    expect(parts(np.prod(m, { axis: 1 }))).toEqual([[5, 5], [-0, -1]]);
+    expect(z(m.sum({ initial: 10 }))).toEqual([12, 1.5]);
+    expect(np.sum(m).dtype).toBe(np.complex128);
+  });
+
+  it("empty input, inf products and real-to-complex dtype", () => {
+    const e = np.zeros([0], { dtype: "complex128" });
+    expect(z(np.sum(e))).toEqual([0, 0]);
+    expect(z(np.prod(e))).toEqual([1, 0]);
+    const p = z(np.prod(np.array([np.complex(Infinity, 0), np.complex(Infinity, 0)])));
+    expect(p.every(Number.isNaN)).toBe(true); // NumPy: (inf+0j)**2 -> nan+nanj
+    const s = np.sum(np.array([1, 2], { dtype: "float32" }), { dtype: "complex64" });
+    expect(s.dtype).toBe(np.complex64);
+    expect(z(s)).toEqual([3, 0]);
+  });
+
+  it("mean keeps the complex dtype", () => {
+    expect(z(np.mean(m))).toEqual([0.5, 0.375]);
+    const r = np.mean(m, { axis: 1, keepdims: true });
+    expect(r.shape).toEqual([2, 1]);
+    expect(parts(r.reshape([2]))).toEqual([[2, 0.5], [-1, 0.25]]);
+    expect(np.mean(m.astype("complex64")).dtype).toBe(np.complex64);
+    expect(z(np.mean(np.zeros([0], { dtype: "complex128" }))).every(Number.isNaN)).toBe(true);
+  });
+
+  it("min/max/argmin/argmax order by real part, then imag", () => {
+    expect(z(np.max(m))).toEqual([3, -1]);
+    expect(z(m.min())).toEqual([-2, 0]);
+    expect(np.argmax(m).item()).toBe(1);
+    expect(m.argmin().item()).toBe(3);
+    expect(np.argmax(m, { axis: 0 }).toArray()).toEqual([0, 0]);
+    expect(parts(np.max(m, { axis: 1 }))).toEqual([[3, -1], [0, 0.5]]);
+    expect(z(np.max(np.array([np.complex(1, 1)]), { initial: 5 }))).toEqual([5, 0]);
+  });
+
+  it("min/max propagate the first NaN in either part", () => {
+    const a = np.array([np.complex(1, 1), np.complex(0, NaN), np.complex(5, 0)]);
+    const r = z(np.max(a));
+    expect(r[0]).toBe(0);
+    expect(Number.isNaN(r[1])).toBe(true);
+    expect(np.argmax(a).item()).toBe(1);
+    expect(np.argmin(a).item()).toBe(1);
+  });
+
+  it("var/std are real and support ddof and axis", () => {
+    const v = np.var(m);
+    expect(v.dtype).toBe(np.float64);
+    expect(v.item()).toBe(4.421875);
+    expect(m.std().item()).toBe(2.1028254801575903);
+    expect(np.std(m, { ddof: 1 }).item()).toBe(2.4281337140555777);
+    expect(np.var(m, { axis: 0 }).toArray()).toEqual([0.8125, 6.5]);
+    expect(np.std(m.astype("complex64")).dtype).toBe(np.float32);
+  });
+
+  it("raises typed errors for unsupported or invalid cases", () => {
+    const e = np.zeros([0], { dtype: "complex128" });
+    expect(() => np.max(e)).toThrow(np.ValueError);
+    expect(() => np.argmin(e)).toThrow(np.ValueError);
+    expect(() => np.std(m, { dtype: "complex64" })).toThrow(np.NotImplementedError);
+  });
+});
+
