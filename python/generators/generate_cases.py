@@ -596,10 +596,16 @@ def _reduce_case(name, data, dt, shape, kw, transpose=False) -> dict:
         return {**base, "error": err}
     r = np.asarray(r)
     base["approx"] = name in REDUCE_APPROX and r.dtype.kind == "f"
+    # Complex prod uses complex multiply, whose rounding depends on the build's
+    # FMA contraction (NumPy's arm64 complex64 loop fuses one product); compare
+    # it with a tolerance, as complex_ufunc_cases() does for multiply.
+    if name == "prod" and r.dtype.kind == "c":
+        base["approx"] = True
     # D-025: NumPy's min/max sign of zero depends on its SIMD path (x86 baseline
     # vs AVX2/NEON disagree when both +0 and -0 are present). Such cases check
     # the D-017 rule (min -> -0.0, max -> +0.0) instead of the platform result.
     if (name in ("min", "max") and r.ndim == 0 and r.dtype.kind == "f" and r == 0
+            and not np.dtype(dt).kind == "c"
             and any(v == 0 and math.copysign(1.0, v) < 0 for v in data)
             and any(v == 0 and math.copysign(1.0, v) > 0 for v in data)):
         base["zero_rule"] = True
@@ -1151,6 +1157,90 @@ def complex_ufunc_cases() -> list[dict]:
     return cases
 
 
+def complex_reduction_cases() -> list[dict]:
+    """P1 step 3 / D-034: complex sum/prod/mean/min/max/arg*/var/std."""
+    inf, nan = float("inf"), float("nan")
+    cases = []
+    shape = (2, 3, 4)
+    axis_kws = [{}, {"axis": 0}, {"axis": 1}, {"axis": -1}, {"axis": [0, 2]},
+                {"axis": 1, "keepdims": True}, {"keepdims": True}]
+    # Quarter/half-step values: sums are exact, so complex results compare exactly.
+    data = [complex(((i * 7) % 11 - 5) * 0.5, ((i * 5) % 7 - 3) * 0.25) for i in range(24)]
+    for dt in ["complex64", "complex128"]:
+        for name in REDUCE_FNS:
+            for kw in axis_kws:
+                if name.startswith("arg") and isinstance(kw.get("axis"), list):
+                    continue
+                cases.append(_reduce_case(name, data, dt, shape, kw))
+        for name in ("sum", "max", "argmin", "mean", "var"):
+            cases.append(_reduce_case(name, data, dt, shape, {"axis": 1}, transpose=True))
+    specials = [
+        # Lexicographic order, ties keep the first index.
+        ("max", [1 + 5j, 2 + 0j, 2 - 1j, 1 + 9j], (4,), {}),
+        ("min", [1 + 5j, 2 + 0j, 2 - 1j, 1 + 9j], (4,), {}),
+        ("argmax", [3 + 1j, 3 + 1j, 1 + 0j], (3,), {}),
+        ("argmin", [3 + 1j, 1 + 0j, 1 + 0j], (3,), {}),
+        # NaN in either part propagates; the first NaN wins.
+        ("max", [1 + 1j, complex(0, nan), complex(nan, 0)], (3,), {}),
+        ("min", [1 + 1j, complex(nan, 0), complex(0, nan)], (3,), {}),
+        ("argmax", [1 + 1j, 5 + 0j, complex(0, nan), complex(nan, 0)], (4,), {}),
+        ("argmin", [2 + 0j, complex(nan, 1), 1 + 0j, 0.5 + 0j], (2, 2), {"axis": 0}),
+        ("sum", [1 + 1j, complex(nan, 0)], (2,), {}),
+        ("sum", [complex(inf, 1), complex(-inf, 1)], (2,), {}),
+        ("prod", [complex(inf, 0), complex(inf, 0)], (2,), {}),
+        ("prod", [1 + 2j, 3 - 1j, 0.5j], (3,), {}),
+        ("mean", [complex(inf, 0), 1 + 0j], (2,), {}),
+        ("var", [complex(inf, 0), 1 + 0j], (2,), {}),
+        ("std", [complex(0, nan), 1 + 0j], (2,), {}),
+        # Signed zeros.
+        ("sum", [complex(-0.0, -0.0), complex(-0.0, -0.0)], (2,), {}),
+        ("max", [complex(-0.0, -0.0), complex(0.0, -0.0)], (2,), {}),
+        ("min", [complex(0.0, 0.0), complex(-0.0, 0.0)], (2,), {}),
+        # Empty inputs.
+        ("sum", [], (0,), {}),
+        ("prod", [], (0,), {}),
+        ("mean", [], (0,), {}),
+        ("var", [], (3, 0), {"axis": 1}),
+        ("sum", [], (0, 3), {"axis": 0}),
+        ("max", [], (0,), {}),
+        ("max", [], (0,), {"initial": -1}),
+        ("argmin", [], (0,), {}),
+        ("argmax", [], (0, 3), {"axis": 1}),
+        # initial, ddof, 0-d and axis errors.
+        ("sum", [1 + 2j, 3 - 1j], (2,), {"initial": 10}),
+        ("prod", [1 + 2j, 3 - 1j], (2,), {"initial": 0.5}),
+        ("max", [1 + 1j], (1,), {"initial": 5}),
+        ("min", [4 + 0j, 5 + 0j], (2,), {"initial": 2}),
+        ("var", [1 + 1j, 2 + 0j, 4 - 1j], (3,), {"ddof": 1}),
+        ("std", [1 + 1j, 2 + 0j, 4 - 1j], (3,), {"ddof": 3}),
+        ("var", [1 + 1j, 2 + 0j, 3 + 0j, 4j], (2, 2), {"axis": 0, "ddof": 1}),
+        ("sum", [5 + 1j], (), {}),
+        ("argmax", [5 + 1j], (), {}),
+        ("sum", [1j, 2j], (2,), {"axis": 1}),
+        ("argmax", [1j, 2j], (2,), {"axis": 2}),
+    ]
+    for dt in ["complex64", "complex128"]:
+        for name, vals, shp, kw in specials:
+            cases.append(_reduce_case(name, vals, dt, shp, kw))
+    # Real input reduced into a complex dtype (sum/prod/mean only, D-034).
+    for name in ("sum", "prod", "mean"):
+        cases.append(_reduce_case(name, [1, 2, 3, 4], "float32", (2, 2), {"axis": 0, "dtype": "complex64"}))
+        cases.append(_reduce_case(name, [1, 2, 3, 4], "int64", (4,), {"dtype": "complex128"}))
+    # D-021-style exactness on larger random input: pairwise (trailing axis) and
+    # sequential (leading axis) summation orders, compared bit-for-bit.
+    rng = np.random.default_rng(1234)
+    for dt in ["complex64", "complex128"]:
+        for shp, kw in [((1000,), {}), ((129,), {}), ((4, 300), {"axis": 1}), ((300, 4), {"axis": 0}),
+                        ((7, 300), {})]:
+            vals = (rng.standard_normal(shp) * 1e3 + 1j * rng.standard_normal(shp)).astype(dt)
+            vals = vals.astype(complex).ravel().tolist()
+            for name in ("sum", "mean", "var", "std"):
+                c = _reduce_case(name, vals, dt, shp, kw)
+                c["approx"] = False
+                cases.append(c)
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -1172,6 +1262,7 @@ def main() -> None:
         "fft": fft_cases(),
         "complex": complex_cases(),
         "complex_ufuncs": complex_ufunc_cases(),
+        "complex_reductions": complex_reduction_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

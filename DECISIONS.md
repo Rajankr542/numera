@@ -861,3 +861,8 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - Exactness: bit-exact vs NumPy where real reductions are (D-021: trailing or
   leading reduced axes). Non-adjacent multi-axis (e.g. `axis=(0, 2)`) is within
   1 ulp, the same as real `sum`/`var` there (D-017 tolerance).
+- Complex `prod` (P1-3f) is compared with a tolerance, not bit-for-bit. Its
+  rounding depends on FMA contraction in complex multiply, which is
+  build-specific: NumPy 2.5.3's arm64 complex64 loop fuses one product, and a
+  24-element product differed by 1 ulp in one component. `sum`/`mean`/`var`/
+  `std`/`min`/`max`/`arg*` remain exact on the `complex_reductions` group.

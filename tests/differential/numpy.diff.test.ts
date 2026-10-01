@@ -471,17 +471,27 @@ describe("differential: writeable flag (D-016)", () => {
   });
 });
 
-describe("differential: reductions (M7, D-017)", () => {
-  const { numpy_version, cases } = load("reduce");
+describe.each([
+  ["reduce", "reductions (M7, D-017)"],
+  ["complex_reductions", "complex reductions (P1 step 3, D-034)"],
+])("differential: %s", (group, _title) => {
+  const { numpy_version, cases } = load(group);
   type RFn = (a: NDArray, opts: Record<string, unknown>) => NDArray;
   const fns = np as unknown as Record<string, RFn>;
   // Float sum/prod/mean/var/std on the small generic cases are compared with a
   // relative tolerance (D-017); D-021 cases (approx=false) are checked exactly.
-  const rtolFor = (dt: string): number => (dt === "float16" ? 2e-3 : dt === "float32" ? 1e-5 : 1e-12);
+  const rtolFor = (dt: string): number =>
+    dt === "float16" ? 2e-3 : dt === "float32" || dt === "complex64" ? 1e-5 : 1e-12;
   const close = (got: unknown, exp: unknown, rtol: number): void => {
     if (Array.isArray(exp)) {
       expect(Array.isArray(got)).toBe(true);
       (exp as unknown[]).forEach((e, i) => close((got as unknown[])[i], e, rtol));
+      return;
+    }
+    if (exp instanceof Complex) {
+      expect(got).toBeInstanceOf(Complex);
+      close((got as Complex).re, exp.re, rtol);
+      close((got as Complex).im, exp.im, rtol);
       return;
     }
     const g = got as number;
