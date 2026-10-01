@@ -12,6 +12,31 @@ namespace nativpy::linalg {
 // which takes row-major operands. Routines return a LAPACK-style `info`:
 // 0 = success, > 0 = numerical failure (singular / no convergence).
 // T is float or double.
+
+// NumPy's non-BLAS complex matmul formula (D-035), row-major: each output
+// starts at +0 and adds (ar*br - ai*bi, ar*bi + ai*br) in increasing p order.
+// The i-p-j loop order keeps that per-element summation order. No Annex G
+// NaN recovery. Shared by the fallback backend and the BLAS backends'
+// non-BLAS cases (D-036).
+template <typename T>
+void noblas_cgemm(std::int64_t m, std::int64_t n, std::int64_t k, const std::complex<T>* a,
+                  const std::complex<T>* b, std::complex<T>* c) {
+  for (std::int64_t i = 0; i < m; ++i) {
+    std::complex<T>* crow = c + i * n;
+    for (std::int64_t j = 0; j < n; ++j) crow[j] = std::complex<T>{};
+    for (std::int64_t p = 0; p < k; ++p) {
+      const T ar = a[i * k + p].real();
+      const T ai = a[i * k + p].imag();
+      const std::complex<T>* brow = b + p * n;
+      for (std::int64_t j = 0; j < n; ++j) {
+        const T br = brow[j].real();
+        const T bi = brow[j].imag();
+        crow[j] = {crow[j].real() + (ar * br - ai * bi), crow[j].imag() + (ar * bi + ai * br)};
+      }
+    }
+  }
+}
+
 template <typename T>
 class Routines {
  public:
@@ -19,6 +44,9 @@ class Routines {
   // Row-major C[m×n] = A[m×k] · B[k×n].
   virtual void gemm(std::int64_t m, std::int64_t n, std::int64_t k, const T* a, const T* b,
                     T* c) const = 0;
+  // Complex row-major C[m×n] = A[m×k] · B[k×n], no conjugation (D-035).
+  virtual void cgemm(std::int64_t m, std::int64_t n, std::int64_t k, const std::complex<T>* a,
+                     const std::complex<T>* b, std::complex<T>* c) const = 0;
   // LU factorisation in place (n×n); piv receives 0-based row swaps.
   virtual int getrf(std::int64_t n, T* a, std::int64_t* piv) const = 0;
   // Solves A X = B for n×nrhs B (A overwritten by LU, B by X).

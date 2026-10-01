@@ -31,7 +31,7 @@ Steps 1–2 are done (conversion, ufuncs). Slices left:
 | Slice | Work |
 |---|---|
 | P1-4a ✅ | Complex `matmul` kernel (portable path) + C++ test (D-035). |
-| P1-4b | Accelerate path (`cblas_cgemm`/`zgemm`) + C++ test. |
+| P1-4b ✅ | Accelerate path (`cblas_cgemm`/`zgemm`, plus NumPy's gemv/dotu dispatch) + C++ test (D-036). |
 | P1-4c | `dot`, `inner`, `outer` on complex (no conjugation, as in NumPy); vitest. |
 | P1-4d | Differential `complex_matmul` cases (batched, mixed real/complex promotion). |
 | P1-4e | Bench cases + docs. Commit. |

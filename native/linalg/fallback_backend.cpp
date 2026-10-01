@@ -508,6 +508,10 @@ class FallbackRoutines final : public Routines<T> {
       }
     }
   }
+  void cgemm(idx m, idx n, idx k, const std::complex<T>* a, const std::complex<T>* b,
+             std::complex<T>* c) const override {
+    noblas_cgemm(m, n, k, a, b, c);
+  }
   int getrf(idx n, T* a, idx* piv) const override { return lu(n, a, piv); }
   int gesv(idx n, idx nrhs, T* a, T* b) const override {
     std::vector<idx> piv(static_cast<std::size_t>(n));

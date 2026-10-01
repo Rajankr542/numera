@@ -34,6 +34,43 @@ void gemm_(lint m, lint n, lint k, const float* a, const float* b, float* c) {
 void gemm_(lint m, lint n, lint k, const double* a, const double* b, double* c) {
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, k, 1.0, a, k, b, n, 0.0, c, n);
 }
+// std::complex<T> is the __LAPACK_*_complex type in C++ (lapack_types.h).
+// Complex BLAS calls in NumPy's matmul dispatch (D-036), row-major operands.
+void cgemm_(lint m, lint n, lint k, const std::complex<float>* a, const std::complex<float>* b,
+            std::complex<float>* c) {
+  const std::complex<float> one{1.0f, 0.0f};
+  const std::complex<float> zero{};
+  cblas_cgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, k, &one, a, k, b, n, &zero, c, n);
+}
+void cgemm_(lint m, lint n, lint k, const std::complex<double>* a, const std::complex<double>* b,
+            std::complex<double>* c) {
+  const std::complex<double> one{1.0, 0.0};
+  const std::complex<double> zero{};
+  cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, k, &one, a, k, b, n, &zero, c, n);
+}
+// y[rows] = op(A) x, NumPy's `@TYPE@_gemv` call: cblas_?gemv(order, Trans, ...).
+void cgemv_(CBLAS_ORDER order, lint r, lint c, const std::complex<float>* a, lint lda,
+            const std::complex<float>* x, std::complex<float>* y) {
+  const std::complex<float> one{1.0f, 0.0f};
+  const std::complex<float> zero{};
+  cblas_cgemv(order, CblasTrans, r, c, &one, a, lda, x, 1, &zero, y, 1);
+}
+void cgemv_(CBLAS_ORDER order, lint r, lint c, const std::complex<double>* a, lint lda,
+            const std::complex<double>* x, std::complex<double>* y) {
+  const std::complex<double> one{1.0, 0.0};
+  const std::complex<double> zero{};
+  cblas_zgemv(order, CblasTrans, r, c, &one, a, lda, x, 1, &zero, y, 1);
+}
+// Unconjugated dot, NumPy's `C@TYPE@_dot` (?dotu_sub; its double re-sum of a
+// single chunk is exact, so the result is the BLAS value).
+void cdotu_(lint k, const std::complex<float>* a, const std::complex<float>* b,
+            std::complex<float>* out) {
+  cblas_cdotu_sub(k, a, 1, b, 1, out);
+}
+void cdotu_(lint k, const std::complex<double>* a, const std::complex<double>* b,
+            std::complex<double>* out) {
+  cblas_zdotu_sub(k, a, 1, b, 1, out);
+}
 void getrf_(const lint* m, const lint* n, float* a, const lint* lda, lint* piv, lint* info) {
   sgetrf_(m, n, a, lda, piv, info);
 }
@@ -107,6 +144,27 @@ class AccelRoutines final : public Routines<T> {
       return;
     }
     gemm_(li(m), li(n), li(k), a, b, c);
+  }
+  void cgemm(idx m, idx n, idx k, const std::complex<T>* a, const std::complex<T>* b,
+             std::complex<T>* c) const override {
+    // NumPy `matmul` loop selection for C-contiguous operands (D-036).
+    if (m == 0 || n == 0 || k == 0) {
+      noblas_cgemm(m, n, k, a, b, c);  // any_zero_dim
+    } else if (m == 1 && n == 1) {
+      cdotu_(li(k), a, b, c);  // scalar_out: row @ column
+    } else if (k == 1 && (m == 1 || n == 1)) {
+      noblas_cgemm(m, n, k, a, b, c);  // scalar_vec
+    } else if (m == 1) {
+      // vector_matrix: B (k×n row-major) transposed times the row a.
+      cgemv_(CblasRowMajor, li(k), li(n), b, li(n), a, c);
+    } else if (n == 1) {
+      // matrix_vector: A read as column-major k×m (lda = k), transposed.
+      cgemv_(CblasColMajor, li(k), li(m), a, li(k), b, c);
+    } else if (k == 1) {
+      noblas_cgemm(m, n, k, a, b, c);  // column @ row
+    } else {
+      cgemm_(li(m), li(n), li(k), a, b, c);
+    }
   }
   int getrf(idx n, T* a, idx* piv) const override {
     const lint nn = li(n);

@@ -888,3 +888,27 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   belong to the BLAS, so no portable kernel can match them bit-for-bit.
 - P1-4b sends complex to the backend's `?gemm` (Accelerate `cblas_cgemm`/
   `zgemm`). This loop stays as the fallback backend path.
+
+## D-036 — Complex matmul on Accelerate: NumPy's BLAS dispatch (P1-4b) — Accepted — 2026-10-01
+- `Routines<T>::cgemm` (row-major, no conjugation) is part of the backend
+  interface. The non-BLAS loop from D-035 moved to `noblas_cgemm` in
+  `backend.hpp`. It is the whole fallback implementation, and the BLAS backend
+  also uses it where NumPy does.
+- The Accelerate backend follows NumPy's `@TYPE@_matmul` loop selection
+  (`matmul.c.src`) for C-contiguous operands, which is all `matmul_2d` passes:
+  - any of `m`, `k`, `n` is 0: non-BLAS loop;
+  - `m == n == 1` (scalar_out): `cblas_?dotu_sub`. NumPy's double re-sum of
+    a single chunk is exact, so the result is the BLAS value;
+  - `k == 1` and (`m == 1` or `n == 1`) (scalar_vec): non-BLAS loop;
+  - `m == 1` (vector @ matrix): `cblas_?gemv(RowMajor, Trans, k, n, B)`;
+  - `n == 1` (matrix @ vector): `cblas_?gemv(ColMajor, Trans, k, m, A, lda=k)`;
+  - `k == 1` (column @ row): non-BLAS loop;
+  - otherwise `cblas_?gemm`. NumPy's `syrk` branch requires `ip1 == ip2`
+    with transposed strides, which can't happen for our contiguous copies.
+- The branch choice matters for results. Accelerate's `zgemm` on a 1×1×1
+  `inf * 1` returns `nan+nanj`, while `zdotu` and NumPy return `inf+nanj`.
+- Exactness, measured with NumPy 2.x + Accelerate on arm64: every branch
+  (gemm, large gemm, both gemv shapes, dotu with k = 13 and 200, scalar_vec,
+  column @ row, batched) is bit-identical for complex64 and complex128. Other
+  BLAS builds may round differently, so the differential suite keeps the
+  D-018 tolerance. The fallback backend stays tolerance-level (D-035).

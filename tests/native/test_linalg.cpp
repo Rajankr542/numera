@@ -235,6 +235,47 @@ TEST_CASE("linalg: complex matmul (D-035)") {
   });
 }
 
+TEST_CASE("linalg: complex matmul dispatch branches (D-036)") {
+  using C = std::complex<double>;
+  // Each (m, k, n) hits one branch of NumPy's matmul loop selection: dotu,
+  // scalar_vec, gemv (vector @ matrix and matrix @ vector), column @ row, gemm.
+  const std::int64_t dims[][3] = {{1, 5, 1}, {1, 1, 4}, {3, 1, 1}, {1, 4, 3},
+                                  {3, 4, 1}, {3, 1, 2}, {3, 4, 2}, {2, 6, 5}};
+  each_backend([&dims] {
+    for (const auto& d : dims) {
+      const std::int64_t m = d[0], k = d[1], n = d[2];
+      NDArray a = NDArray::empty({m, k}, DType::Complex128);
+      NDArray b = NDArray::empty({k, n}, DType::Complex128);
+      auto* ap = reinterpret_cast<C*>(a.data());
+      auto* bp = reinterpret_cast<C*>(b.data());
+      // Small integers: every product and partial sum is exact, so any
+      // summation order gives the same bits.
+      for (std::int64_t i = 0; i < m * k; ++i) ap[i] = C(double(i % 5) - 2, double(i % 3) - 1);
+      for (std::int64_t i = 0; i < k * n; ++i) bp[i] = C(double(i % 4) - 1, double(i % 7) - 3);
+      std::vector<C> ref(static_cast<std::size_t>(m * n));
+      noblas_cgemm<double>(m, n, k, ap, bp, ref.data());
+      const NDArray r = matmul(a, b);
+      bool same = r.shape() == Shape({m, n});
+      for (std::int64_t i = 0; same && i < m * n; ++i) same = cat<double>(r, i) == ref[static_cast<std::size_t>(i)];
+      CHECK(same);
+      // complex64 takes the same branches.
+      const NDArray r32 = matmul(a.astype(DType::Complex64), b.astype(DType::Complex64));
+      bool same32 = r32.dtype() == DType::Complex64;
+      for (std::int64_t i = 0; same32 && i < m * n; ++i)
+        same32 = C(cat<float>(r32, i)) == ref[static_cast<std::size_t>(i)];
+      CHECK(same32);
+    }
+    // inf in a 2×2 product: NumPy (cblas_zgemm and the non-BLAS loop) gives
+    // inf+nanj at [0,0], i.e. inf*1 + 1*1 without Annex G recovery.
+    const double inf = std::numeric_limits<double>::infinity();
+    const C g = cat<double>(matmul(cmat<double>(2, 2, {C(inf, 0), C(1, 0), C(1, 0), C(1, 0)}),
+                                   cmat<double>(2, 2, {C(1, 0), C(1, 0), C(1, 0), C(1, 0)})),
+                            0);
+    CHECK(g.real() == inf);
+    CHECK(std::isnan(g.imag()));
+  });
+}
+
 
 
 TEST_CASE("linalg: dot/inner/outer") {
