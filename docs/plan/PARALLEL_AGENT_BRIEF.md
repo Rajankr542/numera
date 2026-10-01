@@ -67,7 +67,9 @@ with the venv's numpy (`python3 -c "import numpy as np; ..."`) and match it.
   only when a name does not match after ignoring case/underscores (e.g. NumPy `var` → `variance`).
 - Append-only: `DECISIONS.md` (use **only** your reserved numbers, see below; record
   public API / compat decisions *before* implementing them), `PROGRESS.md` (one
-  entry per finished milestone at the end of the file is fine), `COMPATIBILITY.md`.
+  entry per finished milestone at the end of the file is fine), `COMPATIBILITY.md`
+  (a divergence table's last column must be named exactly `Decision`; release
+  staging strips it, and `release_stage.test.ts` fails on leftover `D-NNN` refs).
 - Files owned by milestones (edit only if you are that milestone):
   `ndarray.ts` P3, `ufunc.ts` P4 (P5 may only add exports), `shape.ts` P6,
   `creation.ts` P7, `indexing.ts` P8, `reduce.ts` P10, `linalg.ts` P11, `fft.ts` P12,
