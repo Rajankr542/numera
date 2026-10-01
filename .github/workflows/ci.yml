@@ -24,10 +24,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Reuse downloaded wheels across runs; PyPI downloads on hosted
+          # runners occasionally stall and time out.
+          cache: pip
+          cache-dependency-path: python/requirements.txt
       - name: Python reference environment
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: "1"
+          PIP_PROGRESS_BAR: "off"
         run: |
           python -m venv .venv
-          .venv/bin/pip install -r python/requirements.txt
+          # Longer socket timeout + per-request retries, and retry the whole
+          # install a few times in case a download still times out.
+          for attempt in 1 2 3; do
+            .venv/bin/pip install --timeout 60 --retries 10 -r python/requirements.txt && break
+            if [ "$attempt" -eq 3 ]; then
+              echo "pip install failed after $attempt attempts" >&2
+              exit 1
+            fi
+            echo "pip install failed (attempt $attempt), retrying in 20s" >&2
+            sleep 20
+          done
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
