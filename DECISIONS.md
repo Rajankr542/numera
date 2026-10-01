@@ -912,3 +912,26 @@ Found by the NumPy differential tests (NumPy 2.5.3):
   column @ row, batched) is bit-identical for complex64 and complex128. Other
   BLAS builds may round differently, so the differential suite keeps the
   D-018 tolerance. The fallback backend stays tolerance-level (D-035).
+
+## D-037 — Complex product differential cases (P1-4d) — Accepted — 2026-10-01
+- New differential group `complex_matmul` (262 cases): `matmul`/`dot`/`inner`/
+  `outer` on complex64/complex128 over the same shape set as D-018, plus the
+  D-036 dispatch shapes (1×1·1×1, 1×k·k×1, column·row, 1×1·1×n), batched and
+  broadcast stacks, N-D `dot`, empty operands, every real dtype mixed with
+  either complex width (both operand orders), mixed complex64/complex128, 0-d
+  `dot` operands, non-finite values, and core/batch/0-d errors.
+- Quarter-step inputs make every product exact, so those cases compare values
+  exactly (`toEqual`, signed zeros and NaN included). Larger random operands
+  (gemm, both gemv shapes, dotu, batched) use the D-018 tolerance, scaled by
+  max|expected|: 2e-5 for complex64, 1e-12 for complex128.
+- With non-finite input NumPy's BLAS path and its own non-BLAS loop can give
+  different results. A 1×2·2×2 `gemv` with `inf` gives `nan+nanj` on
+  Accelerate, while NumPy's loop gives `inf+nanj`. The default backend must
+  match NumPy (BLAS). The fallback backend must match NumPy's non-BLAS loop,
+  which the generator records as `expected_noblas` by running `np.matmul` on
+  inner-stride-2 views of the same data. On the exact cases both backends are
+  therefore checked bit-for-bit against NumPy, never against each other.
+- For zero-size results NumPy reports strides `(0, 0)` from some product paths.
+  We always return C strides, which also hold for zero-size arrays, so strides
+  are compared only for non-empty results (the real linalg group never
+  compared them, D-018).

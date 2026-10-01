@@ -28,7 +28,7 @@ and a benchmark case in both suites.
 | P1 complex numbers (D-008, D-033) | 🟡 in progress. Steps 1 (conversion), 2 (ufuncs plus `real`/`imag`/`conj`/`angle`/`iscomplex*`/`isreal*`) and 3 (reductions, D-034) are done. Still to do: matmul and linalg. |
 | P2–P15 | ⬜ |
 
-Work is done in small slices, one per session (see `docs/plan/TASK_SLICES.md`). Next slice: **P1-4d** (P1-4c done).
+Work is done in small slices, one per session (see `docs/plan/TASK_SLICES.md`). Next slice: **P1-4e** (P1-4d done, D-037).
 
 ## Next steps
 1. M11 per PLAN §86. Next targets, from PERFORMANCE.md findings:

@@ -33,7 +33,7 @@ Steps 1–2 are done (conversion, ufuncs). Slices left:
 | P1-4a ✅ | Complex `matmul` kernel (portable path) + C++ test (D-035). |
 | P1-4b ✅ | Accelerate path (`cblas_cgemm`/`zgemm`, plus NumPy's gemv/dotu dispatch) + C++ test (D-036). |
 | P1-4c ✅ | `dot`, `inner`, `outer` on complex (no conjugation, as in NumPy); vitest on both backends. |
-| P1-4d | Differential `complex_matmul` cases (batched, mixed real/complex promotion). |
+| P1-4d ✅ | Differential `complex_matmul` cases (batched, mixed real/complex promotion), both backends (D-037). |
 | P1-4e | Bench cases + docs. Commit. |
 
 ### Step 5: complex linalg (one function per slice, both backends)

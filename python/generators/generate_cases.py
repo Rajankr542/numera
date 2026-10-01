@@ -1241,6 +1241,101 @@ def complex_reduction_cases() -> list[dict]:
     return cases
 
 
+def _cmat(dt, shape, seed):
+    """Quarter-step complex values in [-2, 2]: products/sums are exact in complex64."""
+    rng = np.random.default_rng(seed)
+    n = int(np.prod(shape)) if shape else 1
+    re = rng.integers(-8, 9, n) * 0.25
+    im = rng.integers(-8, 9, n) * 0.25
+    return (re + 1j * im).astype(dt).reshape(shape)
+
+
+def _noblas(x):
+    """Same values with inner stride 2 elements, so NumPy's matmul can't use BLAS."""
+    if x.ndim == 0:
+        return x
+    buf = np.zeros(x.shape[:-1] + (2 * x.shape[-1],), x.dtype)
+    buf[..., ::2] = x
+    return buf[..., ::2]
+
+
+def complex_matmul_cases() -> list[dict]:
+    """P1-4d / D-035/D-036/D-037: complex matmul/dot/inner/outer (no conjugation)."""
+    cases = []
+    prod_fns = {"matmul": np.matmul, "dot": np.dot, "inner": np.inner, "outer": np.outer}
+
+    def add(fn, a, b, approx=False):
+        c = _lin_case(fn, [a, b], {}, lambda: prod_fns[fn](a, b))
+        if "expected" in c:
+            with np.errstate(all="ignore"):
+                r = np.asarray(prod_fns[fn](a, b))
+                c["expected"] = describe(r)
+                # D-037: with non-finite input NumPy's BLAS path and its own non-BLAS
+                # loop can disagree. Record the latter for the fallback backend.
+                if fn != "outer" and not (np.isfinite(a).all() and np.isfinite(b).all()):
+                    # dot/inner here only take <= 2-D operands, so they are matmuls.
+                    assert a.ndim <= 2 and b.ndim <= 2
+                    bm = np.swapaxes(b, -1, -2) if fn == "inner" and b.ndim == 2 else b
+                    nb = np.matmul(_noblas(a), _noblas(bm))
+                    assert nb.shape == r.shape
+                    if enc(nb.tolist()) != enc(r.tolist()):
+                        c["expected_noblas"] = enc(nb.tolist())
+        c["approx"] = approx
+        cases.append(c)
+
+    # (a, b) shapes; inner swaps b's last axis to match a's.
+    shapes = [((3, 4), (4, 2)), ((4,), (4,)), ((4,), (4, 3)), ((2, 3), (3,)),
+              ((1, 1), (1, 1)), ((1, 5), (5, 1)), ((3, 1), (1, 4)), ((1, 1), (1, 3)),
+              ((2, 2, 3), (3, 2)), ((2, 1, 2, 3), (3, 3, 2)), ((3, 2), (4, 2, 5)),
+              ((2, 3, 4), (5, 4, 2)), ((0, 3), (3, 2)), ((2, 0), (0, 3)), ((0,), (0,)),
+              ((3, 4), (3, 2)), ((2, 2, 3), (3, 3, 2))]
+    for i, (sa, sb) in enumerate(shapes):
+        for dt in ("complex64", "complex128"):
+            a = _cmat(dt, sa, i)
+            for fn in prod_fns:
+                b = _cmat(dt, sb[:-1] + sa[-1:] if fn == "inner" else sb, i + 100)
+                add(fn, a, b)
+    # Mixed real/complex promotion, both operand orders.
+    for j, rdt in enumerate(["bool", "int8", "uint8", "int16", "int32", "int64", "uint64",
+                             "float16", "float32", "float64"]):
+        for cdt in ("complex64", "complex128"):
+            r = _mat(rdt, (2, 3), j)
+            c = _cmat(cdt, (3, 2), j + 50)
+            add("matmul", r, c)
+            add("matmul", c.T.copy(), r.T.copy())
+            add("dot", _mat(rdt, (3,), j), _cmat(cdt, (3,), j + 60))
+            add("inner", _cmat(cdt, (2, 3), j + 70), _mat(rdt, (4, 3), j))
+            add("outer", _mat(rdt, (3,), j), _cmat(cdt, (2,), j + 80))
+    add("matmul", _cmat("complex64", (2, 2, 3), 1), _cmat("complex128", (3, 2), 2))
+    s = np.array(2 - 1j)
+    add("dot", s, _cmat("complex128", (2, 3), 3))
+    add("dot", _cmat("complex64", (3,), 4), np.array(1.5, np.float32))
+    # Larger random operands exercise the gemm/gemv kernels with rounding (D-018).
+    rng = np.random.default_rng(4321)
+    for dt in ("complex64", "complex128"):
+        for sa, sb in [((17, 33), (33, 9)), ((1, 40), (40, 7)), ((6, 40), (40, 1)),
+                       ((64,), (64,)), ((3, 8, 16), (16, 5))]:
+            a = (rng.standard_normal(sa) + 1j * rng.standard_normal(sa)).astype(dt)
+            b = (rng.standard_normal(sb) + 1j * rng.standard_normal(sb)).astype(dt)
+            add("matmul", a, b, approx=True)
+    # Non-finite values on the vector paths (dotu / gemv / outer), from NumPy itself.
+    inf, nan = float("inf"), float("nan")
+    for dt in ("complex64", "complex128"):
+        v = np.array([complex(inf, 0), 1 + 1j], dt)
+        w = np.array([1 + 0j, 2 - 1j], dt)
+        add("dot", v, w)
+        add("matmul", v.reshape(1, 2), np.array([[1 + 0j, 0j], [1j, 1 + 0j]], dt))
+        add("outer", np.array([complex(inf, inf), complex(nan, 0)], dt), np.array([1j, 2 + 0j], dt))
+        add("inner", np.array([[1 + 0j, complex(0, nan)]], dt), w)
+    # Errors: core mismatch (ValueError) and batch broadcast mismatch.
+    add("matmul", _cmat("complex128", (2, 3), 1), _cmat("complex128", (4, 2), 2))
+    add("matmul", _cmat("complex64", (2, 2, 3), 1), _cmat("complex64", (3, 3, 2), 2))
+    add("dot", _cmat("complex128", (3,), 1), _cmat("complex128", (4,), 2))
+    add("inner", _cmat("complex128", (2, 3), 1), _cmat("complex128", (2, 4), 2))
+    add("matmul", np.array(1j), _cmat("complex128", (2,), 3))
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -1263,6 +1358,7 @@ def main() -> None:
         "complex": complex_cases(),
         "complex_ufuncs": complex_ufunc_cases(),
         "complex_reductions": complex_reduction_cases(),
+        "complex_matmul": complex_matmul_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

@@ -781,6 +781,71 @@ describe("differential: linalg (M8, D-018)", () => {
 });
 
 
+describe("differential: complex_matmul (P1-4d, D-035/D-036)", () => {
+  const { numpy_version, cases } = load("complex_matmul");
+  type CCase = Case & {
+    inputs: { data: Encoded; dtype: string; shape: number[] }[];
+    expected_noblas?: Encoded;
+  };
+  type PFn = (a: NDArray, b: NDArray) => NDArray;
+  const fns = np as unknown as Record<string, PFn>;
+  const parts = (v: unknown): number[] =>
+    Array.isArray(v) ? v.flatMap(parts) : v instanceof Complex ? [v.re, v.im] : [v as number];
+  // D-018: rounded results are compared with a tolerance scaled by max|expected|.
+  const tolFor = (dt: string): number => (dt === "complex64" ? 2e-5 : 1e-12);
+
+  const run = (_l: string, c: CCase): void => {
+    const [a, b] = c.inputs.map((i) =>
+      np.array(decodeInput(i.data) as NestedArray, { dtype: i.dtype }).reshape(i.shape));
+    const make = (): NDArray => fns[c.fn!]!(a!, b!);
+    if (c.error !== undefined) {
+      // D-018: core mismatches raise ShapeError, batch mismatches BroadcastError,
+      // 0-d matmul operands ValueError; NumPy raises ValueError for all three.
+      let thrown: unknown;
+      try {
+        make();
+      } catch (e) {
+        thrown = e;
+      }
+      expect([np.ShapeError, np.BroadcastError, np.ValueError].some((k) => thrown instanceof k),
+        String(thrown)).toBe(true);
+      return;
+    }
+    const r = make();
+    const exp = c.expected as Described;
+    expect(r.dtype.name).toBe(exp.dtype);
+    expect(r.shape).toEqual(exp.shape);
+    expect(r.flags.cContiguous).toBe(true);
+    // NumPy reports (0, 0) strides for some zero-size products; ours are C strides.
+    if (r.size > 0) expect(r.strides).toEqual(exp.strides);
+    if (!c.approx) {
+      // D-037: with non-finite input, NumPy's BLAS path and its own non-BLAS loop
+      // can differ; the fallback backend matches the non-BLAS loop.
+      const want = np.linalg.backend() === "fallback" && c.expected_noblas !== undefined
+        ? c.expected_noblas : exp.values!;
+      expect(r.toArray()).toEqual(decodeExpected(want));
+      return;
+    }
+    const got = parts(r.toArray());
+    const want = parts(decodeExpected(exp.values!));
+    expect(got.length).toBe(want.length);
+    const scale = Math.max(1, ...want.map(Math.abs));
+    const tol = tolFor(exp.dtype) * scale;
+    want.forEach((e, i) => expect(Math.abs(got[i]! - e), `element ${i}`).toBeLessThanOrEqual(tol));
+  };
+  const table = (cases as CCase[]).map((c) => [label(c), c] as const);
+  describe(`default backend (${np.linalg.backend()})`, () => {
+    it.each(table)(`numpy ${numpy_version}: %s`, run);
+  });
+  describe("fallback backend", () => {
+    beforeAll(() => np.linalg._setBackend("fallback"));
+    afterAll(() => np.linalg._setBackend("default"));
+    it("is active", () => expect(np.linalg.backend()).toBe("fallback"));
+    it.each(table)(`numpy ${numpy_version}: %s`, run);
+  });
+});
+
+
 describe("differential: random (M9, D-019) — bit-exact streams", () => {
   const { cases } = load("random");
   type Res = { scalar?: Encoded; error?: string; dtype?: string; shape?: number[]; values?: Encoded };

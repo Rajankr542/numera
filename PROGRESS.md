@@ -1,5 +1,30 @@
 # PROGRESS
 
+## 2026-10-01 — P1 step 4: complex matmul family (in progress, D-035–D-037)
+
+Done (slices P1-4a to P1-4d):
+- `matmul`/`dot`/`inner`/`outer` accept complex64 and complex128, with no
+  conjugation. P1-4a added the portable kernel (D-035). P1-4b made the
+  Accelerate backend choose the same BLAS routine as NumPy (D-036).
+- P1-4c: 14 vitest cases, run on both backends.
+- P1-4d: new differential group `complex_matmul` with 262 cases, run on both
+  backends (D-037).
+  - Exactly representable inputs are compared bit-for-bit: dispatch shapes,
+    batched/broadcast stacks, empty operands, all 12 real dtypes mixed with
+    either complex width, non-finite values and errors.
+  - Large random gemm/gemv/dotu cases use the D-018 tolerance.
+  - With inf/NaN input, the fallback backend is checked against NumPy's own
+    non-BLAS loop (`expected_noblas`).
+
+Verification (P1-4d):
+- `pnpm test:diff`: 4580 cases pass (was 4055); 525 of them are new
+  `complex_matmul` checks, i.e. 262 cases × 2 backends plus a backend check.
+- `pnpm test`: 213 tests pass. `pnpm test:native` passes. `pnpm typecheck`
+  and the root `tsc` pass.
+- No C++ changed in P1-4c/P1-4d, so ASan was last run in P1-4b.
+
+Next: P1-4e, benchmark cases and docs.
+
 ## 2026-10-01 — P1 step 3: complex reductions (D-034)
 
 Done (slices P1-3a to P1-3g):
