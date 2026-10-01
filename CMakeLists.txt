@@ -40,24 +40,9 @@ if(NATIVPY_SANITIZE AND NOT MSVC)
 endif()
 
 # ---- Core library (no Node dependency) ------------------------------------
-add_library(nativpy_core STATIC
-  native/core/error.cpp
-  native/core/memory.cpp
-  native/core/dtype.cpp
-  native/core/shape.cpp
-  native/core/strides.cpp
-  native/core/ndarray.cpp
-  native/core/creation.cpp
-  native/core/shape_ops.cpp
-  native/core/broadcast.cpp
-  native/core/ufunc.cpp
-  native/core/ufunc_registry.cpp
-  native/core/ufunc_methods.cpp
-  native/core/fp_errors.cpp
-  native/core/layout.cpp
-  native/core/indexing.cpp
-  native/core/reduce.cpp
-)
+# D-056: sources are globbed so parallel milestones add files without editing CMake.
+file(GLOB NATIVPY_CORE_SOURCES CONFIGURE_DEPENDS native/core/*.cpp)
+add_library(nativpy_core STATIC ${NATIVPY_CORE_SOURCES})
 target_include_directories(nativpy_core PUBLIC native/core)
 target_compile_options(nativpy_core PRIVATE ${NATIVPY_WARNINGS})
 # D-021: reductions must round every multiply separately (NumPy bit-exactness);
@@ -69,11 +54,8 @@ endif()
 # ---- Linear algebra (D-018) ------------------------------------------------
 set(NATIVPY_LINALG_BACKEND "auto" CACHE STRING "Linalg backend: auto|accelerate|fallback")
 set_property(CACHE NATIVPY_LINALG_BACKEND PROPERTY STRINGS auto accelerate fallback)
-add_library(nativpy_linalg STATIC
-  native/linalg/fallback_backend.cpp
-  native/linalg/accelerate_backend.cpp
-  native/linalg/linalg.cpp
-)
+file(GLOB NATIVPY_LINALG_SOURCES CONFIGURE_DEPENDS native/linalg/*.cpp)
+add_library(nativpy_linalg STATIC ${NATIVPY_LINALG_SOURCES})
 target_include_directories(nativpy_linalg PUBLIC native/linalg)
 target_link_libraries(nativpy_linalg PUBLIC nativpy_core)
 target_compile_options(nativpy_linalg PRIVATE ${NATIVPY_WARNINGS})
@@ -96,18 +78,15 @@ else()
 endif()
 
 # ---- Random (D-019) ---------------------------------------------------------
-add_library(nativpy_random STATIC
-  native/random/bitgen.cpp
-  native/random/distributions.cpp
-)
+file(GLOB NATIVPY_RANDOM_SOURCES CONFIGURE_DEPENDS native/random/*.cpp)
+add_library(nativpy_random STATIC ${NATIVPY_RANDOM_SOURCES})
 target_include_directories(nativpy_random PUBLIC native/random)
 target_link_libraries(nativpy_random PUBLIC nativpy_core)
 target_compile_options(nativpy_random PRIVATE ${NATIVPY_WARNINGS})
 
 # ---- FFT (D-020) ------------------------------------------------------------
-add_library(nativpy_fft STATIC
-  native/fft/fft.cpp
-)
+file(GLOB NATIVPY_FFT_SOURCES CONFIGURE_DEPENDS native/fft/*.cpp)
+add_library(nativpy_fft STATIC ${NATIVPY_FFT_SOURCES})
 target_include_directories(nativpy_fft PUBLIC native/fft)
 # Vendored pocketfft: SYSTEM so our -Werror flags do not apply to its header.
 target_include_directories(nativpy_fft SYSTEM PRIVATE third_party/pocketfft)
@@ -123,16 +102,8 @@ if(NATIVPY_BUILD_ADDON AND CMAKE_JS_VERSION)
     OUTPUT_STRIP_TRAILING_WHITESPACE)
   string(REPLACE "\"" "" NODE_ADDON_API_DIR "${NODE_ADDON_API_DIR}")
 
-  add_library(nativpy_addon SHARED
-    native/bindings/addon.cpp
-    native/bindings/ndarray_binding.cpp
-    native/bindings/dtype_binding.cpp
-    native/bindings/error_binding.cpp
-    native/bindings/ops_binding.cpp
-    native/bindings/linalg_binding.cpp
-    native/bindings/random_binding.cpp
-    native/bindings/fft_binding.cpp
-    ${CMAKE_JS_SRC})
+  file(GLOB NATIVPY_BINDING_SOURCES CONFIGURE_DEPENDS native/bindings/*.cpp)
+  add_library(nativpy_addon SHARED ${NATIVPY_BINDING_SOURCES} ${CMAKE_JS_SRC})
   set_target_properties(nativpy_addon PROPERTIES PREFIX "" SUFFIX ".node"
                         OUTPUT_NAME "nativpy")
   target_include_directories(nativpy_addon PRIVATE
@@ -166,22 +137,8 @@ endif()
 # ---- C++ unit tests --------------------------------------------------------
 if(NATIVPY_BUILD_TESTS)
   enable_testing()
-  add_executable(nativpy_core_tests
-    tests/native/test_main.cpp
-    tests/native/test_memory.cpp
-    tests/native/test_dtype.cpp
-    tests/native/test_shape_strides.cpp
-    tests/native/test_ndarray.cpp
-    tests/native/test_creation_shape.cpp
-    tests/native/test_ufunc.cpp
-    tests/native/test_ufunc_methods.cpp
-    tests/native/test_layout.cpp
-    tests/native/test_complex.cpp
-    tests/native/test_indexing.cpp
-    tests/native/test_reduce.cpp
-    tests/native/test_linalg.cpp
-    tests/native/test_random.cpp
-    tests/native/test_fft.cpp)
+  file(GLOB NATIVPY_TEST_SOURCES CONFIGURE_DEPENDS tests/native/*.cpp)
+  add_executable(nativpy_core_tests ${NATIVPY_TEST_SOURCES})
   target_link_libraries(nativpy_core_tests PRIVATE nativpy_fft nativpy_random nativpy_linalg nativpy_core)
   target_compile_options(nativpy_core_tests PRIVATE ${NATIVPY_WARNINGS})
   add_test(NAME nativpy_core_tests COMMAND nativpy_core_tests)

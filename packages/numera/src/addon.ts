@@ -237,3 +237,14 @@ function loadAddon(): NativeAddon {
 }
 
 export const addon: NativeAddon = loadAddon();
+
+/**
+ * Per-milestone native function table (D-056): `addon.p03` ... `addon.p15`,
+ * set by native/bindings/pNN_binding.cpp. Each milestone's TS file declares
+ * the shape of its own table, e.g. `const native = nativeModule<P04Native>("p04")`.
+ */
+export function nativeModule<T>(name: string): T {
+  const m = (addon as unknown as Record<string, unknown>)[name];
+  if (m === undefined) throw new Error(`numera: native module '${name}' missing from the addon`);
+  return m as T;
+}

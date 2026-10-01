@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string_view>
 
 #include "broadcast.hpp"
@@ -38,6 +39,12 @@ struct Ufunc {
   std::array<BinaryLoopFn, kNumDTypes> binary_loops;
   std::array<UnaryLoopFn, kNumDTypes> unary_loops;
 };
+
+// Per-family tables (D-056), each defined in its own file so milestones can
+// add ufuncs independently: P4 math (ufunc_math.cpp), P5 comparison/logic/
+// bitwise (ufunc_logic.cpp). find_ufunc searches the core table first.
+std::span<const Ufunc> math_ufuncs() noexcept;
+std::span<const Ufunc> logic_ufuncs() noexcept;
 
 // Null for an unknown name.
 const Ufunc* find_ufunc(std::string_view name) noexcept;

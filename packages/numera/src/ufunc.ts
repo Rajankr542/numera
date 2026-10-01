@@ -41,7 +41,7 @@ function scalarFor(value: Scalar, like: DType): NDArray {
 
 // With `dtype=` (D-048), a JS scalar is weak relative to that loop dtype
 // instead of the other operand, as in NumPy.
-function operands(a: Operand, b: Operand, loop?: DType): [NDArray, NDArray] {
+export function operands(a: Operand, b: Operand, loop?: DType): [NDArray, NDArray] {
   const aArr = a instanceof NDArray ? a : isScalar(a) ? undefined : array(a);
   const bArr = b instanceof NDArray ? b : isScalar(b) ? undefined : array(b);
   const weak = (v: Operand, other?: NDArray): NDArray => {
@@ -51,7 +51,7 @@ function operands(a: Operand, b: Operand, loop?: DType): [NDArray, NDArray] {
   return [aArr ?? weak(a, bArr), bArr ?? weak(b, aArr)];
 }
 
-const toArray = (a: ArrayLike): NDArray => (a instanceof NDArray ? a : array(a));
+export const toArray = (a: ArrayLike): NDArray => (a instanceof NDArray ? a : array(a));
 
 /** Ufunc keyword options (D-047, D-048). */
 export interface UfuncOptions {
@@ -170,7 +170,7 @@ export interface UfuncReduceatOptions {
  */
 export type UfuncAtIndices = number | ArrayLike | readonly NDArray[];
 
-type BinaryUfunc = ((a: Operand, b: Operand, opts?: UfuncOptions) => NDArray) & {
+export type BinaryUfunc = ((a: Operand, b: Operand, opts?: UfuncOptions) => NDArray) & {
   /** NumPy ufunc.reduce (D-052). */
   reduce(a: ArrayLike, opts?: UfuncReduceOptions): NDArray;
   /** NumPy ufunc.accumulate (D-052). */
@@ -182,7 +182,7 @@ type BinaryUfunc = ((a: Operand, b: Operand, opts?: UfuncOptions) => NDArray) & 
   /** NumPy ufunc.at: unbuffered in place a[indices] = op(a[indices], b). */
   at(a: NDArray, indices: UfuncAtIndices, b: Operand): void;
 };
-type UnaryUfunc = ((a: ArrayLike, opts?: UfuncOptions) => NDArray) & {
+export type UnaryUfunc = ((a: ArrayLike, opts?: UfuncOptions) => NDArray) & {
   /** NumPy ufunc.at: unbuffered in place a[indices] = op(a[indices]). */
   at(a: NDArray, indices: UfuncAtIndices): void;
 };
@@ -249,7 +249,8 @@ function outer(op: string, a: Operand, b: Operand, opts: UfuncOptions = {}): NDA
   return wrapNative(() => NDArray._wrap(addon.ufuncMethod("outer", op, x._native, null, params, y._native)!));
 }
 
-function binaryUfunc(op: string): BinaryUfunc {
+/** Builds a binary ufunc object for a native registry name (D-051, D-056). */
+export function binaryUfunc(op: string): BinaryUfunc {
   const f = (a: Operand, b: Operand, opts?: UfuncOptions): NDArray => binary(op, a, b, opts);
   return Object.assign(f, {
     reduce: (a: ArrayLike, opts: UfuncReduceOptions = {}): NDArray => {
@@ -276,7 +277,8 @@ function binaryUfunc(op: string): BinaryUfunc {
   });
 }
 
-function unaryUfunc(op: string): UnaryUfunc {
+/** Builds a unary ufunc object for a native registry name (D-051, D-056). */
+export function unaryUfunc(op: string): UnaryUfunc {
   const f = (a: ArrayLike, opts?: UfuncOptions): NDArray => unary(op, a, opts);
   return Object.assign(f, {
     at: (a: NDArray, indices: UfuncAtIndices): void => ufuncAt(op, a, indices),

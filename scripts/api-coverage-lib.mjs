@@ -1,6 +1,6 @@
 // NumPy API coverage + benchmark coverage core (PLAN §37, D-032).
 // CLI: scripts/api-coverage.mjs. Kept separate so tests can import it.
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // Match ignoring case and underscores: floor_divide ~ floorDivide, moveaxis ~ moveAxis.
@@ -90,10 +90,24 @@ export function computeCoverage({ np, inventory, exclusions, aliases, natSrc, np
 
 export function loadInputs(root) {
   const readJson = (p) => JSON.parse(readFileSync(join(root, p), "utf8"));
+  // D-056: per-milestone fragments api/aliases.d/*.json and
+  // api/exclusions.d/*.json ({ surface: { numpyName: value } }) are merged in.
+  const withParts = (file, dir) => {
+    const merged = readJson(file);
+    const full = join(root, dir);
+    if (!existsSync(full)) return merged;
+    for (const f of readdirSync(full).filter((x) => x.endsWith(".json")).sort()) {
+      for (const [surface, names] of Object.entries(readJson(join(dir, f)))) {
+        if (surface.startsWith("_")) continue;
+        merged[surface] = { ...(merged[surface] ?? {}), ...names };
+      }
+    }
+    return merged;
+  };
   return {
     inventory: readJson("api/numpy-api.json"),
-    exclusions: readJson("api/exclusions.json"),
-    aliases: readJson("api/aliases.json"),
+    exclusions: withParts("api/exclusions.json", "api/exclusions.d"),
+    aliases: withParts("api/aliases.json", "api/aliases.d"),
     natSrc: readFileSync(join(root, "benchmarks/nativpy/suite.bench.mjs"), "utf8"),
     npySrc: readFileSync(join(root, "benchmarks/numpy/suite_bench.py"), "utf8"),
   };

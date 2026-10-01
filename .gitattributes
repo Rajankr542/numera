@@ -1,0 +1,5 @@
+# D-056: parallel milestone branches append to these; keep both sides on merge.
+DECISIONS.md merge=union
+ROADMAP.md merge=union
+PROGRESS.md merge=union
+COMPATIBILITY.md merge=union

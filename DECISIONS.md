@@ -1503,3 +1503,30 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `astype(dt, {order, copy})`: `copy: false` returns `this` when dtype and
   layout already match.
 - `ascontiguousarray`/`asfortranarray` return at least 1-d (NumPy 2 behaviour).
+
+## D-056 — Parallel milestone layout (P3–P15) — Accepted — 2026-10-02
+- P3–P15 are built in parallel on branches `pNN` (git worktrees), then merged
+  into `main`. To keep merges conflict-free, each milestone has its own files:
+  - native bindings `native/bindings/pNN_binding.cpp` (exposed as `addon.pNN`,
+    helpers in `binding_utils.hpp`); new native sources under `native/*/`
+    (CMake globs `native/core`, `native/linalg`, `native/random`, `native/fft`,
+    `native/bindings` and `tests/native`, so no CMake edits are needed);
+  - TS `packages/numera/src/pNN.ts` (exported object `pNN` is spread into
+    `np`; `export *` from index.ts), extra modules `pNN_*.ts` if large;
+  - docs `docs/site/parts/pNN.mjs`; bench exemptions `api/bench-exempt/pNN.json`;
+    aliases/exclusions `api/aliases.d/pNN.json`, `api/exclusions.d/pNN.json`;
+  - slice table `docs/plan/slices/pNN.md`;
+  - tests `packages/numera/test/pNN_*.test.ts`, `tests/native/test_pNN_*.cpp`.
+- New ufuncs go in per-family tables: P4 `native/core/ufunc_math.cpp`, P5
+  `native/core/ufunc_logic.cpp`, using the shared loop templates in
+  `native/core/ufunc_loops.hpp` (moved out of `ufunc_registry.cpp`, no
+  behaviour change). TS ufunc objects use the exported `binaryUfunc`/`unaryUfunc`.
+- NDArray methods added outside P3 use TS declaration merging in the
+  milestone's file instead of editing `ndarray.ts`.
+- Decision numbers are reserved per milestone: P3 D-060–D-069, P4 D-070–D-079,
+  … P15 D-180–D-189 (D-0(10·N+30)…).
+- `DECISIONS.md`, `PROGRESS.md`, `COMPATIBILITY.md` are append-only on milestone
+  branches (`merge=union` in `.gitattributes`); `ROADMAP.md`,
+  `api/coverage*.json` and `TASK_SLICES.md` are updated only on `main`.
+- Build-first rule (TASK_SLICES.md) is unchanged: no NumPy-compatibility or
+  performance claim until the V phase.

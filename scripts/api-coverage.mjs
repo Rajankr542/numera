@@ -5,7 +5,7 @@
 //   node scripts/api-coverage.mjs --update-baseline  accept the current state
 //
 // Needs `pnpm build`: the implemented surface is read from the real package.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkAgainstBaseline, computeCoverage, loadInputs } from "./api-coverage-lib.mjs";
@@ -32,7 +32,14 @@ if (args.has("--update-baseline")) {
   console.log("baseline updated");
 }
 if (args.has("--check")) {
-  const errors = checkAgainstBaseline(report, JSON.parse(readFileSync(basePath, "utf8")));
+  const base = JSON.parse(readFileSync(basePath, "utf8"));
+  // D-056: build-first milestones list not-yet-benchmarked callables in
+  // api/bench-exempt/pNN.json until their V slice adds the bench cases.
+  const exemptDir = join(root, "api/bench-exempt");
+  for (const f of readdirSync(exemptDir).filter((x) => x.endsWith(".json"))) {
+    base.benchIgnore.push(...JSON.parse(readFileSync(join(exemptDir, f), "utf8")));
+  }
+  const errors = checkAgainstBaseline(report, base);
   if (errors.length) {
     console.error(`\napi-coverage --check FAILED:\n  ${errors.join("\n  ")}`);
     process.exit(1);

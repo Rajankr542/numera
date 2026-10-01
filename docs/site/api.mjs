@@ -12,6 +12,20 @@
  * @typedef {{ id: string, title: string, intro?: string, entries: Entry[] }} Category
  */
 
+import { categories as p03 } from "./parts/p03.mjs";
+import { categories as p04 } from "./parts/p04.mjs";
+import { categories as p05 } from "./parts/p05.mjs";
+import { categories as p06 } from "./parts/p06.mjs";
+import { categories as p07 } from "./parts/p07.mjs";
+import { categories as p08 } from "./parts/p08.mjs";
+import { categories as p09 } from "./parts/p09.mjs";
+import { categories as p10 } from "./parts/p10.mjs";
+import { categories as p11 } from "./parts/p11.mjs";
+import { categories as p12 } from "./parts/p12.mjs";
+import { categories as p13 } from "./parts/p13.mjs";
+import { categories as p14 } from "./parts/p14.mjs";
+import { categories as p15 } from "./parts/p15.mjs";
+
 const shape = { name: "shape", type: "number | number[]", desc: "Dimensions of the new array." };
 const dtypeOpt = { name: "[options.dtype]", type: "DTypeLike", desc: "Element type, e.g. `\"float32\"` or `np.int32`. Default `float64`." };
 const arrayArg = (name = "a") => ({ name, type: "ArrayLike", desc: "An `NDArray`, nested JS array or scalar." });
@@ -21,7 +35,7 @@ const reduceOpts = [
 ];
 
 /** @type {Category[]} */
-export const categories = [
+const baseCategories = [
   {
     id: "creation",
     title: "Array creation",
@@ -1000,3 +1014,20 @@ np.errstate({ divide: "raise" }, () => code(() => np.divide([1], [0]))); // => "
   },
 ];
 
+
+// Per-milestone parts (D-056): entries join the category with the same id,
+// other categories are appended in milestone order.
+function mergeParts(base, parts) {
+  const out = base.map((c) => ({ ...c, entries: [...c.entries] }));
+  for (const part of parts) {
+    for (const cat of part) {
+      const hit = out.find((c) => c.id === cat.id);
+      if (hit) hit.entries.push(...cat.entries);
+      else out.push({ ...cat, entries: [...cat.entries] });
+    }
+  }
+  return out;
+}
+
+/** @type {Category[]} */
+export const categories = mergeParts(baseCategories, [p03, p04, p05, p06, p07, p08, p09, p10, p11, p12, p13, p14, p15]);

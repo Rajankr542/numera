@@ -31,6 +31,19 @@ import { dot, inner, linalg, matmul, outer } from "./linalg.js";
 import { random } from "./random.js";
 import { errstate, geterr, seterr } from "./errstate.js";
 import { fftModule } from "./fft.js";
+import { p03 } from "./p03.js";
+import { p04 } from "./p04.js";
+import { p05 } from "./p05.js";
+import { p06 } from "./p06.js";
+import { p07 } from "./p07.js";
+import { p08 } from "./p08.js";
+import { p09 } from "./p09.js";
+import { p10 } from "./p10.js";
+import { p11 } from "./p11.js";
+import { p12 } from "./p12.js";
+import { p13 } from "./p13.js";
+import { p14 } from "./p14.js";
+import { p15 } from "./p15.js";
 import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 import {
   abs,
@@ -169,6 +182,20 @@ export type { Seed, Size } from "./random.js";
 export { fftModule as fft } from "./fft.js";
 export type { FftNOptions, FftNorm, FftOptions } from "./fft.js";
 export type { MethodReduceOptions } from "./ndarray.js";
+// Parity milestones P3-P15 (D-056): each pNN.ts owns its names.
+export * from "./p03.js";
+export * from "./p04.js";
+export * from "./p05.js";
+export * from "./p06.js";
+export * from "./p07.js";
+export * from "./p08.js";
+export * from "./p09.js";
+export * from "./p10.js";
+export * from "./p11.js";
+export * from "./p12.js";
+export * from "./p13.js";
+export * from "./p14.js";
+export * from "./p15.js";
 /** Development instrumentation: live native buffers / bytes (PLAN §33). */
 export function memoryStats(): { buffers: number; bytes: number } {
   return addon.memoryStats();
@@ -276,6 +303,21 @@ const np = {
   complex64: dtypes.complex64,
   complex128: dtypes.complex128,
   ...errors,
+  // Milestone functions (D-056). Later entries win, so a milestone may
+  // upgrade an existing function (e.g. P10 adds where= to reductions).
+  ...p03,
+  ...p04,
+  ...p05,
+  ...p06,
+  ...p07,
+  ...p08,
+  ...p09,
+  ...p10,
+  ...p11,
+  ...p12,
+  ...p13,
+  ...p14,
+  ...p15,
 } as const;
 
 export { lib };
