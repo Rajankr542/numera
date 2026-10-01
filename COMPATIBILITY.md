@@ -87,7 +87,7 @@ differential tests (`pnpm test:diff`).
 | decomposition result | named tuple | plain object (`{eigenvalues, eigenvectors}`, `{U, S, Vh}`, `{Q, R}`, `{x, residuals, rank, s}`) | D-018 |
 | `svd`/`qr` options | `full_matrices=`, `compute_uv=`, `mode=` | `{fullMatrices, computeUV}`, `qr(a, mode)` | D-018 |
 | float matmul / decompositions | OpenBLAS | Accelerate or fallback loops; may differ by rounding | D-018 |
-| random with no seed | OS entropy via SeedSequence | OS entropy (`crypto.getRandomValues`); the legacy global state is array-seeded with 624 entropy words (not reproducible either way) | D-019 |
+| random with no seed | OS entropy via SeedSequence | OS entropy (`node:crypto` `randomFillSync`); the legacy global state is array-seeded with 624 entropy words (not reproducible either way) | D-019 |
 | random distribution parameters | broadcast array `loc`/`scale`/`low`/`high` | scalars only; arrays raise `NotImplementedError` | D-019 |
 | random scalar results | NumPy scalar | JS number/boolean (D-005 applies to int64 > 2^53) | D-019 |
 | `rfft` on complex input | `TypeError` | `DTypeError` | D-020 |

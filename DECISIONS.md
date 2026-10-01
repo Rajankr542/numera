@@ -341,7 +341,8 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - `np.random.defaultRng(seed)` is `Generator(PCG64(SeedSequence(seed)))`.
   - The seed can be a non-negative integer (number or bigint) or an array of
     them.
-  - An omitted seed means OS entropy (128 bits from `crypto.getRandomValues`).
+  - An omitted seed means OS entropy (128 bits from `node:crypto`
+    `randomFillSync`; the `globalThis.crypto` global is absent on Node 18).
 - `Generator` methods use NumPy's algorithms:
   - `random`: 53-bit double, or 24-bit float32.
   - `uniform`.

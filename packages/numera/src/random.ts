@@ -1,3 +1,4 @@
+import { randomFillSync } from "node:crypto";
 import { addon } from "./addon.js";
 import type { NativeBitGenerator, SeedMode } from "./addon.js";
 import { array } from "./creation.js";
@@ -41,9 +42,11 @@ function seedSeqWords(seed: Seed): number[] {
   return intToWords(seed as number | bigint);
 }
 
+// `node:crypto` rather than `globalThis.crypto`: the Web Crypto global is only
+// present from Node 19 (flagged in 18), and package.json supports Node >= 18.
 function osEntropy(nWords: number): number[] {
   const buf = new Uint32Array(nWords);
-  globalThis.crypto.getRandomValues(buf);
+  randomFillSync(buf);
   return Array.from(buf);
 }
 
