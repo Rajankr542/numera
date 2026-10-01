@@ -1371,3 +1371,35 @@ Found by the NumPy differential tests (NumPy 2.5.3):
 - `angle` with `deg=true` multiplies by a scalar afterwards, which keeps the
   'K' layout.
 
+
+## D-051 — Table-driven native ufunc registry (P2-7) — Accepted — 2026-10-01
+
+**Context.** The `BinaryOp`/`UnaryOp` enums and their `switch` statements
+spread each ufunc's definition over several functions in
+`native/core/ufunc.cpp`: name, type resolver, `dtype=` loop selection,
+per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
+`outer`/`at`) need to look up a ufunc's identity and loops by name.
+
+**Decision.**
+- New `native/core/ufunc_registry.{hpp,cpp}`. Each ufunc is one immutable
+  `Ufunc` record with these fields:
+  - `name`, `nin` (1 or 2).
+  - `identity` (`std::optional<double>`: add 0, multiply 1, none for the
+    others, as in NumPy).
+  - `resolve`, the default type resolver (input dtypes → loop `{in, out}`
+    dtypes).
+  - `resolve_dtype`, the `dtype=` loop selection (D-048).
+  - `check`, optional validation of the cast inputs before the loop runs
+    (power's negative-integer-exponent error).
+  - `loops[kNumDTypes]`, type-erased strided loop function pointers indexed
+    by the loop input dtype (null means no loop).
+- `find_ufunc(name)` returns `const Ufunc*` (null if unknown). The registry is
+  a static table. `get(BinaryOp)` and `get(UnaryOp)` return the record, so
+  the enums stay as aliases for existing C++ callers. The public C++ API
+  (`binary`, `unary`, `*_result_dtype`, `*_op_from_name`) is unchanged.
+- The binding looks ufuncs up by name through the registry.
+- The generic drivers (out/where/dtype/casting/order, D-046…D-050) talk only
+  to the record. No op-specific `switch` is left in the drivers.
+- This is a pure refactor. Error messages, result dtypes, layouts and values
+  do not change, and every existing test must stay green with no edits.
+

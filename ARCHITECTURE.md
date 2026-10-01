@@ -17,6 +17,10 @@ native/core      (nativpy_core static lib, no Node dependency)
    strides.hpp  C-contiguous strides, contiguity checks, bounds checks
    ndarray.hpp  NDArray: buffer + dtype + shape + strides(bytes) + offset(bytes)
    error.hpp    typed error hierarchy (ErrorKind)
+   ufunc.hpp    enum ufunc API (BinaryOp/UnaryOp), UfuncParams, result layout
+   ufunc_registry.hpp  one immutable `Ufunc` record per ufunc (D-051):
+                name, nin, identity, type resolvers, per-dtype loop tables;
+                `find_ufunc(name)` and the generic out/where/dtype/order drivers
 ```
 Future: `native/kernels`, `native/linalg`, `native/random`, `native/fft`,
 `native/simd`, `native/threading` (created when their milestone starts).

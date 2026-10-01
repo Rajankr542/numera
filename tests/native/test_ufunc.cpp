@@ -7,6 +7,7 @@
 #include "shape_ops.hpp"
 #include "test_harness.hpp"
 #include "ufunc.hpp"
+#include "ufunc_registry.hpp"
 
 using namespace nativpy;
 
@@ -425,5 +426,62 @@ TEST_CASE("ufunc: order= result layout") {
   CHECK(order_from_name("F") == Order::F);
   CHECK(!order_from_name("KK").has_value());
   CHECK(!order_from_name("").has_value());
+}
+
+
+TEST_CASE("ufunc registry: lookup, identity and loop tables (D-051)") {
+  const Ufunc* add = find_ufunc("add");
+  CHECK(add != nullptr);
+  CHECK(add == &get(BinaryOp::Add));
+  CHECK(add->nin == 2);
+  CHECK(add->identity.has_value() && *add->identity == 0.0);
+  CHECK(get(BinaryOp::Multiply).identity.has_value() && *get(BinaryOp::Multiply).identity == 1.0);
+  CHECK(!get(BinaryOp::Subtract).identity.has_value());
+  CHECK(find_ufunc("sqrt") == &get(UnaryOp::Sqrt));
+  CHECK(get(UnaryOp::Sqrt).nin == 1);
+  CHECK(find_ufunc("nope") == nullptr);
+  // Every enum value round-trips through its registry name.
+  for (int k = 0; k <= static_cast<int>(BinaryOp::FloorDivide); ++k) {
+    const auto op = static_cast<BinaryOp>(k);
+    CHECK(binary_op_from_name(get(op).name) == op);
+  }
+  for (int k = 0; k <= static_cast<int>(UnaryOp::Angle); ++k) {
+    const auto op = static_cast<UnaryOp>(k);
+    CHECK(unary_op_from_name(get(op).name) == op);
+  }
+  // Loop tables: null where NumPy has no loop.
+  const auto bi = [](BinaryOp op, DType d) {
+    return get(op).binary_loops[static_cast<std::size_t>(d)] != nullptr;
+  };
+  const auto un = [](UnaryOp op, DType d) {
+    return get(op).unary_loops[static_cast<std::size_t>(d)] != nullptr;
+  };
+  CHECK(bi(BinaryOp::Add, DType::Bool));
+  CHECK(!bi(BinaryOp::Subtract, DType::Bool));
+  CHECK(!bi(BinaryOp::Divide, DType::Int32));
+  CHECK(bi(BinaryOp::Divide, DType::Float16));
+  CHECK(bi(BinaryOp::Power, DType::Complex64));
+  CHECK(!bi(BinaryOp::Mod, DType::Complex128));
+  CHECK(un(UnaryOp::Abs, DType::Complex64));
+  CHECK(!un(UnaryOp::Sqrt, DType::Int64));
+  CHECK(un(UnaryOp::Angle, DType::Complex128));
+  CHECK(!un(UnaryOp::Angle, DType::Int8));
+  CHECK(un(UnaryOp::Conjugate, DType::Bool));  // resolver picks int8; loop still exists
+  // Unary ufuncs have no binary loops and vice versa.
+  CHECK(get(UnaryOp::Abs).binary_loops[static_cast<std::size_t>(DType::Float64)] == nullptr);
+  CHECK(get(BinaryOp::Add).unary_loops[static_cast<std::size_t>(DType::Float64)] == nullptr);
+}
+
+TEST_CASE("ufunc registry: record-driven call matches the enum API") {
+  const NDArray a = vec_d({1.0, 4.0, 9.0});
+  const NDArray r1 = unary(*find_ufunc("sqrt"), a, nullptr, UfuncParams{});
+  const NDArray r2 = unary(UnaryOp::Sqrt, a);
+  CHECK(r1.dtype() == r2.dtype());
+  for (std::int64_t i = 0; i < 3; ++i) CHECK(r1.get_double(i) == r2.get_double(i));
+  const NDArray s = binary(*find_ufunc("add"), a, a, nullptr, UfuncParams{});
+  CHECK(s.get_double(2) == 18.0);
+  // A loop dtype with no table entry is reported, not crashed on.
+  const NDArray b = vec_i({1, 2}, DType::Bool);
+  CHECK_THROWS_KIND(binary(*find_ufunc("subtract"), b, b, nullptr, UfuncParams{}), ErrorKind::DType);
 }
 

@@ -66,7 +66,7 @@ machinery.
 | P2-4 ✅ | `casting=` and `dtype=` (loop-dtype override with input casting, D-048). C++ + TS + differential cases. |
 | P2-5 ✅ | `where=` mask (with and without `out`; masked-out elements keep `out`, or are zero without `out`, D-049). C++ + TS + differential cases. |
 | P2-6 ✅ | `order=` (`'C'`/`'F'`/`'A'`/`'K'`) for ufunc results, including NumPy's `'K'` stride order. Replaces the D-014 C-contiguous divergence (D-050). |
-| P2-7 | Table-driven native ufunc registry replacing the `BinaryOp`/`UnaryOp` enums (name → loops per dtype, identity, type resolver). Pure refactor: every existing test stays green. |
+| P2-7 ✅ | Table-driven native ufunc registry replacing the `BinaryOp`/`UnaryOp` enums (name → loops per dtype, identity, type resolver). Pure refactor: every existing test stays green (D-051). |
 | P2-8 | `ufunc.reduce` and `ufunc.accumulate` (`np.add.reduce(a, {axis, dtype, out, keepdims, initial, where})`), routed through the registry. |
 | P2-9 | `ufunc.outer`, `ufunc.reduceat`, `ufunc.at`. |
 | P2-10 | `errstate`/`seterr`/`geterr` (`divide`/`over`/`under`/`invalid` → `ignore`/`warn`/`raise`) via native FP-exception flags plus the integer divide-by-zero path. |

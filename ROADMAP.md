@@ -26,10 +26,10 @@ and a benchmark case in both suites.
 |---|---|
 | P0 coverage tooling (`pnpm api:coverage` / `api:check` in CI) | ✅ API coverage is 16.0% (170/1060) after P1 (14.9%, 158/1060, at P0), and every implemented callable is benchmarked in both suites |
 | P1 complex numbers (D-008, D-033) | ✅ Complex64/complex128 work in every existing path: conversion, ufuncs plus `real`/`imag`/`conj`/`angle`/`iscomplex*`/`isreal*`, reductions (D-034), `matmul`/`dot`/`inner`/`outer` (D-035–D-037), all of `linalg` on both backends (D-038–D-044), and FFT with `np.Complex` input. Verified by the differential groups `complex_ufuncs`, `complex_reductions`, `complex_matmul`, `complex_linalg` and `complex_fft`; benchmarked in both suites. Complex `sort` waits for `sort` itself (P9); complex trig and comparisons wait for P4/P5. |
-| P2 ufunc machinery | 🟡 Sliced into P2-1…P2-11 (`TASK_SLICES.md`). P2-1 ✅: casting rules and `np.canCast` (D-045). P2-2 ✅: native `out=` for `binary`/`unary` (D-046). P2-3 ✅: TS `{ out }` on the 12 element-wise ufuncs (D-047). P2-4 ✅: `dtype=`/`casting=` (D-048). P2-5 ✅: `where=` mask (D-049). P2-6 ✅: `order=` and NumPy result layout (D-050). API coverage 16.1% (171/1060) |
+| P2 ufunc machinery | 🟡 Sliced into P2-1…P2-11 (`TASK_SLICES.md`). P2-1 ✅: casting rules and `np.canCast` (D-045). P2-2 ✅: native `out=` for `binary`/`unary` (D-046). P2-3 ✅: TS `{ out }` on the 12 element-wise ufuncs (D-047). P2-4 ✅: `dtype=`/`casting=` (D-048). P2-5 ✅: `where=` mask (D-049). P2-6 ✅: `order=` and NumPy result layout (D-050). P2-7 ✅: table-driven native ufunc registry (D-051). API coverage 16.1% (171/1060) |
 | P3–P15 | ⬜ |
 
-Work is done in small slices, one per session (see `docs/plan/TASK_SLICES.md`). Next slice: **P2-7**, table-driven native ufunc registry.
+Work is done in small slices, one per session (see `docs/plan/TASK_SLICES.md`). Next slice: **P2-8**, `ufunc.reduce` and `ufunc.accumulate` via the registry.
 
 ## Next steps
 1. M11 per PLAN §86. Next targets, from PERFORMANCE.md findings:

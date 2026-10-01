@@ -10,85 +10,31 @@
 #include "broadcast.hpp"
 #include "cast.hpp"
 #include "error.hpp"
-#include "complex_kernels.hpp"
-#include "ufunc_kernels.hpp"
+#include "ufunc_registry.hpp"
 
 namespace nativpy {
 
 namespace {
 
-const char* binary_name(BinaryOp op) noexcept {
-  switch (op) {
-    case BinaryOp::Add: return "add";
-    case BinaryOp::Subtract: return "subtract";
-    case BinaryOp::Multiply: return "multiply";
-    case BinaryOp::Divide: return "divide";
-    case BinaryOp::Power: return "power";
-    case BinaryOp::Mod: return "mod";
-    case BinaryOp::FloorDivide: return "floorDivide";
-  }
-  return "?";
-}
-
-const char* unary_name(UnaryOp op) noexcept {
-  switch (op) {
-    case UnaryOp::Abs: return "abs";
-    case UnaryOp::Negative: return "negative";
-    case UnaryOp::Sqrt: return "sqrt";
-    case UnaryOp::Exp: return "exp";
-    case UnaryOp::Log: return "log";
-    case UnaryOp::Conjugate: return "conjugate";
-    case UnaryOp::Angle: return "angle";
-  }
-  return "?";
-}
-
-[[noreturn]] void bad_loop(const char* name, DType dt) {
-  throw_error(ErrorKind::DType, std::string("no ") + name + " loop for dtype " +
-                                    std::string(dtype_name(dt)));
-}
-
 DType complex_real_dtype(DType dt) noexcept {
   return dt == DType::Complex64 ? DType::Float32 : DType::Float64;
-}
-
-// NumPy's float loop for integer inputs to sqrt/exp/log (smallest float that
-// holds the integer type safely).
-DType float_for(DType in) noexcept {
-  switch (in) {
-    case DType::Bool:
-    case DType::Int8:
-    case DType::UInt8: return DType::Float16;
-    case DType::Int16:
-    case DType::UInt16: return DType::Float32;
-    case DType::Float16:
-    case DType::Float32:
-    case DType::Float64: return in;
-    default: return DType::Float64;
-  }
 }
 
 }  // namespace
 
 std::optional<BinaryOp> binary_op_from_name(std::string_view n) noexcept {
-  if (n == "add") return BinaryOp::Add;
-  if (n == "subtract") return BinaryOp::Subtract;
-  if (n == "multiply") return BinaryOp::Multiply;
-  if (n == "divide") return BinaryOp::Divide;
-  if (n == "power") return BinaryOp::Power;
-  if (n == "mod") return BinaryOp::Mod;
-  if (n == "floorDivide") return BinaryOp::FloorDivide;
+  for (int k = 0; k <= static_cast<int>(BinaryOp::FloorDivide); ++k) {
+    const auto op = static_cast<BinaryOp>(k);
+    if (n == get(op).name) return op;
+  }
   return std::nullopt;
 }
 
 std::optional<UnaryOp> unary_op_from_name(std::string_view n) noexcept {
-  if (n == "abs") return UnaryOp::Abs;
-  if (n == "negative") return UnaryOp::Negative;
-  if (n == "sqrt") return UnaryOp::Sqrt;
-  if (n == "exp") return UnaryOp::Exp;
-  if (n == "log") return UnaryOp::Log;
-  if (n == "conjugate") return UnaryOp::Conjugate;
-  if (n == "angle") return UnaryOp::Angle;
+  for (int k = 0; k <= static_cast<int>(UnaryOp::Angle); ++k) {
+    const auto op = static_cast<UnaryOp>(k);
+    if (n == get(op).name) return op;
+  }
   return std::nullopt;
 }
 
@@ -217,491 +163,32 @@ Strides ufunc_result_strides(const Shape& shape, std::size_t itemsize,
   return out;
 }
 
-DType binary_result_dtype(BinaryOp op, DType a, DType b) {
-  const DType p = promote_types(a, b);
-  if (is_complex(p) && (op == BinaryOp::Mod || op == BinaryOp::FloorDivide)) {
-    bad_loop(binary_name(op), p);  // NumPy: TypeError, no complex loop (D-033)
-  }
-  switch (op) {
-    case BinaryOp::Subtract:
-      if (p == DType::Bool) {
-        throw_error(ErrorKind::DType,
-                    "boolean subtract is not supported, use logicalXor instead");
-      }
-      return p;
-    case BinaryOp::Divide:
-      return (p == DType::Bool || is_integer(p)) ? DType::Float64 : p;
-    case BinaryOp::Power:
-    case BinaryOp::Mod:
-    case BinaryOp::FloorDivide:
-      return p == DType::Bool ? DType::Int8 : p;
-    default:
-      return p;
-  }
-}
+// ---- enum API: thin aliases over the registry (D-051) ----
 
-DType unary_result_dtype(UnaryOp op, DType in) {
-  if (is_complex(in)) {
-    // abs and angle of complex are real (D-033); other ops keep the dtype.
-    return (op == UnaryOp::Abs || op == UnaryOp::Angle) ? complex_real_dtype(in) : in;
-  }
-  if (in == DType::Bool && op == UnaryOp::Angle) return DType::Float64;  // arctan2(0, bool)
-  if (in == DType::Bool && op == UnaryOp::Conjugate) return DType::Int8;  // NumPy: no bool loop
-  switch (op) {
-    case UnaryOp::Negative:
-      if (in == DType::Bool) {
-        throw_error(ErrorKind::DType, "boolean negative is not supported, use logicalNot instead");
-      }
-      return in;
-    case UnaryOp::Abs:
-    case UnaryOp::Conjugate: return in;  // NumPy conjugate of real is identity
-    default: return float_for(in);
-  }
-}
+DType binary_result_dtype(BinaryOp op, DType a, DType b) { return get(op).resolve(a, b).out; }
+DType unary_result_dtype(UnaryOp op, DType in) { return get(op).resolve(in, in).out; }
 
-namespace {
-
-template <typename S>
-using compute_t = std::conditional_t<std::is_same_v<S, float16_t>, float, S>;
-
-template <typename S>
-compute_t<S> ld(const std::byte* p) noexcept {
-  if constexpr (std::is_same_v<S, float16_t>) {
-    return static_cast<float>(half_to_double(load<float16_t>(p)));
-  } else {
-    return load<S>(p);
-  }
-}
-
-template <typename S>
-void st(std::byte* p, compute_t<S> v) noexcept {
-  if constexpr (std::is_same_v<S, float16_t>) {
-    store(p, double_to_half(static_cast<double>(v)));
-  } else {
-    store(p, v);
-  }
-}
-
-// ptr[0] = out, ptr[1] = a, ptr[2] = b.
-template <typename S, typename Fn>
-void binary_loop(const BroadcastPlan<3>& p, std::array<std::byte*, 3> base, Fn f) {
-  run_plan(p, base, [&](const std::array<std::byte*, 3>& ptr, const std::array<std::int64_t, 3>& is,
-                        std::int64_t n) {
-    std::byte* o = ptr[0];
-    const std::byte* a = ptr[1];
-    const std::byte* b = ptr[2];
-    constexpr auto sz = static_cast<std::int64_t>(sizeof(S));
-    if (is[0] == sz && is[1] == sz && is[2] == sz) {
-      for (std::int64_t i = 0; i < n; ++i) st<S>(o + i * sz, f(ld<S>(a + i * sz), ld<S>(b + i * sz)));
-    } else if (is[0] == sz && is[1] == sz && is[2] == 0) {
-      const auto bv = ld<S>(b);
-      for (std::int64_t i = 0; i < n; ++i) st<S>(o + i * sz, f(ld<S>(a + i * sz), bv));
-    } else {
-      for (std::int64_t i = 0; i < n; ++i) st<S>(o + i * is[0], f(ld<S>(a + i * is[1]), ld<S>(b + i * is[2])));
-    }
-  });
-}
-
-template <typename S, typename Fn>
-void unary_loop(const BroadcastPlan<2>& p, std::array<std::byte*, 2> base, Fn f) {
-  run_plan(p, base, [&](const std::array<std::byte*, 2>& ptr, const std::array<std::int64_t, 2>& is,
-                        std::int64_t n) {
-    constexpr auto sz = static_cast<std::int64_t>(sizeof(S));
-    if (is[0] == sz && is[1] == sz) {
-      for (std::int64_t i = 0; i < n; ++i) st<S>(ptr[0] + i * sz, f(ld<S>(ptr[1] + i * sz)));
-    } else {
-      for (std::int64_t i = 0; i < n; ++i) st<S>(ptr[0] + i * is[0], f(ld<S>(ptr[1] + i * is[1])));
-    }
-  });
-}
-
-void check_nonnegative_exponent(const NDArray& b) {
-  if (!is_integer(b.dtype()) || dtype_info(b.dtype()).kind == 'u') return;
-  dispatch_dtype(b.dtype(), [&](auto tag) {
-    using S = dtype_t<decltype(tag)::value>;
-    if constexpr (std::is_integral_v<S> && std::is_signed_v<S>) {
-      for_each_element(b, [&](const std::byte* p) {
-        if (load<S>(p) < 0) {
-          throw_error(ErrorKind::Value, "Integers to negative integer powers are not allowed.");
-        }
-      });
-    }
-  });
-}
-
-// Masked variant (D-049): only positions where `mask` (broadcast to `full`)
-// is true are checked, as in NumPy.
-void check_nonnegative_exponent(const NDArray& b, const NDArray& mask, const Shape& full) {
-  if (!is_integer(b.dtype()) || dtype_info(b.dtype()).kind == 'u') return;
-  const auto plan = make_plan<2>(full, {&b, &mask});
-  dispatch_dtype(b.dtype(), [&](auto tag) {
-    using S = dtype_t<decltype(tag)::value>;
-    if constexpr (std::is_integral_v<S> && std::is_signed_v<S>) {
-      run_plan(plan, {b.data(), mask.data()},
-               [](const std::array<std::byte*, 2>& p, const std::array<std::int64_t, 2>& s,
-                  std::int64_t n) {
-                 for (std::int64_t i = 0; i < n; ++i) {
-                   if (load<bool>(p[1] + i * s[1]) && load<S>(p[0] + i * s[0]) < 0) {
-                     throw_error(ErrorKind::Value,
-                                 "Integers to negative integer powers are not allowed.");
-                   }
-                 }
-               });
-    }
-  });
-}
-
-void check_where_dtype(const NDArray& mask) {
-  if (mask.dtype() != DType::Bool) {
-    throw_error(ErrorKind::DType, "Cannot cast array data from " +
-                                      std::string(dtype_name(mask.dtype())) +
-                                      " to bool according to the rule 'safe'");
-  }
-}
-
-}  // namespace
-
-namespace {
-
-// Runs the binary kernel for loop dtype `dt`. a and b already have dtype dt;
-// `out` has dtype dt and the broadcast shape (any strides, D-046).
-void binary_into(BinaryOp op, DType dt, const NDArray& a, const NDArray& b, const NDArray& out) {
-  const auto plan = make_plan<3>(out.shape(), {&out, &a, &b});
-  const std::array<std::byte*, 3> base{out.data(), a.data(), b.data()};
-  dispatch_dtype(dt, [&](auto tag) {
-    using S = dtype_t<decltype(tag)::value>;
-    using C = compute_t<S>;
-    if constexpr (is_complex_v<S>) {
-      using R = typename S::value_type;
-      namespace k = kernels;
-      switch (op) {
-        case BinaryOp::Add: binary_loop<S>(plan, base, k::cadd<R>); return;
-        case BinaryOp::Subtract: binary_loop<S>(plan, base, k::csub<R>); return;
-        case BinaryOp::Multiply: binary_loop<S>(plan, base, k::cmul<R>); return;
-        case BinaryOp::Divide: binary_loop<S>(plan, base, k::cdiv<R>); return;
-        case BinaryOp::Power: binary_loop<S>(plan, base, k::cpow<R>); return;
-        default: break;
-      }
-      bad_loop(binary_name(op), dt);
-    } else {
-      namespace k = kernels;
-      switch (op) {
-        case BinaryOp::Add: binary_loop<S>(plan, base, k::add<C>); return;
-        case BinaryOp::Multiply: binary_loop<S>(plan, base, k::mul<C>); return;
-        case BinaryOp::Subtract:
-          if constexpr (!std::is_same_v<S, bool>) { binary_loop<S>(plan, base, k::sub<C>); return; }
-          break;
-        case BinaryOp::Divide:
-          if constexpr (std::is_floating_point_v<C>) { binary_loop<S>(plan, base, k::div<C>); return; }
-          break;
-        case BinaryOp::Power:
-          if constexpr (!std::is_same_v<S, bool>) { binary_loop<S>(plan, base, k::power<C>); return; }
-          break;
-        case BinaryOp::Mod:
-          if constexpr (!std::is_same_v<S, bool>) { binary_loop<S>(plan, base, k::mod<C>); return; }
-          break;
-        case BinaryOp::FloorDivide:
-          if constexpr (!std::is_same_v<S, bool>) { binary_loop<S>(plan, base, k::floordiv<C>); return; }
-          break;
-      }
-      bad_loop(binary_name(op), dt);
-    }
-  });
-}
-
-// Runs the unary kernel. `a` has its original dtype for complex abs/angle and
-// dtype dt otherwise; `out` has dtype dt and a's (or a larger broadcast) shape.
-void unary_into(UnaryOp op, DType dt, const NDArray& a_in, const NDArray& out) {
-  if ((op == UnaryOp::Abs || op == UnaryOp::Angle) && is_complex(a_in.dtype())) {
-    // Complex -> real: input and output element types differ (D-033).
-    const auto plan = make_plan<2>(out.shape(), {&out, &a_in});
-    const std::array<std::byte*, 2> base{out.data(), a_in.data()};
-    const auto run = [&](auto zero) {
-      using R = decltype(zero);
-      using S = std::complex<R>;
-      const bool angle = op == UnaryOp::Angle;
-      run_plan(plan, base, [angle](const std::array<std::byte*, 2>& ptr,
-                                   const std::array<std::int64_t, 2>& is, std::int64_t n) {
-        for (std::int64_t i = 0; i < n; ++i) {
-          const S v = load<S>(ptr[1] + i * is[1]);
-          store<R>(ptr[0] + i * is[0], angle ? std::atan2(v.imag(), v.real()) : kernels::cabs<R>(v));
-        }
-      });
-    };
-    if (dt == DType::Float32) run(float{});
-    else run(double{});
-    return;
-  }
-  const NDArray& a = a_in;
-  const auto plan = make_plan<2>(out.shape(), {&out, &a});
-  const std::array<std::byte*, 2> base{out.data(), a.data()};
-  dispatch_dtype(dt, [&](auto tag) {
-    using S = dtype_t<decltype(tag)::value>;
-    using C = compute_t<S>;
-    if constexpr (is_complex_v<S>) {
-      using R = typename S::value_type;
-      switch (op) {
-        case UnaryOp::Negative: unary_loop<S>(plan, base, kernels::cneg<R>); return;
-        case UnaryOp::Conjugate: unary_loop<S>(plan, base, kernels::cconj<R>); return;
-        case UnaryOp::Sqrt: unary_loop<S>(plan, base, kernels::csqrt<R>); return;
-        case UnaryOp::Exp: unary_loop<S>(plan, base, [](S v) { return std::exp(v); }); return;
-        case UnaryOp::Log: unary_loop<S>(plan, base, kernels::clog<R>); return;
-        default: break;
-      }
-      bad_loop(unary_name(op), dt);
-    } else {
-      switch (op) {
-        case UnaryOp::Abs: unary_loop<S>(plan, base, kernels::absolute<C>); return;
-        case UnaryOp::Negative:
-          if constexpr (!std::is_same_v<S, bool>) { unary_loop<S>(plan, base, kernels::negative<C>); return; }
-          break;
-        case UnaryOp::Sqrt:
-          if constexpr (std::is_floating_point_v<C>) { unary_loop<S>(plan, base, [](C v) { return std::sqrt(v); }); return; }
-          break;
-        case UnaryOp::Exp:
-          if constexpr (std::is_floating_point_v<C>) { unary_loop<S>(plan, base, [](C v) { return std::exp(v); }); return; }
-          break;
-        case UnaryOp::Log:
-          if constexpr (std::is_floating_point_v<C>) { unary_loop<S>(plan, base, [](C v) { return std::log(v); }); return; }
-          break;
-        case UnaryOp::Conjugate: unary_loop<S>(plan, base, [](C v) { return v; }); return;
-        case UnaryOp::Angle:
-          // NumPy angle of real input: arctan2(0, x).
-          if constexpr (std::is_floating_point_v<C>) { unary_loop<S>(plan, base, [](C v) { return std::atan2(C{0}, v); }); return; }
-          break;
-      }
-      bad_loop(unary_name(op), dt);
-    }
-  });
-}
-
-// complex abs/angle read the complex input directly; every other loop reads dt.
-bool unary_reads_input_dtype(UnaryOp op, DType in) noexcept {
-  return (op == UnaryOp::Abs || op == UnaryOp::Angle) && is_complex(in);
-}
-
-// True if every element of `in` (broadcast to out's shape) sits at the same
-// address as the out element it produces, so element-wise in-place is safe.
-bool same_view(const NDArray& in, const NDArray& out) {
-  return in.shares_buffer(out) && in.offset() == out.offset() && in.dtype() == out.dtype() &&
-         detail::aligned_strides(in, out.shape()) == detail::aligned_strides(out, out.shape());
-}
-
-// Input prepared for a direct write into `out` (D-046): copied when it may
-// share memory with out without being the same view.
-NDArray safe_input(const NDArray& in, const NDArray& out) {
-  return in.may_share_memory(out) && !same_view(in, out) ? in.copy() : in;
-}
-
-void check_out_writeable(const NDArray& out) {
-  if (!out.writeable()) throw_error(ErrorKind::Value, "output array is read-only");
-}
-
-// `what` is "output", "input", "input 0", "input 1" (NumPy's wording).
-void check_cast(const char* name, const char* what, DType from, DType to, Casting casting) {
-  if (!can_cast(from, to, casting)) {
-    throw_error(ErrorKind::DType, std::string("Cannot cast ufunc '") + name + "' " + what +
-                                      " from " + std::string(dtype_name(from)) + " to " +
-                                      std::string(dtype_name(to)) + " with casting rule '" +
-                                      std::string(casting_name(casting)) + "'");
-  }
-}
-
-[[noreturn]] void no_loop(const char* name) {
-  throw_error(ErrorKind::DType,
-              std::string("No loop matching the specified signature and casting was found for ufunc ") +
-                  name);
-}
-
-bool is_inexact(DType dt) noexcept {
-  const char k = dtype_info(dt).kind;
-  return k == 'f' || k == 'c';
-}
-
-// Loop dtype for a binary ufunc called with dtype=d (D-048).
-DType binary_loop_for(BinaryOp op, DType d) {
-  if (d == DType::Bool && op == BinaryOp::Subtract) {
-    return binary_result_dtype(op, d, d);  // throws the boolean-subtract message
-  }
-  switch (op) {
-    case BinaryOp::Divide:
-      if (!is_inexact(d)) no_loop(binary_name(op));
-      break;
-    case BinaryOp::Power:
-      if (d == DType::Bool) no_loop(binary_name(op));
-      break;
-    case BinaryOp::Mod:
-    case BinaryOp::FloorDivide:
-      if (d == DType::Bool || is_complex(d)) no_loop(binary_name(op));
-      break;
-    default: break;
-  }
-  return d;
-}
-
-struct UnaryLoop {
-  DType in;
-  DType out;
-};
-
-// Loop (input, output) dtypes for a unary ufunc called with dtype=d (D-048).
-UnaryLoop unary_loop_for(UnaryOp op, DType in, DType d) {
-  switch (op) {
-    case UnaryOp::Abs:
-      if (is_complex(d)) no_loop(unary_name(op));
-      if (is_complex(in) && (d == DType::Float32 || d == DType::Float64)) {
-        const DType c = d == DType::Float32 ? DType::Complex64 : DType::Complex128;
-        if (can_cast(in, c, Casting::Safe)) return {c, d};  // NumPy F->f / D->d
-      }
-      return {d, d};
-    case UnaryOp::Negative:
-      if (d == DType::Bool) unary_result_dtype(op, d);  // throws the boolean-negative message
-      return {d, d};
-    case UnaryOp::Sqrt:
-    case UnaryOp::Exp:
-    case UnaryOp::Log:
-      if (!is_inexact(d)) no_loop(unary_name(op));
-      return {d, d};
-    case UnaryOp::Conjugate:
-      if (d == DType::Bool) no_loop(unary_name(op));
-      return {d, d};
-    case UnaryOp::Angle: break;
-  }
-  no_loop(unary_name(op));
-}
-
-void check_out_shape(std::vector<Shape> shapes, const Shape& out) {
-  shapes.push_back(out);
-  const Shape full = broadcast_shapes(shapes);  // throws, listing out last
-  if (full != out) {
-    shapes.pop_back();
-    throw_error(ErrorKind::Broadcast, "non-broadcastable output operand with shape " +
-                                          shape_to_string(out) + " doesn't match the broadcast shape " +
-                                          shape_to_string(broadcast_shapes(shapes)));
-  }
-}
-
-}  // namespace
-
-namespace {
-
-// Masked tail of binary/unary (D-049): the loop has already filled `tmp`
-// (loop dtype, full broadcast shape). Copy the true positions into `out`, or
-// into a zeroed result.
-NDArray finish_masked(const NDArray& tmp, const NDArray* out, const NDArray& mask) {
-  if (!out) {
-    // Same layout as tmp (the D-050 result layout).
-    NDArray res = NDArray::empty_strided(tmp.shape(), tmp.strides(), tmp.dtype(), true);
-    masked_copy_into(res, tmp, mask);
-    return res;
-  }
-  masked_copy_into(*out, tmp, mask);
-  return *out;
-}
-
-}  // namespace
-
-NDArray binary(BinaryOp op, const NDArray& a_in, const NDArray& b_in, const NDArray* out,
+NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b, const NDArray* out,
                const UfuncParams& params) {
-  if (out) check_out_writeable(*out);
-  if (params.where) check_where_dtype(*params.where);
-  const char* name = binary_name(op);
-  const DType dt = params.dtype ? binary_loop_for(op, *params.dtype)
-                                : binary_result_dtype(op, a_in.dtype(), b_in.dtype());
-  check_cast(name, "input 0", a_in.dtype(), dt, params.casting);
-  check_cast(name, "input 1", b_in.dtype(), dt, params.casting);
-  std::vector<Shape> shapes{a_in.shape(), b_in.shape()};
-  if (params.where) shapes.push_back(params.where->shape());
-  if (out) {
-    check_cast(name, "output", dt, out->dtype(), params.casting);
-    check_out_shape(shapes, out->shape());
-  }
-  const Shape full = out ? out->shape() : broadcast_shapes(shapes);
-  // D-050 layout from the operands as given (before dtype casts), like NumPy.
-  const NDArray* where = params.where ? &*params.where : nullptr;
-  const Strides layout = ufunc_result_strides(full, itemsize(dt), {&a_in, &b_in},
-                                              {a_in.dtype() != dt, b_in.dtype() != dt}, where,
-                                              params.order);
-  const NDArray a = a_in.dtype() == dt ? a_in : a_in.astype(dt);
-  const NDArray b = b_in.dtype() == dt ? b_in : b_in.astype(dt);
-  if (params.where) {
-    if (op == BinaryOp::Power) check_nonnegative_exponent(b, *params.where, full);
-    const NDArray tmp = NDArray::empty_strided(full, layout, dt);
-    binary_into(op, dt, a, b, tmp);
-    return finish_masked(tmp, out, *params.where);
-  }
-  if (op == BinaryOp::Power) check_nonnegative_exponent(b);
-  if (!out) {
-    NDArray res = NDArray::empty_strided(full, layout, dt);
-    binary_into(op, dt, a, b, res);
-    return res;
-  }
-  if (out->dtype() == dt) {
-    binary_into(op, dt, safe_input(a, *out), safe_input(b, *out), *out);
-  } else {
-    const NDArray tmp = NDArray::empty_strided(full, layout, dt);
-    binary_into(op, dt, a, b, tmp);
-    copy_into(*out, tmp);
-  }
-  return *out;
+  return binary(get(op), a, b, out, params);
 }
 
 NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b) {
-  return binary(op, a, b, nullptr, UfuncParams{});
+  return binary(get(op), a, b, nullptr, UfuncParams{});
 }
 
 NDArray binary(BinaryOp op, const NDArray& a, const NDArray& b, const NDArray& out) {
-  return binary(op, a, b, &out, UfuncParams{});
+  return binary(get(op), a, b, &out, UfuncParams{});
 }
 
-NDArray unary(UnaryOp op, const NDArray& a_in, const NDArray* out, const UfuncParams& params) {
-  if (out) check_out_writeable(*out);
-  if (params.where) check_where_dtype(*params.where);
-  const char* name = unary_name(op);
-  UnaryLoop loop{};
-  if (params.dtype) {
-    loop = unary_loop_for(op, a_in.dtype(), *params.dtype);
-  } else {
-    const DType dt = unary_result_dtype(op, a_in.dtype());
-    loop = {unary_reads_input_dtype(op, a_in.dtype()) ? a_in.dtype() : dt, dt};
-  }
-  const DType dt = loop.out;
-  check_cast(name, "input", a_in.dtype(), loop.in, params.casting);
-  std::vector<Shape> shapes{a_in.shape()};
-  if (params.where) shapes.push_back(params.where->shape());
-  if (out) {
-    check_cast(name, "output", dt, out->dtype(), params.casting);
-    check_out_shape(shapes, out->shape());
-  }
-  const Shape full = out ? out->shape() : broadcast_shapes(shapes);
-  const NDArray* where = params.where ? &*params.where : nullptr;
-  const Strides layout = ufunc_result_strides(full, itemsize(dt), {&a_in},
-                                              {a_in.dtype() != loop.in}, where, params.order);
-  const NDArray a = a_in.dtype() == loop.in ? a_in : a_in.astype(loop.in);
-  if (params.where) {
-    const NDArray tmp = NDArray::empty_strided(full, layout, dt);
-    unary_into(op, dt, a, tmp);
-    return finish_masked(tmp, out, *params.where);
-  }
-  if (!out) {
-    NDArray res = NDArray::empty_strided(full, layout, dt);
-    unary_into(op, dt, a, res);
-    return res;
-  }
-  if (out->dtype() == dt) {
-    unary_into(op, dt, safe_input(a, *out), *out);
-  } else {
-    const NDArray tmp = NDArray::empty_strided(full, layout, dt);
-    unary_into(op, dt, a, tmp);
-    copy_into(*out, tmp);
-  }
-  return *out;
+NDArray unary(UnaryOp op, const NDArray& a, const NDArray* out, const UfuncParams& params) {
+  return unary(get(op), a, out, params);
 }
 
-NDArray unary(UnaryOp op, const NDArray& a) { return unary(op, a, nullptr, UfuncParams{}); }
+NDArray unary(UnaryOp op, const NDArray& a) { return unary(get(op), a, nullptr, UfuncParams{}); }
 
 NDArray unary(UnaryOp op, const NDArray& a, const NDArray& out) {
-  return unary(op, a, &out, UfuncParams{});
+  return unary(get(op), a, &out, UfuncParams{});
 }
 
 NDArray complex_part(const NDArray& a, bool imag) {

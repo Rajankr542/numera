@@ -51,6 +51,7 @@ add_library(nativpy_core STATIC
   native/core/shape_ops.cpp
   native/core/broadcast.cpp
   native/core/ufunc.cpp
+  native/core/ufunc_registry.cpp
   native/core/indexing.cpp
   native/core/reduce.cpp
 )

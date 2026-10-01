@@ -1,5 +1,19 @@
 # PROGRESS
 
+## 2026-10-01 — P2-7: table-driven native ufunc registry (D-051)
+- Native: new `native/core/ufunc_registry.{hpp,cpp}`. Each of the 14 ufuncs is now one `constexpr` `Ufunc` record with these fields:
+  - name, `nin` and `identity` (add 0, multiply 1).
+  - The default type resolver and the `dtype=` resolver.
+  - An optional input check (power's negative exponent).
+  - Per-dtype strided loop tables, built at compile time.
+- The generic `binary(const Ufunc&, …)`/`unary(const Ufunc&, …)` drivers handle out/where/dtype/casting/order (D-046…D-050). They contain no op-specific `switch`.
+- `ufunc.cpp` keeps the enum API (`binary`/`unary`, `*_result_dtype`, `*_op_from_name`) as thin aliases over the registry.
+- The binding finds ufuncs by name with `find_ufunc`.
+- Pure refactor: no existing test was changed. Error messages, dtypes, layouts and values are unchanged.
+- Tests: 2 new native test cases cover lookup, identity, loop availability, and record-based vs enum calls.
+- Verified: `pnpm build`, `test` (267), `test:native`, `test:asan`, `test:diff` (10420 passed), `typecheck` and `api:check` all pass.
+- Benchmarks: I ran `bench:suite` once on the old code and once on the new code, on this machine. Elementwise timings are within run-to-run noise with no consistent direction. Most differ by under 4%; the largest gap is about 13%, on a roughly 25 µs case (multiply scalar at 100k), and there the new code was faster. No speedup is claimed.
+
 ## 2026-10-01 — P2-6: ufunc `order=` and NumPy result layout (D-050)
 - Native: `Order {C,F,A,K}`, `UfuncParams::order` (default K), and `ufunc_result_strides` (ports of NumPy's trivial-loop check, `npyiter_find_best_axis_ordering` and the 'A' rule).
   - `NDArray::empty_strided` allocates results and temporaries with that layout. The `where=` path keeps the layout as well.
