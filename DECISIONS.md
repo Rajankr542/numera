@@ -1530,3 +1530,56 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   `api/coverage*.json` and `TASK_SLICES.md` are updated only on `main`.
 - Build-first rule (TASK_SLICES.md) is unchanged: no NumPy-compatibility or
   performance claim until the V phase.
+
+## D-100 — P7 creation helpers: JS encodings for slices and index helpers — Accepted — 2026-10-02
+- JS has no `__getitem__`, so NumPy's index-trick objects are functions:
+  `np.mgrid(...slices)`, `np.ogrid(...slices)`, `np.r_(...items)`,
+  `np.c_(...items)`, `np.s_(...specs)`, `np.indexExp(...specs)`, `np.ix_(...seqs)`.
+- `mgrid`/`ogrid` take slice tuples `[start, stop, step?]` (`start` may be
+  `null` = 0). NumPy's complex step `5j` ("number of points, stop inclusive") is
+  written as a complex step `np.complex(0, 5)` (any `{re, im}`; the count is
+  `trunc(|step|)` as in NumPy). One slice returns a 1-D array (NumPy
+  `mgrid[0:5]`); several return the dense `(N, ...)` array (`mgrid`) or an array
+  of sparse arrays (`ogrid`). A zero step raises `ValueError` (Python
+  `ZeroDivisionError`); a missing stop raises `ValueError` (Python `TypeError`).
+- `r_`/`c_` items are arrays/nested lists (data), JS scalars (weak, NEP 50,
+  as in ufuncs D-014) or strings. Because a JS list `[1, 4]` is data, a slice
+  is written in Python syntax as a string containing `:` — `"1:4"`, `"::2"`,
+  `"0:1:5j"` (complex step = linspace count). A first string without `:` is a
+  directive (`"0,2"`, `"-1"`, `"1,2,0"`) with NumPy's meaning. The matrix
+  directives `"r"`/`"c"` raise `NotImplementedError` (numera has no matrix class).
+- `s_(...specs)` / `indexExp(...specs)` return index specs usable with
+  `a.get(...)` / `a.slice(...)` (D-015). They also translate Python slice
+  strings (`"1:3"` → `[1, 3, null]`, `":"` → `[null, null, null]`,
+  `"..."` → `np.ellipsis`); every other spec is passed through unchanged. As in NumPy, `s_` with one spec returns that spec,
+  `indexExp` always returns an array.
+- `meshgrid(...xi, {indexing, sparse, copy})`, `ix_` and `indices(dims,
+  {dtype, sparse})` return JS arrays of NDArrays where NumPy returns tuples.
+  `meshgrid` with `copy: false` and `sparse: false` returns read-only
+  broadcast views (D-016; NumPy returns writeable views with a deprecation
+  warning on write).
+- `np.astype(x, dtype, {copy})` (array API) accepts only an `NDArray`
+  (others raise `DTypeError`, NumPy `TypeError`) and calls `x.astype`.
+
+## D-101 — P7 frombuffer/fromstring/fromiter semantics — Accepted — 2026-10-02
+- `frombuffer(buffer, {dtype, count, offset})` accepts an `ArrayBuffer`,
+  `SharedArrayBuffer` or any `ArrayBufferView` (TypedArray, DataView, Buffer;
+  its byte window is used). Data is **copied** (as `fromTypedArray`, PLAN §31),
+  so the result is writeable and does not share memory with the buffer; NumPy
+  returns a view (read-only for `bytes`). Error messages and checks follow
+  NumPy (`offset` range, multiple of element size, buffer smaller than requested).
+- `fromstring(string, {dtype, count, sep})` supports text mode only (non-empty
+  `sep`); an empty/missing `sep` raises `ValueError` ("The binary mode of
+  fromstring is removed, use frombuffer instead"), as NumPy 2. The parser is a
+  native port of NumPy's `array_from_text` / `swab_separator` /
+  `fromstr_skip_separator` and the per-dtype `fromstr` functions: integers via
+  CPython `PyOS_strtol`/`PyOS_strtoul` (base 10, 64-bit `long` as on LP64, then
+  truncated to the element width), floats via `NumPyOS_ascii_strtod` (POSIX
+  inf/nan forms, decimal only), complex via NumPy's `CDOUBLE_fromstr` (including
+  its quirks, e.g. `"j"` reads as `-1j`). Divergence: when `count` exceeds the
+  number of items, NumPy returns uninitialized trailing elements; numera raises
+  `ValueError` ("string is smaller than requested size").
+- `fromiter(iterable, dtype, count = -1)`: `dtype` is required (as NumPy);
+  values convert with the `np.array` rules (D-009). A short iterator with
+  `count >= 0` raises `ValueError` ("iterator too short: Expected N but iterator
+  had only M items."); a longer one is truncated.
