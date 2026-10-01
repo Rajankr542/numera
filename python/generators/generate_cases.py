@@ -1336,6 +1336,74 @@ def complex_matmul_cases() -> list[dict]:
     return cases
 
 
+def _hermitian(x):
+    return (x + np.conj(np.swapaxes(x, -1, -2))) / 2
+
+
+def complex_linalg_cases() -> list[dict]:
+    """P1-5e.4 / D-038–D-044: complex decompositions. Vectors are checked by
+    reconstruction in the runner (sign/phase are backend dependent)."""
+    cases = []
+    L = np.linalg
+
+    def add(fn, inputs, call, kw=None):
+        cases.append(_lin_case(fn, inputs, kw or {}, call))
+
+    for dt in ("complex64", "complex128"):
+        sq = [_cmat(dt, (3, 3), 1), _cmat(dt, (2, 4, 4), 2), _cmat(dt, (1, 1), 3),
+              np.zeros((0, 0), dt), (np.eye(3) * (1 + 1j)).astype(dt)]
+        for s in sq:
+            add("det", [s], lambda s=s: L.det(s))
+            add("inv", [s], lambda s=s: L.inv(s))
+            rhs = _cmat(dt, s.shape[:-1] + (2,), 4)
+            add("solve", [s, rhs], lambda s=s, r=rhs: L.solve(s, r))
+            add("eig", [s], lambda s=s: L.eig(s))
+            add("eigvals", [s], lambda s=s: L.eigvals(s))
+            h = _hermitian(s)
+            add("eigh", [h], lambda h=h: L.eigh(h))
+            add("eigvalsh", [h], lambda h=h: L.eigvalsh(h))
+        rects = [_cmat(dt, (4, 3), 5), _cmat(dt, (3, 5), 6), _cmat(dt, (2, 3, 2), 7),
+                 np.array([[1, 2j], [2, 4j], [3, 6j]], dt), np.zeros((0, 3), dt)]
+        for r in rects:
+            for full in (True, False):
+                add("svd", [r], lambda r=r, f=full: L.svd(r, full_matrices=f),
+                    {"fullMatrices": full})
+            add("svd", [r], lambda r=r: L.svd(r, compute_uv=False), {"computeUV": False})
+            for mode in ("reduced", "complete", "r"):
+                add("qr", [r], lambda r=r, m=mode: L.qr(r, mode=m), {"mode": mode})
+            if r.ndim == 2:
+                b = _cmat(dt, (r.shape[0],), 8)
+                add("lstsq", [r, b], lambda r=r, b=b: L.lstsq(r, b))
+                b2 = _cmat(dt, (r.shape[0], 2), 9)
+                add("lstsq", [r, b2], lambda r=r, b=b2: L.lstsq(r, b))
+        inf = float("inf")
+        v, m2, m3 = _cmat(dt, (5,), 10), _cmat(dt, (3, 4), 11), _cmat(dt, (2, 3, 4), 12)
+        for o in (None, 1, 2, inf, -inf, 0, 3, -1, 0.5):
+            add("norm", [v], lambda o=o: L.norm(v, ord=o), {"ord": o})
+        for o in (None, "fro", "nuc", 1, -1, 2, -2, inf, -inf):
+            add("norm", [m2], lambda o=o: L.norm(m2, ord=o), {"ord": o})
+        add("norm", [m3], lambda: L.norm(m3, axis=(1, 2)), {"axis": [1, 2]})
+        add("norm", [m3], lambda: L.norm(m3, axis=-1, keepdims=True), {"axis": -1, "keepdims": True})
+    # Mixed real/complex promotion.
+    for rdt in ("float32", "float64", "int32"):
+        for cdt in ("complex64", "complex128"):
+            a, b = _mat(rdt, (3, 3), 13), _cmat(cdt, (3, 2), 14)
+            add("solve", [a, b], lambda a=a, b=b: L.solve(a, b))
+            add("lstsq", [a, b], lambda a=a, b=b: L.lstsq(a, b))
+            ca, rb = _cmat(cdt, (4, 2), 15), _mat(rdt, (4,), 16)
+            add("lstsq", [ca, rb], lambda a=ca, b=rb: L.lstsq(a, b))
+    # Errors.
+    c = _cmat("complex128", (2, 3), 17)
+    for fn in ("det", "inv", "eig", "eigh"):
+        add(fn, [c], lambda f=getattr(L, fn): f(c))
+    sing = np.array([[1 + 1j, 2 + 2j], [1 + 1j, 2 + 2j]])
+    add("inv", [sing], lambda: L.inv(sing))
+    nanm = np.array([[complex(np.nan, 0), 1], [0, 1j]])
+    add("eig", [nanm], lambda: L.eig(nanm))
+    add("norm", [v], lambda: L.norm(v, ord="fro"), {"ord": "fro"})
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -1359,6 +1427,7 @@ def main() -> None:
         "complex_ufuncs": complex_ufunc_cases(),
         "complex_reductions": complex_reduction_cases(),
         "complex_matmul": complex_matmul_cases(),
+        "complex_linalg": complex_linalg_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

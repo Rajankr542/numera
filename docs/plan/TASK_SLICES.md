@@ -43,7 +43,7 @@ Steps 1–4 are done (conversion, ufuncs, reductions, matmul family). Slices lef
 | P1-5b ✅ | `inv`, `solve` (`?gesv`) (D-039). |
 | P1-5c ✅ | `qr` (`?geqrf`/`?ungqr`) (D-040). |
 | P1-5d ✅ | `svd` (`?gesdd`). Singular values are real (D-041). |
-| P1-5e | Rest of P1, combined into one slice (formerly P1-5e–5j): (1) ✅ `eigh`/`eigvalsh` (`?heevd`), with real eigenvalues (D-042); (2) ✅ `eig`/`eigvals` on complex input (`?geev`, D-043); (3) ✅ `lstsq` and `norm` (complex magnitudes, D-044); (4) a differential `complex_linalg` group, comparing results up to sign/phase where needed; (5) an FFT check that the complex paths accept `np.Complex` input end to end; (6) bench cases, ROADMAP/PROGRESS/COMPATIBILITY updates, and marking P1 ✅. Commit after each sub-step. |
+| P1-5e | Rest of P1, combined into one slice (formerly P1-5e–5j): (1) ✅ `eigh`/`eigvalsh` (`?heevd`), with real eigenvalues (D-042); (2) ✅ `eig`/`eigvals` on complex input (`?geev`, D-043); (3) ✅ `lstsq` and `norm` (complex magnitudes, D-044); (4) ✅ a differential `complex_linalg` group, comparing results up to sign/phase where needed; (5) an FFT check that the complex paths accept `np.Complex` input end to end; (6) bench cases, ROADMAP/PROGRESS/COMPATIBILITY updates, and marking P1 ✅. Commit after each sub-step. |
 
 Each 5x slice: C++ kernel + C++ test first, then binding/TS + vitest, all in
 the same slice only if the diff stays small; otherwise split into 5x-1 / 5x-2.

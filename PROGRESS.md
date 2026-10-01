@@ -1,5 +1,31 @@
 # PROGRESS
 
+## 2026-10-01 — P1-5e.4: differential complex_linalg group
+
+New differential group `complex_linalg`, with 211 cases from NumPy 2.5.3, run
+on both backends (422 tests).
+- Coverage: complex64/complex128 `det`, `inv`, `solve`, `eig`, `eigvals`,
+  `eigh`, `eigvalsh` (Hermitian input), `svd` (full/reduced/values only),
+  `qr` (reduced/complete/r), `lstsq` (1-D and 2-D b, rank-deficient), and
+  `norm` (every vector/matrix ord, axis, keepdims). Also mixed real/complex
+  `solve`/`lstsq` promotion, and errors (non-square, singular, NaN for eig,
+  'fro' on a vector).
+- Comparison: dtype and shape are exact. Values are within 1e-10 (complex128)
+  or 2e-4 (complex64) relative to max|expected|. Eigenvalues are compared
+  after sorting. Eigen/singular vectors and Q are checked by reconstruction
+  and unitarity, and `qr(mode='r')` by |R|, because signs and phases depend
+  on the backend.
+- Sanity check: with the tolerance set to 0, 148 of the 422 tests fail, so
+  the comparisons do run against real values.
+- Fix: COMPATIBILITY.md lines added in P1-5e.3 contained internal references
+  (D-044, P1-5e.4) that the package-docs check rejects. That broke
+  `release_stage.test.ts`, which went unnoticed in P1-5e.3. Reworded.
+- Checks: `pnpm test:diff` (5003), `pnpm test` (244), and `pnpm typecheck`
+  all pass.
+
+Next: P1-5e.5, FFT accepts `np.Complex` input end to end.
+
+
 ## 2026-10-01 — P1-5e.3: complex lstsq and norm (D-044)
 
 `linalg.lstsq` and `linalg.norm` accept complex64/complex128.
