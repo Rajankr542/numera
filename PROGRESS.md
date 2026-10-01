@@ -1,8 +1,8 @@
 # PROGRESS
 
-## 2026-10-01 — P1 step 4: complex matmul family (in progress, D-035–D-037)
+## 2026-10-01 — P1 step 4: complex matmul family (done, D-035–D-037)
 
-Done (slices P1-4a to P1-4d):
+Done (slices P1-4a to P1-4e):
 - `matmul`/`dot`/`inner`/`outer` accept complex64 and complex128, with no
   conjugation. P1-4a added the portable kernel (D-035). P1-4b made the
   Accelerate backend choose the same BLAS routine as NumPy (D-036).
@@ -23,7 +23,15 @@ Verification (P1-4d):
   and the root `tsc` pass.
 - No C++ changed in P1-4c/P1-4d, so ASan was last run in P1-4b.
 
-Next: P1-4e, benchmark cases and docs.
+P1-4e (bench): both suites gained `matmul c128`/`matmul c64` at 32²–1024² and
+API cases `complex.dot`/`inner`/`outer`/`matmul`/`matmul matvec`. A smoke run
+with a filter on one machine (Accelerate, median ms) gave nativpy vs NumPy:
+c128 matmul 1024² 14.6 vs 15.8, 32² 0.0037 vs 0.0029; complex.dot on 1000
+elements 0.0018 vs 0.0007. These are single runs, not a performance claim;
+they were not added to PERFORMANCE.md. `pnpm api:check` passes (0 callables
+without a benchmark).
+
+Next: P1-5a, complex `det`.
 
 ## 2026-10-01 — P1 step 3: complex reductions (D-034)
 

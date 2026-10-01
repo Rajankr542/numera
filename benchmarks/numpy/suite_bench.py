@@ -140,6 +140,11 @@ for m in MAT:
     if m <= 512:
         Ai = A.astype(np.int32)
         run("matmul", "matmul i32", s, lambda: np.matmul(Ai, Ai))
+    # P1-4 complex matmul (D-035/D-036): C = A + i*B
+    C = A + B * 1j
+    C64 = C.astype(np.complex64)
+    run("matmul", "matmul c128", s, lambda: np.matmul(C, C))
+    run("matmul", "matmul c64", s, lambda: np.matmul(C64, C64))
     run("fft", "fft2 f64", s, lambda: np.fft.fft2(A))
 
 for m in DECOMP:
@@ -306,6 +311,15 @@ api("complex.std", vs, lambda: np.std(a))
 cm = np.reshape(a, (10, n // 10))
 api("complex.sum axis=0", vs, lambda: np.sum(cm, axis=0))
 api("complex.sum axis=1", vs, lambda: np.sum(cm, axis=1))
+# P1 complex matmul family (D-035/D-036): gemm, gemv and dotu paths
+b = w + v * 1j
+CM = M + S * 1j
+cv = b[:32]
+api("complex.dot", vs, lambda: np.dot(a, b))
+api("complex.inner", vs, lambda: np.inner(a, b))
+api("complex.outer", [100, 100], lambda: np.outer(a[:100], b[:100]))
+api("complex.matmul", ms, lambda: np.matmul(CM, CM))
+api("complex.matmul matvec", ms, lambda: np.matmul(CM, cv))
 
 
 def blas_name():

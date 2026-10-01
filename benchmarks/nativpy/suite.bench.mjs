@@ -139,6 +139,11 @@ for (const m of MAT) {
     const Ai = A.astype("int32");
     run("matmul", "matmul i32", s, () => np.matmul(Ai, Ai));
   }
+  // P1-4 complex matmul (D-035/D-036): C = A + i*B
+  const C = np.add(A, np.multiply(B, np.complex(0, 1)));
+  const C64 = C.astype("complex64");
+  run("matmul", "matmul c128", s, () => np.matmul(C, C));
+  run("matmul", "matmul c64", s, () => np.matmul(C64, C64));
   run("fft", "fft2 f64", s, () => np.fft.fft2(A));
 }
 
@@ -305,6 +310,15 @@ for (const m of DECOMP) {
     const cm = a.reshape([10, n / 10]);
     api("complex.sum axis=0", vs, () => np.sum(cm, { axis: 0 }));
     api("complex.sum axis=1", vs, () => np.sum(cm, { axis: 1 }));
+    // P1 complex matmul family (D-035/D-036): gemm, gemv and dotu paths
+    const b = np.add(w, np.multiply(v, np.complex(0, 1)));
+    const CM = np.add(M, np.multiply(S, np.complex(0, 1)));
+    const cv = b.slice([[0, 32]]);
+    api("complex.dot", vs, () => np.dot(a, b));
+    api("complex.inner", vs, () => np.inner(a, b));
+    api("complex.outer", [100, 100], () => np.outer(a.slice([[0, 100]]), b.slice([[0, 100]])));
+    api("complex.matmul", ms, () => np.matmul(CM, CM));
+    api("complex.matmul matvec", ms, () => np.matmul(CM, cv));
   }
 }
 

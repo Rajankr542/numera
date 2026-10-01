@@ -14,7 +14,7 @@ e.g. "do P1-3a".
 - Start a new conversation after each slice or two.
 
 ## P1 — Complex numbers (D-033)
-Steps 1–2 are done (conversion, ufuncs). Slices left:
+Steps 1–4 are done (conversion, ufuncs, reductions, matmul family). Slices left:
 
 ### Step 3: reductions (`native/core/reduce.cpp`)
 | Slice | Work |
@@ -34,7 +34,7 @@ Steps 1–2 are done (conversion, ufuncs). Slices left:
 | P1-4b ✅ | Accelerate path (`cblas_cgemm`/`zgemm`, plus NumPy's gemv/dotu dispatch) + C++ test (D-036). |
 | P1-4c ✅ | `dot`, `inner`, `outer` on complex (no conjugation, as in NumPy); vitest on both backends. |
 | P1-4d ✅ | Differential `complex_matmul` cases (batched, mixed real/complex promotion), both backends (D-037). |
-| P1-4e | Bench cases + docs. Commit. |
+| P1-4e ✅ | Bench cases + docs. Commit. |
 
 ### Step 5: complex linalg (one function per slice, both backends)
 | Slice | Work |
