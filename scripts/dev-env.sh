@@ -7,3 +7,5 @@ _sdk=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Develo
 [ -d "$_sdk" ] && export SDKROOT="$_sdk"
 export PATH="$_main/.venv/bin:$PATH"
 unset _root _main _sdk
+# Many worktrees build at once; keep each build to a few cores.
+export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-3}"
