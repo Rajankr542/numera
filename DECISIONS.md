@@ -1569,3 +1569,85 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   weak, as NumPy 2. NumPy wraps an out-of-range weak Python int silently
   (`int8` with 300 → 44); numera raises `ValueError` (documented divergence).
   `select` conditions must be bool arrays (`DTypeError`).
+
+## D-130 — Statistics API layout (P10) — Accepted — 2026-10-02
+- Native kernels in `native/core/p10_*.{hpp,cpp}` (binding `addon.p10`); TS in
+  `p10.ts` / `p10_*.ts`, plus `reduce.ts` (owned by P10). Build-first: NumPy
+  differential cases and benchmarks come in the V phase.
+- Keyword arguments are options objects (`np.quantile(a, q, {axis, method,
+  keepdims, weights})`); results are always `NDArray`s (0-d instead of NumPy
+  scalars, as D-017). Tuple results are JS arrays: `histogram` → `[hist, edges]`,
+  `histogram2d` → `[H, xedges, yedges]`, `histogramdd` → `[H, edges[]]`,
+  `average(..., {returned: true})` → `[avg, sumOfWeights]`, multi-axis
+  `gradient` → `NDArray[]`.
+- NDArray methods `cumsum cumprod ptp` are added by declaration merging in `p10.ts`.
+- Functions with NumPy's `out=` that P10 supports: `sum prod min max mean var
+  std` (np.* functions), `cumsum cumprod cumulativeSum cumulativeProd nancumsum
+  nancumprod`. `out` must have the exact result shape; values are cast unsafely
+  (NumPy reductions). Other `out=` / `overwrite_input=` keywords are not
+  accepted (listed in COMPATIBILITY.md).
+
+## D-131 — Quantiles (P10) — Accepted — 2026-10-02
+- `quantile/percentile/median` and their nan-variants follow NumPy 2.5
+  `_quantile`/`_median` exactly: the 13 `method=` names, NumPy's virtual
+  index formulas, `_get_indexes` clamping, `fix_gamma`, and `_lerp`
+  (`a + d*t`, replaced by `b - d*(1-t)` where `t >= 0.5`). The difference
+  `b - a` is taken in the input dtype, so integer inputs wrap as in NumPy.
+- Selection uses `std::nth_element` on a per-slice copy (no global sort).
+- Result dtype: discrete methods (`inverted_cdf closest_observation lower
+  higher nearest`, and `linear` with an integer `q` array) keep the input
+  dtype; the others use `result_type(a, q)` where a JS number `q` is weak
+  (NEP 50; float32 input stays float32) and a list/NDArray `q` is strong.
+  Median uses the `mean` dtype rules (int → float64).
+- A slice containing NaN gives NaN; empty input raises `IndexError` (NumPy),
+  except `median`, which gives NaN like `mean`. Complex input raises `DTypeError`
+  (NumPy `TypeError`); complex `median` raises `NotImplementedError` (numera).
+- `weights=` only with `method: "inverted_cdf"` (NumPy rule), same shape as
+  `a` or 1-d/nd matching the reduced axes; negative weights → `ValueError`.
+
+## D-132 — Cumulative ops, diff, ptp (P10) — Accepted — 2026-10-02
+- `cumsum/cumprod` (axis default: flattened) and `cumulativeSum/
+  cumulativeProd` (array API: axis required for ndim > 1, `includeInitial`)
+  run `add/multiply.accumulate` natively (D-052 dtype rules = NumPy sum/prod).
+- `nancumsum/nancumprod` replace NaN by 0/1 first. `diff` uses `subtract`
+  (bool: `!=`), `prepend`/`append` are converted with `np.array` (strong).
+- `ptp = max - min` in the input dtype (integers wrap, bool raises `DTypeError`).
+
+## D-133 — NaN reductions (P10) — Accepted — 2026-10-02
+- Follow NumPy `_nanfunctions_impl`: NaN replaced by 0 (sum, mean, var), 1
+  (prod), ±inf (min/max/argmin/argmax) and the count of non-NaN values per
+  slice is used as divisor. All-NaN slices: `nanmin/nanmax/nanmean/nanvar/
+  nanstd/nanmedian/nanquantile` → NaN (NumPy also warns; numera does not),
+  `nanargmin/nanargmax` → `ValueError("All-NaN slice encountered")`.
+  Non-float inputs call the plain reduction.
+
+## D-134 — Histograms, bincount, digitize, interp (P10) — Accepted — 2026-10-02
+- `histogram` follows NumPy's two algorithms: uniform bins (int/string `bins`)
+  use the computed-index-plus-correction method with `bincount`-style float64
+  weight accumulation per 65536 block; explicit edges use sorted cumulative
+  sums (`searchsorted` inclusive on the last edge). The bin estimators are
+  NumPy's formulas computed in float64. Complex weights raise
+  `NotImplementedError`.
+- `histogramdd` sample: an `NDArray` is `(N, D)` (1-d → `(N, 1)`); a JS array is
+  a list of D coordinate arrays (NumPy's array_like interpretation).
+- `interp` ports NumPy's `arr_interp` (binary search, slope, the NaN fallbacks);
+  complex `fp` handled per component.
+
+## D-135 — correlate / convolve / gradient / cov (P10) — Accepted — 2026-10-02
+- `correlate(a, v, mode="valid")` computes `c_k = Σ a[n+k]·conj(v[n])` with
+  NumPy's mode windows (`same`: left pad `min/2`); `convolve(a, v,
+  mode="full")` = correlate with reversed `v` and no conjugation. Sums run
+  sequentially (NumPy may use BLAS dot, so the last bits can differ).
+- `gradient` ports NumPy (interior central differences, edge_order 1/2,
+  scalar or coordinate spacing; uniform coordinates reduce to a scalar that is
+  strong, i.e. computed in float64).
+- `cov/corrcoef/average/trapezoid` are composed from native ufuncs,
+  reductions and `matmul` in TS following NumPy's code.
+
+## D-136 — Reduction where= / out= (P10) — Accepted — 2026-10-02
+- `np.sum/prod/min/max/mean/var/std` accept `where` (bool mask broadcast to
+  `a`) and `out`. Masked-out elements are replaced by the identity (sum 0,
+  prod 1) or by `initial` (min/max, which require `initial` with `where`, as
+  NumPy); mean/var/std divide by the masked count. Implemented natively
+  (`p10_reduce`). The NDArray methods (`a.sum()`) live in `ndarray.ts` (P3)
+  and do not get `where`/`out` on this branch.
