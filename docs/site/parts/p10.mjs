@@ -213,4 +213,64 @@ np.interp([-1, 5], [0, 1, 2], [0, 1, 2], { left: -99, right: 99 }).toArray(); //
       },
     ],
   },
+  {
+    id: "reduce-where",
+    title: "Reductions with where= / out=",
+    intro: "All seven scalar reductions (`sum`, `prod`, `min`, `max`, `mean`, `var`, `std`) accept `where` (a boolean mask broadcast to `a`) and `out` (a pre-allocated result array). Only elements where the mask is `true` contribute; masked-out positions use the reduction identity (0 for sum, 1 for prod; for `min`/`max` you must supply `initial`). `mean`/`var`/`std` divide by the count of `true` positions.",
+    entries: [
+      {
+        name: "sum (where=)",
+        sig: "np.sum(a, { where, out? })",
+        desc: "`where` is a bool `ArrayLike` broadcast to `a`. Masked-out positions contribute 0.",
+        args: [arr(), { name: "options.where", type: "ArrayLike", desc: "Boolean mask; `true` positions are summed." }, { name: "[options.out]", type: "NDArray", desc: "Pre-allocated output (exact result shape)." }],
+        returns: "NDArray",
+        example: `const a = np.array([1, 2, 3, 4, 5], { dtype: "float64" });
+const mask = np.array([true, false, true, false, true]);
+np.sum(a, { where: mask }).item();   // => 9`,
+      },
+      {
+        name: "mean (where=)",
+        sig: "np.mean(a, { where, out? })",
+        desc: "Mean of the unmasked elements; divisor is the count of `true` positions.",
+        args: [arr(), { name: "options.where", type: "ArrayLike", desc: "Boolean mask." }],
+        returns: "NDArray",
+        example: `const a = np.array([1, 2, 3, 4, 5], { dtype: "float64" });
+const mask = np.array([true, false, true, false, true]);
+np.mean(a, { where: mask }).item();  // => 3`,
+      },
+      {
+        name: "var / std (where=)",
+        sig: "np.var(a, { where, ddof? }) · np.std(a, { where, ddof? })",
+        desc: "Variance / standard deviation over unmasked elements.",
+        args: [arr(), { name: "options.where", type: "ArrayLike", desc: "Boolean mask." }, { name: "[options.ddof]", type: "number", desc: "Delta degrees of freedom (default 0)." }],
+        returns: "NDArray",
+        example: `const a = np.array([1, 2, 3, 4, 5], { dtype: "float64" });
+const mask = np.array([true, false, true, false, true]);
+np.var(a, { where: mask }).item();   // => 2.6666666666666665
+np.std(a, { where: mask }).item();   // => 1.632993161855452`,
+      },
+      {
+        name: "min / max (where= + initial=)",
+        sig: "np.min(a, { where, initial }) · np.max(a, { where, initial })",
+        desc: "`min`/`max` with a mask require `initial` (the identity / seed value), matching NumPy's requirement.",
+        args: [arr(), { name: "options.where", type: "ArrayLike", desc: "Boolean mask." }, { name: "options.initial", type: "number", desc: "Required seed value." }],
+        returns: "NDArray",
+        example: `const a = np.array([1, 2, 3, 4], { dtype: "float64" });
+const mask = np.array([false, true, false, true]);
+np.min(a, { where: mask, initial: 1e10 }).item();  // => 2
+np.max(a, { where: mask, initial: -1e10 }).item(); // => 4`,
+      },
+      {
+        name: "out= parameter",
+        sig: "np.sum/prod/min/max/mean/var/std(a, { out })",
+        desc: "Write the result into a pre-allocated `NDArray`. `out.shape` must exactly match the result shape. The same array is returned.",
+        args: [arr(), { name: "options.out", type: "NDArray", desc: "Pre-allocated output (exact result shape)." }],
+        returns: "NDArray (same object as out)",
+        example: `const a = np.array([1, 2, 3, 4, 5], { dtype: "float64" });
+const out = np.zeros([]);
+np.sum(a, { out });
+out.item();  // => 15`,
+      },
+    ],
+  },
 ];

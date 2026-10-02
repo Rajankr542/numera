@@ -4,6 +4,7 @@ import { wrapNative } from "./errors.js";
 import { array } from "./creation.js";
 import { NDArray } from "./ndarray.js";
 import type { ArrayLike } from "./ufunc.js";
+import { reduceWhere } from "./p10.js";
 
 /**
  * Reductions (PLAN §17, M7). Semantics: DECISIONS D-017. Results are always
@@ -17,6 +18,10 @@ export interface ReduceOptions {
   dtype?: DTypeLike | null;
   /** Starting value (sum, prod, min, max). */
   initial?: number | null;
+  /** Boolean mask; only elements where `where` is True contribute (D-136). */
+  where?: ArrayLike | null;
+  /** Pre-allocated output array (D-136). */
+  out?: NDArray | null;
 }
 
 export interface VarOptions extends Omit<ReduceOptions, "initial"> {
@@ -32,6 +37,10 @@ export interface ArgReduceOptions {
 const toArray = (a: ArrayLike): NDArray => (a instanceof NDArray ? a : array(a));
 
 function run(op: string, a: ArrayLike, opts: ReduceOptions & { ddof?: number }): NDArray {
+  // Route through the where=/out= kernel when either is present (D-136).
+  if (opts.where != null || opts.out != null) {
+    return reduceWhere(op, a, opts);
+  }
   const x = toArray(a);
   const axis = opts.axis ?? null;
   return wrapNative(() =>

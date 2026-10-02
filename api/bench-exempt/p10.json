@@ -2,6 +2,9 @@
  "ndarray.cumprod [nativpy] [numpy]",
  "ndarray.cumsum [nativpy] [numpy]",
  "np.average [nativpy] [numpy]",
+ "np.bincount [nativpy] [numpy]",
+ "np.convolve [nativpy] [numpy]",
+ "np.correlate [nativpy] [numpy]",
  "np.corrcoef [nativpy] [numpy]",
  "np.cov [nativpy] [numpy]",
  "np.cumprod [nativpy] [numpy]",
@@ -9,7 +12,13 @@
  "np.cumulative_prod [nativpy] [numpy]",
  "np.cumulative_sum [nativpy] [numpy]",
  "np.diff [nativpy] [numpy]",
+ "np.digitize [nativpy] [numpy]",
  "np.gradient [nativpy] [numpy]",
+ "np.histogram [nativpy] [numpy]",
+ "np.histogram2d [nativpy] [numpy]",
+ "np.histogram_bin_edges [nativpy] [numpy]",
+ "np.histogramdd [nativpy] [numpy]",
+ "np.interp [nativpy] [numpy]",
  "np.median [nativpy] [numpy]",
  "np.nanargmax [nativpy] [numpy]",
  "np.nanargmin [nativpy] [numpy]",
@@ -28,7 +37,5 @@
  "np.percentile [nativpy] [numpy]",
  "np.ptp [nativpy] [numpy]",
  "np.quantile [nativpy] [numpy]",
- "np.trapezoid [nativpy] [numpy]",
- "np.correlate [nativpy] [numpy]",
- "np.convolve [nativpy] [numpy]"
+ "np.trapezoid [nativpy] [numpy]"
 ]
