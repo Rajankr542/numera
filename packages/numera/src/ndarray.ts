@@ -1,7 +1,8 @@
 import { addon, type NativeIndexItem, type NativeNDArray } from "./addon.js";
 import { dtype as toDType, type DType, type DTypeLike } from "./dtype.js";
-import { IndexError, ValueError, wrapNative } from "./errors.js";
+import { DTypeError, IndexError, NotImplementedError, ValueError, wrapNative } from "./errors.js";
 import type { Complex, ComplexLike } from "./complex.js";
+import { p03native } from "./p03_native.js";
 
 export type Shape = readonly number[];
 export type NestedArray = number | boolean | bigint | ComplexLike | readonly NestedArray[];
@@ -73,7 +74,18 @@ export interface AstypeOptions {
   order?: MemoryOrder | null;
   /** When false, returns this array itself if dtype and layout already match. */
   copy?: boolean;
+  /** Casting rule checked before converting (NumPy `casting=`); default "unsafe" (D-060). */
+  casting?: "no" | "equiv" | "safe" | "same_kind" | "unsafe";
 }
+
+/** A JS element value as read from an array (D-005, D-033). */
+export type ScalarValue = number | boolean | Complex;
+
+/**
+ * Index for `a.flat.get` / `a.flat.set` (D-060): an integer, a slice tuple
+ * `[start, stop, step?]` (as in D-015), an integer index array or a boolean mask.
+ */
+export type FlatIndex = number | SliceTuple | NDArray | readonly boolean[];
 
 const orderArg = (o: { order?: MemoryOrder | null } | undefined): string | undefined =>
   o?.order === undefined || o.order === null ? undefined : o.order;
@@ -99,6 +111,11 @@ export interface MethodReduceOptions {
 
 const internal = Symbol("nativpy.internal");
 
+// The TS wrapper of a native handle, so `base` returns the same object (D-060).
+interface Owned {
+  __ts?: NDArray;
+}
+
 /**
  * N-dimensional array backed by native memory (PLAN §8, D-003).
  * Strides are in bytes, like `numpy.ndarray.strides`.
@@ -113,6 +130,7 @@ export class NDArray {
       throw new ValueError("NDArray cannot be constructed directly; use np.array()");
     }
     this._native = handle;
+    (handle as Owned).__ts = this;
   }
 
   /** @internal */
@@ -212,9 +230,15 @@ export class NDArray {
     return wrapNative(() => NDArray._wrap(addon.flatten(this._native, orderArg(opts))));
   }
 
-  /** Converted copy (NumPy `astype`, unsafe casting, default order "K"). */
+  /** Converted copy (NumPy `astype`, default casting "unsafe", default order "K"). */
   astype(dt: DTypeLike, opts: AstypeOptions = {}): NDArray {
     const target = toDType(dt);
+    const casting = opts.casting ?? "unsafe";
+    if (casting !== "unsafe" && !wrapNative(() => addon.canCast(this.dtype.name, target.name, casting))) {
+      throw new DTypeError(
+        `Cannot cast array data from dtype('${this.dtype.name}') to dtype('${target.name}') according to the rule '${casting}'`,
+      );
+    }
     const order = orderArg(opts) ?? "K";
     if (opts.copy === false && target === this.dtype) {
       const f = this.flags;
@@ -287,6 +311,75 @@ export class NDArray {
     });
   }
 
+  /**
+   * The array whose memory this one views (NumPy `a.base`), or `null` if this
+   * array owns its data (D-060).
+   */
+  get base(): NDArray | null {
+    const h = this._native.base();
+    if (h === null) return null;
+    return (h as Owned).__ts ?? NDArray._wrap(h);
+  }
+
+  /** Matrix transpose of the last two axes (NumPy `a.mT`), a view. */
+  get mT(): NDArray {
+    return wrapNative(() => NDArray._wrap(p03native.matrixTranspose(this._native)));
+  }
+
+  /** 1-D iterator/indexer over the elements in C order (NumPy `a.flat`, D-060). */
+  get flat(): FlatIter {
+    return new FlatIter(this);
+  }
+  /** `a.flat = v`: assigns `v` (repeated cyclically) to every element. */
+  set flat(value: NDArray | NestedArray) {
+    new FlatIter(this)._assign(null, value);
+  }
+
+  /** Sets every element to `value` (NumPy `a.fill`); cast to this dtype. */
+  fill(value: number | boolean | bigint | ComplexLike | NDArray): void {
+    wrapNative(() => {
+      const v = value instanceof NDArray ? value._native : addon.fromNested(value, this.dtype.name);
+      p03native.fill(this._native, v);
+    });
+  }
+
+  /** Nested JS arrays, like `toArray()` (NumPy `a.tolist()`; D-005 applies). */
+  tolist(): NestedArray {
+    return this.toArray();
+  }
+
+  /** Raw bytes in C (default), F or A order as a new Uint8Array (NumPy `tobytes`). */
+  tobytes(opts: OrderOptions = {}): Uint8Array {
+    return wrapNative(() => p03native.tobytes(this._native, orderArg(opts)));
+  }
+
+  /**
+   * New view of the same memory (NumPy `a.view(dtype)`). With a dtype of a
+   * different item size the last axis is rescaled (D-060).
+   */
+  view(dt?: DTypeLike): NDArray {
+    const target = dt === undefined ? this.dtype : toDType(dt);
+    return wrapNative(() => NDArray._wrap(p03native.viewAs(this._native, target.name)));
+  }
+
+  /** Byte-swapped copy, or swaps in place and returns this array (NumPy `byteswap`). */
+  byteswap(opts: { inplace?: boolean } = {}): NDArray {
+    const inplace = opts.inplace ?? false;
+    const r = wrapNative(() => p03native.byteswap(this._native, inplace));
+    return inplace ? this : NDArray._wrap(r);
+  }
+
+  /** NumPy `setflags`: only `write` is supported (D-060). */
+  setflags(opts: { write?: boolean | null; align?: boolean | null; uic?: boolean | null } = {}): void {
+    if (opts.align != null || opts.uic != null) {
+      throw new NotImplementedError("setflags supports only the write flag");
+    }
+    if (opts.write != null) {
+      const w = opts.write;
+      wrapNative(() => this._native.setWriteable(w));
+    }
+  }
+
   /** Nested JS arrays (a conversion, not the internal representation — PLAN §30). */
   toArray(): NestedArray {
     return wrapNative(() => this._native.toList() as NestedArray);
@@ -332,4 +425,126 @@ export class NDArray {
   toString(): string {
     return `array(${JSON.stringify(this.toArray())}, dtype=${this.dtype.name})`;
   }
+}
+
+/**
+ * NumPy `flatiter` (D-060): a 1-D, C-order view of an array's elements.
+ * `get`/`set` take a number, a slice tuple, an integer index array or a boolean
+ * mask of the array's size.
+ */
+export class FlatIter implements Iterable<ScalarValue> {
+  /** The array being iterated (NumPy `flat.base`). */
+  readonly base: NDArray;
+  private pos = 0;
+
+  /** @internal */
+  constructor(base: NDArray) {
+    this.base = base;
+  }
+
+  get length(): number {
+    return this.base.size;
+  }
+  /** Flat position of the next element (NumPy `flat.index`). */
+  get index(): number {
+    return this.pos;
+  }
+  /** Multi-index of the next element (NumPy `flat.coords`). */
+  get coords(): number[] {
+    return unravel(this.pos, this.base.shape);
+  }
+
+  /** Flat positions (int64 array) selected by `index`; null for all elements. */
+  private positions(index: FlatIndex): NDArray {
+    const size = this.base.size;
+    const flatIdx = (spec: IndexSpec): NDArray =>
+      wrapNative(() => {
+        const iota = NDArray._wrap(addon.arange(0, size, 1, "int64"));
+        return NDArray._wrap(addon.getIndex(iota._native, encodeIndex([spec])));
+      });
+    if (index instanceof NDArray) {
+      if (index.dtype.kind === "b") {
+        if (index.ndim !== 1 || index.size !== size) {
+          throw new IndexError(
+            `boolean index did not match indexed flat iterator along axis 0; size of axis is ${size} but size of corresponding boolean axis is ${index.size}`,
+          );
+        }
+        return flatIdx(index);
+      }
+      if (index.dtype.kind !== "i" && index.dtype.kind !== "u") {
+        throw new IndexError("only integers, slices, and integer or boolean arrays are valid flat indices");
+      }
+      return flatIdx(index);
+    }
+    if (Array.isArray(index) && index.length > 0 && index.every((v) => typeof v === "boolean")) {
+      return this.positions(NDArray._wrap(addon.fromNested(index, "bool")));
+    }
+    if (isSliceTuple(index) || (Array.isArray(index) && index.length === 0)) {
+      return flatIdx(index as SliceTuple);
+    }
+    if (typeof index === "number") {
+      if (!Number.isInteger(index)) {
+        throw new IndexError("only integers, slices, and integer or boolean arrays are valid flat indices");
+      }
+      if (index < -size || index >= size) {
+        throw new IndexError(`index ${index} is out of bounds for size ${size}`);
+      }
+      return NDArray._wrap(addon.fromNested(index < 0 ? index + size : index, "int64"));
+    }
+    throw new IndexError("only integers, slices, and integer or boolean arrays are valid flat indices");
+  }
+
+  /**
+   * `a.flat[i]`: a JS scalar for a number, otherwise a new array (1-D for a
+   * slice or mask, the index's shape for an integer array).
+   */
+  get(index: number): ScalarValue;
+  get(index: Exclude<FlatIndex, number>): NDArray;
+  get(index: FlatIndex): ScalarValue | NDArray {
+    const pos = this.positions(index);
+    const flat = this.base.ravel();
+    if (typeof index === "number") return flat.item(pos.item() as number);
+    return wrapNative(() => NDArray._wrap(addon.take(flat._native, pos._native, null)));
+  }
+
+  /** `a.flat[i] = value`; values repeat cyclically over the selection (NumPy). */
+  set(index: FlatIndex, value: NDArray | NestedArray | ComplexLike): void {
+    this._assign(this.positions(index), value);
+  }
+
+  /** @internal `pos` null selects every element. */
+  _assign(pos: NDArray | null, value: NDArray | NestedArray | ComplexLike): void {
+    wrapNative(() => {
+      const v = value instanceof NDArray ? value._native : addon.fromNested(value, this.base.dtype.name);
+      p03native.flatAssign(this.base._native, pos === null ? null : pos._native, v);
+    });
+  }
+
+  /** 1-D copy of all elements (NumPy `flat.copy()`). */
+  copy(): NDArray {
+    return this.base.flatten();
+  }
+
+  toArray(): NestedArray {
+    return this.base.flatten().toArray();
+  }
+
+  next(): IteratorResult<ScalarValue> {
+    if (this.pos >= this.base.size) return { value: undefined, done: true };
+    return { value: this.base.item(...unravel(this.pos++, this.base.shape)), done: false };
+  }
+
+  [Symbol.iterator](): Iterator<ScalarValue> {
+    return this;
+  }
+}
+
+function unravel(flat: number, shape: readonly number[]): number[] {
+  const out = new Array<number>(shape.length).fill(0);
+  for (let d = shape.length - 1; d >= 0; d--) {
+    const n = shape[d]!;
+    out[d] = n === 0 ? 0 : flat % n;
+    flat = n === 0 ? 0 : Math.floor(flat / n);
+  }
+  return out;
 }

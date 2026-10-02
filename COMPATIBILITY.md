@@ -109,3 +109,13 @@ differential tests (`pnpm test:diff`).
 - Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
 - FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
 - Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+
+## P3 NDArray methods and core API (build-first; NumPy differential checks pending)
+| NumPy | NumPy behaviour | numera | Decision |
+|---|---|---|---|
+| `a.flat` | `flatiter` object, `a.flat[i]` | `FlatIter` with `get(i)`/`set(i, v)`, iterable; `a.flat = v` assigns cyclically | D-060 |
+| `a.flat[i]` for an integer | NumPy scalar | JS scalar (D-005) | D-060 |
+| `a.tobytes()` | Python `bytes` | `Uint8Array` copy | D-060 |
+| `a.setflags(align=, uic=)` | supported | `NotImplementedError` (only `write`) | D-060 |
+| `a.fill(300)` on int8 | `OverflowError` | `ValueError` (D-009 rules) | D-060 |
+| `a.astype(dt, casting=)` disallowed | `TypeError` | `DTypeError` | D-060 |

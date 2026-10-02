@@ -1530,3 +1530,44 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   `api/coverage*.json` and `TASK_SLICES.md` are updated only on `main`.
 - Build-first rule (TASK_SLICES.md) is unchanged: no NumPy-compatibility or
   performance claim until the V phase.
+
+## D-060 — NDArray methods fill/tolist/tobytes/view/byteswap/setflags/base/mT/flat (P3-2) — Accepted — 2026-10-02
+- Native kernels in `native/core/p03_methods.{hpp,cpp}`, bound in `p03_binding.cpp`.
+  Build-first: NumPy differential and bench cases are deferred to the V phase.
+- `base` (NumPy identity semantics, `a[1:][1:].base === a`): the native addon keeps a
+  per-env map buffer → owning `NDArrayWrap*` (plain C++ map, inserted when an owning
+  array is wrapped, erased in its GC-time destructor without any N-API call, D-023).
+  When a non-owning result is wrapped, the owner's JS handle is stored as a hidden
+  property on the view's handle, so a view keeps its base alive, as in NumPy.
+  (JS `WeakRef`s were rejected: they keep every array alive until the end of a
+  synchronous job, which defeats D-023.)
+  The TS `NDArray` stores itself on its native handle so `base` returns the same
+  object. Arrays that own their data, and views whose buffer has no wrapped owner
+  (e.g. `imag` of a real array), have `base === null`. Shared-file edits (minimal):
+  `ndarray.hpp` (`set_writeable`) and `ndarray_binding.{hpp,cpp}` (owner map,
+  `base()`/`setWriteable()` handle methods).
+- `setflags({write})`: `write: false` always works; `write: true` raises
+  `ValueError("cannot set WRITEABLE flag to True of this array")` when the array's
+  owner is read-only (NumPy rule). `align`/`uic` are not supported (`NotImplementedError`).
+- `view(dtype?)`: NumPy 2 rules — same itemsize: dtype swap; 0-d with a different
+  itemsize, a non-contiguous last axis (unless its length is 1 or the array is empty),
+  or a last-axis byte size not divisible by the new itemsize raise `ValueError` with
+  NumPy's messages. Views inherit writeability.
+- `tobytes({order})` returns a `Uint8Array` copy. `"C"`/`"K"` → C order (NumPy's
+  tobytes treats K as C), `"F"` → F, `"A"` → F if F- and not C-contiguous.
+- `byteswap({inplace})`: per-element byte reversal (complex: per component); the copy
+  keeps the input layout (K). In place on a read-only array raises
+  `ValueError("array to be byte-swapped is read-only")`.
+- `fill(value)`: JS scalar (or size-1 array) cast like `np.array(value, {dtype})`
+  (D-009: out-of-range ints / NaN to int raise `ValueError`, floats truncate).
+- `tolist()` is `toArray()` (D-005 applies).
+- `mT`: swaps the last two axes; `ndim < 2` raises
+  `ValueError("matrix transpose with ndim < 2 is undefined")`.
+- `flat` returns a new `FlatIter` (NumPy `flatiter`): `get(i)` (number → JS scalar;
+  slice tuple, int array or bool mask → 1-D/shape-of-index copy), `set(i, value)`
+  (values repeat cyclically, as NumPy), `base`, `index`, `coords`, `length`, `copy()`,
+  `toArray()`, and the iterator protocol (yields JS scalars in C order, read live).
+  `a.flat = v` assigns cyclically to every element.
+- `astype(dt, {order, copy, casting})`: `casting` (default `"unsafe"`) is checked
+  with `canCast`; a disallowed cast raises `DTypeError` ("Cannot cast array data
+  from dtype('float64') to dtype('int32') according to the rule 'safe'").

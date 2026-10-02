@@ -1,1 +1,8 @@
-[]
+[
+ "ndarray.byteswap [nativpy] [numpy]",
+ "ndarray.fill [nativpy] [numpy]",
+ "ndarray.setflags [nativpy] [numpy]",
+ "ndarray.tobytes [nativpy]",
+ "ndarray.tolist [nativpy]",
+ "ndarray.view [nativpy] [numpy]"
+]
