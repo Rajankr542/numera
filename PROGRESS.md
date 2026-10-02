@@ -1151,3 +1151,8 @@ Done:
   complex, ints, bool, all print options) gave identical output.
 - Gaps: NumPy differential cases for P3 are not in `test:diff` yet; no benchmarks
   (bench-exempt); `legacy` print modes, writable `nditer`, `nditer` buffering flags.
+## 2026-10-02 — P14 extra dtypes and I/O, partial (D-170–D-173)
+- I/O: `save load savez savezCompressed` (.npy v1/v2/v3 and .npz with stored/deflate), `loadtxt savetxt` (native tokenizer and formatter), `genfromtxt fromregex`, `fromfile` and `NDArray.tofile`.
+- Misc: `baseRepr binaryRepr`; native windows `bartlett blackman hamming hanning kaiser`; legacy polynomials `poly poly1d polyadd polyder polydiv polyfit polyint polymul polysub polyval roots` (native convolve/polydiv).
+- Tests: `tests/native/test_p14_*.cpp`, `packages/numera/test/p14_*.test.ts`, docs examples in `docs/site/parts/p14.mjs`. Verified: `pnpm build`, `test`, `test:native`, `api:check`, `test:asan`.
+- Remaining: datetime64/timedelta64 (P14-8..10, D-174/D-175; this needs a core DType enum change touching ~38 dispatch sites), str_/bytes_/np.strings/structured (P14-11), and NumPy differential cases and benchmarks (names are in `api/bench-exempt/p14.json`).

@@ -2254,3 +2254,112 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   `array([1, 2])`; the old JSON-like `array([1,2], dtype=int64)` form is gone.
   0-d `arrayStr` uses NumPy scalar `str` rules (float16/32/64 positional below
   1e3/1e6/1e16 and ≥ 1e-4, complex `(a+bj)`).
+## D-170 — P14 NPY / NPZ binary I/O (P14) — Accepted — 2026-10-02
+- `.npy` encoding/decoding lives in C++ (`native/core/p14_npy.{hpp,cpp}`):
+  header v1.0 (v2.0 when the header exceeds 65535 bytes), byte-for-byte the
+  layout of `numpy.lib.format.write_array` (sorted dict keys, 21-digit growth
+  padding, 64-byte alignment). Descriptors `|b1 |i1 |u1 <i2 <u2 <i4 <u4 <i8 <u8
+  <f2 <f4 <f8 <c8 <c16`; loading also accepts `>`/`=` byte orders (big-endian
+  data is byte-swapped into a native array), header versions 1/2/3, and
+  `fortran_order: True` (the result is F-contiguous). Any other descriptor
+  (strings, structured, object) raises `DTypeError` (object: `ValueError`, as
+  NumPy with `allow_pickle=False`). There is no pickle support at all.
+- File arguments: a path (`string` or `URL`) reads/writes the file with Node
+  `fs`; `save`/`savez*` append `.npy`/`.npz` like NumPy. Passing `null` as the
+  file returns the encoded bytes as a `Buffer` instead of writing; `load`
+  accepts a `Buffer`/`Uint8Array`/`ArrayBuffer` of file contents.
+- `load` returns an `NDArray` for `.npy` data and an `NpzFile` for zip data
+  (`files`, `get(name)` with or without the `.npy` suffix, `keys()`,
+  `entries()`, iteration over names, `close()`; NumPy's `npz[key]` mapping
+  syntax is `npz.get(key)`). Members are decoded lazily on `get`.
+- `savez(file, ...arrays)` / `savezCompressed`: positional arrays are named
+  `arr_0, arr_1, ...`; a trailing plain object (not an NDArray, nested list or
+  complex-like `{re, im}`) maps names to arrays (NumPy keyword arguments).
+  The zip container is written in TS like Python's `zipfile` with
+  `force_zip64=True` (fixed 1980-01-01 timestamp, mode 0o600), so `savez`
+  output is byte-identical to NumPy's; `savezCompressed` uses Node's
+  `zlib.deflateRawSync` (level 6) whose deflate stream may differ in bytes
+  from CPython's zlib but decodes to the same members. CRC-32 is native.
+- Unsupported: `mmap_mode` (raises `ValueError` unless null), `allow_pickle`,
+  `fix_imports`, `encoding`, `max_header_size` (headers of any size are
+  parsed). Truncated or empty input raises `ValueError` (NumPy `EOFError` for
+  an empty file).
+
+## D-171 — P14 text I/O: loadtxt, savetxt, genfromtxt, fromregex, fromfile, tofile (P14) — Accepted — 2026-10-02
+- Text sources: a path (`string` or file `URL`), the contents as a
+  `Buffer`/`Uint8Array` (UTF-8), or an array of lines (`string[]`, like
+  NumPy's list-of-lines input). A plain string is always a path. Text sinks
+  (`savetxt`) take a path or `null` (returns the text as a string).
+- `loadtxt` is parsed in C++ (`native/core/p14_text.cpp`) with the rules of
+  NumPy's C reader: single-character (UTF-8) `delimiter` or whitespace runs,
+  one or more `comments` strings, optional `quotechar` (doubled quote escapes),
+  `skiprows` (raw lines), `usecols` (negative allowed, per row), `maxRows`,
+  `ndmin`, `unpack`; numeric dtypes only; integers must be plain decimal,
+  floats accept `inf`/`nan` but no hex or `_`, bool parses an integer. Error
+  messages follow NumPy's. `converters`, `encoding`, structured and string
+  dtypes are not supported. Lines end at `\n` (a trailing `\r` is dropped).
+- `savetxt` formatting is native: Python `%`-formatting for `d i u o x X e E
+  f F g G s` with flags `-+ 0#`, width, precision and ignored `h l L`; `%s`
+  of a float prints NumPy's scalar `str` (shortest round-trip digits, the
+  float16/32/64 positional/scientific cut-offs). `%r`, `%c`, `%a` and `*`
+  raise `ValueError`. Booleans are accepted by `%o %x %X` (NumPy raises
+  `TypeError` because `np.bool` has no `__index__`).
+- `genfromtxt` is implemented in TS on top of the same splitting rules as
+  NumPy's `LineSplitter` (comment split, whitespace or delimiter or fixed
+  widths, autostrip) and the `StringConverter` semantics for an explicit
+  numeric `dtype`: Python `int()/float()/complex()` syntax, `str2bool` for
+  bool, loose mode (unconvertible → filling value) or strict mode
+  (`loose: false`), `missingValues`/`fillingValues` as a value, list or
+  `{column: value}` map, `skipHeader`, `skipFooter`, `usecols`, `maxRows`,
+  `invalidRaise`, `ndmin`, `unpack`. `dtype: null` (type inference), `names`,
+  `converters` and `usemask` are not supported. Int64 cells are parsed as
+  BigInt so they keep full precision.
+- `fromregex(file, regexp, dtype)`: `dtype` is a list of `[name, dtype]`
+  fields (NumPy requires a structured dtype); the result is a plain object
+  `{name: NDArray}` (one 1-D array per field) since structured arrays are not
+  available. A JS `RegExp` (flags kept, `g` added) or a pattern string.
+- `fromfile(file, {dtype, count, sep, offset})`: binary mode (`sep` empty)
+  reads like `frombuffer`; text mode parses like `fromstring`. 
+  `NDArray.tofile(file, {sep, format})` writes raw C-order bytes, or text
+  items joined by `sep` using Python-scalar formatting (float repr, complex
+  repr), `format` applied with `%`. `file` may be `null` to return a Buffer.
+
+## D-172 — P14 baseRepr/binaryRepr and window functions (P14) — Accepted — 2026-10-02
+- `baseRepr(number, base = 2, padding = 0)` and `binaryRepr(num, {width})`
+  follow NumPy's pure-Python algorithms exactly (including the gh-8679
+  two's-complement boundary rule and the "Insufficient bit width" error).
+  They are string utilities, so they are implemented in TS on `bigint`.
+  `number`/`bigint` integers are accepted, and so is a 0-d integer NDArray;
+  a non-integral number raises `TypeError` (Python `operator.index`).
+  NumPy's `base_repr` truncates a float with `int()`; numera raises
+  `TypeError` instead.
+- `bartlett blackman hamming hanning kaiser(M[, beta])` are native
+  (`native/core/p14_window.cpp`) and evaluate NumPy's formulas in the same
+  operation order: `n = arange(1-M, M, 2)` (or `arange(0, M)` for kaiser),
+  `M` may be any real number, results are float64. `kaiser` uses NumPy's
+  Chebyshev `i0` coefficients, so the results match NumPy to the last bit
+  except where libm `cos`/`exp` differ by an ulp.
+
+## D-173 — P14 legacy polynomials: poly, poly1d, polyadd ... roots (P14) — Accepted — 2026-10-02
+- The `np.poly*` functions follow NumPy's `numpy/lib/_polynomial_impl.py`
+  step by step, composed from existing native ops (ufuncs, `vander`,
+  `linalg.lstsq`, `linalg.eigvals`, `linalg.inv`). Two loops are new native
+  kernels in `native/core/p14_poly.cpp`: full 1-D convolution (`polymul`,
+  `poly`; result dtype `promote_types`, integer products wrap, bool is
+  or-of-ands) and long division (`polydiv`, computed in the inexact dtype
+  of `u[0] + v[0]`; float16 is computed in float32 and rounded back; the
+  remainder is trimmed while `|r[0]| <= 1e-8`, NumPy's `allclose(r[0], 0)`).
+- `roots` builds NumPy's companion matrix and returns real values when the
+  input is real and every imaginary part is 0 (NumPy's
+  `_to_real_if_imag_zero`), otherwise complex.
+- `polyfit(x, y, deg, {rcond, full, w, cov})` returns the coefficients, or
+  NumPy's tuples as JS arrays: `full` gives `[c, residuals, rank, s, rcond]`,
+  `cov` gives `[c, V]`. The rank warning is a Node `RankWarning` warning.
+- `poly1d` is a class. Python operators become methods: `call(x)` (`p(x)`),
+  `add sub mul div pow neg equals`; `get(power)`/`set(power, v)` are
+  `p[k]`/`p[k] = v`; `length` is `len(p)` (the order); `coeffs`, `c`,
+  `coef`, `coefficients`, `order`, `o`, `roots`, `r`, `variable`;
+  `integ(m, k)`, `deriv(m)`; iteration over the coefficients; `toString()`
+  is NumPy's `str(p)` (with the superscript line). `div` by a polynomial
+  returns `[q, r]`. Every `np.poly*` function returns a `poly1d` when any
+  input is one, as NumPy does.

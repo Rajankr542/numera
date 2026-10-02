@@ -245,3 +245,14 @@ NDArray `dot`. This supersedes the "`pinv`, `matrix_rank`, `matrix_power`,
 the Linalg item under "Not implemented". Batched `lstsq` (NumPy 2.5.3 rejects
 stacks too), `out=` and `eigh(UPLO='U')` are still missing. Divergences are
 listed in "Documented divergences" (D-140, D-141).
+| `load` of an empty file | `EOFError` | `ValueError` | D-170 |
+| `savezCompressed` output bytes | zlib deflate | Node zlib deflate (content equal, bytes may differ) | D-170 |
+| `allow_pickle` / `mmap_mode` in `load` | object arrays via pickle, memory maps | not supported (`ValueError`) | D-170 |
+| `savetxt` `%x` on bool | `TypeError` | accepted (0/1) | D-171 |
+| `fromfile` with `offset` past the end | `ValueError` (negative dimensions) | empty array | D-171 |
+| `fromregex` result | structured array | `{name: NDArray}` object | D-171 |
+| `genfromtxt` `dtype=None`, `names`, `converters`, `usemask` | supported | not supported | D-171 |
+| `base_repr` of a float | truncates | `TypeError` | D-172 |
+| `kaiser` window | NumPy i0 | same Chebyshev coefficients, may differ by 1 ulp (libm) | D-172 |
+| poly1d operators | `p(x) p+q p*q p/q p**n p[k]` | methods `call add mul div pow get/set` | D-173 |
+| `polyfit` rank warning | `RankWarning` class | Node warning named `RankWarning` | D-173 |
