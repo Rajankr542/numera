@@ -1156,3 +1156,14 @@ Done:
 - Misc: `baseRepr binaryRepr`; native windows `bartlett blackman hamming hanning kaiser`; legacy polynomials `poly poly1d polyadd polyder polydiv polyfit polyint polymul polysub polyval roots` (native convolve/polydiv).
 - Tests: `tests/native/test_p14_*.cpp`, `packages/numera/test/p14_*.test.ts`, docs examples in `docs/site/parts/p14.mjs`. Verified: `pnpm build`, `test`, `test:native`, `api:check`, `test:asan`.
 - Remaining: datetime64/timedelta64 (P14-8..10, D-174/D-175; this needs a core DType enum change touching ~38 dispatch sites), str_/bytes_/np.strings/structured (P14-11), and NumPy differential cases and benchmarks (names are in `api/bench-exempt/p14.json`).
+
+## 2026-10-02 — P16-A TS quick wins (D-191)
+- Added 30 names to `np`: math/bool/sentinel constants (`pi`, `e`, `inf`, `nan`,
+  `euler_gamma`, `True_`, `False_`, `PINF`, `NINF`, `PZERO`, `NZERO`); dtype
+  alias constants (`double`, `single`, `half`, `int_`, `intc`, `intp`, `long`,
+  `byte`, `short`, `ubyte`, `ushort`, `uint`, `uintc`, `uintp`, `ulong`,
+  `cdouble`, `csingle`, `longdouble`, `clongdouble`); `vectorize`, `shares_memory`,
+  `cumsum`, `cumprod`; NDArray methods `cumsum`/`cumprod` via declaration merging.
+- `np` surface coverage: 388/435 (89.2%). Overall: 50.5% (535/1060).
+- Tests: `packages/numera/test/p16a.test.ts` (38 tests, all pass).
+- Verified: `pnpm build`, `pnpm test` (823 tests), `pnpm test:native`, `pnpm api:check`.
