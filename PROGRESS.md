@@ -1029,3 +1029,18 @@ semantics for empty or disjoint views.
 
 Known gaps: see COMPATIBILITY.md. CI workflow is written but has not run yet
 (no remote).
+
+## P3 — NDArray methods, iteration, dtype introspection, printing (branch p03) — 2026-10-02
+- P3-2 (D-060) `fill`, `tolist`, `tobytes`, `view(dtype)`, `byteswap`, `setflags`, `base`, `mT`, `flat`, `astype({copy, casting})`.
+- P3-3 (D-061) `ndindex`, `ndenumerate`, read-only `nditer`.
+- P3-4 (D-062) `finfo`, `iinfo`, `resultType`, `minScalarType`, `issubdtype`, `isdtype`, `commonType`, `mintypecode`, abstract dtypes.
+- P3-5 (D-063) native Dragon4 port; `formatFloatPositional`/`formatFloatScientific`,
+  `array2string`, `arrayRepr`, `arrayStr`, `setPrintoptions`/`getPrintoptions`/`printoptions`;
+  `NDArray.toString()` is now NumPy's repr.
+- Verified locally (macOS arm64, Node 22.7, NumPy 2.5.3): `pnpm build`, `pnpm test`
+  (362 tests), `pnpm test:native`, `pnpm test:asan`, `pnpm test:diff`, `pnpm api:check`,
+  `pnpm typecheck` pass. Ad-hoc comparisons against NumPy (not yet in `test:diff`): 3000 random
+  `format_float_*` calls and 600 random `array2string`/`repr` calls (float16/32/64,
+  complex, ints, bool, all print options) gave identical output.
+- Gaps: NumPy differential cases for P3 are not in `test:diff` yet; no benchmarks
+  (bench-exempt); `legacy` print modes, writable `nditer`, `nditer` buffering flags.
