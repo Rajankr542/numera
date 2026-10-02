@@ -257,7 +257,7 @@ listed in "Documented divergences" (D-140, D-141).
 | poly1d operators | `p(x) p+q p*q p/q p**n p[k]` | methods `call add mul div pow get/set` | D-173 |
 | `polyfit` rank warning | `RankWarning` class | Node warning named `RankWarning` | D-173 |
 
-## P16B: np.ma masked arrays (D-200..D-209)
+## P16B: np.ma masked arrays
 `np.ma` is now implemented in pure TypeScript. Known divergences:
 | NumPy behaviour | numera behaviour | Decision |
 |---|---|---|
