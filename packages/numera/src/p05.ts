@@ -64,6 +64,10 @@ import { allclose, arrayEqual, arrayEquiv, isclose } from "./p05_close.js";
 
 export { allclose, arrayEqual, arrayEquiv, isclose } from "./p05_close.js";
 export type { IscloseOptions } from "./p05_close.js";
+import { packbits, unpackbits } from "./p05_bits.js";
+
+export { packbits, unpackbits } from "./p05_bits.js";
+export type { BitOrder, PackbitsOptions, UnpackbitsOptions } from "./p05_bits.js";
 export type { AllAnyOptions } from "./p05_compare.js";
 
 export const p05 = {
@@ -101,4 +105,6 @@ export const p05 = {
   allclose,
   arrayEqual,
   arrayEquiv,
+  packbits,
+  unpackbits,
 } as const;

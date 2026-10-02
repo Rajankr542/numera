@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import np, { BroadcastError, DTypeError, FloatingPointError, ValueError } from "../src/index.js";
+import np, { BroadcastError, DTypeError, FloatingPointError, IndexError, ValueError } from "../src/index.js";
 
 const DTYPES = [
   "bool", "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64",
@@ -296,5 +296,52 @@ describe("P5 isclose family (D-083)", () => {
     expect(np.arrayEquiv([1, 2], [[1, 2], [1, 2]])).toBe(true);
     expect(np.arrayEquiv([1, 2], [[1, 2], [1, 3]])).toBe(false);
     expect(np.arrayEquiv([1, 2], [1, 2, 3])).toBe(false);
+  });
+});
+
+describe("P5 packbits/unpackbits (D-084)", () => {
+  const a = np.array([[2, 7, 23], [4, 5, 0]], { dtype: "uint8" });
+  it("packbits", () => {
+    expect(np.packbits(a).toArray()).toEqual([248]);
+    expect(np.packbits(a, { axis: 1 }).toArray()).toEqual([[224], [192]]);
+    expect(np.packbits(a, { axis: 0 }).toArray()).toEqual([[192, 192, 128]]);
+    expect(np.packbits(a, { axis: -1, bitorder: "little" }).toArray()).toEqual([[7], [3]]);
+    expect(np.packbits(np.array(5)).toArray()).toEqual([128]);
+    expect(np.packbits([-1, 0, 2]).toArray()).toEqual([160]);
+    expect(np.packbits(Array(9).fill(true)).toArray()).toEqual([255, 128]);
+    expect(np.packbits(np.array([], { dtype: "bool" })).shape).toEqual([0]);
+    expect(np.packbits(np.zeros([2, 0], { dtype: "bool" }), { axis: 0 }).shape).toEqual([1, 0]);
+    expect(np.packbits(a).dtype).toBe(np.uint8);
+    const t = np.array([[true, false], [false, true]]).T;
+    expect(np.packbits(t, { axis: 1 }).toArray()).toEqual([[128], [64]]);
+    expect(() => np.packbits(np.array([1.5]))).toThrow(DTypeError);
+    expect(() => np.packbits([1], { axis: 1 })).toThrow(IndexError);
+    expect(() => np.packbits([1], { bitorder: "x" as never })).toThrow(ValueError);
+  });
+
+  it("unpackbits", () => {
+    const u = np.array([[2], [7], [23]], { dtype: "uint8" });
+    expect(np.unpackbits(u, { axis: 1 }).toArray()).toEqual([
+      [0, 0, 0, 0, 0, 0, 1, 0],
+      [0, 0, 0, 0, 0, 1, 1, 1],
+      [0, 0, 0, 1, 0, 1, 1, 1],
+    ]);
+    expect(np.unpackbits(u).shape).toEqual([24]);
+    expect(np.unpackbits(u, { axis: 1, count: 3 }).toArray()).toEqual([[0, 0, 0], [0, 0, 0], [0, 0, 0]]);
+    expect(np.unpackbits(u, { axis: 1, count: -3, bitorder: "little" }).toArray()).toEqual([
+      [0, 1, 0, 0, 0],
+      [1, 1, 1, 0, 0],
+      [1, 1, 1, 0, 1],
+    ]);
+    expect(np.unpackbits(u, { axis: 1, count: 10 }).shape).toEqual([3, 10]);
+    expect(np.unpackbits(u, { count: 0 }).shape).toEqual([0]);
+    expect(np.unpackbits(np.array(5, { dtype: "uint8" })).toArray()).toEqual([0, 0, 0, 0, 0, 1, 0, 1]);
+    expect(np.unpackbits(u, { axis: 0 }).shape).toEqual([24, 1]);
+    expect(() => np.unpackbits(u, { axis: 1, count: -9 })).toThrow(ValueError);
+    expect(() => np.unpackbits(np.array([1], { dtype: "int8" }))).toThrow(DTypeError);
+    expect(() => np.unpackbits(u, { axis: 2 })).toThrow(IndexError);
+    expect(() => np.unpackbits(u, { bitorder: "x" as never })).toThrow(ValueError);
+    const bits = [1, 0, 1, 1, 0, 0, 1, 0, 1, 1];
+    expect(np.unpackbits(np.packbits(bits), { count: 10 }).toArray()).toEqual(bits);
   });
 });

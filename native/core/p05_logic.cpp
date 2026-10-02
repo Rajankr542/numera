@@ -1,6 +1,8 @@
 #include "p05_logic.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <complex>
 #include <type_traits>
 
@@ -8,6 +10,7 @@
 #include "cast.hpp"
 #include "dtype.hpp"
 #include "error.hpp"
+#include "shape.hpp"
 #include "ufunc_loops.hpp"
 
 namespace nativpy {
@@ -67,6 +70,80 @@ NDArray isclose(const NDArray& a, const NDArray& b, double rtol, double atol, bo
       throw_error(ErrorKind::DType, "isclose: unsupported dtype " + std::string(dtype_name(dt)));
     }
   });
+  return out;
+}
+
+namespace {
+
+struct Split {
+  NDArray arr;  // C-contiguous
+  std::int64_t outer, len, inner;
+  Shape shape;
+  std::size_t axis;
+};
+
+// C-contiguous `a` (flattened if axis is nullopt, 0-d → (1,)) viewed as
+// (outer, len, inner) around the normalized axis.
+Split split_axis(const NDArray& a, DType dt, std::optional<std::int64_t> axis) {
+  NDArray c = a.astype(dt);
+  if (!axis || c.ndim() == 0) c = c.reshape({c.size()});
+  const auto ax = static_cast<std::size_t>(normalize_axis(axis.value_or(0), static_cast<std::int64_t>(c.ndim())));
+  Split s{c, 1, c.shape()[ax], 1, c.shape(), ax};
+  for (std::size_t i = 0; i < ax; ++i) s.outer *= s.shape[i];
+  for (std::size_t i = ax + 1; i < s.shape.size(); ++i) s.inner *= s.shape[i];
+  return s;
+}
+
+}  // namespace
+
+NDArray packbits(const NDArray& a, std::optional<std::int64_t> axis, bool little) {
+  if (a.dtype() != DType::Bool && !is_integer(a.dtype())) {
+    throw_error(ErrorKind::DType, "Expected an input array of integer or boolean data type");
+  }
+  const Split s = split_axis(a, DType::Bool, axis);
+  const std::int64_t m = (s.len + 7) / 8;
+  Shape os = s.shape;
+  os[s.axis] = m;
+  NDArray out = NDArray::zeros(os, DType::UInt8);
+  const auto* in = reinterpret_cast<const std::uint8_t*>(s.arr.data());
+  auto* o = reinterpret_cast<std::uint8_t*>(out.data());
+  for (std::int64_t i = 0; i < s.outer; ++i) {
+    for (std::int64_t k = 0; k < s.len; ++k) {
+      const std::uint8_t* src = in + (i * s.len + k) * s.inner;
+      std::uint8_t* dst = o + (i * m + k / 8) * s.inner;
+      const int bit = little ? static_cast<int>(k % 8) : 7 - static_cast<int>(k % 8);
+      for (std::int64_t j = 0; j < s.inner; ++j) {
+        if (src[j] != 0) dst[j] = static_cast<std::uint8_t>(dst[j] | (1u << bit));
+      }
+    }
+  }
+  return out;
+}
+
+NDArray unpackbits(const NDArray& a, std::optional<std::int64_t> axis, std::optional<std::int64_t> count,
+                   bool little) {
+  if (a.dtype() != DType::UInt8) throw_error(ErrorKind::DType, "Expected an input array of unsigned byte data type");
+  const Split s = split_axis(a, DType::UInt8, axis);
+  const std::int64_t bits = s.len * 8;
+  std::int64_t m = bits;
+  if (count) {
+    m = *count >= 0 ? *count : bits + *count;
+    if (m < 0) throw_error(ErrorKind::Value, "-count larger than number of elements");
+  }
+  Shape os = s.shape;
+  os[s.axis] = m;
+  NDArray out = NDArray::zeros(os, DType::UInt8);
+  const auto* in = reinterpret_cast<const std::uint8_t*>(s.arr.data());
+  auto* o = reinterpret_cast<std::uint8_t*>(out.data());
+  const std::int64_t n = std::min(m, bits);
+  for (std::int64_t i = 0; i < s.outer; ++i) {
+    for (std::int64_t k = 0; k < n; ++k) {
+      const std::uint8_t* src = in + (i * s.len + k / 8) * s.inner;
+      std::uint8_t* dst = o + (i * m + k) * s.inner;
+      const int bit = little ? static_cast<int>(k % 8) : 7 - static_cast<int>(k % 8);
+      for (std::int64_t j = 0; j < s.inner; ++j) dst[j] = static_cast<std::uint8_t>((src[j] >> bit) & 1u);
+    }
+  }
   return out;
 }
 

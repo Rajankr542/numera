@@ -288,3 +288,30 @@ TEST_CASE("p05 isclose kernel") {
   CHECK(ints(isclose(f16, vec_d({1.001}, DType::Float16), 1e-5, 1e-8, false)) == IV({0}));
   CHECK(isclose(vec_d({1.0, 2.0}), vec_d({1.0}), 1e-5, 1e-8, false).shape() == Shape{2});
 }
+
+TEST_CASE("p05 packbits/unpackbits") {
+  const NDArray a = vec_i({2, 7, 23, 4, 5, 0}, DType::UInt8).reshape({2, 3});
+  CHECK(ints(packbits(a, std::nullopt, false)) == IV({248}));
+  const NDArray r1 = packbits(a, 1, false);
+  CHECK(r1.shape() == (Shape{2, 1}));
+  CHECK(ints(r1) == IV({224, 192}));
+  CHECK(ints(packbits(a, 0, false)) == IV({192, 192, 128}));
+  CHECK(ints(packbits(a, -1, true)) == IV({7, 3}));
+  CHECK(ints(packbits(vec_i({-1, 0, 2}), std::nullopt, false)) == IV({160}));
+  CHECK(ints(packbits(vec_i({1, 1, 1, 1, 1, 1, 1, 1, 1}, DType::Bool), std::nullopt, false)) == IV({255, 128}));
+  CHECK(packbits(NDArray::zeros({2, 0}, DType::Bool), 0, false).shape() == (Shape{1, 0}));
+  CHECK_THROWS_KIND(packbits(vec_d({1}), std::nullopt, false), ErrorKind::DType);
+  CHECK_THROWS_KIND(packbits(vec_i({1}), 1, false), ErrorKind::Index);
+
+  const NDArray u = vec_i({2, 7, 23}, DType::UInt8).reshape({3, 1});
+  CHECK(unpackbits(u, 1, std::nullopt, false).shape() == (Shape{3, 8}));
+  CHECK(ints(unpackbits(u, 1, -3, true)) == IV({0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1}));
+  CHECK(ints(unpackbits(vec_i({5}, DType::UInt8), std::nullopt, 10, false)) == IV({0, 0, 0, 0, 0, 1, 0, 1, 0, 0}));
+  CHECK(unpackbits(u, std::nullopt, 0, false).shape() == Shape{0});
+  CHECK(unpackbits(u, 0, std::nullopt, false).shape() == (Shape{24, 1}));
+  CHECK_THROWS_KIND(unpackbits(u, 1, -9, false), ErrorKind::Value);
+  CHECK_THROWS_KIND(unpackbits(vec_i({1}, DType::Int8), std::nullopt, std::nullopt, false), ErrorKind::DType);
+  // Round trip on a strided input.
+  const NDArray big = vec_i({1, 0, 1, 1, 0, 0, 1, 0, 1, 1}, DType::Bool);
+  CHECK(ints(unpackbits(packbits(big, 0, true), 0, 10, true)) == IV({1, 0, 1, 1, 0, 0, 1, 0, 1, 1}));
+}

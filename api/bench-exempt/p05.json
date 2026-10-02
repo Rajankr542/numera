@@ -34,5 +34,7 @@
   "np.logical_or [nativpy] [numpy]",
   "np.logical_xor [nativpy] [numpy]",
   "np.not_equal [nativpy] [numpy]",
-  "np.right_shift [nativpy] [numpy]"
+  "np.packbits [nativpy] [numpy]",
+  "np.right_shift [nativpy] [numpy]",
+  "np.unpackbits [nativpy] [numpy]"
 ]

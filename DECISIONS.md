@@ -1616,3 +1616,19 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   and are composed in TS from the native `equal`/`isnan`/`all` kernels: inputs
   that cannot be converted give `false`; `arrayEqual` requires equal shapes,
   `arrayEquiv` broadcastable shapes (else `false`).
+
+## D-084 — packbits / unpackbits (P5-6) — Accepted — 2026-10-02
+- Native kernels in `native/core/p05_logic.cpp` (`addon.p05.packbits/unpackbits`).
+  The input is copied C-contiguous (`packbits`: cast to bool, so any nonzero is
+  a 1 bit) and processed as (outer, axis, inner) blocks; the output is `uint8`.
+- `axis` default `null` flattens (NumPy `axis=None`); 0-d input acts like shape (1,).
+  Out-of-range axes raise `IndexError` (NumPy `AxisError`).
+- `packbits` input must be bool/integer (`DTypeError` "Expected an input array of
+  integer or boolean data type"); `unpackbits` input must be `uint8`.
+- `bitorder` is `"big"` (default) or `"little"`; other values raise `ValueError`
+  with NumPy's messages ("'order' must be either 'little' or 'big'" for
+  `packbits`, "'order' must begin with 'l' or 'b'" for `unpackbits`). numera
+  accepts only the two full words, not NumPy's prefix match.
+- `unpackbits` `count`: `null` → all bits; `>= 0` keeps that many (zero-padded
+  past the end); negative drops `-count` bits, ValueError
+  "-count larger than number of elements" when too negative.

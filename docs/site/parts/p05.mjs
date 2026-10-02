@@ -148,6 +148,36 @@ np.arrayEqual([1, 2], [1, 2, 3]);    // => false
 np.arrayEqual([1, NaN], [1, NaN], { equalNan: true }); // => true
 np.arrayEquiv([1, 2], [[1, 2], [1, 2]]); // => true`,
       },
+      {
+        name: "packbits",
+        sig: "np.packbits(a, { axis?, bitorder? })",
+        desc: "Packs the elements of a bool or integer array into the bits of a `uint8` array (any nonzero value is a 1 bit). Without `axis` the flattened array is packed. The last byte is padded with zero bits.",
+        args: [
+          arrayArg("a"),
+          { name: "[options.axis]", type: "number | null", desc: "Axis to pack along (default: flatten)." },
+          { name: "[options.bitorder]", type: '"big" | "little"', desc: "Bit order inside each byte (default `\"big\"`)." },
+        ],
+        returns: "NDArray (uint8)",
+        example: `np.packbits([1, 0, 1, 1, 0, 0, 0, 0, 1]); // => [176, 128]
+np.packbits([[1, 1], [0, 1]], { axis: 1 });   // => [[192], [64]]
+np.packbits([1, 0, 1], { bitorder: "little" }); // => [5]`,
+      },
+      {
+        name: "unpackbits",
+        sig: "np.unpackbits(a, { axis?, count?, bitorder? })",
+        desc: "Expands each element of a `uint8` array into 8 bits (`uint8` values 0 and 1). Without `axis` the flattened array is unpacked. `count` keeps that many bits along the axis (padding with zeros past the end); a negative `count` drops bits from the end.",
+        args: [
+          arrayArg("a"),
+          { name: "[options.axis]", type: "number | null", desc: "Axis to unpack along (default: flatten)." },
+          { name: "[options.count]", type: "number | null", desc: "Number of bits to keep." },
+          { name: "[options.bitorder]", type: '"big" | "little"', desc: "Bit order inside each byte (default `\"big\"`)." },
+        ],
+        returns: "NDArray (uint8)",
+        example: `const b = np.array([5], { dtype: "uint8" });
+np.unpackbits(b);                          // => [0, 0, 0, 0, 0, 1, 0, 1]
+np.unpackbits(b, { count: -5 });           // => [0, 0, 0]
+np.unpackbits(b, { bitorder: "little", count: 3 }); // => [1, 0, 1]`,
+      },
     ],
   },
 ];
