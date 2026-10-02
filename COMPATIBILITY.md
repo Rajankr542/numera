@@ -129,3 +129,16 @@ cases come in the V phase.
 | `putAlongAxis(..., axis=null)` on a non-contiguous array | raises (writes to a read-only copy) | writes through in flat C order | D-110 |
 | `piecewise` callbacks | Python callables | JS callbacks on `x[cond]` | D-110 |
 | `nested_iters` | iterator objects | excluded (api/exclusions.json) | D-110 |
+## P7 creation and grids divergences
+| Behaviour | NumPy | nativpy | Decision |
+|---|---|---|---|
+| `mgrid`/`ogrid`/`r_`/`c_`/`s_`/`index_exp` | index-trick objects (`np.mgrid[0:3, 0:1:5j]`) | functions taking `[start, stop, step]` tuples (complex step = point count) or slice strings (`"1:4"`, `"0:1:5j"`) | D-100 |
+| `r_`/`c_` matrix directives `"r"`/`"c"` | return `np.matrix` | `NotImplementedError` (no matrix class) | D-100 |
+| `meshgrid`/`ix_`/`indices(sparse)`/`ogrid` results | tuple (`ogrid`: list) | JS array of NDArrays | D-100 |
+| `logspace`/`geomspace` bounds | array-like `start`/`stop`/`base`, `axis=` | scalar (real or complex) `start`/`stop`/`base` only, no `axis` | D-100 |
+| `np.astype` on non-arrays | `TypeError` | `DTypeError` | D-100 |
+| `tril`/`triu` on 0-d input | `ValueError` | `DTypeError` | D-100 |
+| `frombuffer` result | read-only view sharing the buffer | owned, writeable copy; native byte order only | D-101 |
+| `fromstring` binary mode (`sep=""`) | removed (`ValueError`) | same `ValueError` | D-101 |
+| `fromstring` with `count` larger than the data | `DeprecationWarning`, short array | `ValueError: string is smaller than requested size` | D-101 |
+| `fromiter` without `dtype` | `TypeError` | `dtype` is a required positional argument | D-101 |

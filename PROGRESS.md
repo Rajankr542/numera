@@ -1041,3 +1041,14 @@ Known gaps: see COMPATIBILITY.md. CI workflow is written but has not run yet
   `pnpm test:asan` (ASan+UBSan clean), `pnpm typecheck` and `pnpm api:check` pass;
   API coverage 16.7% → 19.0% (201/1060). Benchmarks and NumPy differential cases
   are deferred to the V phase (bench-exempt in `api/bench-exempt/p08.json`).
+## 2026-10-02 — P7 creation and grids (D-100, D-101)
+
+Done: `logspace`, `geomspace`, `tri`, `tril`, `triu`, `diag`, `diagflat`, `vander`,
+`indices`, `meshgrid`, `mgrid`, `ogrid`, `ix_`, `trilIndices`, `triuIndices`,
+`trilIndicesFrom`, `triuIndicesFrom`, `diagIndices`, `diagIndicesFrom`,
+`maskIndices`, `fillDiagonal` (wrap), `fromfunction`, `fromiter`, `frombuffer`,
+`fromstring` (text mode, port of NumPy's parser), `r_`, `c_`, `s_`, `indexExp`,
+`np.astype`. Kernels in `native/core/p07_creation.cpp` (`addon.p07`).
+Verified: `pnpm build`, `pnpm test`, `pnpm test:native`, `pnpm api:check`, `pnpm test:asan`.
+Benchmarks are not written yet; the callables are listed in `api/bench-exempt/p07.json`.
+Divergences: see COMPATIBILITY.md "P7 creation and grids divergences".

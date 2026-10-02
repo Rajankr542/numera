@@ -1,1 +1,26 @@
-[]
+[
+  "np.astype [nativpy] [numpy]",
+  "np.diag [nativpy] [numpy]",
+  "np.diag_indices [nativpy] [numpy]",
+  "np.diag_indices_from [nativpy] [numpy]",
+  "np.diagflat [nativpy] [numpy]",
+  "np.fill_diagonal [nativpy] [numpy]",
+  "np.frombuffer [nativpy]",
+  "np.fromfunction [nativpy] [numpy]",
+  "np.fromiter [nativpy] [numpy]",
+  "np.fromstring [nativpy] [numpy]",
+  "np.geomspace [nativpy] [numpy]",
+  "np.indices [nativpy] [numpy]",
+  "np.ix_ [nativpy] [numpy]",
+  "np.logspace [nativpy] [numpy]",
+  "np.mask_indices [nativpy] [numpy]",
+  "np.meshgrid [nativpy] [numpy]",
+  "np.tri [nativpy] [numpy]",
+  "np.tril [nativpy] [numpy]",
+  "np.tril_indices [nativpy] [numpy]",
+  "np.tril_indices_from [nativpy] [numpy]",
+  "np.triu [nativpy] [numpy]",
+  "np.triu_indices [nativpy] [numpy]",
+  "np.triu_indices_from [nativpy] [numpy]",
+  "np.vander [nativpy] [numpy]"
+]
