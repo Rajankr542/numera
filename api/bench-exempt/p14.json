@@ -1,1 +1,6 @@
-[]
+[
+ "np.load [nativpy] [numpy]",
+ "np.save [nativpy] [numpy]",
+ "np.savez [nativpy] [numpy]",
+ "np.savez_compressed [nativpy] [numpy]"
+]

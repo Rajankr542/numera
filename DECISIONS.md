@@ -1894,3 +1894,34 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   them writeable with a FutureWarning; writes through zero strides alias).
   The read-only flag is not set, matching current NumPy results.
 - `shape`, `size(a, axis?)`, `ndim`, `isfortran` accept any array-like.
+
+## D-170 — P14 NPY / NPZ binary I/O (P14) — Accepted — 2026-10-02
+- `.npy` encoding/decoding lives in C++ (`native/core/p14_npy.{hpp,cpp}`):
+  header v1.0 (v2.0 when the header exceeds 65535 bytes), byte-for-byte the
+  layout of `numpy.lib.format.write_array` (sorted dict keys, 21-digit growth
+  padding, 64-byte alignment). Descriptors `|b1 |i1 |u1 <i2 <u2 <i4 <u4 <i8 <u8
+  <f2 <f4 <f8 <c8 <c16`; loading also accepts `>`/`=` byte orders (big-endian
+  data is byte-swapped into a native array), header versions 1/2/3, and
+  `fortran_order: True` (the result is F-contiguous). Any other descriptor
+  (strings, structured, object) raises `DTypeError` (object: `ValueError`, as
+  NumPy with `allow_pickle=False`). There is no pickle support at all.
+- File arguments: a path (`string` or `URL`) reads/writes the file with Node
+  `fs`; `save`/`savez*` append `.npy`/`.npz` like NumPy. Passing `null` as the
+  file returns the encoded bytes as a `Buffer` instead of writing; `load`
+  accepts a `Buffer`/`Uint8Array`/`ArrayBuffer` of file contents.
+- `load` returns an `NDArray` for `.npy` data and an `NpzFile` for zip data
+  (`files`, `get(name)` with or without the `.npy` suffix, `keys()`,
+  `entries()`, iteration over names, `close()`; NumPy's `npz[key]` mapping
+  syntax is `npz.get(key)`). Members are decoded lazily on `get`.
+- `savez(file, ...arrays)` / `savezCompressed`: positional arrays are named
+  `arr_0, arr_1, ...`; a trailing plain object (not an NDArray, nested list or
+  complex-like `{re, im}`) maps names to arrays (NumPy keyword arguments).
+  The zip container is written in TS like Python's `zipfile` with
+  `force_zip64=True` (fixed 1980-01-01 timestamp, mode 0o600), so `savez`
+  output is byte-identical to NumPy's; `savezCompressed` uses Node's
+  `zlib.deflateRawSync` (level 6) whose deflate stream may differ in bytes
+  from CPython's zlib but decodes to the same members. CRC-32 is native.
+- Unsupported: `mmap_mode` (raises `ValueError` unless null), `allow_pickle`,
+  `fix_imports`, `encoding`, `max_header_size` (headers of any size are
+  parsed). Truncated or empty input raises `ValueError` (NumPy `EOFError` for
+  an empty file).

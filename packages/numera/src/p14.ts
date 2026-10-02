@@ -1,10 +1,14 @@
-// Parity milestone P14 public functions (D-056).
-// Functions exported from `p14` are spread into the default `np` object by
-// index.ts; also add named exports there (only the index.ts block for P14).
-// Native kernels live in native/bindings/p14_binding.cpp (`addon.p14`).
-// NDArray methods: add them with declaration merging, e.g.
-//   declare module "./ndarray.js" { interface NDArray { foo(): NDArray } }
-//   NDArray.prototype.foo = function () { ... };
-// (see AGENTS.md "Parallel milestones").
+// Parity milestone P14: extra dtypes and I/O (D-170–D-179).
+// Native kernels: native/core/p14_*.cpp (`addon.p14`).
+import { load, NpzFile, save, savez, savezCompressed } from "./p14_npy.js";
 
-export const p14 = {} as const;
+export { load, NpzFile, save, savez, savezCompressed } from "./p14_npy.js";
+export type { BytesLike, FileLike, LoadOptions, NamedArrays } from "./p14_npy.js";
+
+export const p14 = {
+  save,
+  load,
+  savez,
+  savezCompressed,
+  NpzFile,
+} as const;
