@@ -99,6 +99,17 @@ differential tests (`pnpm test:diff`).
 | `mod` / `floorDivide` on complex | `TypeError` | `DTypeError` | D-033 |
 | complex `sqrt`/`exp`/`log`/`power`/`abs`/`angle` | platform libm / npymath | NumPy's npymath algorithms (`npy_csqrt`, `npy_clog`, `npy_cpow`, SIMD `cabsolute`); `exp`, `pow` and `atan2` come from the C++ library; libm results may differ by a few ULP | D-014, D-033 |
 | `imag` of a real array | read-only zeros array | same (read-only zeros) | D-033 |
+| `kind: "heapsort"` | heapsort | introsort (same result; heapsort only as the depth-limit fallback) | D-120 |
+| `kind: "mergesort"`/`"stable"` | timsort/radix sort | `std::stable_sort` (same stable order) | D-120 |
+| `NDArray.sort({axis: null})`, `lexsort` with `axis: null` | `TypeError` | `DTypeError` | D-120, D-122 |
+| sort/partition axis out of range | `AxisError` | `IndexError` | D-120 |
+| `unique` with multiple-return flags | tuple | object `{values, indices?, inverse?, counts?}` | D-123 |
+| `unique` of equal signed zeros (`[0, -0]`) with no flags | hash path; which zero is kept is unspecified | sort path; keeps the first zero in stable sorted order | D-123 |
+| `unique({sorted: false})` | hash-table order | sorted order | D-123 |
+| `uniqueAll`/`uniqueCounts`/`uniqueInverse` | named tuples (`inverse_indices`) | objects (`inverseIndices`) | D-123 |
+| `intersect1d({returnIndices: true})` | tuple | object `{values, indices1, indices2}` | D-124 |
+| `isin({kind: "table"})` | lookup table | sort + binary search (same result; errors identical) | D-124 |
+| `ediff1d` incompatible `toBegin`/`toEnd`, bool input | `TypeError` | `DTypeError` | D-124 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
@@ -157,3 +168,4 @@ cases come in the V phase.
 | `allclose` / `arrayEqual` / `arrayEquiv` result | Python `bool` | JS `boolean` | D-083 |
 | `bitorder=` | prefix match (`"l..."`, `"b..."`) | only `"big"` / `"little"`; anything else raises `ValueError` | D-084 |
 | `packbits`/`unpackbits` bad axis | `AxisError` | `IndexError` | D-084 |
+- P9: `unique({sorted: false})` unsorted order, `isin` table algorithm, benchmarks and NumPy differential cases for sorting/set functions (D-120, D-123, D-124).

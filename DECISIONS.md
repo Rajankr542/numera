@@ -1722,3 +1722,79 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `unpackbits` `count`: `null` → all bits; `>= 0` keeps that many (zero-padded
   past the end); negative drops `-count` bits, ValueError
   "-count larger than number of elements" when too negative.
+## D-120 — np.sort / np.argsort and NDArray.sort/argsort (P9-1) — Accepted — 2026-10-02
+- Native kernels in `native/core/p09_sorting.{hpp,cpp}` cover every dtype. The
+  default kind is a port of NumPy's scalar introsort (`quicksort_`/`aquicksort_`:
+  median-of-3, insertion sort for ranges ≤ 16, heapsort when the depth limit
+  `2*msb(n)` runs out). Stable kinds use `std::stable_sort` with the same
+  comparator; any stable sort gives the same output.
+- Comparators follow NumPy's `npy::*_tag::less`: NaN sorts last (also in
+  descending order); complex compares lexicographically with NumPy's NaN rules;
+  float16 compares on bit patterns with ±0 equal.
+- `kind`: the first letter is matched case-insensitively (q/h → quicksort,
+  m/s → stable). Other values raise ValueError with NumPy's message. As in
+  NumPy 2.5, heapsort runs the quicksort kernel. Passing `kind` together with
+  `stable` or `descending` raises ValueError. `descending: true` uses NumPy's
+  `greater` comparator.
+- `axis`: default -1; `null` flattens (C order). 0-d input with an integer axis
+  raises IndexError (AxisError analogue, D-012). `NDArray.sort` sorts in place,
+  requires a writeable array and an integer axis; `axis: null` raises DTypeError
+  (NumPy TypeError).
+- argsort returns int64.
+
+## D-121 — partition / argpartition (P9-2) — Accepted — 2026-10-02
+- Port of NumPy's scalar `introselect_` (dumb_select when `kth-low < 3`, the
+  max-scan for `kth == n-1` on inexact types, median-of-3 with
+  median-of-medians-of-5 fallback, and the pivot stack across several kth).
+  On arm64 NumPy also uses this scalar code, so results are intended to match
+  element for element (to be verified in the V phase).
+- `kth`: integer or list of integers (number[] / int NDArray). Booleans raise
+  ValueError "Booleans unacceptable as partition index"; non-integers raise
+  DTypeError "Partition index must be integer"; an empty list raises DTypeError;
+  ndim > 1 raises ValueError. Negative kth adds the axis length; out of range
+  raises ValueError `kth(=k) out of bounds (n)` when the array is not empty.
+  kth values are sorted before use.
+- `kind` must be exactly "introselect". `NDArray.partition` works in place.
+
+## D-122 — lexsort, searchsorted, sortComplex (P9-3) — Accepted — 2026-10-02
+- `lexsort(keys, {axis = -1})`: keys is a list of arrays or a 2-D+ array (one key
+  per row). The last key is primary. Uses a stable merge of argsort passes
+  (stable sort by each key from first to last). Error messages follow NumPy;
+  `axis: null` raises DTypeError.
+- `searchsorted(a, v, {side, sorter})`: `a` must be 1-D. The comparison dtype is
+  the common dtype of `a` and `v` (JS scalars are weak, as in ufuncs); both are
+  cast to it. Port of NumPy's batched binary search, using `less` for left
+  and `less_equal` for right. Side and sorter errors use NumPy's messages. Scalar
+  `v` gives a 0-d int64 result.
+- `sortComplex(a)`: sorts along the last axis and returns complex64 for
+  int8/uint8/int16/uint16 and complex128 for other real dtypes; complex input
+  keeps its dtype.
+
+## D-123 — unique and the Array-API unique_* functions (P9-4) — Accepted — 2026-10-02
+- `unique(a, {returnIndex, returnInverse, returnCounts, axis, equalNan = true, sorted = true})`
+  follows NumPy's `_unique1d`. It sorts, using a stable argsort when indices are
+  requested, and masks adjacent duplicates. With `equalNan`, all NaNs, and for
+  complex every NaN-containing value, form one group. When any return flag is
+  set the result is an object `{values, indices?, inverse?, counts?}`;
+  otherwise it is the values array.
+- `sorted: false`: NumPy uses a hash table whose output order is an
+  implementation detail. nativpy always returns sorted values (allowed by
+  NumPy's documentation, "may be sorted in practice").
+- `axis`: rows after `moveaxis(axis, 0)` are compared lexicographically using the
+  element sort order. `equalNan` does not apply to rows, as in NumPy.
+- `uniqueAll/uniqueCounts/uniqueInverse/uniqueValues` return
+  `{values, indices, inverseIndices, counts}` subsets (camelCase of NumPy's
+  namedtuple fields), with `equalNan: false`.
+
+## D-124 — Set functions, isin, ediff1d (P9-5) — Accepted — 2026-10-02
+- `intersect1d`, `union1d`, `setdiff1d`, `setxor1d` follow NumPy's
+  `_arraysetops_impl` algorithms on top of the P9 sort/unique kernels. Inputs
+  are promoted to a common dtype first (NumPy's concatenate rule).
+  `intersect1d(..., {returnIndices: true})` returns `{values, indices1, indices2}`.
+- `isin(element, testElements, {assumeUnique, invert, kind})` returns a bool array
+  of `element`'s shape. kind is checked as in NumPy (null/"sort"/"table"; table
+  only for bool/int input). Every kind gives the same result; the implementation
+  sorts the test values and uses binary search.
+- `ediff1d(a, {toEnd, toBegin})`: flattens; the result has the input dtype; bool
+  input raises DTypeError; toBegin/toEnd must be castable to it with
+  `same_kind` casting, otherwise DTypeError with NumPy's message.
