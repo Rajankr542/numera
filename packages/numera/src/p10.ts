@@ -2,6 +2,7 @@
 // Native kernels: native/core/p10_*.{hpp,cpp}, exposed as `addon.p10`.
 import { nativeModule, type NativeNDArray } from "./addon.js";
 import { array } from "./creation.js";
+import { dtype as toDType, type DTypeLike } from "./dtype.js";
 import { wrapNative } from "./errors.js";
 import { NDArray } from "./ndarray.js";
 import type { ArrayLike } from "./ufunc.js";
@@ -22,6 +23,14 @@ interface P10Native {
     },
   ): N;
   median(a: N, axis: number[] | null, keepdims: boolean, ignoreNan: boolean): N;
+  cumulative(
+    prod: boolean,
+    a: N,
+    opts: { axis: number | null; dtype: string | null; includeInitial: boolean; skipNan: boolean; arrayApi: boolean },
+    out: N | null,
+  ): N;
+  diff(a: N, n: number, axis: number, prepend: N | null, append: N | null): N;
+  ptp(a: N, axis: number[] | null, keepdims: boolean): N;
 }
 
 const native = (): P10Native => nativeModule<P10Native>("p10");
@@ -111,6 +120,105 @@ export const median = (a: ArrayLike, opts: MedianOptions = {}): NDArray => media
 /** NumPy nanmedian. */
 export const nanmedian = (a: ArrayLike, opts: MedianOptions = {}): NDArray => medianImpl(a, opts, true);
 
+// ---- cumulative sums / products, diff, ptp (D-132) ----
+
+export interface CumsumOptions {
+  /** Axis to accumulate along; default the flattened array. */
+  axis?: number | null;
+  /** Accumulator/result dtype (default as `sum`: integers widen to int64/uint64). */
+  dtype?: DTypeLike | null;
+  /** Result array of the exact result shape (values cast unsafely). */
+  out?: NDArray | null;
+}
+
+export interface CumulativeOptions extends CumsumOptions {
+  /** Prepend the identity (0 or 1) along `axis`. */
+  includeInitial?: boolean;
+}
+
+function cumImpl(prod: boolean, a: ArrayLike, opts: CumulativeOptions, skipNan: boolean, arrayApi: boolean): NDArray {
+  const x = toArray(a);
+  return wrap(() =>
+    native().cumulative(
+      prod,
+      x._native,
+      {
+        axis: opts.axis ?? null,
+        dtype: opts.dtype == null ? null : toDType(opts.dtype).name,
+        includeInitial: opts.includeInitial ?? false,
+        skipNan,
+        arrayApi,
+      },
+      opts.out?._native ?? null,
+    ),
+  );
+}
+
+/** NumPy cumsum (flattened unless `axis` is given). */
+export const cumsum = (a: ArrayLike, opts: CumsumOptions = {}): NDArray => cumImpl(false, a, opts, false, false);
+/** NumPy cumprod. */
+export const cumprod = (a: ArrayLike, opts: CumsumOptions = {}): NDArray => cumImpl(true, a, opts, false, false);
+/** NumPy cumulative_sum (array API): `axis` is required for ndim > 1. */
+export const cumulativeSum = (x: ArrayLike, opts: CumulativeOptions = {}): NDArray =>
+  cumImpl(false, x, opts, false, true);
+/** NumPy cumulative_prod (array API). */
+export const cumulativeProd = (x: ArrayLike, opts: CumulativeOptions = {}): NDArray =>
+  cumImpl(true, x, opts, false, true);
+/** NumPy nancumsum: NaNs count as 0. */
+export const nancumsum = (a: ArrayLike, opts: CumsumOptions = {}): NDArray => cumImpl(false, a, opts, true, false);
+/** NumPy nancumprod: NaNs count as 1. */
+export const nancumprod = (a: ArrayLike, opts: CumsumOptions = {}): NDArray => cumImpl(true, a, opts, true, false);
+
+export interface DiffOptions {
+  /** Number of times to difference (default 1). */
+  n?: number;
+  /** Axis (default -1). */
+  axis?: number;
+  /** Values joined before / after `a` along `axis` (scalars are broadcast). */
+  prepend?: ArrayLike | null;
+  append?: ArrayLike | null;
+}
+
+/** NumPy diff: `n`-th discrete difference along `axis` (bool input uses `!=`). */
+export function diff(a: ArrayLike, n: number | DiffOptions = 1, axis = -1): NDArray {
+  const o: DiffOptions = typeof n === "number" ? { n, axis } : n;
+  const x = toArray(a);
+  const pre = o.prepend == null ? null : toArray(o.prepend);
+  const app = o.append == null ? null : toArray(o.append);
+  return wrap(() => native().diff(x._native, o.n ?? 1, o.axis ?? -1, pre?._native ?? null, app?._native ?? null));
+}
+
+export interface PtpOptions {
+  axis?: Axis;
+  keepdims?: boolean;
+}
+
+/** NumPy ptp: `max - min` in the input dtype (integers wrap). */
+export function ptp(a: ArrayLike, opts: PtpOptions = {}): NDArray {
+  const x = toArray(a);
+  return wrap(() => native().ptp(x._native, axes(opts.axis), opts.keepdims ?? false));
+}
+
+declare module "./ndarray.js" {
+  interface NDArray {
+    /** NumPy `a.cumsum({axis, dtype, out})`. */
+    cumsum(opts?: CumsumOptions): NDArray;
+    /** NumPy `a.cumprod({axis, dtype, out})`. */
+    cumprod(opts?: CumsumOptions): NDArray;
+    /** NumPy `np.ptp(a, {axis, keepdims})` as a method. */
+    ptp(opts?: PtpOptions): NDArray;
+  }
+}
+NDArray.prototype.cumsum = function (this: NDArray, opts: CumsumOptions = {}) {
+  return cumsum(this, opts);
+};
+NDArray.prototype.cumprod = function (this: NDArray, opts: CumsumOptions = {}) {
+  return cumprod(this, opts);
+};
+NDArray.prototype.ptp = function (this: NDArray, opts: PtpOptions = {}) {
+  return ptp(this, opts);
+};
+
 export const p10 = {
   quantile,
   percentile,
@@ -118,4 +226,12 @@ export const p10 = {
   nanpercentile,
   median,
   nanmedian,
+  cumsum,
+  cumprod,
+  cumulativeSum,
+  cumulativeProd,
+  nancumsum,
+  nancumprod,
+  diff,
+  ptp,
 } as const;

@@ -1,8 +1,18 @@
 [
+ "ndarray.cumprod [nativpy] [numpy]",
+ "ndarray.cumsum [nativpy] [numpy]",
+ "np.cumprod [nativpy] [numpy]",
+ "np.cumsum [nativpy] [numpy]",
+ "np.cumulative_prod [nativpy] [numpy]",
+ "np.cumulative_sum [nativpy] [numpy]",
+ "np.diff [nativpy] [numpy]",
  "np.median [nativpy] [numpy]",
+ "np.nancumprod [nativpy] [numpy]",
+ "np.nancumsum [nativpy] [numpy]",
  "np.nanmedian [nativpy] [numpy]",
  "np.nanpercentile [nativpy] [numpy]",
  "np.nanquantile [nativpy] [numpy]",
  "np.percentile [nativpy] [numpy]",
+ "np.ptp [nativpy] [numpy]",
  "np.quantile [nativpy] [numpy]"
 ]

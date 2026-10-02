@@ -34,6 +34,46 @@ np.quantile([1, 2, 3], 0.5, { weights: [1, 1, 4], method: "inverted_cdf" }); // 
 Number.isNaN(np.median([1, NaN, 3]).item()); // => true
 np.nanmedian([1, NaN, 3]); // => 2`,
       },
+      {
+        name: "cumsum",
+        sig: "np.cumsum(a, { axis?, dtype?, out? }) · np.cumprod(...) · a.cumsum(...) · a.cumprod(...) · np.nancumsum · np.nancumprod",
+        desc: "Running sum / product along `axis` (default: the flattened array). Integer and bool inputs accumulate in int64 (uint64 for unsigned), like `sum`. `nancumsum`/`nancumprod` treat NaN as 0 / 1. `out` must have the result shape; values are cast to its dtype.",
+        args: [arr(), { name: "[options.axis]", type: "number | null", desc: "Axis; default flattened." }, { name: "[options.dtype]", type: "DTypeLike", desc: "Accumulator/result dtype." }, { name: "[options.out]", type: "NDArray", desc: "Destination array." }],
+        returns: "NDArray",
+        example: `const a = np.array([[1, 2], [3, 4]]);
+np.cumsum(a);                 // => [1, 3, 6, 10]
+a.cumprod({ axis: 0 });       // => [[1, 2], [3, 8]]
+np.nancumsum([1, NaN, 2]);    // => [1, 1, 3]`,
+      },
+      {
+        name: "cumulativeSum",
+        sig: "np.cumulativeSum(x, { axis?, dtype?, includeInitial?, out? }) · np.cumulativeProd(x, ...)",
+        desc: "Array-API `cumulative_sum` / `cumulative_prod`: like `cumsum`, but `axis` is required when `x` has more than one dimension, and `includeInitial: true` prepends the identity (0 or 1), so the axis grows by one.",
+        args: [arr("x"), { name: "[options.axis]", type: "number", desc: "Axis (required for ndim > 1)." }, { name: "[options.includeInitial]", type: "boolean", desc: "Prepend the identity." }],
+        returns: "NDArray",
+        example: `np.cumulativeSum([1, 2, 3], { includeInitial: true }); // => [0, 1, 3, 6]
+np.cumulativeProd([[1, 2], [3, 4]], { axis: 1 });      // => [[1, 2], [3, 12]]`,
+      },
+      {
+        name: "diff",
+        sig: "np.diff(a, n = 1, axis = -1) · np.diff(a, { n?, axis?, prepend?, append? })",
+        desc: "The `n`-th discrete difference `a[i+1] - a[i]` along `axis` (bool input uses `!=`). `prepend`/`append` are joined to `a` along `axis` first; scalars are broadcast to length 1 along it. Integer differences wrap in the input dtype.",
+        args: [arr(), { name: "[n]", type: "number", desc: "Number of differences (default 1)." }, { name: "[axis]", type: "number", desc: "Axis (default -1)." }, { name: "[options.prepend]", type: "ArrayLike", desc: "Values before `a`." }, { name: "[options.append]", type: "ArrayLike", desc: "Values after `a`." }],
+        returns: "NDArray",
+        example: `np.diff([1, 4, 9, 16]);                 // => [3, 5, 7]
+np.diff([1, 4, 9, 16], 2);              // => [2, 2]
+np.diff([1, 2], { prepend: 0 });        // => [1, 1]
+np.diff([[1, 2], [4, 8]], { axis: 0 }); // => [[3, 6]]`,
+      },
+      {
+        name: "ptp",
+        sig: "np.ptp(a, { axis?, keepdims? }) · a.ptp(...)",
+        desc: "Range of values (`max - min`) along the axes, in the input dtype (integer results can wrap, as in NumPy). Bool input raises `DTypeError`; empty input raises `ValueError`.",
+        args: [arr(), axisArg, keepdimsArg],
+        returns: "NDArray",
+        example: `np.ptp([[1, 5], [2, 9]]);            // => 8
+np.ptp([[1, 5], [2, 9]], { axis: 0 }); // => [1, 4]`,
+      },
     ],
   },
 ];
