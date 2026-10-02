@@ -256,3 +256,18 @@ listed in "Documented divergences" (D-140, D-141).
 | `kaiser` window | NumPy i0 | same Chebyshev coefficients, may differ by 1 ulp (libm) | D-172 |
 | poly1d operators | `p(x) p+q p*q p/q p**n p[k]` | methods `call add mul div pow get/set` | D-173 |
 | `polyfit` rank warning | `RankWarning` class | Node warning named `RankWarning` | D-173 |
+
+## P16B: np.ma masked arrays (D-200..D-209)
+`np.ma` is now implemented in pure TypeScript. Known divergences:
+| NumPy behaviour | numera behaviour | Decision |
+|---|---|---|
+| `ma.masked` is a 0-d `MaskedArray` with dtype float64 | `ma.masked` is a symbolic object sentinel | D-201 |
+| `ma.nomask` is `False` (Python bool) | `ma.nomask` is `false` (JS boolean) | D-200 |
+| `MaskedArray` inherits `ndarray` | `MaskedArray` wraps `NDArray` | D-200 |
+| `ma.fill_value` defaults vary by dtype | defaults are float64-based (`1e20`, `max float64`) | D-201 |
+| `ma.compress_nd(x, ndmin)` accepts `ndmin` | not supported (ignored) | D-209 |
+| `ma.convolve` mode `'same'` uses central portion | identical | — |
+| `ma.corrcoef` rowvar parameter | `rowvar=True` default only | D-202 |
+| `ma.cov` full parameter set | `rowvar`, `bias`, `ddof` supported | D-202 |
+| Structured arrays / record arrays in ma | not supported | D-200 |
+| `ma.flatten_structured_array` | returns identity (not structured) | D-207 |

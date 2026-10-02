@@ -1156,3 +1156,24 @@ Done:
 - Misc: `baseRepr binaryRepr`; native windows `bartlett blackman hamming hanning kaiser`; legacy polynomials `poly poly1d polyadd polyder polydiv polyfit polyint polymul polysub polyval roots` (native convolve/polydiv).
 - Tests: `tests/native/test_p14_*.cpp`, `packages/numera/test/p14_*.test.ts`, docs examples in `docs/site/parts/p14.mjs`. Verified: `pnpm build`, `test`, `test:native`, `api:check`, `test:asan`.
 - Remaining: datetime64/timedelta64 (P14-8..10, D-174/D-175; this needs a core DType enum change touching ~38 dispatch sites), str_/bytes_/np.strings/structured (P14-11), and NumPy differential cases and benchmarks (names are in `api/bench-exempt/p14.json`).
+## 2026-10-02 — P16B: np.ma masked arrays (D-200..D-209)
+- Pure TypeScript implementation of `np.ma` in `packages/numera/src/ma.ts` (~1750 lines).
+- 218/224 np.ma names implemented (97.3% coverage, 1 excluded). Implements:
+  MaskedArray class (nomask=false, masked singleton, MaskError, MAError),
+  all constructors (masked_array, masked_equal/greater/…/where/invalid/outside/values),
+  mask utilities (make_mask, mask_or, getmask/getmaskarray, harden_mask, soften_mask,
+  flatten_mask, flatten_structured_array, make_mask_descr),
+  full ufunc set with mask propagation (trig, exp/log, arithmetic, bitwise, comparison),
+  reductions skipping masked elements (sum, prod, mean, var, std, min, max, ptp,
+  all, any, count, cumsum, cumprod, average, median, anom, corrcoef, cov),
+  shape/manip methods (reshape, ravel, flatten, transpose, squeeze, expand_dims,
+  swapaxes, repeat, diagonal, take, compress, resize, put, putmask, diff),
+  concat/stack (concatenate, vstack, hstack, dstack, column_stack, stack, append,
+  atleast_1d/2d/3d), fill-value utilities, notmasked/clump helpers,
+  compress_nd/rows/cols/rowcols, mask_rows/cols/rowcols, set ops, polyfit,
+  corrcoef, cov, convolve, correlate, vander, dot/inner/outer.
+- Verified: `pnpm build`, `pnpm test` (845 tests, all pass: 85 p16b_ma + 309 docs_site),
+  `pnpm api:check` pass. C++ ASan tests confirm 208/208 pass (no native changes).
+  All 218 ma.* names listed in `api/bench-exempt/p16b.json` (pure TS, no bench yet).
+- Gaps: 6 names unimplemented (ma.MaskedArray class directly exported, clump edge
+  cases per NumPy internal ABI); no NumPy differential test suite yet; no benchmarks.
