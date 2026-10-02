@@ -1220,3 +1220,34 @@ Commit: 5de4602
   All 218 ma.* names listed in `api/bench-exempt/p16b.json` (pure TS, no bench yet).
 - Gaps: 6 names unimplemented (ma.MaskedArray class directly exported, clump edge
   cases per NumPy internal ABI); no NumPy differential test suite yet; no benchmarks.
+- P10-6 (`correlate`, `convolve`, D-135): 1-D cross-correlation and discrete
+  linear convolution with `full`/`same`/`valid` modes. Native
+  `native/core/p10_conv.{hpp,cpp}`, binding in `p10_binding.cpp`, TS wrappers
+  in `p10.ts`. Handles real and complex dtypes; valid-mode K>M swap with reverse
+  matches NumPy exactly. Checks: `pnpm build` clean, `pnpm test` (all 20
+  p10_conv TS tests pass), `pnpm test:native` (172/172 including 16 p10_conv
+  C++ cases). Also fixed pre-existing `ErrorKind::ValueError` → `ErrorKind::Value`
+  in `p10_reduce.cpp` (P10-7) and `Histogram2dOptions extends Omit<…,"range">`
+  type error in `p10.ts` (P10-5).
+
+## P10 — Statistics & NaN-reductions (branch p10) — 2026-10-02
+- Native kernels: `p10_quantile`, `p10_cumdiff`, `p10_nan`, `p10_stats`,
+  `p10_hist`, `p10_conv`, `p10_reduce` (binding `addon.p10`).
+- **P10-1** (`median percentile quantile nanmedian nanpercentile nanquantile`,
+  axis tuples, keepdims, 13 interpolation methods including weighted
+  `inverted_cdf`).
+- **P10-2** (`cumsum cumprod cumulativeSum cumulativeProd nancumsum nancumprod
+  diff ptp`; NDArray `cumsum cumprod ptp`).
+- **P10-3** (`nansum nanprod nanmean nanvar nanstd nanmin nanmax nanargmin
+  nanargmax`).
+- **P10-4** (`average` with weights, `cov corrcoef gradient trapezoid`).
+- **P10-5** (`histogram histogramBinEdges histogram2d histogramdd bincount
+  digitize interp`; right-closed rightmost bin; empty-array safe).
+- **P10-6** (`correlate convolve`; full/same/valid modes; real and complex dtypes;
+  valid-mode K>M swap matches NumPy).
+- **P10-7** (`where=`/`out=` for `np.sum/prod/min/max/mean/var/std`; routed
+  through `addon.p10.reduceWhere`; masked-out positions written as zero).
+- Checks: `pnpm build` clean, `pnpm test` 433 tests pass (20 test files),
+  `pnpm test:asan` 100% (0.34 s, ASan+UBSan), `pnpm api:check` passes.
+  API coverage 19.0% → 22.4% (237/1060). Benchmarks and NumPy differential
+  cases deferred to the V phase (bench-exempt in `api/bench-exempt/p10.json`).

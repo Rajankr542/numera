@@ -195,7 +195,8 @@ export * from "./p06.js";
 export * from "./p07.js";
 export * from "./p08.js";
 export * from "./p09.js";
-export * from "./p10.js";
+// P10: cumsum/cumprod also exported by p16a (canonical); exclude from p10 re-export.
+export { AverageOptions, Axis, BincountOptions, BinsArg, ConvMode, CorrcoefOptions, CovOptions, CumsumOptions, CumulativeOptions, DiffOptions, GradientOptions, Histogram2dOptions, Histogram2dResult, HistogramOptions, HistogramResult, HistogramddOptions, HistogramddResult, InterpOptions, MedianOptions, PtpOptions, QuantileMethod, QuantileOptions, Spacing, TrapezoidOptions, WhereReduceOptions, WhereVarOptions, average, bincount, convolve, corrcoef, correlate, cov, cumulativeProd, cumulativeSum, diff, digitize, gradient, histogram, histogram2d, histogramBinEdges, histogramdd, interp, median, nanargmax, nanargmin, nancumprod, nancumsum, nanmax, nanmean, nanmedian, nanmin, nanpercentile, nanprod, nanquantile, nanstd, nansum, nanvar, p10, percentile, ptp, quantile, reduceWhere, trapezoid } from "./p10.js";
 export * from "./p11.js";
 export * from "./p12.js";
 export * from "./p13.js";

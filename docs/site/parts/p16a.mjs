@@ -140,6 +140,15 @@ np.cumsum([[1, 2], [3, 4]], 0).toArray(); // => [[1, 2], [4, 6]]`,
         example: `np.cumprod([1, 2, 3, 4]).toArray(); // => [1, 2, 6, 24]
 np.cumprod([[1, 2], [3, 4]], 1).toArray(); // => [[1, 2], [3, 12]]`,
       },
+      {
+        name: "nancumsum",
+        sig: "np.nancumsum(a, opts?) · np.nancumprod(a, opts?)",
+        desc: "Like `cumsum`/`cumprod` but NaN values are treated as 0 / 1 respectively (i.e. they are skipped).",
+        args: [{ name: "a", type: "ArrayLike", desc: "Input array." }, { name: "[opts.axis]", type: "number | null", desc: "Axis; default flattened." }, { name: "[opts.dtype]", type: "DTypeLike", desc: "Accumulator dtype." }],
+        returns: "NDArray",
+        example: `np.nancumsum([1, NaN, 2]).toArray(); // => [1, 1, 3]
+np.nancumprod([2, NaN, 3]).toArray(); // => [2, 2, 6]`,
+      },
     ],
   },
   {
