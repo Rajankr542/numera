@@ -12,6 +12,7 @@ export interface P06Native {
   repeat(a: N, repeats: number[], axis: number | null): N;
   resize(a: N, shape: number[]): N;
   resizeInplace(a: N, shape: number[]): N;
+  pad(a: N, mode: string, width: number[], values: N | null, statLength: number[] | null, odd: boolean): N;
 }
 
 export const native = nativeModule<P06Native>("p06");

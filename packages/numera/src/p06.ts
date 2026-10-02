@@ -21,10 +21,12 @@ import {
   vstack,
 } from "./p06_join.js";
 
+import { pad } from "./p06_pad.js";
 import { repeat, tile } from "./p06_tile.js";
 
 export * from "./p06_join.js";
 export * from "./p06_tile.js";
+export * from "./p06_pad.js";
 
 export const p06 = {
   concatenate,
@@ -46,4 +48,5 @@ export const p06 = {
   atleast3d,
   tile,
   repeat,
+  pad,
 } as const;

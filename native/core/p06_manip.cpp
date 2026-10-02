@@ -341,3 +341,337 @@ NDArray resize_inplace_data(const NDArray& a, const Shape& shape) {
 }
 
 }  // namespace nativpy
+
+// ---- pad (D-092) ----
+
+namespace nativpy {
+
+namespace {
+
+// Calls f(base, stride, length) for every 1-d lane of `v` along `axis`.
+template <typename F>
+void for_each_lane(const NDArray& v, std::size_t axis, F&& f) {
+  const std::size_t nd = v.ndim();
+  Shape outer;
+  Strides ostr;
+  for (std::size_t d = 0; d < nd; ++d) {
+    if (d == axis) continue;
+    if (v.shape()[d] == 0) return;
+    outer.push_back(v.shape()[d]);
+    ostr.push_back(v.strides()[d]);
+  }
+  const std::int64_t len = v.shape()[axis];
+  const std::int64_t stride = v.strides()[axis];
+  std::vector<std::int64_t> idx(outer.size(), 0);
+  std::byte* p = v.data();
+  for (;;) {
+    f(p, stride, len);
+    std::size_t d = outer.size();
+    for (; d-- > 0;) {
+      if (++idx[d] < outer[d]) {
+        p += ostr[d];
+        break;
+      }
+      p -= ostr[d] * (outer[d] - 1);
+      idx[d] = 0;
+    }
+    if (d == static_cast<std::size_t>(-1)) return;
+  }
+}
+
+template <typename T>
+using work_t = std::conditional_t<is_complex_v<T>, std::complex<double>, double>;
+
+template <typename T>
+work_t<T> to_work(T v) {
+  if constexpr (is_complex_v<T>) {
+    return {static_cast<double>(v.real()), static_cast<double>(v.imag())};
+  } else {
+    return cast_value<double>(v);
+  }
+}
+
+template <typename T>
+bool is_nan_v(T v) {
+  if constexpr (is_complex_v<T>) {
+    return std::isnan(v.real()) || std::isnan(v.imag());
+  } else if constexpr (std::is_same_v<T, float16_t>) {
+    return std::isnan(half_to_double(v));
+  } else if constexpr (std::is_floating_point_v<T>) {
+    return std::isnan(v);
+  } else {
+    return false;
+  }
+}
+
+// Ordering used by maximum/minimum/median (complex: lexicographic, as NumPy).
+template <typename T>
+bool less_v(T a, T b) {
+  if constexpr (is_complex_v<T>) {
+    return a.real() < b.real() || (a.real() == b.real() && a.imag() < b.imag());
+  } else if constexpr (std::is_same_v<T, float16_t>) {
+    return half_to_double(a) < half_to_double(b);
+  } else {
+    return a < b;
+  }
+}
+
+// 2 * edge - v in the array dtype (integers wrap, bool via nonzero).
+template <typename T>
+T odd_reflect(T edge, T v) {
+  if constexpr (std::is_same_v<T, bool> || std::is_same_v<T, float16_t>) {
+    return cast_value<T>(2.0 * cast_value<double>(edge) - cast_value<double>(v));
+  } else if constexpr (std::is_integral_v<T>) {
+    using U = std::make_unsigned_t<T>;
+    return static_cast<T>(static_cast<U>(static_cast<U>(2) * static_cast<U>(edge) -
+                                         static_cast<U>(v)));
+  } else {
+    return static_cast<T>(T(2) * edge - v);
+  }
+}
+
+template <typename T>
+T from_stat(work_t<T> w) {
+  if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+    return cast_value<T>(std::nearbyint(w));  // NumPy _round_if_needed (half to even)
+  } else {
+    return cast_value<T>(w);
+  }
+}
+
+template <typename T>
+struct Lane {
+  std::byte* p;
+  std::int64_t s;
+  T get(std::int64_t i) const { return load<T>(p + i * s); }
+  void set(std::int64_t i, T v) const { store<T>(p + i * s, v); }
+  void fill(std::int64_t from, std::int64_t to, T v) const {
+    for (std::int64_t i = from; i < to; ++i) set(i, v);
+  }
+};
+
+template <typename T>
+T lane_stat(const Lane<T>& l, std::int64_t from, std::int64_t count, PadMode mode) {
+  if (mode == PadMode::Maximum || mode == PadMode::Minimum) {
+    T best = l.get(from);
+    for (std::int64_t i = from; i < from + count; ++i) {
+      const T v = l.get(i);
+      if (is_nan_v(v)) return v;
+      if (mode == PadMode::Maximum ? less_v(best, v) : less_v(v, best)) best = v;
+    }
+    return best;
+  }
+  if (mode == PadMode::Mean) {
+    work_t<T> sum{};
+    for (std::int64_t i = from; i < from + count; ++i) sum += to_work(l.get(i));
+    return from_stat<T>(sum / static_cast<double>(count));
+  }
+  // Median.
+  if (count == 0) return from_stat<T>(work_t<T>(std::nan("")));
+  std::vector<T> v;
+  v.reserve(static_cast<std::size_t>(count));
+  for (std::int64_t i = from; i < from + count; ++i) {
+    const T x = l.get(i);
+    if (is_nan_v(x)) return x;
+    v.push_back(x);
+  }
+  std::sort(v.begin(), v.end(), [](T a, T b) { return less_v(a, b); });
+  const auto h = static_cast<std::size_t>(count / 2);
+  const work_t<T> m = count % 2 == 1 ? to_work(v[h]) : (to_work(v[h - 1]) + to_work(v[h])) / 2.0;
+  return from_stat<T>(m);
+}
+
+template <typename T>
+void pad_lane(const Lane<T>& l, std::int64_t len, std::int64_t left, std::int64_t right,
+              std::int64_t n, std::size_t axis, const PadOptions& o, const NDArray* vals) {
+  const PadMode mode = o.mode;
+  switch (mode) {
+    case PadMode::Constant: {
+      l.fill(0, left, load<T>(vals->data() + static_cast<std::int64_t>(2 * axis) * vals->strides()[0]));
+      l.fill(len - right, len,
+             load<T>(vals->data() + static_cast<std::int64_t>(2 * axis + 1) * vals->strides()[0]));
+      return;
+    }
+    case PadMode::Edge:
+      l.fill(0, left, l.get(left));
+      l.fill(len - right, len, l.get(left + n - 1));
+      return;
+    case PadMode::LinearRamp: {
+      using W = work_t<T>;
+      const auto ev = [&](std::size_t k) {
+        return load<W>(vals->data() + static_cast<std::int64_t>(k) * vals->strides()[0]);
+      };
+      const auto ramp = [&](W start, W stop, std::int64_t num, auto&& put) {
+        const W delta = stop - start;
+        const W step = delta / static_cast<double>(num);
+        for (std::int64_t k = 0; k < num; ++k) {
+          W y = step == W{} ? static_cast<double>(k) / static_cast<double>(num) * delta
+                            : static_cast<double>(k) * step;
+          y += start;
+          if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) y = std::floor(y);
+          put(k, cast_value<T>(y));
+        }
+      };
+      const W le = to_work(l.get(left));
+      const W re = to_work(l.get(left + n - 1));
+      ramp(ev(2 * axis), le, left, [&](std::int64_t k, T v) { l.set(k, v); });
+      ramp(ev(2 * axis + 1), re, right, [&](std::int64_t k, T v) { l.set(len - 1 - k, v); });
+      return;
+    }
+    case PadMode::Maximum:
+    case PadMode::Minimum:
+    case PadMode::Mean:
+    case PadMode::Median: {
+      auto [ll, rl] = o.stat_length[axis];
+      if (ll < 0 || ll > n) ll = n;
+      if (rl < 0 || rl > n) rl = n;
+      if ((ll == 0 || rl == 0) && (mode == PadMode::Maximum || mode == PadMode::Minimum)) {
+        throw_error(ErrorKind::Value, "stat_length of 0 yields no value for padding");
+      }
+      const T ls = lane_stat(l, left, ll, mode);
+      const T rs = (ll == n && rl == n) ? ls : lane_stat(l, left + n - rl, rl, mode);
+      l.fill(0, left, ls);
+      l.fill(len - right, len, rs);
+      return;
+    }
+    case PadMode::Reflect:
+    case PadMode::Symmetric: {
+      if (n == 1) {
+        l.fill(0, left, l.get(left));
+        l.fill(len - right, len, l.get(left));
+        return;
+      }
+      const bool include_edge = mode == PadMode::Symmetric;
+      std::vector<T> chunk;
+      std::int64_t lp = left;
+      std::int64_t rp = right;
+      while (lp > 0 || rp > 0) {
+        std::int64_t old = len - rp - lp;
+        std::int64_t edge_offset = 0;
+        if (include_edge) {
+          old = old / n * n;
+          edge_offset = 1;
+        } else {
+          old = (old - 1) / (n - 1) * (n - 1) + 1 - 1;
+        }
+        if (lp > 0) {
+          const std::int64_t c = std::min(old, lp);
+          const std::int64_t start = lp - edge_offset + c;
+          chunk.clear();
+          for (std::int64_t k = 0; k < c; ++k) {
+            const T v = l.get(start - k);
+            chunk.push_back(o.odd ? odd_reflect(l.get(lp), v) : v);
+          }
+          for (std::int64_t k = 0; k < c; ++k) l.set(lp - c + k, chunk[static_cast<std::size_t>(k)]);
+          lp -= c;
+        }
+        if (rp > 0) {
+          const std::int64_t c = std::min(old, rp);
+          const std::int64_t start = len - rp + edge_offset - 2;
+          chunk.clear();
+          for (std::int64_t k = 0; k < c; ++k) {
+            const T v = l.get(start - k);
+            chunk.push_back(o.odd ? odd_reflect(l.get(len - rp - 1), v) : v);
+          }
+          for (std::int64_t k = 0; k < c; ++k) l.set(len - rp + k, chunk[static_cast<std::size_t>(k)]);
+          rp -= c;
+        }
+      }
+      return;
+    }
+    case PadMode::Wrap: {
+      std::int64_t lp = left;
+      std::int64_t rp = right;
+      while (lp > 0 || rp > 0) {
+        const std::int64_t period = (len - rp - lp) / n * n;
+        std::int64_t nl = 0;
+        std::int64_t nr = 0;
+        if (lp > 0) {
+          const std::int64_t c = std::min(period, lp);
+          const std::int64_t src = lp + period - c;
+          const std::int64_t dst = lp > period ? lp - period : 0;
+          if (lp > period) nl = lp - period;
+          for (std::int64_t k = 0; k < c; ++k) l.set(dst + k, l.get(src + k));
+        }
+        if (rp > 0) {
+          const std::int64_t c = std::min(period, rp);
+          const std::int64_t src = len - rp - period;
+          if (rp > period) nr = rp - period;
+          for (std::int64_t k = 0; k < c; ++k) l.set(len - rp + k, l.get(src + k));
+        }
+        lp = nl;
+        rp = nr;
+      }
+      return;
+    }
+    case PadMode::Empty:
+      return;
+  }
+}
+
+}  // namespace
+
+NDArray pad(const NDArray& a, const PadOptions& o) {
+  const std::size_t nd = a.ndim();
+  if (o.width.size() != nd) throw_error(ErrorKind::Value, "pad_width must have one pair per axis");
+  Shape shape(nd);
+  for (std::size_t d = 0; d < nd; ++d) {
+    const auto [l, r] = o.width[d];
+    if (l < 0 || r < 0) throw_error(ErrorKind::Value, "index can't contain negative values");
+    shape[d] = l + a.shape()[d] + r;
+  }
+  const Order order = (a.is_f_contiguous() && !a.is_c_contiguous()) ? Order::F : Order::C;
+  NDArray out = empty_order(shape, a.dtype(), order, true);
+  NDArray center = out;
+  for (std::size_t d = 0; d < nd; ++d) {
+    center = slice_axis(center, d, o.width[d].first, o.width[d].first + a.shape()[d], 1);
+  }
+  copy_into(center, a);
+  if (o.mode == PadMode::Empty) return out;
+  if (o.mode != PadMode::Constant && a.size() == 0) {
+    for (std::size_t d = 0; d < nd; ++d) {
+      if (a.shape()[d] == 0 && (o.width[d].first > 0 || o.width[d].second > 0)) {
+        throw_error(ErrorKind::Value, "can't extend empty axis " + std::to_string(d) +
+                                          " using modes other than 'constant' or 'empty'");
+      }
+    }
+    return out;
+  }
+  const bool stat = o.mode == PadMode::Maximum || o.mode == PadMode::Minimum ||
+                    o.mode == PadMode::Mean || o.mode == PadMode::Median;
+  if (stat && o.stat_length.size() != nd) {
+    throw_error(ErrorKind::Value, "stat_length must have one pair per axis");
+  }
+  std::optional<NDArray> vals;
+  if (o.mode == PadMode::Constant || o.mode == PadMode::LinearRamp) {
+    const DType vt = o.mode == PadMode::Constant
+                         ? a.dtype()
+                         : (is_complex(a.dtype()) ? DType::Complex128 : DType::Float64);
+    if (o.values) {
+      if (o.values->size() != static_cast<std::int64_t>(2 * nd)) {
+        throw_error(ErrorKind::Value, "pad values must have one pair per axis");
+      }
+      vals = o.values->reshape({static_cast<std::int64_t>(2 * nd)}).astype(vt);
+    } else {
+      vals = NDArray::zeros({static_cast<std::int64_t>(2 * nd)}, vt);
+    }
+  }
+  dispatch_dtype(a.dtype(), [&](auto tag) {
+    using T = dtype_t<decltype(tag)::value>;
+    for (std::size_t axis = 0; axis < nd; ++axis) {
+      const auto [left, right] = o.width[axis];
+      if (left == 0 && right == 0) continue;
+      NDArray roi = out;
+      for (std::size_t d = axis + 1; d < nd; ++d) {
+        roi = slice_axis(roi, d, o.width[d].first, o.width[d].first + a.shape()[d], 1);
+      }
+      const std::int64_t n = a.shape()[axis];
+      for_each_lane(roi, axis, [&](std::byte* p, std::int64_t s, std::int64_t len) {
+        pad_lane<T>(Lane<T>{p, s}, len, left, right, n, axis, o, vals ? &*vals : nullptr);
+      });
+    }
+  });
+  return out;
+}
+
+}  // namespace nativpy

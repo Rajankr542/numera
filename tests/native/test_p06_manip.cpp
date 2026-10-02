@@ -122,3 +122,53 @@ TEST_CASE("p06: tile / repeat / resize") {
   CHECK_THROWS_KIND(resize_inplace_data(slice_axis(a, 0, 0, 3, 2), {2}), ErrorKind::Value);
   CHECK_THROWS_KIND(resize_inplace_data(a.reshape({3, 1}), {2}), ErrorKind::Value);
 }
+
+namespace {
+PadOptions pad_opts(PadMode m, std::int64_t l, std::int64_t r, std::size_t nd = 1) {
+  PadOptions o;
+  o.mode = m;
+  o.width.assign(nd, {l, r});
+  o.stat_length.assign(nd, {-1, -1});
+  return o;
+}
+}  // namespace
+
+TEST_CASE("p06: pad modes") {
+  const NDArray a = iota({4});  // 0 1 2 3
+  CHECK(values(pad(a, pad_opts(PadMode::Constant, 1, 2))) ==
+        std::vector<std::int64_t>({0, 0, 1, 2, 3, 0, 0}));
+  CHECK(values(pad(a, pad_opts(PadMode::Edge, 2, 1))) ==
+        std::vector<std::int64_t>({0, 0, 0, 1, 2, 3, 3}));
+  CHECK(values(pad(a, pad_opts(PadMode::Reflect, 5, 5))) ==
+        std::vector<std::int64_t>({1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 0, 1, 2}));
+  CHECK(values(pad(a, pad_opts(PadMode::Symmetric, 5, 5))) ==
+        std::vector<std::int64_t>({3, 3, 2, 1, 0, 0, 1, 2, 3, 3, 2, 1, 0, 0}));
+  CHECK(values(pad(a, pad_opts(PadMode::Wrap, 5, 5))) ==
+        std::vector<std::int64_t>({3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0}));
+  PadOptions odd = pad_opts(PadMode::Reflect, 2, 2);
+  odd.odd = true;
+  CHECK(values(pad(a, odd)) == std::vector<std::int64_t>({-2, -1, 0, 1, 2, 3, 4, 5}));
+  CHECK(values(pad(a, pad_opts(PadMode::Maximum, 1, 1))) ==
+        std::vector<std::int64_t>({3, 0, 1, 2, 3, 3}));
+  CHECK(values(pad(a, pad_opts(PadMode::Mean, 1, 1))) ==
+        std::vector<std::int64_t>({2, 0, 1, 2, 3, 2}));  // 1.5 rounds to even
+  CHECK(values(pad(a, pad_opts(PadMode::Median, 1, 0))) ==
+        std::vector<std::int64_t>({2, 0, 1, 2, 3}));
+  PadOptions sl = pad_opts(PadMode::Minimum, 1, 1);
+  sl.stat_length = {{2, 1}};
+  CHECK(values(pad(a, sl)) == std::vector<std::int64_t>({0, 0, 1, 2, 3, 3}));
+  sl.stat_length = {{0, 1}};
+  CHECK_THROWS_KIND(pad(a, sl), ErrorKind::Value);
+  PadOptions lr = pad_opts(PadMode::LinearRamp, 2, 2);
+  lr.values = arange(0, 2, 1, DType::Float64).reshape({1, 2}).astype(DType::Float64);
+  CHECK(values(pad(a, lr)) == std::vector<std::int64_t>({0, 0, 0, 1, 2, 3, 2, 1}));
+  NDArray m = pad(iota({2, 2}), pad_opts(PadMode::Edge, 1, 1, 2));
+  CHECK(m.shape() == Shape({4, 4}));
+  CHECK(values(m) == std::vector<std::int64_t>({0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3}));
+  CHECK(pad(copy_order(iota({2, 3}), DType::Int64, Order::F), pad_opts(PadMode::Edge, 1, 1, 2))
+            .is_f_contiguous());
+  CHECK(values(pad(iota({0}), pad_opts(PadMode::Constant, 1, 1))) == std::vector<std::int64_t>({0, 0}));
+  CHECK_THROWS_KIND(pad(iota({0}), pad_opts(PadMode::Edge, 1, 1)), ErrorKind::Value);
+  CHECK(pad(iota({0}), pad_opts(PadMode::Edge, 0, 0)).shape() == Shape({0}));
+  CHECK_THROWS_KIND(pad(a, pad_opts(PadMode::Edge, -1, 0)), ErrorKind::Value);
+}

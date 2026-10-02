@@ -12,6 +12,7 @@
  "np.dstack [nativpy] [numpy]",
  "np.hsplit [nativpy] [numpy]",
  "np.hstack [nativpy] [numpy]",
+ "np.pad [nativpy] [numpy]",
  "np.repeat [nativpy] [numpy]",
  "np.split [nativpy] [numpy]",
  "np.stack [nativpy] [numpy]",

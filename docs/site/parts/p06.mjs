@@ -118,6 +118,24 @@ np.tile([1, 2], [2, 1]);    // => [[1, 2], [1, 2]]`,
 np.repeat([[1, 2], [3, 4]], [1, 2], 0);  // => [[1, 2], [3, 4], [3, 4]]
 np.array([1, 2]).repeat(2);              // => [1, 1, 2, 2]`,
       },
+      {
+        name: "pad",
+        sig: "np.pad(a, padWidth, [mode], [{constantValues, endValues, statLength, reflectType}])",
+        desc: "Pads an array. Modes: `constant` (default), `edge`, `linear_ramp`, `maximum`, `mean`, `median`, `minimum`, `reflect`, `symmetric`, `wrap`, `empty`, or a JS function `(vector, [before, after], axis, options)` that fills each 1-d lane in place. `padWidth` is `n`, `[before, after]`, one pair per axis, or `{axis: width}`. Statistics on integer arrays are rounded to the nearest integer.",
+        args: [
+          { name: "padWidth", type: "number | number[] | number[][] | object", desc: "Number of values padded before/after each axis." },
+          { name: "[mode]", type: "string | function", desc: "Padding mode." },
+        ],
+        returns: "NDArray",
+        example: `np.pad([1, 2, 3], [1, 2]);                                   // => [0, 1, 2, 3, 0, 0]
+np.pad([1, 2, 3], 1, "constant", { constantValues: [7, 8] });  // => [7, 1, 2, 3, 8]
+np.pad([1, 2, 3], 2, "edge");                                // => [1, 1, 1, 2, 3, 3, 3]
+np.pad([1, 2, 3], 2, "reflect");                             // => [3, 2, 1, 2, 3, 2, 1]
+np.pad([1, 2, 3], 2, "symmetric");                           // => [2, 1, 1, 2, 3, 3, 2]
+np.pad([1, 2, 3], 2, "wrap");                                // => [2, 3, 1, 2, 3, 1, 2]
+np.pad([1, 2, 3], 1, "mean");                                // => [2, 1, 2, 3, 2]
+np.pad([0, 4], [2, 0], "linear_ramp", { endValues: 4 });     // => [4, 2, 0, 4]`,
+      },
     ],
   },
 ];

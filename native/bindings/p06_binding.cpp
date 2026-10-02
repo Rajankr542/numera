@@ -21,6 +21,26 @@ const NDArray* opt_array(const Napi::Value& v) {
   return util::is_nullish(v) ? nullptr : &NDArrayWrap::unwrap(v);
 }
 
+std::vector<std::pair<std::int64_t, std::int64_t>> pairs(const Napi::Value& v, const char* what) {
+  const auto flat = util::arg_ints(v, what);
+  std::vector<std::pair<std::int64_t, std::int64_t>> out;
+  for (std::size_t k = 0; k + 1 < flat.size(); k += 2) out.emplace_back(flat[k], flat[k + 1]);
+  return out;
+}
+
+PadMode pad_mode(const std::string& m) {
+  static const std::pair<const char*, PadMode> modes[] = {
+      {"constant", PadMode::Constant}, {"edge", PadMode::Edge},
+      {"linear_ramp", PadMode::LinearRamp}, {"maximum", PadMode::Maximum},
+      {"mean", PadMode::Mean}, {"median", PadMode::Median}, {"minimum", PadMode::Minimum},
+      {"reflect", PadMode::Reflect}, {"symmetric", PadMode::Symmetric}, {"wrap", PadMode::Wrap},
+      {"empty", PadMode::Empty}};
+  for (const auto& [name, mode] : modes) {
+    if (m == name) return mode;
+  }
+  throw_error(ErrorKind::Value, "mode '" + m + "' is not supported");
+}
+
 }  // namespace
 
 // Native functions for parity milestone P6 (D-056), exposed as `addon.p06`.
@@ -58,6 +78,16 @@ void init_p06_binding(Napi::Env env, Napi::Object exports) {
         }));
   m.Set("resizeInplace", fn(env, "resizeInplace", [](Info i, Napi::Env e) {
           return wrap(e, resize_inplace_data(arr(i, 0), arg_ints(i[1], "shape")));
+        }));
+  // pad(a, mode, width[2n], values|null, statLength[2n]|null, odd)
+  m.Set("pad", fn(env, "pad", [](Info i, Napi::Env e) {
+          PadOptions o;
+          o.mode = pad_mode(arg_string(i[1], "mode"));
+          o.width = pairs(i[2], "pad_width");
+          if (const NDArray* v = opt_array(i[3])) o.values = *v;
+          if (!is_nullish(i[4])) o.stat_length = pairs(i[4], "stat_length");
+          o.odd = arg_bool(i[5]);
+          return wrap(e, pad(arr(i, 0), o));
         }));
   exports.Set("p06", m);
 }

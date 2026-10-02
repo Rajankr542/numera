@@ -1565,3 +1565,21 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   values and length mismatches raise `ValueError` with NumPy's messages.
 - `NDArray.prototype.repeat(repeats, axis?)` is added by declaration merging in
   `p06_tile.ts`.
+
+## D-092 — P6 pad (P6) — Accepted — 2026-10-02
+- `pad(a, padWidth, mode?, options?)` follows NumPy `_arraypad_impl`: the
+  result has `a`'s dtype, layout F if `a` is F- and not C-contiguous (else C),
+  and axes are padded in order, each over the region already padded on earlier
+  axes. The native kernel processes every 1-d lane along the current axis with
+  NumPy's per-mode rules (iterative reflect/symmetric/wrap, `stat_length`
+  clipping, integer stats rounded half-to-even, `reflect_type: "odd"`).
+- Options use camelCase keys: `constantValues`, `endValues`, `statLength`,
+  `reflectType`; `padWidth`/values accept NumPy's scalar, pair, per-axis-pairs
+  and `{axis: width}` forms. Unsupported keys for a mode and unknown modes raise
+  `ValueError`; a non-integer `padWidth` raises `DTypeError`.
+- Divergences (build-first, checked in the V phase): `linear_ramp` and `mean` /
+  `median` are computed in float64 (complex128) and cast once, while NumPy may
+  compute in the array's float dtype; `mode: "empty"` fills with zeros instead
+  of leaving memory uninitialised.
+- A JS function as `mode` is called NumPy-style as `fn(vector, [before, after],
+  axis, options)` on writable 1-d views of a zero-padded result.
