@@ -152,7 +152,7 @@ cases come in the V phase.
 | `fromiter` without `dtype` | `TypeError` | `dtype` is a required positional argument | D-101 |
 
 ## P11 linear algebra completion
-Implemented on both linalg backends (D-140..D-142): `linalg.cholesky` (upper),
+Implemented on both linalg backends (D-140, D-141, D-142): `linalg.cholesky` (upper),
 `slogdet`, `svdvals`, `matrixPower`, `pinv`, `matrixRank`, `cond`, `vectorNorm`,
 `matrixNorm`, `matrixTranspose`, `diagonal`, `trace`, `outer`, `tensorinv`,
 `tensorsolve`, `cross`, `tensordot`, `multiDot`, `vecdot`; `np.vdot`, `kron`,
