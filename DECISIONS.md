@@ -1798,3 +1798,86 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `ediff1d(a, {toEnd, toBegin})`: flattens; the result has the input dtype; bool
   input raises DTypeError; toBegin/toEnd must be castable to it with
   `same_kind` casting, otherwise DTypeError with NumPy's message.
+
+## D-160 — P13 bit generators, SeedSequence and state (P13-1) — Accepted — 2026-10-02
+- `native/random/p13_bitgen.{hpp,cpp}` (namespace `nativpy::random::p13`) has its
+  own `SeedSeq` (entropy, spawn key, pool size) and `MT19937`, `PCG64`,
+  `PCG64DXSM`, `Philox` and `SFC64`, ported from NumPy 2.x. Each one derives from
+  `StatefulBitGen : random::BitGen`, so the D-019 helpers (`bounded_integers`,
+  `random_doubles`, `shuffle`, the ziggurat normal, ...) work on all of them.
+  State is read and written as uint64 word vectors in a fixed per-kind layout.
+  The D-019 `addon.random.BitGenerator` stays unchanged. `random.ts` moves to
+  `addon.p13.BitGen`, and the old streams stay identical; the existing tests
+  verify this.
+- TS API (camelCase of NumPy):
+  - `new np.random.SeedSequence(entropy?, {spawnKey, poolSize})` with
+    `entropy`, `spawnKey`, `poolSize`, `nChildrenSpawned`, `generateState(n,
+    dtype)` and `spawn(n)`.
+  - `new np.random.PCG64(seed?)`, and likewise `PCG64DXSM`, `SFC64`, `MT19937`,
+    `Philox(seed?, {counter, key})`. `seed` may be a SeedSequence. Each one has a
+    `state` getter/setter that takes NumPy-shaped plain objects (uint64 values as
+    bigint, MT19937 `key` as a uint32 `NDArray`), plus `seedSeq`, `spawn(n)` and
+    `randomRaw(size?)`.
+  - `np.random.BitGenerator` is the abstract base. It cannot be constructed, as
+    in NumPy.
+  - `new np.random.Generator(bitGenerator)`, `rng.bitGenerator`, `rng.spawn(n)`,
+    `rng.bytes(n)` (returns a `Uint8Array`, NumPy `bytes`).
+- Errors: Python `TypeError`/`OverflowError` have no numera kind. They map to
+  JS `TypeError`/`RangeError`, as in D-019's existing range checks; the message
+  text matches NumPy.
+
+## D-161 — Generator distributions and broadcasting (P13-2, P13-3) — Accepted — 2026-10-02
+- Scalar kernels are ported line by line from NumPy's `distributions.c`,
+  `random_hypergeometric.c` and `logfactorial.c` into
+  `native/random/p13_distributions.cpp`, so the bit streams match.
+  `(int64_t)` casts of out-of-range doubles saturate and map NaN to 0, which
+  is what arm64 does (on x86 such casts are UB/INT64_MIN). Only parameters
+  NumPy rejects reach those casts.
+- A generic native engine (`p13_binding.cpp`) mirrors NumPy's `cont` / `disc`
+  / `cont_f`:
+  - parameters are converted to float64 (int64 for binomial `n` and the
+    hypergeometric arguments, with the `safe`-cast TypeError for float arrays
+    and truncation for float scalars);
+  - with any non-0-d parameter, the array constraint checks run and the output
+    shape is `size` or the broadcast shape, filled in C order;
+  - NumPy's exact shape-mismatch and "Output size ... is not compatible" errors;
+  - otherwise the scalar constraint checks run, and the call returns a JS
+    number when `size` is omitted.
+- `out=` is supported where NumPy has it (`random`, `standardNormal`,
+  `standardExponential`, `standardGamma`), with NumPy's dtype/contiguity/size
+  checks.
+
+## D-162 — Multivariate samplers, choice(p), permuted (P13-4) — Accepted — 2026-10-02
+- `multinomial` (broadcast `n` × `pvals[..., :]`), `dirichlet` (beta
+  stick-breaking when max(alpha) < 0.1), and `multivariateHypergeometric`
+  (`count` / `marginals`) run natively with NumPy's algorithms and errors.
+- `multivariateNormal` computes the factorization with `np.linalg`
+  (svd/eigh/cholesky; LAPACK-backed, D-018), then
+  `mean + z @ factor.T` (legacy: `z @ (sqrt(s)[:, None] * v) + mean`). Results
+  are bit-exact only to the extent that the decompositions match NumPy's
+  LAPACK. Tests compare with a 1e-12 tolerance and the code makes no
+  bit-exactness claim. `checkValid: "warn"` emits a Node `RuntimeWarning`.
+- `choice(p=)` follows NumPy: kahan-sum validation, cdf + `searchsorted(right)`,
+  and the no-replace loop with `unique(returnIndex)`.
+- `permuted(x, {axis, out})`: copy, then a Fisher–Yates pass per lane (or over
+  the flattened array for `axis: null`), as NumPy does.
+
+## D-163 — RandomState legacy distributions and module functions (P13-5, P13-6) — Accepted — 2026-10-02
+- The `legacy::` kernels port `legacy-distributions.c`: polar gauss with the
+  cached value, the legacy gamma/beta/exponential, and the legacy
+  binomial/zipf/geometric/logseries/vonmises/rayleigh. They reuse the
+  Generator kernels where NumPy does (laplace/gumbel/logistic/triangular/
+  uniform/poisson).
+- `RandomState.getState({legacy = true})` returns
+  `["MT19937", key: NDArray<uint32>, pos, hasGauss, gauss]`. `legacy: false`
+  returns the dict shape. `setState` accepts both and uses NumPy's error
+  messages. `RandomState(seed)` also accepts a BitGenerator (a non-MT19937
+  generator cannot be reseeded).
+- `RandomState()` without a seed fills the key from SeedSequence(OS entropy)
+  with `key[0] = 0x80000000`, as NumPy does. D-019 used array seeding instead;
+  neither is reproducible.
+- `randomIntegers(low, high)` is `randint(low, high + 1)` and emits NumPy's
+  DeprecationWarning through `process.emitWarning`. `ranf` and `sample` are
+  aliases of `randomSample`, and `bytes` uses NumPy's uint32 draw.
+- Every distribution is also exposed as an `np.random.*` function on the
+  global RandomState, together with `getState`, `setState` and `bytes`.
