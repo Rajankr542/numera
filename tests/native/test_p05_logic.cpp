@@ -169,3 +169,34 @@ TEST_CASE("p05 logical: reduce casts to bool and uses identities") {
   bad.dtype = DType::Int64;
   CHECK_THROWS_KIND(ufunc_reduce(U("logicalAnd"), vec_i({1}), nullptr, bad), ErrorKind::DType);
 }
+
+TEST_CASE("p05 isnan/isinf/isfinite/isposinf/isneginf") {
+  constexpr double inf = std::numeric_limits<double>::infinity();
+  for (DType dt : {DType::Float16, DType::Float32, DType::Float64}) {
+    const NDArray a = vec_d({kNaN, inf, -inf, 1.0}, dt);
+    const auto un = [&](const char* n) { return ints(unary(U(n), a, nullptr, {})); };
+    CHECK(un("isnan") == IV({1, 0, 0, 0}));
+    CHECK(un("isinf") == IV({0, 1, 1, 0}));
+    CHECK(un("isfinite") == IV({0, 0, 0, 1}));
+    CHECK(un("isposinf") == IV({0, 1, 0, 0}));
+    CHECK(un("isneginf") == IV({0, 0, 1, 0}));
+  }
+  for (DType dt : {DType::Bool, DType::Int8, DType::UInt64}) {
+    const NDArray a = vec_i({0, 1}, dt);
+    CHECK(ints(unary(U("isnan"), a, nullptr, {})) == IV({0, 0}));
+    CHECK(ints(unary(U("isfinite"), a, nullptr, {})) == IV({1, 1}));
+    CHECK(ints(unary(U("isneginf"), a, nullptr, {})) == IV({0, 0}));
+  }
+  using C = std::complex<double>;
+  const NDArray c = cvec({C(1, kNaN), C(inf, 0), C(1, 2)});
+  CHECK(ints(unary(U("isnan"), c, nullptr, {})) == IV({1, 0, 0}));
+  CHECK(ints(unary(U("isinf"), c, nullptr, {})) == IV({0, 1, 0}));
+  CHECK(ints(unary(U("isfinite"), c, nullptr, {})) == IV({0, 0, 1}));
+  CHECK_THROWS_KIND(unary(U("isposinf"), c, nullptr, {}), ErrorKind::DType);
+  CHECK_THROWS_KIND(unary(U("isnat"), vec_d({1}), nullptr, {}), ErrorKind::DType);
+  UfuncParams p;
+  p.dtype = DType::Float64;
+  CHECK_THROWS_KIND(unary(U("isnan"), vec_d({1}), nullptr, p), ErrorKind::DType);
+  p.dtype = DType::Bool;
+  CHECK(ints(unary(U("isnan"), vec_d({kNaN}), nullptr, p)) == IV({1}));
+}

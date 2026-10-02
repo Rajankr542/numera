@@ -1,6 +1,8 @@
 #include <cfenv>
 #include <cmath>
 #include <complex>
+#include <string>
+#include <type_traits>
 
 #include "ufunc_loops.hpp"
 #include "ufunc_registry.hpp"
@@ -121,6 +123,51 @@ struct LOrF { template <typename T> bool operator()(T a, T b) const noexcept { r
 struct LXorF { template <typename T> bool operator()(T a, T b) const noexcept { return truthy(a) != truthy(b); } };
 struct LNotF { template <typename T> bool operator()(T a) const noexcept { return !truthy(a); } };
 
+// ---- float classification (D-081) ----
+
+template <typename T>
+constexpr bool is_fp_v = std::is_floating_point_v<T>;
+struct IsNanF {
+  template <typename T> bool operator()(T v) const noexcept {
+    if constexpr (is_fp_v<T>) return std::isnan(v); else return false;
+  }
+};
+struct IsInfF {
+  template <typename T> bool operator()(T v) const noexcept {
+    if constexpr (is_fp_v<T>) return std::isinf(v); else return false;
+  }
+};
+struct IsFiniteF {
+  template <typename T> bool operator()(T v) const noexcept {
+    if constexpr (is_fp_v<T>) return std::isfinite(v); else return true;
+  }
+};
+struct IsPosInfF {
+  template <typename T> bool operator()(T v) const noexcept {
+    if constexpr (is_fp_v<T>) return std::isinf(v) && v > 0; else return false;
+  }
+};
+struct IsNegInfF {
+  template <typename T> bool operator()(T v) const noexcept {
+    if constexpr (is_fp_v<T>) return std::isinf(v) && v < 0; else return false;
+  }
+};
+struct CIsNanF {
+  template <typename R> bool operator()(std::complex<R> v) const noexcept {
+    return std::isnan(v.real()) || std::isnan(v.imag());
+  }
+};
+struct CIsInfF {
+  template <typename R> bool operator()(std::complex<R> v) const noexcept {
+    return std::isinf(v.real()) || std::isinf(v.imag());
+  }
+};
+struct CIsFiniteF {
+  template <typename R> bool operator()(std::complex<R> v) const noexcept {
+    return std::isfinite(v.real()) && std::isfinite(v.imag());
+  }
+};
+
 // ---- type resolution ----
 
 // Comparisons / logical ops: loop in the promoted dtype, bool output.
@@ -144,6 +191,25 @@ LoopTypes d_bool_unary(DType a, DType d) {
   return {a, DType::Bool};
 }
 
+// isposinf/isneginf: NumPy rejects complex input.
+LoopTypes r_bool_no_complex(DType a, DType) {
+  if (is_complex(a)) {
+    throw_error(ErrorKind::DType, "This operation is not supported for " + std::string(dtype_name(a)) +
+                                      " values because it would be ambiguous.");
+  }
+  return {a, DType::Bool};
+}
+template <const char* Name>
+LoopTypes d_bool_no_complex(DType a, DType d) {
+  if (d != DType::Bool) no_loop(Name);
+  return r_bool_no_complex(a, a);
+}
+
+// isnat: no datetime/timedelta dtypes yet, so every input is rejected (D-081).
+[[noreturn]] LoopTypes r_isnat(DType, DType) {
+  throw_error(ErrorKind::DType, "ufunc 'isnat' is only defined for np.datetime64 and np.timedelta64.");
+}
+
 constexpr char kEqual[] = "equal";
 constexpr char kNotEqual[] = "notEqual";
 constexpr char kLess[] = "less";
@@ -154,8 +220,13 @@ constexpr char kLogicalAnd[] = "logicalAnd";
 constexpr char kLogicalOr[] = "logicalOr";
 constexpr char kLogicalXor[] = "logicalXor";
 constexpr char kLogicalNot[] = "logicalNot";
+constexpr char kIsNan[] = "isnan";
+constexpr char kIsInf[] = "isinf";
+constexpr char kIsFinite[] = "isfinite";
+constexpr char kIsPosInf[] = "isposinf";
+constexpr char kIsNegInf[] = "isneginf";
 
-constexpr std::array<Ufunc, 10> kTable{{
+constexpr std::array<Ufunc, 16> kTable{{
     {kEqual, 2, std::nullopt, r_to_bool, d_bool_binary<kEqual>, nullptr,
      bool_binary_table<EqF, Avail::All, EqF>(), {}},
     {kNotEqual, 2, std::nullopt, r_to_bool, d_bool_binary<kNotEqual>, nullptr,
@@ -176,6 +247,17 @@ constexpr std::array<Ufunc, 10> kTable{{
      bool_binary_table<LXorF, Avail::All, LXorF>(), {}},
     {kLogicalNot, 1, std::nullopt, r_to_bool_unary, d_bool_unary<kLogicalNot>, nullptr, {},
      bool_unary_table<LNotF, Avail::All, LNotF>()},
+    {kIsNan, 1, std::nullopt, r_to_bool_unary, d_bool_unary<kIsNan>, nullptr, {},
+     bool_unary_table<IsNanF, Avail::All, CIsNanF>()},
+    {kIsInf, 1, std::nullopt, r_to_bool_unary, d_bool_unary<kIsInf>, nullptr, {},
+     bool_unary_table<IsInfF, Avail::All, CIsInfF>()},
+    {kIsFinite, 1, std::nullopt, r_to_bool_unary, d_bool_unary<kIsFinite>, nullptr, {},
+     bool_unary_table<IsFiniteF, Avail::All, CIsFiniteF>()},
+    {"isnat", 1, std::nullopt, r_isnat, r_isnat, nullptr, {}, {}},
+    {kIsPosInf, 1, std::nullopt, r_bool_no_complex, d_bool_no_complex<kIsPosInf>, nullptr, {},
+     bool_unary_table<IsPosInfF, Avail::All, void>()},
+    {kIsNegInf, 1, std::nullopt, r_bool_no_complex, d_bool_no_complex<kIsNegInf>, nullptr, {},
+     bool_unary_table<IsNegInfF, Avail::All, void>()},
 }};
 
 }  // namespace

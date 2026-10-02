@@ -1565,3 +1565,20 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   uint32/uint64 accumulators with all ones (needed by `bitwiseAnd`, D-081).
 - `np.all`/`np.any` (and NDArray methods) are `logicalAnd.reduce`/`logicalOr.reduce`
   with NumPy's defaults (axis `null` = all axes; `axis`, `keepdims`, `where`, `out`).
+
+## D-081 — isnan/isinf/isfinite/isnat/isposinf/isneginf, isscalar (P5-3) — Accepted — 2026-10-02
+- `isnan isinf isfinite` are unary bool-output ufuncs in `ufunc_logic.cpp`
+  (D-080 templates) with loops for every dtype: integers and bool give the
+  constant answer, complex is NaN/inf if either part is, finite if both are.
+  `dtype=` accepts only `bool`.
+- `isnat` is a registry ufunc whose resolver always raises `DTypeError`
+  ("ufunc 'isnat' is only defined for np.datetime64 and np.timedelta64."),
+  since numera has no datetime dtypes yet; it starts working when P14 adds them.
+- `isposinf`/`isneginf` are NumPy functions, not ufuncs: `np.isposinf(x, {out})`.
+  Natively they are registry rows (`isposinf`/`isneginf`) whose resolver rejects
+  complex input with NumPy's `TypeError` message (as `DTypeError`); real dtypes
+  get bool loops.
+- `isscalar(x)`: true for JS `number`, `boolean`, `bigint`, `string` and complex
+  scalars (`Complex` / `{re, im}`); false for `NDArray` (including 0-d), arrays,
+  `null`/`undefined` and other objects. Matches NumPy for the Python analogues;
+  numera has no NumPy scalar types (D-005).

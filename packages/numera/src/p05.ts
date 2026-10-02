@@ -30,6 +30,9 @@ export {
   logicalXor,
   notEqual,
 } from "./p05_compare.js";
+import { isfinite, isinf, isnan, isnat, isneginf, isposinf, isscalar } from "./p05_classify.js";
+
+export { isfinite, isinf, isnan, isnat, isneginf, isposinf, isscalar } from "./p05_classify.js";
 export type { AllAnyOptions } from "./p05_compare.js";
 
 export const p05 = {
@@ -45,4 +48,11 @@ export const p05 = {
   logicalNot,
   all,
   any,
+  isnan,
+  isinf,
+  isfinite,
+  isnat,
+  isposinf,
+  isneginf,
+  isscalar,
 } as const;

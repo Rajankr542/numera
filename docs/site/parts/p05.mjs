@@ -59,6 +59,36 @@ np.any([[0, 0], [0, 1]], { axis: 1 });  // => [false, true]
 np.all([1, 0], { where: [true, false] }); // => true
 np.array([0, 2]).any();                 // => true`,
       },
+      {
+        name: "isnan",
+        sig: "np.isnan(a, options?) · np.isinf · np.isfinite · np.isnat",
+        desc: "Element-wise NaN, infinity and finiteness tests with a `bool` result. Integers are never NaN or infinite. A complex value is NaN or infinite if either part is, and finite only if both parts are. `isnat` needs a datetime dtype, which numera does not have yet, so it always raises `DTypeError` (as NumPy does for non-datetime input).",
+        args: [arrayArg("a"), ufuncOpts],
+        returns: "NDArray (bool)",
+        example: `np.isnan([1, NaN, Infinity]);    // => [false, true, false]
+np.isinf([1, NaN, -Infinity]);   // => [false, false, true]
+np.isfinite([1, NaN, Infinity]); // => [true, false, false]
+np.isnan(np.array([np.complex(1, NaN)])); // => [true]`,
+      },
+      {
+        name: "isposinf",
+        sig: "np.isposinf(a, { out? }) · np.isneginf(a, { out? })",
+        desc: "Element-wise test for `+Infinity` / `-Infinity`. Complex input raises `DTypeError`.",
+        args: [arrayArg("a"), { name: "[options.out]", type: "NDArray", desc: "Output array." }],
+        returns: "NDArray (bool)",
+        example: `np.isposinf([-Infinity, Infinity, 1]); // => [false, true, false]
+np.isneginf([-Infinity, Infinity, 1]); // => [true, false, false]`,
+      },
+      {
+        name: "isscalar",
+        sig: "np.isscalar(x)",
+        desc: "True for JS numbers, booleans, bigints, strings and complex scalars. False for any `NDArray` (also 0-d) and for lists.",
+        args: [{ name: "x", type: "unknown", desc: "Any value." }],
+        returns: "boolean",
+        example: `np.isscalar(3.5);          // => true
+np.isscalar(np.array(3.5)); // => false
+np.isscalar([1]);           // => false`,
+      },
     ],
   },
 ];

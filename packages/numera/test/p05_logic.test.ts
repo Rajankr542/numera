@@ -142,3 +142,51 @@ describe("P5 logical ops and all/any (D-080)", () => {
     expect(a.any({ axis: 0 }).toArray()).toEqual([true, true]);
   });
 });
+
+describe("P5 classification and isscalar (D-081)", () => {
+  it("isnan/isinf/isfinite on every dtype", () => {
+    for (const dt of DTYPES) {
+      const a = np.array([0, 1], { dtype: dt });
+      expect(np.isnan(a).toArray()).toEqual([false, false]);
+      expect(np.isinf(a).toArray()).toEqual([false, false]);
+      expect(np.isfinite(a).toArray()).toEqual([true, true]);
+      expect(np.isfinite(a).dtype).toBe(np.bool);
+    }
+    for (const dt of ["float16", "float32", "float64"] as const) {
+      const a = np.array([NaN, Infinity, -Infinity, 1], { dtype: dt });
+      expect(np.isnan(a).toArray()).toEqual([true, false, false, false]);
+      expect(np.isinf(a).toArray()).toEqual([false, true, true, false]);
+      expect(np.isfinite(a).toArray()).toEqual([false, false, false, true]);
+      expect(np.isposinf(a).toArray()).toEqual([false, true, false, false]);
+      expect(np.isneginf(a).toArray()).toEqual([false, false, true, false]);
+    }
+    const c = np.array([np.complex(1, NaN), np.complex(Infinity, 0), np.complex(1, 2)]);
+    expect(np.isnan(c).toArray()).toEqual([true, false, false]);
+    expect(np.isinf(c).toArray()).toEqual([false, true, false]);
+    expect(np.isfinite(c).toArray()).toEqual([false, false, true]);
+    expect(np.isnan(NaN).toArray()).toBe(true);
+    expect(np.isnan(np.zeros([0, 2])).shape).toEqual([0, 2]);
+  });
+
+  it("options and errors", () => {
+    const out = np.zeros(2, { dtype: "int8" });
+    expect(np.isnan([NaN, 1], { out })).toBe(out);
+    expect(out.toArray()).toEqual([1, 0]);
+    expect(np.isnan([NaN], { dtype: "bool" }).toArray()).toEqual([true]);
+    expect(() => np.isnan([1], { dtype: "float64" })).toThrow(DTypeError);
+    expect(np.isinf([Infinity, 1], { where: [false, true] }).toArray()).toEqual([false, false]);
+    const o2 = np.zeros(1);
+    expect(np.isposinf([Infinity], { out: o2 })).toBe(o2);
+    expect(o2.toArray()).toEqual([1]);
+    expect(() => np.isposinf(np.array([np.complex(1, 1)]))).toThrow(DTypeError);
+    expect(() => np.isneginf(np.array([np.complex(1, 1)]))).toThrow(DTypeError);
+    expect(np.isneginf([1, 2]).toArray()).toEqual([false, false]);
+    expect(() => np.isnat([1])).toThrow(DTypeError);
+    expect(() => np.isnat(np.array([], { dtype: "float64" }))).toThrow(DTypeError);
+  });
+
+  it("isscalar", () => {
+    for (const v of [1, 1.5, true, 1n, "a", np.complex(1, 2), { re: 1, im: 0 }]) expect(np.isscalar(v)).toBe(true);
+    for (const v of [np.array(1), [1], null, undefined, {}, np.zeros(2)]) expect(np.isscalar(v)).toBe(false);
+  });
+});
