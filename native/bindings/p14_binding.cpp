@@ -3,6 +3,7 @@
 #include "binding_utils.hpp"
 #include "milestone_bindings.hpp"
 #include "dtype_binding.hpp"
+#include "layout.hpp"
 #include "p14_npy.hpp"
 #include "p14_text.hpp"
 
@@ -74,6 +75,13 @@ void init_p14_binding(Napi::Env env, Napi::Object exports) {
         }));
   m.Set("tofileText", fn(env, "tofileText", [](Info i, Napi::Env e) {
           return Napi::String::New(e, p14::tofile_text(arr(i, 0), arg_string(i[1], "sep"), arg_string(i[2], "format")));
+        }));
+  // C-order raw bytes of an array (ndarray.tofile binary mode).
+  m.Set("toBytes", fn(env, "toBytes", [](Info i, Napi::Env e) {
+          const NDArray& a = arr(i, 0);
+          const NDArray c = a.is_c_contiguous() ? a : copy_order(a, a.dtype(), Order::C);
+          return Napi::Buffer<std::uint8_t>::Copy(e, reinterpret_cast<const std::uint8_t*>(c.data()),
+                                                  static_cast<std::size_t>(c.nbytes()));
         }));
   m.Set("floatStr", fn(env, "floatStr", [](Info i, Napi::Env e) {
           return Napi::String::New(e, p14::float_str(arg_double(i[0], "x"), parse_dtype(i[1])));

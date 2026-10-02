@@ -136,6 +136,35 @@ np.genfromtxt(["12345"], { delimiter: [2, 3], dtype: "int32" }); // => [12, 345]
         example: `const r = np.fromregex(["a=1 b=22"], /(\\w)=(\\d+)/, [["key", "bool"], ["n", "int32"]]);
 r.n; // => [1, 22]`,
       },
+      {
+        name: "fromfile",
+        sig: "np.fromfile(file, [options])",
+        desc: "Reads raw binary data, as written by `a.tofile()`, or a text file of numbers separated by `sep`. Binary data has no header, so you must give the dtype. A trailing partial item is ignored.",
+        args: [
+          { name: "file", type: "string | URL | Uint8Array", desc: "Path, or the file contents." },
+          { name: "[options.dtype]", type: "DTypeLike", desc: "Default `float64`." },
+          { name: "[options.count]", type: "number", desc: "Items to read; -1 (default) reads all." },
+          { name: "[options.sep]", type: "string", desc: "Item separator; empty (default) means binary." },
+          { name: "[options.offset]", type: "number", desc: "Bytes to skip (binary mode only)." },
+        ],
+        returns: "NDArray",
+        example: `np.fromfile(np.array([1, 2, 3]).astype("int16").tofile(null), { dtype: "int16" }); // => [1, 2, 3]
+np.fromfile(Buffer.from("1, 2, 3"), { sep: ",", count: 2 }); // => [1, 2]`,
+      },
+      {
+        name: "tofile",
+        sig: "a.tofile(file, [options])",
+        desc: "Method of NDArray. Writes the items in C order as raw bytes in native byte order, or with a `sep` as text where each item is formatted like Python `str` (or with `format`, a `%`-format). No shape or dtype is stored; use `save` to keep them.",
+        args: [
+          { name: "file", type: "string | URL | null", desc: "Path to write, or `null` to return the bytes." },
+          { name: "[options.sep]", type: "string", desc: "Item separator; empty (default) writes binary." },
+          { name: "[options.format]", type: "string", desc: "Format applied to each item in text mode, e.g. `\"%.2f\"`." },
+        ],
+        returns: "Buffer when `file` is null, otherwise undefined",
+        example: `np.array([[1.5, 2], [3, 4]]).tofile(null, { sep: "," }).toString(); // => "1.5,2.0,3.0,4.0"
+np.array([1, 2]).tofile(null, { sep: " ", format: "%03d" }).toString(); // => "001 002"
+np.arange(3).astype("uint8").tofile(null).length; // => 3`,
+      },
     ],
   },
 ];

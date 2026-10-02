@@ -1,4 +1,6 @@
 [
+ "ndarray.tofile [nativpy] [numpy]",
+ "np.fromfile [nativpy] [numpy]",
  "np.fromregex [nativpy] [numpy]",
  "np.genfromtxt [nativpy] [numpy]",
  "np.load [nativpy] [numpy]",

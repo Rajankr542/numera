@@ -165,3 +165,32 @@ describe("P14-4 fromregex (D-171)", () => {
     expect(() => np.fromregex(["a1"], /(\d)/, "int64" as never)).toThrow(TypeError);
   });
 });
+
+describe("P14-5 fromfile / NDArray.tofile (D-171)", () => {
+  it("binary round trip with dtype, count, offset; C order", () => {
+    const b = np.arange(5).astype("int16").tofile(null)!;
+    expect(b.length).toBe(10);
+    expect(L(np.fromfile(b, { dtype: "int16", offset: 2, count: 2 }))).toEqual([1, 2]);
+    expect(L(np.fromfile(b, { dtype: "int32" }))).toEqual([65536, 196610]);
+    expect(L(np.fromfile(b, { dtype: "int16", count: 9 }))).toEqual([0, 1, 2, 3, 4]);
+    const f = np.asfortranarray(np.arange(4).reshape([2, 2]));
+    expect(L(np.fromfile(f.tofile(null)!, { dtype: "int64" }))).toEqual([0, 1, 2, 3]);
+    const p = join(dir, "raw.bin");
+    expect(np.array([1.5, -2]).tofile(p)).toBeUndefined();
+    expect(L(np.fromfile(p))).toEqual([1.5, -2]);
+  });
+  it("text mode", () => {
+    const s = (a: NDArray, o: { sep: string; format?: string }) => a.tofile(null, o)!.toString();
+    expect(s(np.array([[1.5, 2], [3, 4]]), { sep: ", " })).toBe("1.5, 2.0, 3.0, 4.0");
+    expect(s(np.array([1.5, 2]), { sep: ",", format: "%.2f" })).toBe("1.50,2.00");
+    expect(s(np.array([true, false]), { sep: " " })).toBe("True False");
+    expect(s(np.array([{ re: 1, im: 2 }, { re: -0, im: -1 }]), { sep: " " })).toBe("(1+2j) (-0-1j)");
+    expect(s(np.array([0.1]).astype("float32"), { sep: " " })).toBe("0.10000000149011612");
+    const p = join(dir, "t.csv");
+    np.array([1, 2, 3]).tofile(p, { sep: "\n", format: "%d" });
+    expect(readFileSync(p, "utf8")).toBe("1\n2\n3");
+    expect(L(np.fromfile(p, { sep: "\n", dtype: "uint8" }))).toEqual([1, 2, 3]);
+    expect(L(np.fromfile(Buffer.from("1, 2, 3,4"), { sep: ",", count: 2 }))).toEqual([1, 2]);
+    expect(() => np.fromfile(Buffer.from("1 2"), { sep: " ", offset: 1 })).toThrow(TypeError);
+  });
+});
