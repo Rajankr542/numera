@@ -1156,3 +1156,15 @@ Done:
 - Misc: `baseRepr binaryRepr`; native windows `bartlett blackman hamming hanning kaiser`; legacy polynomials `poly poly1d polyadd polyder polydiv polyfit polyint polymul polysub polyval roots` (native convolve/polydiv).
 - Tests: `tests/native/test_p14_*.cpp`, `packages/numera/test/p14_*.test.ts`, docs examples in `docs/site/parts/p14.mjs`. Verified: `pnpm build`, `test`, `test:native`, `api:check`, `test:asan`.
 - Remaining: datetime64/timedelta64 (P14-8..10, D-174/D-175; this needs a core DType enum change touching ~38 dispatch sites), str_/bytes_/np.strings/structured (P14-11), and NumPy differential cases and benchmarks (names are in `api/bench-exempt/p14.json`).
+## 2026-10-02 — P16E np.rec record arrays, shares_memory, exclusions (D-230)
+- `np.rec` module: `recarray` class (named-field column arrays with attribute access),
+  `record` alias, `format_parser` (dtype-string → FieldDesc[]), `fromarrays`, `fromrecords`,
+  `rec.array` (flexible constructor), `find_duplicate`. `fromfile`/`fromstring` deferred
+  (excluded). `np.recarray` and `np.sharesMemory` added to np root.
+- Exclusions: `np.asmatrix`, `np.bmat`, `np.matrix` (matrix class excluded, D-032 c);
+  `np.ptp` (removed in NumPy 2.x); `rec.fromfile`, `rec.fromstring` (deferred, D-230).
+- Wiring: addon.cpp, milestone_bindings.hpp, index.ts, docs/site/api.mjs all updated.
+- rec surface: 7/7 implemented, 2 excluded → 100% coverage.
+- Verified: `pnpm build`, `pnpm test` (801 tests), `pnpm api:check` pass.
+- Gaps: `rec.fromfile`/`rec.fromstring` (binary I/O for structured data); no benchmarks
+  (listed in `api/bench-exempt/p16e.json`).

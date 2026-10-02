@@ -256,3 +256,9 @@ listed in "Documented divergences" (D-140, D-141).
 | `kaiser` window | NumPy i0 | same Chebyshev coefficients, may differ by 1 ulp (libm) | D-172 |
 | poly1d operators | `p(x) p+q p*q p/q p**n p[k]` | methods `call add mul div pow get/set` | D-173 |
 | `polyfit` rank warning | `RankWarning` class | Node warning named `RankWarning` | D-173 |
+| `np.rec.recarray` memory model | C-contiguous structured buffer, single allocation | JS object with separate named NDArray columns | D-230 |
+| `np.rec.recarray` field access | `r.x` returns a view into the struct buffer | `r.x` returns the column NDArray directly | D-230 |
+| `np.rec.fromfile` / `fromstring` | reads structured binary data from file/buffer | raises `NotImplementedError` (deferred) | D-230 |
+| `np.shares_memory` `maxWork` | may be approximate for high-dim overlapping views | always exact (native `sharesMemory`) | D-230 |
+| `np.ptp` | deprecated peak-to-peak function | excluded (removed in NumPy 2.x) | D-230 |
+| `np.asmatrix` / `np.bmat` / `np.matrix` | matrix class | excluded (D-032 c) | D-230 |
