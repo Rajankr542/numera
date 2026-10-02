@@ -2363,3 +2363,37 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   is NumPy's `str(p)` (with the superscript line). `div` by a polynomial
   returns `[q, r]`. Every `np.poly*` function returns a `poly1d` when any
   input is one, as NumPy does.
+
+## D-190 — P16 sub-milestones for 98% NumPy coverage — Accepted — 2026-10-02
+
+P16 closes the gap between ~74% (after P3–P15) and 98% of the 1,060 tracked
+NumPy names. Five parallel branches on the same file-ownership model as P3–P15
+(D-056):
+
+- **P16-A** (`p16a`, D-191–199): TS-only quick wins — `np.vectorize`,
+  `np.shares_memory`, dtype alias constants (`np.double`, `np.int_`, `np.pi`,
+  `np.e`, `np.inf`, `np.nan`, `np.True_/False_`, etc.), and the two missing
+  NDArray methods (`cumsum`/`cumprod` via declaration merging).
+- **P16-B** (`p16b`, D-200–209): `np.ma` masked arrays — MaskedArray class,
+  masked constant, constructors, ufunc wrappers, reductions, MA methods,
+  utilities. ~154 missing names. Pure TS + optional thin C++ for inner loops.
+- **P16-C** (`p16c`, D-210–219): `np.strings` module (46 names) and
+  `np.char` module (52 names). Both use a JS-string object-array representation
+  (an NDArray whose elements are JS strings), no new C++ DType needed for the
+  initial implementation. Pure TS loops are fast enough for typical workloads.
+- **P16-D** (`p16d`, D-220–229): `datetime64`/`timedelta64` and busday
+  functions. Stored as int64 NDArray with unit metadata in the TS layer. Core
+  arithmetic in C++; DType enum gets two new opaque entries (dt64, td64) that
+  are rejected by all existing ufunc loops with a clean DTypeError.
+- **P16-E** (`p16e`, D-230–239): `np.rec` (9 names) — lightweight structured
+  record arrays as plain JS objects with named NDArray fields; `asmatrix`/`bmat`
+  exclusions updated; remaining exclusions/aliases pass.
+
+Reserved decision ranges: A 191–199, B 200–209, C 210–219, D 220–229, E 230–239.
+File ownership: each branch owns `packages/numera/src/p16[abcde]*.ts`,
+`native/bindings/p16[abcde]_binding.cpp`, `native/core/p16[abcde]_*.{hpp,cpp}`,
+`tests/native/test_p16[abcde]_*.cpp`, `packages/numera/test/p16[abcde]_*.test.ts`,
+`docs/site/parts/p16[abcde].mjs`, `api/bench-exempt/p16[abcde].json`,
+`api/aliases.d/p16[abcde].json`, `api/exclusions.d/p16[abcde].json`,
+`docs/plan/slices/p16[abcde].md`. P16-B also owns `packages/numera/src/ma.ts`.
+Append-only: DECISIONS.md, PROGRESS.md, COMPATIBILITY.md.
