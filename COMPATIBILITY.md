@@ -110,6 +110,10 @@ differential tests (`pnpm test:diff`).
 | `intersect1d({returnIndices: true})` | tuple | object `{values, indices1, indices2}` | D-124 |
 | `isin({kind: "table"})` | lookup table | sort + binary search (same result; errors identical) | D-124 |
 | `ediff1d` incompatible `toBegin`/`toEnd`, bool input | `TypeError` | `DTypeError` | D-124 |
+| `np.emath` with scalar input | NumPy scalar | 0-d array | D-180 |
+| `np.testing` messages for JS integer-valued numbers | `1.0` (Python float) | `1` (JS has one number type) | D-181 |
+| `np.testing.assertRaises` / `assertWarns` | context manager or callable | callable only; warnings are Node `process.emitWarning` warnings | D-181 |
+| `np.testing.assertStringEqual` diff | difflib with `?` hint lines | `-`/`+` lines only | D-181 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).

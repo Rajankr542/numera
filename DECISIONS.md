@@ -1980,3 +1980,28 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `logn(n, x)` = `log(x) / log(n)` and `power(x, p)` = `np.power` after the
   same fixups; NumPy's `_fix_int_lt_zero` (`p * 1.0`) gives float64 for integer
   `p`. Results are always arrays (0-d for scalars), no out/where options.
+
+## D-181 — np.testing (P15-2) — Accepted — 2026-10-02
+- `np.testing` is a namespace object; `AssertionError` (a `NativpyError`
+  subclass, code `NATIVPY_ASSERTION`) is also a named export. Names are
+  camelCase (`assert_array_equal` → `assertArrayEqual`); `assert_` keeps its
+  trailing underscore. Python keyword arguments become an options object
+  (`errMsg`, `verbose`, `strict`, `rtol`, `atol`, `equalNan`, `decimal`,
+  `significant`, `maxulp`, `dtype`); `assertArrayAlmostEqualNulp(x, y, nulp)`
+  keeps a positional `nulp`.
+- Messages follow NumPy 2.x (`build_err_msg`, `assert_array_compare`):
+  header, mismatch count/percent, up to 5 mismatching indices, max
+  absolute/relative difference, and `array_repr`s. The reprs come from a private
+  formatter (`p15_format.ts`) modelled on NumPy's arrayprint (floatmode
+  "maxprec", 75 columns, summarization above 1000 elements). JS numbers that
+  are integers print as Python ints (`1`, not `1.0`) because JS has no separate
+  float scalar type.
+- `assertRaises(ErrorClass, fn, ...args)` / `assertRaisesRegex` take a JS
+  callback and return the caught error (no context-manager form).
+  `assertWarns(type | null, fn, ...args)` / `assertNoWarnings(fn, ...args)` watch
+  `process.emitWarning` while `fn` runs synchronously (numera's `np.seterr` "warn"
+  path). `assertStringEqual` produces `-`/`+` line diffs without difflib's `?`
+  hint lines.
+- Excluded from coverage (`api/exclusions.d/p15.json`): Python/NumPy build flags,
+  unittest/nose classes, warnings-module context managers, gc/proc/exec/thread
+  helpers, `test`.

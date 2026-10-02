@@ -1,9 +1,21 @@
 // Parity milestone P15 public submodules (D-056): np.emath, np.testing,
 // np.polynomial, np.ma. index.ts spreads `p15` into the default `np` object
-// and does `export * from "./p15.js"`; only the submodule objects are named
-// exports here (their members would clash with top-level names such as sqrt).
+// and does `export * from "./p15.js"`; only the submodule objects (and
+// classes/types) are named exports here, since their members would clash
+// with top-level names such as sqrt.
 import { emath } from "./p15_emath.js";
+import { testing } from "./p15_testing.js";
 
 export { emath } from "./p15_emath.js";
+export { testing, AssertionError } from "./p15_testing.js";
+export type {
+  AllcloseOptions,
+  AlmostEqualOptions,
+  ApproxEqualOptions,
+  AssertArrayCompareOptions,
+  AssertOptions,
+  BuildErrMsgOptions,
+  MaxUlpOptions,
+} from "./p15_testing.js";
 
-export const p15 = { emath } as const;
+export const p15 = { emath, testing } as const;

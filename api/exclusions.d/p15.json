@@ -1,1 +1,37 @@
-{ "_doc": "P15 exclusions: numpy name -> reason (D-056)" }
+{
+ "_doc": "P15 exclusions: numpy name -> reason (D-056)",
+ "testing": {
+  "BLAS_SUPPORTS_FPE": "NumPy build/platform flag (D-181)",
+  "HAS_LAPACK64": "NumPy build/platform flag (D-181)",
+  "HAS_REFCOUNT": "CPython refcount flag (D-181)",
+  "IS_64BIT": "Python platform flag (D-181)",
+  "IS_EDITABLE": "NumPy install flag (D-181)",
+  "IS_INSTALLED": "NumPy install flag (D-181)",
+  "IS_MUSL": "Python platform flag (D-181)",
+  "IS_PYPY": "Python implementation flag (D-181)",
+  "IS_PYSTON": "Python implementation flag (D-181)",
+  "IS_WASM": "Python platform flag (D-181)",
+  "NOGIL_BUILD": "CPython free-threading flag (D-181)",
+  "NUMPY_ROOT": "NumPy install path (D-181)",
+  "verbose": "NumPy test-runner verbosity global (D-181)",
+  "IgnoreException": "nose/pytest test-runner class (D-181)",
+  "KnownFailureException": "nose/pytest test-runner class (D-181)",
+  "SkipTest": "unittest SkipTest re-export (D-181)",
+  "TestCase": "unittest.TestCase re-export (D-181)",
+  "clear_and_catch_warnings": "Python warnings-module context manager (D-181); use assertWarns/assertNoWarnings",
+  "suppress_warnings": "Python warnings-module context manager, deprecated in NumPy 2.4 (D-181)",
+  "assert_no_gc_cycles": "CPython garbage-collector check (D-181)",
+  "break_cycles": "CPython garbage-collector helper (D-181)",
+  "check_support_sve": "CPU feature probe of NumPy's build (D-181)",
+  "decorate_methods": "Python class decorator helper (D-181)",
+  "jiffies": "Linux /proc timing helper of NumPy's test suite (D-181)",
+  "measure": "Python code-string timing via exec (D-181)",
+  "memusage": "Linux /proc memory helper of NumPy's test suite (D-181)",
+  "run_threaded": "Python thread-pool test helper (D-181)",
+  "rundocs": "Python doctest runner (D-181)",
+  "runstring": "Python exec helper (D-181)",
+  "tempdir": "Python context manager for temp directories (D-181)",
+  "temppath": "Python context manager for temp files (D-181)",
+  "test": "NumPy's own test runner (D-181)"
+ }
+}
