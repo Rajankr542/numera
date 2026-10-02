@@ -16,10 +16,9 @@ addon, and TypeScript provides a typed, NumPy-style API on top of it.
 npm install @cyfora/numera   # or: pnpm add @cyfora/numera / yarn add @cyfora/numera
 ```
 
-**API reference:** [unpkg.com/@cyfora/numera/docs/index.html](https://unpkg.com/@cyfora/numera/docs/index.html).
+**API reference:** [numera.cyfora.in](https://numera.cyfora.in).
 It documents every function with its arguments, return value and an example,
-in the same style as the lodash docs. The page ships inside the package
-(`docs/index.html`) and each release's npm homepage links to its own version.
+in the same style as the lodash docs.
 
 That's all. The package ships a precompiled C++ addon for your platform, so you
 **don't** need a compiler, CMake or Python. When you `import "@cyfora/numera"`, it
@@ -243,7 +242,9 @@ pnpm release:major    # 1.0.0 → 2.0.0
 Options (after `--`, e.g. `pnpm release -- --otp 123456 --push`):
 - `--otp <code>`: npm 2FA one-time password (or set `NPM_OTP`). Without it
   you're prompted when npm asks.
-- `--push`: push the release commit and tag (`git push --follow-tags`).
+- `--push`: push the release commit and tag (`git push --follow-tags`), then
+  create the GitHub Release for the tag with the GitHub CLI (`gh`, logged in).
+  Without `--push`, the script prints the link to create it by hand.
 - `--targets darwin-arm64,linux-x64`: build only these prebuilds. The tarball
   check then expects only these, so use it only for rehearsals.
 - `--allow-dirty`: skip the clean-working-tree check.
@@ -253,23 +254,24 @@ npm, it opens `npm login` in the browser. It checks that your npm user can
 publish to `@cyfora`. It then chooses the version and runs build, typecheck and
 unit tests. It builds all four prebuilds: macOS locally, and Linux in
 `manylinux_2_28` Docker. So you need macOS with Xcode, and Docker Desktop.
-Next it packs the tarball and checks it: all prebuilds, the docs, no source
-maps, and the pinned `homepage`. It smoke-tests the tarball in a clean project
-and publishes with `--access public`. Finally it commits
-`chore(release): @cyfora/numera@X.Y.Z` and tags `vX.Y.Z`. If any step fails,
-`package.json` is restored.
+Next it packs the tarball and checks it: all prebuilds, no source maps, no
+`docs/`, and the `homepage`/`repository`/`bugs` links. It smoke-tests the
+tarball in a clean project and publishes with `--access public`. Finally it
+commits `chore(release): @cyfora/numera@X.Y.Z` and tags `vX.Y.Z`. If any step
+fails, `package.json` is restored.
 
-**What ships.** The repository is private, so the package must stand on its
-own. `scripts/stage-package.mjs` writes a package README (this file up to
-"Development", with no links into the repo) and a `COMPATIBILITY.md` without
-decision IDs. It builds the API reference `docs/index.html` from
-`docs/site/api.mjs`; run `pnpm docs` to preview it. It also strips
-PLAN/DECISIONS references from `dist/` comments, and it fails if anything
-repo-only is left. Source maps are excluded. `package.json` has no
-`repository`/`bugs`. At publish time, `scripts/set-homepage.mjs` sets
-`homepage` to `https://unpkg.com/@cyfora/numera@<version>/docs/index.html`,
-the shipped API reference for that version. That value is not committed.
-Every documented example is executed by `test/docs_site.test.ts`.
+**What ships.** `scripts/stage-package.mjs` writes a package README (this file
+up to "Development", with relative links rewritten to this GitHub repository
+and a Links section), a `COMPATIBILITY.md` without decision IDs, and `LICENSE`.
+It strips PLAN/DECISIONS references from `dist/` comments and fails if any are
+left. Source maps are excluded. `package.json` links npm users to the docs
+(`homepage`), this repository (`repository`) and its issues (`bugs`).
+
+**Docs site.** The API reference is hosted at
+[numera.cyfora.in](https://numera.cyfora.in) and is not shipped in the
+package. `pnpm docs` builds it from `docs/site/api.mjs` into `docs-dist/`
+(one self-contained `index.html`); deploy that directory to the host after each
+release. Every documented example is executed by `test/docs_site.test.ts`.
 
 Contributor rules are in [AGENTS.md](./AGENTS.md). The design is described in
 [ARCHITECTURE.md](./ARCHITECTURE.md) and [DECISIONS.md](./DECISIONS.md).

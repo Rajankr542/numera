@@ -1,12 +1,13 @@
 // Renders the API reference (docs/site/api.mjs) into one self-contained HTML
-// page at packages/numera/docs/index.html (DECISIONS D-030). The page ships in
-// the npm tarball and is served by unpkg as the package homepage.
-// Usage: node scripts/build-docs.mjs   (also run by stage-package.mjs)
+// page at docs-dist/index.html (DECISIONS D-030, D-240). Deploy that directory
+// to https://numera.cyfora.in; it is not shipped in the npm package.
+// Usage: node scripts/build-docs.mjs [outDir]
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { categories } from "../docs/site/api.mjs";
 import { css } from "./docs-style.mjs";
+import { DOCS_URL, REPO_URL } from "./stage-package.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pkgDir = join(root, "packages", "numera");
@@ -114,12 +115,13 @@ ${c.entries.map(renderEntry).join("\n")}</section>`,
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(name)} ${esc(version)} — API reference</title>
 <meta name="description" content="${esc(description)}">
+<link rel="canonical" href="${DOCS_URL}/">
 <style>${css}</style>
 </head>
 <body>
 <button class="menu" type="button">☰ Menu</button>
 <nav class="side" aria-label="API">
-<div class="brand"><a href="#top">numera</a><span class="ver">v${esc(version)}</span><p>NumPy for JavaScript</p></div>
+<div class="brand"><a href="#top">numera</a><span class="ver">v${esc(version)}</span><p>NumPy for JavaScript</p><p class="links"><a href="${REPO_URL}">GitHub</a> · <a href="https://www.npmjs.com/package/${esc(name)}">npm</a></p></div>
 <div class="search"><input id="q" type="search" placeholder="Search ${count} APIs  ( / )" autocomplete="off" aria-label="Search the API"></div>
 <div class="toc">${renderToc(cats)}<p class="empty">No matches.</p></div>
 </nav>
@@ -132,7 +134,7 @@ ${c.entries.map(renderEntry).join("\n")}</section>`,
 <p>The API follows NumPy's names and semantics, with camelCase names in JS (<code>expand_dims</code> → <code>expandDims</code>). Keyword arguments become an options object. Examples assume <code>import np from "${esc(name)}"</code>. A <code>// =&gt;</code> comment shows the result; for an <code>NDArray</code>, it shows <code>.toArray()</code>.</p>
 </header>
 ${body}
-<footer>${esc(name)} v${esc(version)} · MIT License · Generated from the package's tested examples.</footer>
+<footer>${esc(name)} v${esc(version)} · MIT License · <a href="${REPO_URL}">Source on GitHub</a> · <a href="${REPO_URL}/issues">Report an issue</a> · Generated from the package's tested examples.</footer>
 </main>
 <script>${script}</script>
 </body>
@@ -140,8 +142,8 @@ ${body}
 `;
 }
 
-/** Writes packages/numera/docs/index.html for the current package.json. */
-export function buildDocs(outDir = join(pkgDir, "docs")) {
+/** Writes <outDir>/index.html (default docs-dist/) for the current package.json. */
+export function buildDocs(outDir = join(root, "docs-dist")) {
   const pkg = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"));
   mkdirSync(outDir, { recursive: true });
   const file = join(outDir, "index.html");
@@ -150,5 +152,5 @@ export function buildDocs(outDir = join(pkgDir, "docs")) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  console.log(`Wrote ${buildDocs()}`);
+  console.log(`Wrote ${buildDocs(process.argv[2] ? resolve(process.argv[2]) : undefined)}`);
 }

@@ -98,7 +98,10 @@ describe("API reference site (D-030)", () => {
     const html: string = renderPage({ name: "@cyfora/numera", version: "9.9.9", description: "d <x>" });
     expect(html.startsWith("<!doctype html>")).toBe(true);
     for (const e of entries) expect(html).toContain(`id="${slug(e.name)}"`);
-    expect(html).not.toMatch(/(src|href)\s*=\s*["']?(https?:)?\/\//i);
+    // Navigation links (<a>, canonical) are fine; nothing may be fetched from elsewhere.
+    expect(html).not.toMatch(/src\s*=\s*["']?(https?:)?\/\//i);
+    const linkTags = html.match(/<link\b[^>]*>/gi) ?? [];
+    for (const tag of linkTags) expect(tag).toMatch(/rel="canonical"/);
     expect(html).not.toMatch(/@import|url\(/i);
     expect(html).toContain("d &lt;x&gt;");
     expect(html).toContain("npm install @cyfora/numera");

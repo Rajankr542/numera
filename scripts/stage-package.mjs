@@ -1,26 +1,24 @@
-// Stage the published package contents in packages/numera (DECISIONS D-029).
-// The npm package is public but the repository is private, so everything the
-// package refers to must ship inside it: this writes a user-facing README.md
-// (install, samples, API notes; no development/release sections or repo
-// links), COMPATIBILITY.md (without the internal decision column), LICENSE
-// and the API reference docs/index.html (D-030, served by unpkg as the npm
-// homepage), and removes references to repo-only documents (PLAN §N, D-0NN, DECISIONS,
-// ROADMAP) from the compiled dist/ files. Source maps are excluded via
-// package.json "files". Run after `pnpm build:ts`; used by scripts/release.mjs.
+// Stage the published package contents in packages/numera (DECISIONS D-029, D-240).
+// Writes a user-facing README.md (install, samples, API notes; no
+// development/release sections; relative links rewritten to the public GitHub
+// repo), COMPATIBILITY.md (without the internal decision column) and LICENSE,
+// and removes internal design-document references (PLAN §N, D-0NN) from the
+// compiled dist/ files. The API reference is hosted at DOCS_URL, not shipped.
+// Source maps are excluded via package.json "files". Run after
+// `pnpm build:ts`; used by scripts/release.mjs.
 import { copyFileSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildDocs } from "./build-docs.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pkgDir = join(root, "packages/numera");
 
-/** npm homepage: the API reference shipped in this exact version's tarball (D-030). */
-export function docsHomepage(name, version) {
-  return `https://unpkg.com/${name}@${version}/docs/index.html`;
-}
+/** Public source repository (D-240). */
+export const REPO_URL = "https://github.com/Rajankr542/numera";
+/** Hosted API reference and npm homepage (D-240). */
+export const DOCS_URL = "https://numera.cyfora.in";
 
-/** Removes references to internal design documents (not shipped, repo is private). */
+/** Removes references to internal design documents (noise for package users). */
 export function stripInternalRefs(text) {
   const ref = String.raw`(?:(?:DECISIONS|PLAN)\s+)?(?:D-\d{3}(?:\/D-\d{3})*|§\d+(?:\/§\d+)*|M\d+)(?:\s+inference)?`;
   return text
@@ -67,20 +65,25 @@ function dropDecisionColumn(md) {
 export function packageReadme(readme) {
   let md = readme.slice(0, readme.indexOf("\n## Development"));
   md = md.replace(
-    /> \*\*Status: ([^*]+)\*\* Not all of NumPy is implemented yet\. See\n> \[COMPATIBILITY\.md\]\(\.\/COMPATIBILITY\.md\) for what is verified against NumPy,\n> and \[ROADMAP\.md\]\(\.\/ROADMAP\.md\) for what is planned\./,
-    "> **Status: $1** Not all of NumPy is implemented yet. See\n> [COMPATIBILITY.md](./COMPATIBILITY.md) (included in this package) for what is\n> verified against NumPy and what is not implemented.",
-  );
-  md = md.replace(
-    /\nWindows and Alpine\/musl Linux have no prebuilt binaries yet\. On those, use a\n\[source build\]\(#development\)\./,
-    "\nWindows and Alpine/musl Linux have no prebuilt binaries yet.",
-  );
-  md = md.replace(
     /The addon is found automatically, in this order:\n`NATIVPY_ADDON_PATH`, then the prebuild bundled in the package\n\(`prebuilds\/<platform>-<arch>\/nativpy\.node`\), then a local source build in\n`build\/Release\/` \([^)]*\)\. Published prebuilds use the stable Node-API,\nso one binary works on every Node ≥ 18\. Source builds use experimental\nNode-API, which frees memory sooner \([^)]*\)\./,
     "The addon for your platform ships in the package\n(`prebuilds/<platform>-<arch>/nativpy.node`) and is loaded automatically; set\n`NATIVPY_ADDON_PATH` to load a different build. The prebuilds use the stable\nNode-API, so one binary works on every Node ≥ 18.",
   );
-  md = md.replace(/\n## Performance\n[\s\S]*?(?=\n## |$)/, "\n");
+  // npm does not resolve relative links reliably; point them at the public repo.
+  md = md.replace(/\]\(\.\/([^)]+)\)/g, `](${REPO_URL}/blob/main/$1)`);
+  md = md.replace(/\]\(#development\)/g, `](${REPO_URL}#development)`);
   md = stripInternalRefs(md);
-  return `${md.trimEnd()}\n\n## License\n\nMIT (see \`LICENSE\` in this package).\n`;
+  return `${md.trimEnd()}
+
+## Links
+
+- API reference: ${DOCS_URL}
+- Source code: ${REPO_URL}
+- Issues: ${REPO_URL}/issues
+
+## License
+
+MIT (see \`LICENSE\` in this package).
+`;
 }
 
 export function packageCompatibility(compat) {
@@ -107,25 +110,21 @@ function stageDist(dir) {
   }
 }
 
-/** Throws if a staged file still references repo-only content (private repo). */
+/**
+ * Throws if a staged file still has internal design references, contributor
+ * commands, or relative links that would break outside the repository.
+ */
 export function assertSelfContained(files) {
-  const forbidden = /D-\d{3}|\bPLAN\b|DECISIONS|ROADMAP|PERFORMANCE\.md|ARCHITECTURE|AGENTS\.md|github\.com|[Rr]ajankr542|#development|pnpm (?:test|build|release)|[Ss]ource build/;
+  const forbidden = /D-\d{3}|\bPLAN\b|DECISIONS|pnpm (?:test|build|release)/;
+  const relativeLink = /\]\((?!https:\/\/)/;
   const bad = [];
   for (const [name, text] of files) {
+    const md = name.endsWith(".md");
     text.split("\n").forEach((line, i) => {
-      if (forbidden.test(line)) bad.push(`${name}:${i + 1}: ${line.trim()}`);
+      if (forbidden.test(line) || (md && relativeLink.test(line))) bad.push(`${name}:${i + 1}: ${line.trim()}`);
     });
   }
   if (bad.length) throw new Error(`Package still references repo-only content:\n${bad.join("\n")}`);
-}
-
-function listDist(dir, out = []) {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const p = join(dir, entry.name);
-    if (entry.isDirectory()) listDist(p, out);
-    else if (/\.(js|d\.ts)$/.test(entry.name)) out.push(p);
-  }
-  return out;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
@@ -133,13 +132,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   writeFileSync(join(pkgDir, "COMPATIBILITY.md"), packageCompatibility(readFileSync(join(root, "COMPATIBILITY.md"), "utf8")));
   copyFileSync(join(root, "LICENSE"), join(pkgDir, "LICENSE"));
   stageDist(join(pkgDir, "dist"));
-  buildDocs(join(pkgDir, "docs"));
-  const staged = [
-    "README.md",
-    "COMPATIBILITY.md",
-    "docs/index.html",
-    ...listDist(join(pkgDir, "dist")).map((p) => p.slice(pkgDir.length + 1)),
-  ];
-  assertSelfContained(staged.map((f) => [f, readFileSync(join(pkgDir, f), "utf8")]));
-  console.log(`Staged and checked ${staged.length} files in packages/numera (README.md, COMPATIBILITY.md, LICENSE, docs/, dist/)`);
+  // The user-facing docs must be clean. dist/ comments are stripped best-effort
+  // only: any reference left there resolves in the public repo (D-240).
+  const checked = ["README.md", "COMPATIBILITY.md"];
+  assertSelfContained(checked.map((f) => [f, readFileSync(join(pkgDir, f), "utf8")]));
+  console.log("Staged packages/numera README.md, COMPATIBILITY.md, LICENSE and dist/; checked README.md and COMPATIBILITY.md");
 }

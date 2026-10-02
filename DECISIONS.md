@@ -2914,3 +2914,33 @@ delegate to their plain-np counterparts on `.filled()` data and combine masks.
 - Verified: case files generated with NumPy 2.5.3 on linux-x86_64 and on
   linux-aarch64 both pass against the GCC 13 Linux build. macOS cases pass
   against the macOS build.
+
+## D-240 — Public repository links; API reference hosted at numera.cyfora.in — Accepted — 2026-10-02
+- **Context.** The GitHub repository `Rajankr542/numera` is now public. The
+  "self-contained package" rule of D-029 and the unpkg docs hosting of D-030
+  existed only because it was private.
+- **Package metadata.** `packages/numera/package.json` now commits
+  `homepage: https://numera.cyfora.in`,
+  `repository: git+https://github.com/Rajankr542/numera.git` (directory
+  `packages/numera`) and `bugs: …/issues`, so npm shows the repo, issues and
+  docs links. `scripts/set-homepage.mjs` (publish-time unpkg homepage) is
+  removed. `checkTarball` in `scripts/release.mjs` requires these exact values.
+- **Docs hosting.** The API reference is no longer shipped in the tarball
+  (`files` drops `docs`; `checkTarball` rejects `docs/`). `pnpm docs` writes
+  `docs-dist/index.html` (gitignored), which the maintainer deploys to
+  `numera.cyfora.in` (external host, not GitHub Pages). The page links to
+  GitHub and npm and has a canonical URL; it still loads nothing external.
+  Docs are not versioned: the site shows the latest release.
+- **Package README.** Relative links (`./COMPATIBILITY.md`, `./ROADMAP.md`,
+  `./PERFORMANCE.md`, `#development`) are rewritten to absolute GitHub URLs, and
+  a "Links" section (docs, source, issues) is appended. ROADMAP/Performance and
+  the source-build hint are kept. `assertSelfContained` now only rejects
+  internal decision references (D-NNN, PLAN, DECISIONS), dev commands and
+  relative Markdown links, and only README/COMPATIBILITY are checked; `dist/`
+  comment stripping stays best-effort.
+- **GitHub Release.** With `--push`, `pnpm release` creates a GitHub Release for
+  `vX.Y.Z` via `gh release create` (npm link, install line, docs link plus
+  generated notes). If `gh` is missing or fails, it prints the manual URL;
+  npm publishing is not affected. Supersedes the "no GitHub Release" part of D-031.
+- **Supersedes** the private-repo parts of D-029, the hosting part of D-030 and
+  the `homepage`/`repository`/`bugs` checks of D-031.

@@ -27,6 +27,7 @@ code { font: 0.9em var(--mono); background: var(--panel); border: 1px solid var(
 .brand a { color: var(--ink); font: 700 22px/1 var(--mono); letter-spacing: -0.02em; }
 .brand .ver { margin-left: 6px; font: 12px var(--mono); color: var(--muted); }
 .brand p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.brand .links a { font: inherit; color: var(--muted); }
 .search { margin: 0 16px 10px; }
 .search input { width: 100%; padding: 8px 10px; font: 14px var(--sans); color: var(--ink);
   background: var(--bg); border: 1px solid var(--line); border-radius: 6px; outline: none; }

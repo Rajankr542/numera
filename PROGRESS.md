@@ -1313,3 +1313,13 @@ Done (P13-2, P13-4, P13-5, P13-6, P13-7 — D-161..D-163):
 - `api/bench-exempt/p13.json` updated with full format `"Name [nativpy] [numpy]"` for
   all 73 P13 distribution methods.
 - All 533 tests pass; `pnpm api:check` passes.
+
+## 2026-10-02 — Public repo links and numera.cyfora.in docs (D-240)
+- `package.json` has `homepage` (https://numera.cyfora.in), `repository` and
+  `bugs`; `set-homepage.mjs` removed; tarball no longer ships `docs/`.
+- Package README links point at the GitHub repo and gain a Links section.
+- `pnpm docs` → `docs-dist/index.html` for deployment to numera.cyfora.in;
+  page links to GitHub/npm.
+- `pnpm release -- --push` creates a GitHub Release via `gh`.
+- Verified: `pnpm typecheck`, `pnpm test` (58 files, 1336 tests),
+  `stage-package.mjs` + `npm pack --dry-run` (no `docs/`, links present).

@@ -1,5 +1,5 @@
 // API reference content for the numera documentation site (DECISIONS D-030).
-// Rendered by scripts/build-docs.mjs into packages/numera/docs/index.html.
+// Rendered by scripts/build-docs.mjs into docs-dist/index.html (numera.cyfora.in).
 // Every `example` is executed by packages/numera/test/docs_site.test.ts:
 // a line ending in `// => <json>` must evaluate to that value (NDArray results
 // are compared via `toArray()`), so keep examples real and deterministic.

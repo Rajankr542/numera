@@ -1,14 +1,15 @@
 // Release: `pnpm release [patch|minor|major] [--dry-run] [--targets a,b] [--otp code] [--allow-dirty] [--push]`
 // (DECISIONS D-026, D-031: the only release path; there is no CI release workflow).
 // Steps: npm auth (browser login) -> pick version -> test -> prebuilds ->
-// pack + check + smoke test the tarball -> npm publish -> commit + tag.
+// pack + check + smoke test the tarball -> npm publish -> commit + tag
+// (-> push + GitHub Release with --push, D-240).
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
-import { docsHomepage } from "./stage-package.mjs";
+import { DOCS_URL, REPO_URL } from "./stage-package.mjs";
 
 const PREBUILD_TARGETS = ["darwin-arm64", "darwin-x64", "linux-x64", "linux-arm64"];
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -50,31 +51,34 @@ function bump(version, type) {
 function step(title) {
   console.log(`\n━━ ${title} ━━`);
 }
-// Checks on the packed tarball before it is published. The repo is private, so
-// the package must be self-contained (D-029): it ships the docs its README links
-// to, has no source maps and no repository/bugs links, and its only homepage is
-// this version's shipped API reference on unpkg (D-030).
+// Checks on the packed tarball before it is published (D-029, D-240): staged
+// README/LICENSE/COMPATIBILITY, no source maps, and package metadata that links
+// npm users to the public repo, its issues and the hosted docs.
 function checkTarball(packed, pkgJson, prebuildTargets) {
   const has = (p) => packed.files.some((f) => f.path === p);
   if (packed.name !== pkgJson.name) throw new Error(`packed name ${packed.name}, expected ${pkgJson.name}`);
   for (const t of prebuildTargets) {
     if (!has(`prebuilds/${t}/nativpy.node`)) throw new Error(`tarball is missing prebuilds/${t}/nativpy.node`);
   }
-  for (const f of ["README.md", "LICENSE", "COMPATIBILITY.md", "docs/index.html"]) {
+  for (const f of ["README.md", "LICENSE", "COMPATIBILITY.md"]) {
     if (!has(f)) throw new Error(`tarball is missing ${f} (run scripts/stage-package.mjs)`);
   }
   const maps = packed.files.filter((f) => f.path.endsWith(".map"));
   if (maps.length) throw new Error(`tarball contains source maps: ${maps.map((f) => f.path).join(", ")}`);
-  for (const k of ["repository", "bugs"]) {
-    if (k in pkgJson) throw new Error(`package.json has "${k}"; it would point users at the private repo`);
-  }
-  const homepage = docsHomepage(pkgJson.name, pkgJson.version);
-  if (pkgJson.homepage !== homepage) {
-    throw new Error(`package.json homepage is ${JSON.stringify(pkgJson.homepage)}, expected ${homepage} (run scripts/set-homepage.mjs)`);
+  const docs = packed.files.filter((f) => f.path.startsWith("docs/"));
+  if (docs.length) throw new Error(`tarball ships docs/ (${docs.length} files); the API reference is hosted at ${DOCS_URL}`);
+  const want = {
+    homepage: DOCS_URL,
+    "repository.url": `git+${REPO_URL}.git`,
+    "bugs.url": `${REPO_URL}/issues`,
+  };
+  for (const [key, value] of Object.entries(want)) {
+    const got = key.split(".").reduce((o, k) => o?.[k], pkgJson);
+    if (got !== value) throw new Error(`package.json ${key} is ${JSON.stringify(got)}, expected ${JSON.stringify(value)}`);
   }
 }
 function cleanArtifacts() {
-  for (const p of ["prebuilds", "README.md", "LICENSE", "COMPATIBILITY.md", "docs"]) {
+  for (const p of ["prebuilds", "README.md", "LICENSE", "COMPATIBILITY.md"]) {
     rmSync(join(pkgDir, p), { recursive: true, force: true });
   }
 }
@@ -145,11 +149,8 @@ try {
   run("pnpm", ["test"]);
   step("Building prebuilds");
   run("node", ["scripts/build-prebuilds.mjs", ...(targets ? ["--targets", targets] : [])]);
-  // Self-contained package contents (README, COMPATIBILITY, LICENSE, docs/):
-  // the repo is private (D-029). Then pin the npm homepage to this version's
-  // shipped API reference on unpkg (D-030); stripped again before committing.
+  // Package README, COMPATIBILITY and LICENSE (D-029, D-240).
   run("node", ["scripts/stage-package.mjs"]);
-  run("node", ["scripts/set-homepage.mjs"]);
 
   // 5. Pack and smoke-test the real tarball in a clean project (no repo build visible).
   step("Packing and smoke-testing the tarball");
@@ -214,12 +215,6 @@ try {
 } finally {
   // Generated, gitignored files; removing them keeps dev runs on build/Release.
   cleanArtifacts();
-  // The pinned homepage is publish-time only (D-030); keep it out of git.
-  const cur = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
-  if ("homepage" in cur && !("homepage" in JSON.parse(originalJson))) {
-    delete cur.homepage;
-    writeFileSync(pkgJsonPath, JSON.stringify(cur, null, 2) + "\n");
-  }
 }
 
 // 7. Record the release in git.
@@ -233,7 +228,29 @@ if (dryRun) {
     run("git", ["commit", "-m", `chore(release): ${pkg.name}@${version}`]);
   }
   run("git", ["tag", "-a", `v${version}`, "-m", `${pkg.name}@${version}`]);
-  if (opt("--push")) run("git", ["push", "--follow-tags"]);
+  const tag = `v${version}`;
+  const releaseUrl = `${REPO_URL}/releases/tag/${tag}`;
   console.log(`\n✔ Published ${pkg.name}@${version}: https://www.npmjs.com/package/${pkg.name}`);
-  if (!opt("--push")) console.log("Push the release commit and tag with: git push --follow-tags");
+  console.log(`  Docs:   ${DOCS_URL}`);
+  console.log(`  Source: ${REPO_URL}/tree/${tag}`);
+  if (opt("--push")) {
+    run("git", ["push", "--follow-tags"]);
+    // GitHub Release for the tag (D-240). Needs the GitHub CLI; publishing has
+    // already succeeded, so a missing/failed `gh` only prints the manual step.
+    const notes = [
+      `npm: https://www.npmjs.com/package/${pkg.name}/v/${version}`,
+      `Install: \`npm install ${pkg.name}@${version}\``,
+      `API reference: ${DOCS_URL}`,
+    ].join("\n\n");
+    try {
+      run("gh", ["release", "create", tag, "--repo", REPO_URL, "--title", `${pkg.name}@${version}`, "--notes", notes, "--generate-notes", "--verify-tag", "--latest"]);
+      console.log(`  Release: ${releaseUrl}`);
+    } catch {
+      console.log(`\nCould not create the GitHub Release (is the GitHub CLI \`gh\` installed and logged in?).`);
+      console.log(`Create it at ${REPO_URL}/releases/new?tag=${tag}`);
+    }
+  } else {
+    console.log("Push the release commit and tag with: git push --follow-tags");
+    console.log(`Then create the GitHub Release: ${REPO_URL}/releases/new?tag=${tag}`);
+  }
 }
