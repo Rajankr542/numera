@@ -1177,3 +1177,13 @@ string. Arithmetic, formatting, and busday logic in TypeScript.
 Build: ✅ pnpm build, pnpm test (45 files, 835 tests), pnpm test:native (100%),
 pnpm api:check (pass), pnpm test:asan (pass).
 Commit: 5de4602
+## 2026-10-02 — P16-C np.strings and np.char (D-210–D-213)
+- Implemented `np.strings` (46/46 names, 100%) and `np.char` (52/52 names, 100%) using a pure-TS `StringArray` wrapper class (D-210).
+- `StringArray`: shape, ndim, size, dtype ("str_"/"bytes_"), flat iterator, toArray(), toString().
+- `np.strings`: all 46 NumPy 2.5.3 surface names implemented: add, capitalize, center, count, decode (stub), encode (stub), endswith, equal, expandtabs, find, greater, greater_equal, index, isalnum, isalpha, isdecimal, isdigit, islower, isnumeric, isspace, istitle, isupper, less, less_equal, ljust, lower, lstrip, mod (%-format subset), multiply, not_equal, partition, replace, rfind, rindex, rjust, rpartition, rstrip, slice, startswith, str_len, strip, swapcase, title, translate, upper, zfill.
+- `np.char`: all 52 non-excluded names, adding array, asarray, join, slice, split, rsplit, splitlines, compare_chararrays.
+- Wired into index.ts, addon.cpp, milestone_bindings.hpp, docs/site/api.mjs.
+- Tests: 44 vitest tests in `packages/numera/test/p16c.test.ts`, all passing.
+- Verified: `pnpm build`, `pnpm test` (811 tests), `pnpm api:check` pass.
+- Divergences: encode/decode are identity stubs; mod supports %s/%d/%f/%e/%g/%x only; translate uses Map<char,char|null> (D-213).
+- Benchmarks deferred (build-first policy); names in `api/bench-exempt/p16c.json`.

@@ -265,3 +265,7 @@ listed in "Documented divergences" (D-140, D-141).
 | `np.array(["2023-01-15"], dtype="datetime64[D]")` | Creates datetime64 array | Not wired into `array()`; use `datetime64()` directly | D-220 |
 | `busday_offset` NaT input | Returns NaT | Returns NaT sentinel (same) | D-220 |
 | `datetime_as_string` timezone offset output | Can display timezone offsets | All output is UTC (timezone parameter accepted but ignored) | D-220 |
+| `np.strings.encode(a, encoding)` | encodes str_ to bytes_ with given codec | identity stub — no bytes_ DType in JS; returns input unchanged | D-213 |
+| `np.strings.decode(a, encoding)` | decodes bytes_ to str_ with given codec | identity stub — returns input unchanged | D-213 |
+| `np.strings.mod(a, values)` | full Python `%`-format (all conversion types) | subset only: `%s %d %i %o %u %x %X %e %E %f %F %g %G %%` | D-213 |
+| `np.strings.translate(a, table)` | `table` is dict keyed by ordinal (`int`) | `table` is `Map<string, string\|null>` (char→char/null) — ASCII-compatible only | D-213 |

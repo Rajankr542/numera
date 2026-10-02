@@ -27,6 +27,7 @@ import { categories as p14 } from "./parts/p14.mjs";
 import { categories as p15 } from "./parts/p15.mjs";
 import { categories as p16a } from "./parts/p16a.mjs";
 import { categories as p16d } from "./parts/p16d.mjs";
+import { categories as p16c } from "./parts/p16c.mjs";
 
 const shape = { name: "shape", type: "number | number[]", desc: "Dimensions of the new array." };
 const dtypeOpt = { name: "[options.dtype]", type: "DTypeLike", desc: "Element type, e.g. `\"float32\"` or `np.int32`. Default `float64`." };

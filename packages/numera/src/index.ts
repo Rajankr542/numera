@@ -46,6 +46,7 @@ import { p14 } from "./p14.js";
 import { p15 } from "./p15.js";
 import { p16a } from "./p16a.js";
 import { p16d } from "./p16d.js";
+import { p16c } from "./p16c.js";
 import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 import {
   abs,
@@ -324,6 +325,7 @@ const np = {
   ...p15,
   ...p16a,
   ...p16d,
+  ...p16c,
 } as const;
 
 export { lib };
