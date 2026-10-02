@@ -1,6 +1,7 @@
 #include "ufunc_methods.hpp"
 
 #include <array>
+#include <cmath>
 #include <string>
 #include <string_view>
 
@@ -21,6 +22,12 @@ void require_binary(const Ufunc& u, const char* method) {
   }
 }
 
+[[noreturn]] void no_loop_for(const Ufunc& u) {
+  throw_error(ErrorKind::DType,
+              std::string("No loop matching the specified signature and casting was found for ufunc ") +
+                  u.name);
+}
+
 void check_out_writeable(const NDArray* out) {
   if (out && !out->writeable()) throw_error(ErrorKind::Value, "output array is read-only");
 }
@@ -29,11 +36,18 @@ void check_out_writeable(const NDArray* out) {
 // for add/multiply, then the ufunc's own resolver.
 DType loop_dtype(const Ufunc& u, const NDArray& a, const NDArray* out,
                  const std::optional<DType>& dtype) {
-  if (dtype) return u.resolve_dtype(a.dtype(), *dtype).out;
-  if (out) return u.resolve(out->dtype(), a.dtype()).out;
   const std::string_view name = u.name;
-  if (name == "add" || name == "multiply") return reduce_result_dtype(ReduceOp::Sum, a.dtype());
-  return u.resolve(a.dtype(), a.dtype()).out;
+  LoopTypes lt{};
+  if (dtype) lt = u.resolve_dtype(a.dtype(), *dtype);
+  else if (out) lt = u.resolve(out->dtype(), a.dtype());
+  else if (name == "add" || name == "multiply") return reduce_result_dtype(ReduceOp::Sum, a.dtype());
+  else lt = u.resolve(a.dtype(), a.dtype());
+  if (lt.in == lt.out) return lt.out;
+  // Bool-output ufunc (D-080): the accumulator is bool, so the loop must be
+  // the bool loop. Logical ops (with an identity) cast the input to bool, as
+  // NumPy; comparisons only reduce bool input.
+  if (u.identity || a.dtype() == DType::Bool) return DType::Bool;
+  no_loop_for(u);
 }
 
 BinaryLoopFn loop_for(const Ufunc& u, DType dt) {
@@ -50,9 +64,13 @@ void run_loop(BinaryLoopFn fn, const NDArray& dst, const NDArray& x, const NDArr
   fn(make_plan<3>(dst.shape(), {&dst, &x, &y}), {dst.data(), x.data(), y.data()});
 }
 
+// Integral values go through int64 so an identity of -1 fills unsigned
+// accumulators with all ones (bitwiseAnd, D-080).
 void fill_value(const NDArray& dst, double v) {
-  NDArray s = NDArray::empty({}, DType::Float64);
-  s.set_double(0, v);
+  const bool integral = std::trunc(v) == v && std::fabs(v) < 9.2e18;
+  NDArray s = NDArray::empty({}, integral ? DType::Int64 : DType::Float64);
+  if (integral) s.set_int64(0, static_cast<std::int64_t>(v));
+  else s.set_double(0, v);
   copy_into(dst, s);
 }
 

@@ -1530,3 +1530,38 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   `api/coverage*.json` and `TASK_SLICES.md` are updated only on `main`.
 - Build-first rule (TASK_SLICES.md) is unchanged: no NumPy-compatibility or
   performance claim until the V phase.
+
+## D-080 — Bool-output ufuncs: comparisons and logical ops (P5-1, P5-2) — Accepted — 2026-10-02
+- New rows in `native/core/ufunc_logic.cpp` (registry names in camelCase, like
+  `floorDivide`): `equal notEqual less lessEqual greater greaterEqual`,
+  `logicalAnd logicalOr logicalXor logicalNot`. The loop takes the promoted input
+  dtype and writes bool (`LoopTypes{promote(a, b), Bool}`); new bool-output loop
+  templates live in `ufunc_logic.cpp`.
+- Complex inputs compare lexicographically like NumPy's `CLT`/`CLE` macros
+  (`(xr < yr && xi == xi && yi == yi) || (xr == yr && xi < yi)`). As in NumPy,
+  the complex ordered comparisons raise the FP "invalid" flag when a NaN takes
+  part in an ordered compare (`np.seterr` then reports "invalid value encountered
+  in less"); real float comparisons and `equal`/`notEqual` stay quiet.
+- `dtype=` on a call means NumPy's output signature: only `bool` is accepted
+  (anything else raises `DTypeError: No loop matching ...`). For binary calls the
+  TS wrapper validates it and then uses the default loop, so
+  `equal([1], [1.5], {dtype: "bool"})` compares in float64 like NumPy.
+- JS integer scalars outside an integer array's range (e.g. `less(int8Array, 1000)`)
+  are not weak for the bool-output binary ufuncs: they become int64, uint64 or
+  float64 arrays, so the comparison is value-exact like NumPy 2 (no overflow error).
+- Logical ops take the truthiness of the promoted input dtype (same values as
+  NumPy's bool cast). Divergence: NumPy's logical ufuncs accept mixed input dtypes
+  under `casting: "no"/"equiv"/"safe"`; numera checks the cast to the promoted
+  dtype, so e.g. `logicalAnd(int64, float64, {casting: "no"})` raises.
+- uint64 vs int64 comparisons use the float64 loop (exact only up to 2^53);
+  NumPy has dedicated mixed loops. Documented divergence.
+- Reductions (`ufunc_methods.cpp`, D-052 loop dtype rule extended): when the
+  resolved loop's input and output dtypes differ (a bool-output ufunc), a ufunc
+  with an identity (`logicalAnd` True, `logicalOr`/`logicalXor` False) reduces in
+  bool (inputs cast to bool, as NumPy's logical reduce); without an identity
+  (comparisons) only bool input works, anything else raises
+  `DTypeError: No loop matching ...` (NumPy behaviour, e.g. `equal.reduce(int)`).
+- Identities are filled through an int64 scalar when integral, so `-1` fills
+  uint32/uint64 accumulators with all ones (needed by `bitwiseAnd`, D-081).
+- `np.all`/`np.any` (and NDArray methods) are `logicalAnd.reduce`/`logicalOr.reduce`
+  with NumPy's defaults (axis `null` = all axes; `axis`, `keepdims`, `where`, `out`).

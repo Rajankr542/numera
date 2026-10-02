@@ -1,1 +1,8 @@
-[]
+[
+  "np.equal [nativpy] [numpy]",
+  "np.greater [nativpy] [numpy]",
+  "np.greater_equal [nativpy] [numpy]",
+  "np.less [nativpy] [numpy]",
+  "np.less_equal [nativpy] [numpy]",
+  "np.not_equal [nativpy] [numpy]"
+]
