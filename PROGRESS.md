@@ -1110,3 +1110,14 @@ Done:
   all pass. An ad-hoc NumPy comparison (1530 cases) was bit-exact.
 - Not done: committed NumPy differential cases and benchmarks for the new names
   (listed in `api/bench-exempt/p12.json`).
+## P4 — Math ufuncs (branch p04, 2026-10-02)
+- About 75 public names: trig/hyperbolic (with Array-API aliases), exp/log,
+  rounding (`round/around/fix`, `a.round`), arithmetic (`fmod floatPower sign
+  heaviside maximum minimum fmax fmin fabs clip`, `a.clip`, `a.conjugate`,
+  aliases `remainder trueDivide pow absolute`), float bits (`copysign
+  nextafter spacing ldexp signbit`), `gcd lcm`, the two-output ufuncs
+  `divmod modf frexp`, and `i0 sinc unwrap nanToNum realIfClose`
+  (D-070–D-074).
+- Verified locally: `pnpm build`, `pnpm test` (343 tests), `pnpm test:native`,
+  `pnpm test:asan`, `pnpm api:check` all pass. NumPy differential and
+  benchmark cases are deferred to the V phase (`api/bench-exempt/p04.json`).

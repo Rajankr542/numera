@@ -110,6 +110,12 @@ differential tests (`pnpm test:diff`).
 | `intersect1d({returnIndices: true})` | tuple | object `{values, indices1, indices2}` | D-124 |
 | `isin({kind: "table"})` | lookup table | sort + binary search (same result; errors identical) | D-124 |
 | `ediff1d` incompatible `toBegin`/`toEnd`, bool input | `TypeError` | `DTypeError` | D-124 |
+| P4 long-double / object loops | `g`, `G`, `O` loops | not available (no such dtypes) | D-070 |
+| P4 libm-based ufuncs (trig, exp/log, ...) | platform libm / SIMD | C++ `std::` libm; may differ by a few ULP | D-014, D-070 |
+| `divmod` / `modf` / `frexp` | ufunc objects (`where=`, `.reduce`, ...) | functions returning `[NDArray, NDArray]`; only `out`, `dtype`, `casting` | D-073 |
+| `np.clip` | dedicated `clip` ufunc | `minimum(maximum(a, min), max)`, `out` only | D-072 |
+| `nan_to_num` replacements | scalars or arrays | scalars only | D-074 |
+| `unwrap` on float16 | computed in float16 | computed in float32, cast back (last bit may differ) | D-074 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).

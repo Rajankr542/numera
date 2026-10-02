@@ -1961,3 +1961,87 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - An empty `axes` list returns a copy. 0-d input with default or empty axes raises
   `ValueError` (NumPy fails in `np.roll` with "not enough values to unpack").
   Out-of-range axes raise `IndexError` (D-012).
+## D-070 — P4 math ufuncs: registry rows and type resolution — Accepted — 2026-10-02
+- Every P4 element-wise ufunc that NumPy defines as a ufunc is a row in
+  `native/core/ufunc_math.cpp` (D-051/D-056) and a TS object from
+  `binaryUfunc`/`unaryUfunc`, so it gets `out/where/dtype/casting/order` and
+  `reduce/accumulate/outer/at`. Identities follow NumPy (`hypot` 0,
+  `logaddexp`/`logaddexp2` -inf, `gcd` 0, others none).
+- Type resolution mirrors NumPy's loop lists (`np.<ufunc>.types`):
+  - float-only ufuncs (trig, exp/log family, `arctan2 hypot deg2rad ...`):
+    integer/bool inputs use the smallest safe float (`float_for`: 8-bit →
+    float16, 16-bit → float32, wider → float64); binary ones promote the two
+    float loop types. Complex loops exist exactly where NumPy has them
+    (e.g. `sin`, `exp2`, `log10`, `square`, `sign`; not `arctan2`, `cbrt`,
+    `deg2rad`); otherwise complex input raises `DTypeError`.
+  - `dtype=` accepts only dtypes NumPy has a loop for (float, or inexact when
+    a complex loop exists); others raise the "No loop matching" `DTypeError`.
+- Array-API aliases (`asin` … `atan2`, `pow`) are the same JS objects.
+- The long-double (`g`/`G`) and object loops have no numera dtype and are out
+  of scope. libm results are not claimed bit-identical to NumPy (D-014).
+
+## D-071 — P4 np.round / around / fix — Accepted — 2026-10-02
+- `np.round(a, decimals = 0, { out })` (alias `around`, method `a.round`) is a
+  TS composition like NumPy's `PyArray_Round`: floats/complex use `rint` for
+  `decimals = 0`, else `rint(a * 10**d) / 10**d` (or `* 10**-d` for negative
+  `d`), so results carry the same floating-point error as NumPy. Integer
+  inputs return a copy for `decimals >= 0`; negative `decimals` round through
+  float64 and cast back to the input dtype (wrapping like NumPy, e.g. int8
+  127 → -126). `bool` with `decimals = 0` gives float16 (`rint`), with other
+  decimals raises `DTypeError` (NumPy's casting error). Non-integer `decimals`
+  raise `DTypeError`.
+- `np.fix` is `np.trunc` (NumPy 2.5 deprecates `fix` in favour of `trunc` and
+  returns the same values and dtypes).
+- `positive` has no bool loop (NumPy raises `UFuncTypeError`; numera `DTypeError`).
+
+## D-072 — P4 arithmetic: aliases, clip, extrema — Accepted — 2026-10-02
+- `remainder`, `trueDivide`, `pow`, `absolute` are the existing `mod`,
+  `divide`, `power`, `abs` objects (NumPy aliases), so `np.remainder === np.mod`.
+- New registry rows: `fmod` (C remainder; integer `x % 0` → 0 with the
+  divide-by-zero FP flag, `MIN % -1` → 0), `float_power` (float64/complex128
+  loops only), `sign` (NaN → NaN; complex `z/|z|` with NumPy 2's special
+  cases; no bool loop), `heaviside`, `fabs`, `maximum minimum fmax fmin`
+  (all dtypes incl. bool and complex lexicographic order; `maximum`/`minimum`
+  propagate NaN, `f*` ignore it; signed zeros: max → +0, min → −0).
+  NumPy gives `maximum`/`minimum` no identity, so their `.reduce` on empty
+  input raises, as in NumPy.
+- `np.clip(a, min?, max?, { out })` and `a.clip` compose `minimum(maximum(a,
+  min), max)` like NumPy's `_clip` (NaN propagates; `min > max` → `max`;
+  both bounds omitted → `positive(a)`, which raises for bool like NumPy).
+  NumPy's dedicated `clip` ufunc (and its `out`/`where` keywords beyond `out`)
+  is not exposed as a ufunc object.
+- `a.conjugate()` is added by declaration merging (same as `a.conj()`).
+
+## D-073 — P4 float bits, gcd/lcm and multi-output ufuncs — Accepted — 2026-10-02
+- Registry rows: `copysign`, `nextafter`, `spacing` (float loops; float16 uses
+  NumPy's bit-pattern `npy_half_nextafter`/`npy_half_spacing`, whose spacing
+  steps toward +inf), `ldexp` (x picks the float loop; the exponent must be
+  bool/int/uint ≤ 32 bits or int64 — NumPy's `fi`/`fl` loops — and is cast
+  to the float type and clamped to ±100000 before `std::ldexp`), `signbit`
+  (float in, bool out), `gcd` (identity 0) and `lcm` (integer loops only,
+  modular on magnitudes like NumPy).
+- `divmod`, `modf`, `frexp` have two outputs, which the single-output
+  registry cannot express. They use a dedicated path
+  (`native/core/p04_multi.cpp`, `addon.p04.multi`) and return
+  `[NDArray, NDArray]` in TS. They support `out: [o1 | null, o2 | null]`,
+  `dtype`, `casting`, not `where`/`order` or ufunc methods (`reduce` etc.).
+  Loops: divmod uses NumPy's floor_divide/remainder kernels (bool → int8);
+  modf/frexp are float-only (ints → `float_for`); the frexp exponent is int32
+  (0 for inf/nan).
+
+## D-074 — P4 special functions i0, sinc, unwrap, nanToNum, realIfClose — Accepted — 2026-10-02
+- NumPy implements these in Python, not as ufuncs; numera exposes them as
+  plain functions (no `out`/`where`/ufunc methods) with the numerics in
+  `native/core/p04_special.cpp` (`addon.p04`).
+- `i0` uses NumPy's Cephes Chebyshev coefficients; `sinc` uses NumPy's
+  `where(x, x, eps)` substitution for zeros (1e-20 for complex). Both use
+  NumPy's output dtypes (`i0`: float16/float32 kept, other real inputs
+  float64, complex raises `DTypeError`; `sinc`: ints → float64).
+- `unwrap` follows NumPy's algorithm including the integer path (integer
+  input and integer period keep the dtype) and bool `diff` = `not_equal`.
+  float16 input is computed in float32 and cast back (NumPy computes in
+  float16, so the last bit may differ). Complex input raises `DTypeError`.
+- `nanToNum` accepts scalar `nan`/`posinf`/`neginf` only (NumPy also allows
+  arrays); `copy: false` needs an NDArray and modifies it in place.
+- `realIfClose(x, tol = 100)` returns the `real` view (NumPy also returns
+  `a.real`).
