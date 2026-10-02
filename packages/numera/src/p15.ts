@@ -5,6 +5,7 @@
 // with top-level names such as sqrt.
 import { emath } from "./p15_emath.js";
 import { testing } from "./p15_testing.js";
+import { polynomial } from "./p15_polynomial.js";
 
 export { emath } from "./p15_emath.js";
 export { testing, AssertionError } from "./p15_testing.js";
@@ -18,4 +19,7 @@ export type {
   MaxUlpOptions,
 } from "./p15_testing.js";
 
-export const p15 = { emath, testing } as const;
+export { polynomial } from "./p15_polynomial.js";
+export type { ClassFitOptions, FitOptions, IntegOptions, SeriesOptions } from "./p15_polynomial.js";
+
+export const p15 = { emath, testing, polynomial } as const;

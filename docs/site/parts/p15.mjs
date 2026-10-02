@@ -134,6 +134,59 @@ np.testing.assertStringEqual("abc", "abc");  // passes`,
   },
 ];
 
+const polyEntries = [
+  {
+    name: "polynomial.Polynomial",
+    sig: "new np.polynomial.Polynomial(coef, domain?, window?, symbol = \"x\") · Chebyshev · Legendre · Laguerre · Hermite · HermiteE",
+    desc: "Series classes of `numpy.polynomial`. Coefficients run from lowest degree to highest and are stored as float64 (or complex128). `domain` is mapped linearly onto `window` before the series is evaluated. Python operators become methods: `add`, `sub`, `rsub`, `mul`, `truediv`, `floordiv`, `mod`, `divmod`, `pow`, `neg`, `equals`. `toString()` is Python's `str()` and `repr()` is `repr()`.",
+    args: [{ name: "coef", type: "ArrayLike", desc: "Series coefficients, lowest degree first." }],
+    returns: "series instance",
+    example: `const p = new np.polynomial.Polynomial([1, 2, 3]);
+p.call([0, 1, 2]);                         // => [1, 6, 17]
+String(p);                                 // => "1.0 + 2.0·x + 3.0·x²"
+p.mul([1, 1]).coef;                        // => [1, 3, 5, 3]
+p.pow(2).coef;                             // => [1, 4, 10, 12, 9]
+p.divmod([1, 1]).map((q) => q.coef.toArray()); // => [[-1, 3], [2]]
+p.deriv().coef;                            // => [2, 6]
+p.integ().coef;                            // => [0, 1, 1, 1]
+new np.polynomial.Chebyshev([1, 2, 3]).convert(null, np.polynomial.Polynomial).coef; // => [-2, 2, 6]
+new np.polynomial.Polynomial([1, 2]).repr(); // => "Polynomial([1., 2.], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')"`,
+  },
+  {
+    name: "polynomial.Polynomial.fit",
+    sig: "Cls.fit(x, y, deg, { domain, window, rcond, w, symbol }) · Cls.fitFull(...) · Cls.fromroots(roots, opts) · Cls.identity(domain?, window?) · Cls.basis(deg, opts) · Cls.cast(series)",
+    desc: "Class factories. `fit` computes a least-squares fit, with the domain defaulting to the range of `x`; `.convert()` maps the result back to the default domain. `p.roots()` returns the eigenvalues of the companion matrix, mapped into the domain.",
+    args: [arrayArg("x"), arrayArg("y"), { name: "deg", type: "number | number[]", desc: "Degree, or the list of degrees to include." }],
+    returns: "series instance",
+    example: `const f = np.polynomial.Polynomial.fit([0, 1, 2, 3], [1, 3, 5, 7], 1);
+f.domain;                                   // => [0, 3]
+f.convert().coef;                           // => [1, 2]
+np.polynomial.Polynomial.fromroots([1, 2]).coef; // => [2, -3, 1]
+np.polynomial.Polynomial.fromroots([1, 2]).roots(); // => [1, 2]
+np.polynomial.Laguerre.basis(2).coef;       // => [0, 0, 1]`,
+  },
+  {
+    name: "polynomial.chebyshev",
+    sig: "np.polynomial.{polynomial, chebyshev, legendre, laguerre, hermite, hermite_e}.<prefix>{add, sub, mul, mulx, div, pow, val, der, int, vander, companion, fromroots, roots, fit, trim, line, domain, zero, one, x} · cheb2poly / poly2cheb ...",
+    desc: "Module functions on raw coefficient arrays. They keep NumPy's prefixed names (`poly`, `cheb`, `leg`, `lag`, `herm`, `herme`). Only 1-D coefficients are supported. `<prefix>int` takes `{ m, k, lbnd, scl }`.",
+    args: [{ name: "c", type: "ArrayLike", desc: "1-D coefficient array." }],
+    returns: "NDArray",
+    example: `np.polynomial.chebyshev.chebval(0.5, [1, 2, 3]); // => 0.5
+np.polynomial.polynomial.polydiv([1, 2, 3, 4], [1, 2]).map((a) => a.toArray()); // => [[0.75, 0.5, 2], [0.25]]
+np.polynomial.legendre.leg2poly([1, 2, 3]);  // => [-0.5, 2, 4.5]
+np.polynomial.hermite.hermvander([0, 1], 2); // => [[1, 0, -2], [1, 2, 2]]
+np.polynomial.polynomial.polyroots([2, -3, 1]); // => [1, 2]`,
+  },
+  {
+    name: "polynomial.setDefaultPrintstyle",
+    sig: "np.polynomial.setDefaultPrintstyle(\"unicode\" | \"ascii\")",
+    desc: "Switches `toString()` of all series between unicode and ascii output. `p.format(\"ascii\")` picks the style for one call.",
+    args: [{ name: "style", type: "string", desc: "`\"unicode\"` (default) or `\"ascii\"`." }],
+    returns: "void",
+    example: `new np.polynomial.Chebyshev([1, 2, 3]).format("ascii"); // => "1.0 + 2.0 T_1(x) + 3.0 T_2(x)"`,
+  },
+];
+
 /** @type {import("../api.mjs").Category[]} */
 export const categories = [
   {
@@ -147,5 +200,11 @@ export const categories = [
     title: "np.testing (assertions)",
     intro: "NumPy's array assertion helpers. They throw `AssertionError` (a `NativpyError` subclass) with NumPy-style messages.",
     entries: testingEntries,
+  },
+  {
+    id: "polynomial",
+    title: "np.polynomial (series classes)",
+    intro: "Power, Chebyshev, Legendre, Laguerre, Hermite and HermiteE series: classes with domain/window mapping, plus the per-basis module functions.",
+    entries: polyEntries,
   },
 ];

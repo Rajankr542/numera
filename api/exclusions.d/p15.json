@@ -33,5 +33,8 @@
   "tempdir": "Python context manager for temp directories (D-181)",
   "temppath": "Python context manager for temp files (D-181)",
   "test": "NumPy's own test runner (D-181)"
+ },
+ "polynomial": {
+  "test": "pytest runner (D-182)"
  }
 }

@@ -114,6 +114,8 @@ differential tests (`pnpm test:diff`).
 | `np.testing` messages for JS integer-valued numbers | `1.0` (Python float) | `1` (JS has one number type) | D-181 |
 | `np.testing.assertRaises` / `assertWarns` | context manager or callable | callable only; warnings are Node `process.emitWarning` warnings | D-181 |
 | `np.testing.assertStringEqual` diff | difflib with `?` hint lines | `-`/`+` lines only | D-181 |
+| `np.polynomial` coefficient dtype / dimensionality | any dtype incl. object; N-D `c` with `axis`/`tensor` | float64/complex128, 1-D only; no `*val2d/3d`, `*grid*`, `*vander2d/3d`, `*gauss`, `*weight` yet | D-182 |
+| `np.polynomial` operators and division by a zero series | Python operators; `ZeroDivisionError` | methods (`add`, `mul`, `floordiv`, `pow`, `call`, ...); `ValueError` | D-182 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).

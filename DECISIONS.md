@@ -2005,3 +2005,34 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - Excluded from coverage (`api/exclusions.d/p15.json`): Python/NumPy build flags,
   unittest/nose classes, warnings-module context managers, gc/proc/exec/thread
   helpers, `test`.
+
+## D-182 — np.polynomial (P15-3) — Accepted — 2026-10-02
+- `np.polynomial` exposes the six classes (`Polynomial`, `Chebyshev`,
+  `Legendre`, `Laguerre`, `Hermite`, `HermiteE`), `setDefaultPrintstyle`, and
+  the per-basis modules `np.polynomial.{polynomial, chebyshev, legendre,
+  laguerre, hermite, hermite_e}`. Module functions keep NumPy's prefixed
+  names (`chebadd`, `lagval`, `herme2poly`, `chebdomain`, ...).
+- Series arithmetic (add/sub/mul/mulx/div/pow/val/der/int/vander/companion/
+  fromroots, conversions to/from the power basis) is a native kernel
+  (`native/core/p15_polynomial.cpp`) over 1-D float64/complex128
+  coefficients, following NumPy's algorithms and operation order. Coefficients
+  are always float64 or complex128 (NumPy also keeps object arrays). Only 1-D
+  coefficient arrays are supported: there is no `axis` argument for der/int and
+  no `tensor` argument for val. The multidimensional `*val2d/3d`, `*grid2d/3d`,
+  `*vander2d/3d` and Gauss quadrature/weight helpers are not provided yet.
+- Fitting uses `np.linalg.lstsq` with NumPy's column scaling. Roots are the
+  `np.linalg.eigvals` of the companion matrix, sorted, and made real when the
+  input is real and every imaginary part is 0 (NumPy's power, Laguerre and
+  Hermite modules). A rank-deficient fit emits `process.emitWarning(...,
+  "RankWarning")`.
+- Python operators map to methods: `add sub rsub mul truediv floordiv mod
+  divmod pow neg pos equals`. `p.call(x)` evaluates; `p.call(q)` with a
+  series composes. `toString()` is `str()` (unicode, or ascii after
+  `setDefaultPrintstyle("ascii")`) and `repr()` is `repr()`. `fit(x, y, deg,
+  { domain, window, rcond, w, symbol })` returns the series, and `fitFull`
+  also returns the diagnostics. `fromroots`/`basis` take an options object,
+  `integ(m, k, lbnd)` and `deriv(m)` are positional.
+- Class default domain/window are float64 static `defaultDomain` /
+  `defaultWindow` (`Cls.domain` getters return copies). Division by a zero
+  series throws `ValueError` (NumPy: ZeroDivisionError).
+- `polynomial.test` is excluded from coverage.
