@@ -99,6 +99,12 @@ differential tests (`pnpm test:diff`).
 | `mod` / `floorDivide` on complex | `TypeError` | `DTypeError` | D-033 |
 | complex `sqrt`/`exp`/`log`/`power`/`abs`/`angle` | platform libm / npymath | NumPy's npymath algorithms (`npy_csqrt`, `npy_clog`, `npy_cpow`, SIMD `cabsolute`); `exp`, `pow` and `atan2` come from the C++ library; libm results may differ by a few ULP | D-014, D-033 |
 | `imag` of a real array | read-only zeros array | same (read-only zeros) | D-033 |
+| P4 long-double / object loops | `g`, `G`, `O` loops | not available (no such dtypes) | D-070 |
+| P4 libm-based ufuncs (trig, exp/log, ...) | platform libm / SIMD | C++ `std::` libm; may differ by a few ULP | D-014, D-070 |
+| `divmod` / `modf` / `frexp` | ufunc objects (`where=`, `.reduce`, ...) | functions returning `[NDArray, NDArray]`; only `out`, `dtype`, `casting` | D-073 |
+| `np.clip` | dedicated `clip` ufunc | `minimum(maximum(a, min), max)`, `out` only | D-072 |
+| `nan_to_num` replacements | scalars or arrays | scalars only | D-074 |
+| `unwrap` on float16 | computed in float16 | computed in float32, cast back (last bit may differ) | D-074 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
@@ -109,15 +115,3 @@ differential tests (`pnpm test:diff`).
 - Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
 - FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
 - Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
-
-### P4 math ufuncs (D-070–D-074)
-
-| Behaviour | NumPy | numera | Decision |
-|-----------|-------|--------|----------|
-| Long-double / object loops | `g`, `G`, `O` loops | not available (no such dtypes) | Out of scope (D-070) |
-| libm results | platform libm / SIMD | C++ `std::` libm | Not claimed bit-identical; ULP tolerances (D-014) |
-| `divmod`/`modf`/`frexp` | ufunc objects with `where=`, `.reduce` etc. | functions returning `[NDArray, NDArray]`; `out`, `dtype`, `casting` only | Accepted (D-073) |
-| `np.clip` | dedicated `clip` ufunc | `minimum(maximum(a, min), max)` composition, `out` only | Accepted (D-072) |
-| `nan_to_num` replacement values | scalars or arrays | scalars only | Accepted (D-074) |
-| `unwrap` float16 | computed in float16 | computed in float32, cast back | Accepted; may differ in the last bit (D-074) |
-| `i0`/`sinc`/`unwrap` | Python functions | native functions, no ufunc keywords | Same as NumPy (they are not ufuncs) |
