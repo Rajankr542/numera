@@ -1,1 +1,19 @@
-[]
+[
+ "np.array_split [nativpy] [numpy]",
+ "np.atleast_1d [nativpy] [numpy]",
+ "np.atleast_2d [nativpy] [numpy]",
+ "np.atleast_3d [nativpy] [numpy]",
+ "np.block [nativpy] [numpy]",
+ "np.column_stack [nativpy] [numpy]",
+ "np.concat [nativpy] [numpy]",
+ "np.concatenate [nativpy] [numpy]",
+ "np.dsplit [nativpy] [numpy]",
+ "np.dstack [nativpy] [numpy]",
+ "np.hsplit [nativpy] [numpy]",
+ "np.hstack [nativpy] [numpy]",
+ "np.split [nativpy] [numpy]",
+ "np.stack [nativpy] [numpy]",
+ "np.unstack [nativpy] [numpy]",
+ "np.vsplit [nativpy] [numpy]",
+ "np.vstack [nativpy] [numpy]"
+]

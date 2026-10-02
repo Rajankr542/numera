@@ -1,10 +1,44 @@
-// Parity milestone P6 public functions (D-056).
+// Parity milestone P6: array manipulation (D-056, D-090..D-095).
 // Functions exported from `p06` are spread into the default `np` object by
-// index.ts; also add named exports there (only the index.ts block for P6).
-// Native kernels live in native/bindings/p06_binding.cpp (`addon.p06`).
-// NDArray methods: add them with declaration merging, e.g.
-//   declare module "./ndarray.js" { interface NDArray { foo(): NDArray } }
-//   NDArray.prototype.foo = function () { ... };
-// (see AGENTS.md "Parallel milestones").
+// index.ts. Native kernels: native/core/p06_manip.cpp via addon.p06.
+import {
+  arraySplit,
+  atleast1d,
+  atleast2d,
+  atleast3d,
+  block,
+  columnStack,
+  concat,
+  concatenate,
+  dsplit,
+  dstack,
+  hsplit,
+  hstack,
+  split,
+  stack,
+  unstack,
+  vsplit,
+  vstack,
+} from "./p06_join.js";
 
-export const p06 = {} as const;
+export * from "./p06_join.js";
+
+export const p06 = {
+  concatenate,
+  concat,
+  stack,
+  vstack,
+  hstack,
+  dstack,
+  columnStack,
+  block,
+  unstack,
+  split,
+  arraySplit,
+  hsplit,
+  vsplit,
+  dsplit,
+  atleast1d,
+  atleast2d,
+  atleast3d,
+} as const;

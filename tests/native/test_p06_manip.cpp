@@ -1,0 +1,90 @@
+#include "creation.hpp"
+#include "error.hpp"
+#include "layout.hpp"
+#include "p06_manip.hpp"
+#include "shape_ops.hpp"
+#include "test_harness.hpp"
+
+using namespace nativpy;
+
+namespace {
+
+NDArray iota(const Shape& shape, DType dt = DType::Int64) {
+  return arange(0, static_cast<double>(shape_size(shape)), 1, dt).reshape(shape);
+}
+
+std::vector<std::int64_t> values(const NDArray& a) {
+  std::vector<std::int64_t> v;
+  for (std::int64_t i = 0; i < a.size(); ++i) v.push_back(a.get_int64(i));
+  return v;
+}
+
+}  // namespace
+
+TEST_CASE("p06: concatenate axis/None/dtype/casting/out") {
+  const NDArray a = iota({2, 2});
+  const NDArray b = iota({1, 2});
+  NDArray c = concatenate({a, b}, 0, std::nullopt, Casting::SameKind, nullptr);
+  CHECK(c.shape() == Shape({3, 2}));
+  CHECK(values(c) == std::vector<std::int64_t>({0, 1, 2, 3, 0, 1}));
+  NDArray d = concatenate({a, iota({2, 1})}, -1, std::nullopt, Casting::SameKind, nullptr);
+  CHECK(values(d) == std::vector<std::int64_t>({0, 1, 0, 2, 3, 1}));
+  NDArray f = concatenate({a, iota({3})}, std::nullopt, std::nullopt, Casting::SameKind, nullptr);
+  CHECK(f.shape() == Shape({7}));
+  CHECK((concatenate({iota({2}, DType::Int8), iota({1}, DType::Float32)}, 0, std::nullopt,
+                       Casting::SameKind, nullptr).dtype() == DType::Float32));
+  CHECK_THROWS_KIND(concatenate({iota({2}, DType::Float32)}, 0, DType::Int8, Casting::SameKind,
+                                nullptr), ErrorKind::DType);
+  CHECK((concatenate({iota({2}, DType::Float32)}, 0, DType::Int8, Casting::Unsafe, nullptr)
+               .dtype() == DType::Int8));
+  // F-ordered inputs give an F-ordered result (multi-sorted strides).
+  const NDArray fa = copy_order(a, DType::Float64, Order::F);
+  CHECK(concatenate({fa, fa}, 0, std::nullopt, Casting::SameKind, nullptr).strides() ==
+        Strides({8, 32}));
+  NDArray out = NDArray::zeros({4}, DType::Int8);
+  concatenate({iota({2}), iota({2})}, 0, std::nullopt, Casting::Unsafe, &out);
+  CHECK(values(out) == std::vector<std::int64_t>({0, 1, 0, 1}));
+  NDArray bad = NDArray::zeros({3}, DType::Int64);
+  CHECK_THROWS_KIND(concatenate({iota({2})}, 0, std::nullopt, Casting::SameKind, &bad),
+                    ErrorKind::Value);
+  CHECK_THROWS_KIND(concatenate({}, 0, std::nullopt, Casting::SameKind, nullptr), ErrorKind::Value);
+  CHECK_THROWS_KIND(concatenate({iota({})}, 0, std::nullopt, Casting::SameKind, nullptr),
+                    ErrorKind::Value);
+  CHECK_THROWS_KIND(concatenate({a, iota({3})}, 0, std::nullopt, Casting::SameKind, nullptr),
+                    ErrorKind::Value);
+  CHECK_THROWS_KIND(concatenate({a, iota({3, 3})}, 1, std::nullopt, Casting::SameKind, nullptr),
+                    ErrorKind::Value);
+  CHECK_THROWS_KIND(concatenate({a}, 2, std::nullopt, Casting::SameKind, nullptr), ErrorKind::Index);
+  // Empty pieces.
+  CHECK(concatenate({iota({0, 2}), a}, 0, std::nullopt, Casting::SameKind, nullptr).shape() ==
+        Shape({2, 2}));
+}
+
+TEST_CASE("p06: stack / split / unstack") {
+  const NDArray a = iota({3});
+  NDArray s = stack({a, a}, 1, std::nullopt, Casting::SameKind, nullptr);
+  CHECK(s.shape() == Shape({3, 2}));
+  CHECK(values(s) == std::vector<std::int64_t>({0, 0, 1, 1, 2, 2}));
+  CHECK_THROWS_KIND(stack({a, iota({2})}, 0, std::nullopt, Casting::SameKind, nullptr),
+                    ErrorKind::Value);
+  CHECK_THROWS_KIND(stack({}, 0, std::nullopt, Casting::SameKind, nullptr), ErrorKind::Value);
+  const NDArray v = iota({7});
+  auto parts = split_sections(v, 3, 0, false);
+  CHECK_EQ(parts.size(), std::size_t{3});
+  CHECK(values(parts[0]) == std::vector<std::int64_t>({0, 1, 2}));
+  CHECK(values(parts[2]) == std::vector<std::int64_t>({5, 6}));
+  CHECK_THROWS_KIND(split_sections(v, 3, 0, true), ErrorKind::Value);
+  CHECK_THROWS_KIND(split_sections(v, 0, 0, false), ErrorKind::Value);
+  auto at = split_at(iota({6}), {2, 10}, 0);
+  CHECK_EQ(at.size(), std::size_t{3});
+  CHECK_EQ(at[1].size(), std::int64_t{4});
+  CHECK_EQ(at[2].size(), std::int64_t{0});
+  auto rev = split_at(iota({5}), {3, 1}, 0);
+  CHECK_EQ(rev[1].size(), std::int64_t{0});
+  CHECK(values(rev[2]) == std::vector<std::int64_t>({1, 2, 3, 4}));
+  auto u = unstack(iota({2, 3}), 1);
+  CHECK_EQ(u.size(), std::size_t{3});
+  CHECK(values(u[2]) == std::vector<std::int64_t>({2, 5}));
+  CHECK(u[0].shares_buffer(u[1]));
+  CHECK_THROWS_KIND(unstack(iota({}), 0), ErrorKind::Value);
+}

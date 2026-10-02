@@ -1530,3 +1530,28 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   `api/coverage*.json` and `TASK_SLICES.md` are updated only on `main`.
 - Build-first rule (TASK_SLICES.md) is unchanged: no NumPy-compatibility or
   performance claim until the V phase.
+
+## D-090 — P6 array manipulation: API shape and layouts (P6) — Accepted — 2026-10-02
+- Kernels live in `native/core/p06_manip.{hpp,cpp}` (`addon.p06`); TS in
+  `packages/numera/src/p06*.ts`. Build-first: NumPy differential and bench cases
+  come in the V phase.
+- Keyword arguments become a trailing options object; the most common keyword
+  may also be passed positionally: `concatenate(arrays, axis | {axis, dtype,
+  casting, out})` (`axis: null` flattens), `stack(arrays, axis | {...})`,
+  `split(a, sectionsOrIndices, axis?)`, `repeat(a, repeats, axis?)`,
+  `roll(a, shift, axis?)`, `flip(a, axis?)`.
+- `concatenate`/`stack` result layout follows NumPy's multi-sorted stride
+  permutation over the inputs (F inputs give an F result); `casting` defaults to
+  "same_kind" and is checked for every input (`DTypeError`, NumPy `TypeError`);
+  `out` and `dtype` together raise `DTypeError`.
+- Functions that return a tuple in NumPy (`split` family, `unstack`,
+  `broadcastArrays`, `atleast*d` with several inputs) return a JS array of
+  NDArrays. `atleast1d/2d/3d(x)` with one argument returns one NDArray.
+- `block` takes nested JS arrays whose leaves are NDArrays or scalars, and is
+  implemented as NumPy's `_block_concatenate` (TS recursion over the native
+  concatenate kernel), with NumPy's depth-mismatch and empty-list errors.
+- Split pieces, `unstack`, `flip`, `rot90`, `rollaxis`, `permuteDims`,
+  `matrixTranspose`, `atleast*d`, `trimZeros` return views; everything else
+  returns new arrays.
+- `delete` is a JS reserved word: it is exported as `np.delete` and as the
+  named export `delete` (implemented as `del`).
