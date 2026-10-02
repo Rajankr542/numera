@@ -10,6 +10,8 @@ import warnings
 
 import numpy as np
 
+from cast_ub import decode, ufunc_cast_ub
+
 BINARY = {"add": np.add, "subtract": np.subtract, "multiply": np.multiply,
           "divide": np.true_divide, "power": np.power, "mod": np.mod,
           "floorDivide": np.floor_divide}
@@ -50,8 +52,16 @@ def ufunc_dtype_casting_cases(enc, describe) -> list[dict]:
             except (TypeError, ValueError, OverflowError) as e:  # OverflowError -> ValueError (D-009)
                 cases.append({"op": op, "args": args, "opts": opts, "error": _err(e)})
                 return
-        cases.append({"op": op, "args": args, "opts": opts, "approx": op in APPROX,
-                      "expected": describe(np.asarray(r))})
+        r = np.asarray(r)
+        case = {"op": op, "args": args, "opts": opts, "approx": op in APPROX,
+                "expected": describe(r)}
+        xs = [np.array(decode(a["data"]), dtype=a["dtype"]) if "data" in a else a["scalar"] for a in args]
+        ub, loop = ufunc_cast_ub(BINARY.get(op) or UNARY[op], xs, opts, r.shape, opts.get("out"))
+        if ub:
+            case["cast_ub"] = ub  # D-231: undefined float->int casts, not compared
+        if loop is not None:
+            case["loop"] = loop
+        cases.append(case)
 
     def arr(v, dt):
         return {"data": enc(v), "dtype": dt}

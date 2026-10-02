@@ -1471,6 +1471,9 @@ describe("differential: ufunc out= (P2-3, D-046/D-047)", () => {
   );
 });
 
+const dropUb = (xs: unknown[], ub: number[] | undefined): unknown[] =>
+  ub === undefined ? xs : xs.filter((_, i) => !ub.includes(i));
+
 describe("differential: ufunc dtype= / casting= (P2-4, D-048)", () => {
   interface DcArg {
     data?: Encoded;
@@ -1483,6 +1486,8 @@ describe("differential: ufunc dtype= / casting= (P2-4, D-048)", () => {
     opts: { dtype?: string; casting?: string; out?: string };
     approx?: boolean;
     error?: string;
+    cast_ub?: number[];
+    loop?: string;
     expected?: { dtype: string; shape: number[]; values: Encoded };
   }
   const { numpy_version, cases } = load("ufunc_dtype_casting") as unknown as {
@@ -1519,20 +1524,23 @@ describe("differential: ufunc dtype= / casting= (P2-4, D-048)", () => {
       const exp = c.expected!;
       expect(r.dtype.name).toBe(exp.dtype);
       expect(r.shape).toEqual(exp.shape);
-      const want = (decodeExpected(exp.values) as unknown[]).flat(Infinity);
-      const got = (r.toArray() as unknown[]).flat(Infinity);
+      // D-231: out-of-range float->int casts are platform-defined in NumPy; skip them.
+      const want = dropUb((decodeExpected(exp.values) as unknown[]).flat(Infinity), c.cast_ub);
+      const got = dropUb((r.toArray() as unknown[]).flat(Infinity), c.cast_ub);
       if (!c.approx || r.dtype.kind === "b" || r.dtype.kind === "i" || r.dtype.kind === "u") {
         expect(got).toEqual(want);
         return;
       }
       want.forEach((e, i) => {
         const g = got[i];
-        if (typeof e === "number") close(g as number, e, exp.dtype);
+        // The loop dtype sets the precision (a float32 loop may write a float64 out).
+        const dt = c.loop ?? exp.dtype;
+        if (typeof e === "number") close(g as number, e, dt);
         else {
           const ec = e as { re: number; im: number };
           const gc = g as { re: number; im: number };
-          close(gc.re, ec.re, exp.dtype);
-          close(gc.im, ec.im, exp.dtype);
+          close(gc.re, ec.re, dt);
+          close(gc.im, ec.im, dt);
         }
       });
     },
@@ -1550,6 +1558,8 @@ describe("differential: ufunc where= (P2-5, D-049)", () => {
     out?: { dtype: string; shape: number[]; readonly?: boolean };
     approx?: boolean;
     error?: string;
+    cast_ub?: number[];
+    loop?: string;
     expected?: { dtype: string; shape: number[]; values: Encoded };
   }
   const { numpy_version, cases } = load("ufunc_where") as unknown as { numpy_version: string; cases: WCase[] };
@@ -1593,20 +1603,23 @@ describe("differential: ufunc where= (P2-5, D-049)", () => {
       const exp = c.expected!;
       expect(r.dtype.name).toBe(exp.dtype);
       expect(r.shape).toEqual(exp.shape);
-      const want = ([decodeExpected(exp.values)] as unknown[]).flat(Infinity);
-      const got = ([r.toArray()] as unknown[]).flat(Infinity);
+      // D-231: out-of-range float->int casts are platform-defined in NumPy; skip them.
+      const want = dropUb(([decodeExpected(exp.values)] as unknown[]).flat(Infinity), c.cast_ub);
+      const got = dropUb(([r.toArray()] as unknown[]).flat(Infinity), c.cast_ub);
       if (!c.approx || r.dtype.kind === "b" || r.dtype.kind === "i" || r.dtype.kind === "u") {
         expect(got).toEqual(want);
         return;
       }
       want.forEach((e, i) => {
         const g = got[i];
-        if (typeof e === "number") close(g as number, e, exp.dtype);
+        // The loop dtype sets the precision (a float32 loop may write a float64 out).
+        const dt = c.loop ?? exp.dtype;
+        if (typeof e === "number") close(g as number, e, dt);
         else {
           const ec = e as { re: number; im: number };
           const gc = g as { re: number; im: number };
-          close(gc.re, ec.re, exp.dtype);
-          close(gc.im, ec.im, exp.dtype);
+          close(gc.re, ec.re, dt);
+          close(gc.im, ec.im, dt);
         }
       });
     },

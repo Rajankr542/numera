@@ -1279,13 +1279,29 @@ def _cmat(dt, shape, seed):
     return (re + 1j * im).astype(dt).reshape(shape)
 
 
-def _noblas(x):
-    """Same values with inner stride 2 elements, so NumPy's matmul can't use BLAS."""
-    if x.ndim == 0:
-        return x
-    buf = np.zeros(x.shape[:-1] + (2 * x.shape[-1],), x.dtype)
-    buf[..., ::2] = x
-    return buf[..., ::2]
+def _noblas_matmul(a, b, dtype):
+    """NumPy's non-BLAS complex matmul loop (D-035), written out: each output
+    starts at +0 and adds (ar*br - ai*bi, ar*bi + ai*br) in increasing k order,
+    in the loop's real precision. Strided views do not reliably avoid BLAS
+    (OpenBLAS takes any element stride), and BLAS kernels differ per CPU."""
+    real = np.float32 if np.dtype(dtype) == np.complex64 else np.float64
+    A = np.asarray(a).astype(dtype)
+    B = np.asarray(b).astype(dtype)
+    A2 = A if A.ndim == 2 else A[None, :]
+    B2 = B if B.ndim == 2 else B[:, None]
+    m, k = A2.shape
+    n = B2.shape[1]
+    out = np.zeros((m, n), dtype=dtype)
+    for i in range(m):
+        for j in range(n):
+            cr = ci = real(0.0)
+            for p in range(k):
+                ar, ai = real(A2[i, p].real), real(A2[i, p].imag)
+                br, bi = real(B2[p, j].real), real(B2[p, j].imag)
+                cr = real(cr + real(real(ar * br) - real(ai * bi)))
+                ci = real(ci + real(real(ar * bi) + real(ai * br)))
+            out[i, j] = complex(cr, ci)
+    return out
 
 
 def complex_matmul_cases() -> list[dict]:
@@ -1305,8 +1321,7 @@ def complex_matmul_cases() -> list[dict]:
                     # dot/inner here only take <= 2-D operands, so they are matmuls.
                     assert a.ndim <= 2 and b.ndim <= 2
                     bm = np.swapaxes(b, -1, -2) if fn == "inner" and b.ndim == 2 else b
-                    nb = np.matmul(_noblas(a), _noblas(bm))
-                    assert nb.shape == r.shape
+                    nb = _noblas_matmul(a, bm, r.dtype).reshape(r.shape)
                     if enc(nb.tolist()) != enc(r.tolist()):
                         c["expected_noblas"] = enc(nb.tolist())
         c["approx"] = approx

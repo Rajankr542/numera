@@ -15,6 +15,8 @@ import warnings
 
 import numpy as np
 
+from cast_ub import ufunc_cast_ub
+
 BINARY = {"add": np.add, "subtract": np.subtract, "multiply": np.multiply,
           "divide": np.true_divide, "power": np.power, "mod": np.mod,
           "floorDivide": np.floor_divide}
@@ -89,7 +91,14 @@ def ufunc_where_cases(enc, describe) -> list[dict]:
                 cases.append(case)
                 return
         case["approx"] = op in APPROX
-        case["expected"] = describe(np.asarray(r))
+        r = np.asarray(r)
+        case["expected"] = describe(r)
+        ub, loop = ufunc_cast_ub(fn, xs, opts, r.shape, out["dtype"] if out else None,
+                                 _np_where(where))
+        if ub:
+            case["cast_ub"] = ub  # D-231: undefined float->int casts, not compared
+        if loop is not None:
+            case["loop"] = loop
         cases.append(case)
 
     def arr(v, dt):

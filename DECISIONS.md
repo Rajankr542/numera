@@ -2889,3 +2889,22 @@ delegate to their plain-np counterparts on `.filled()` data and combine masks.
   aliases of `randomSample`, and `bytes` uses NumPy's uint32 draw.
 - Every distribution is also exposed as an `np.random.*` function on the
   global RandomState, together with `getState`, `setState` and `bytes`.
+
+## D-231 — Platform-independent ufunc differential cases — Accepted — 2026-10-02
+- A float → integer cast that is out of range (or NaN/inf) is undefined in C, so
+  NumPy's results for it differ by platform. x86 `cvtt*` gives INT_MIN or wraps,
+  arm64 saturates, and NumPy's SIMD and scalar loops can disagree too. The
+  `ufunc_dtype_casting` and `ufunc_where` generators now list those result
+  positions as `cast_ub` (`python/generators/cast_ub.py`). The tests skip only
+  those positions. All other elements are still compared exactly, and numera
+  keeps the fixed D-009 rule for them.
+- Approximate cases record the `loop` dtype. The tolerance follows the loop's
+  precision, not the dtype of `out` (for example a float32 loop writing into a
+  float64 `out`).
+- `expected_noblas` (D-037) is now computed by writing out NumPy's non-BLAS
+  complex loop in the generator. Strided views no longer force NumPy's own loop
+  (OpenBLAS accepts any stride), so the old approach recorded per-CPU BLAS
+  results.
+- Verified: case files generated with NumPy 2.5.3 on linux-x86_64 and on
+  linux-aarch64 both pass against the GCC 13 Linux build. macOS cases pass
+  against the macOS build.
