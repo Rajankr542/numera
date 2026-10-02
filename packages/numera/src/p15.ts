@@ -1,10 +1,9 @@
-// Parity milestone P15 public functions (D-056).
-// Functions exported from `p15` are spread into the default `np` object by
-// index.ts; also add named exports there (only the index.ts block for P15).
-// Native kernels live in native/bindings/p15_binding.cpp (`addon.p15`).
-// NDArray methods: add them with declaration merging, e.g.
-//   declare module "./ndarray.js" { interface NDArray { foo(): NDArray } }
-//   NDArray.prototype.foo = function () { ... };
-// (see AGENTS.md "Parallel milestones").
+// Parity milestone P15 public submodules (D-056): np.emath, np.testing,
+// np.polynomial, np.ma. index.ts spreads `p15` into the default `np` object
+// and does `export * from "./p15.js"`; only the submodule objects are named
+// exports here (their members would clash with top-level names such as sqrt).
+import { emath } from "./p15_emath.js";
 
-export const p15 = {} as const;
+export { emath } from "./p15_emath.js";
+
+export const p15 = { emath } as const;

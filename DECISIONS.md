@@ -1961,3 +1961,22 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - An empty `axes` list returns a copy. 0-d input with default or empty axes raises
   `ValueError` (NumPy fails in `np.roll` with "not enough values to unpack").
   Out-of-range axes raise `IndexError` (D-012).
+
+## D-180 — np.emath (P15-1) — Accepted — 2026-10-02
+- `np.emath` is a namespace object on `np` (from `p15.ts`), with the 9 NumPy
+  names `sqrt log log2 log10 logn power arccos arcsin arctanh`. Only the
+  namespace is a named export (its members would clash with top-level names).
+- Whole-array promotion, as `numpy.lib._scimath_impl`: if any real element is
+  out of domain (`x < 0` for sqrt/log*, `|x| > 1` for the inverse trig), the
+  whole array is converted to complex (`complex64` for int8/uint8/int16/uint16/
+  float32, else `complex128`, i.e. float16 → complex128 like `_tocomplex`).
+  In-domain real input uses the ufunc's float loop (bool/int8/uint8 → float16,
+  int16/uint16 → float32). Native kernel `native/core/p15_emath.cpp`
+  (P4's `log2`/`arcsin`/... ufuncs are not on this branch): complex sqrt/log
+  are NumPy's ports from `complex_kernels.hpp`, complex log2/log10 are
+  `clog(z) * log2(e)` / `* log10(e)` (NumPy's npy_clog2 formula), complex
+  arccos/arcsin/arctanh use the C99 libm `cacos/casin/catanh` (as NumPy).
+  FP errors follow `np.seterr` (D-054) under the emath function's name.
+- `logn(n, x)` = `log(x) / log(n)` and `power(x, p)` = `np.power` after the
+  same fixups; NumPy's `_fix_int_lt_zero` (`p * 1.0`) gives float64 for integer
+  `p`. Results are always arrays (0-d for scalars), no out/where options.

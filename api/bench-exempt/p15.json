@@ -1,1 +1,11 @@
-[]
+[
+ "emath.arccos [nativpy] [numpy]",
+ "emath.arcsin [nativpy] [numpy]",
+ "emath.arctanh [nativpy] [numpy]",
+ "emath.log [nativpy] [numpy]",
+ "emath.log10 [nativpy] [numpy]",
+ "emath.log2 [nativpy] [numpy]",
+ "emath.logn [nativpy] [numpy]",
+ "emath.power [nativpy] [numpy]",
+ "emath.sqrt [nativpy] [numpy]"
+]
