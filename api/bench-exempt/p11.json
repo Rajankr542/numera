@@ -1,17 +1,25 @@
 [
  "linalg.cholesky [nativpy] [numpy]",
  "linalg.cond [nativpy] [numpy]",
+ "linalg.cross [nativpy] [numpy]",
  "linalg.diagonal [nativpy] [numpy]",
  "linalg.matrix_norm [nativpy] [numpy]",
  "linalg.matrix_power [nativpy] [numpy]",
  "linalg.matrix_rank [nativpy] [numpy]",
  "linalg.matrix_transpose [nativpy] [numpy]",
+ "linalg.multi_dot [nativpy] [numpy]",
  "linalg.outer [nativpy] [numpy]",
  "linalg.pinv [nativpy] [numpy]",
  "linalg.slogdet [nativpy] [numpy]",
  "linalg.svdvals [nativpy] [numpy]",
+ "linalg.tensordot [nativpy] [numpy]",
  "linalg.tensorinv [nativpy] [numpy]",
  "linalg.tensorsolve [nativpy] [numpy]",
  "linalg.trace [nativpy] [numpy]",
- "linalg.vector_norm [nativpy] [numpy]"
+ "linalg.vector_norm [nativpy] [numpy]",
+ "ndarray.dot [nativpy] [numpy]",
+ "np.cross [nativpy] [numpy]",
+ "np.kron [nativpy] [numpy]",
+ "np.tensordot [nativpy] [numpy]",
+ "np.vdot [nativpy] [numpy]"
 ]
