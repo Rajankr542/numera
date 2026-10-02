@@ -2397,3 +2397,33 @@ File ownership: each branch owns `packages/numera/src/p16[abcde]*.ts`,
 `api/aliases.d/p16[abcde].json`, `api/exclusions.d/p16[abcde].json`,
 `docs/plan/slices/p16[abcde].md`. P16-B also owns `packages/numera/src/ma.ts`.
 Append-only: DECISIONS.md, PROGRESS.md, COMPATIBILITY.md.
+
+## D-220 — P16-D datetime64/timedelta64 storage and arithmetic — Accepted — 2026-10-02
+
+`datetime64` and `timedelta64` are stored as int64 NDArray with unit metadata
+carried on a TS subclass (`DatetimeArray` / `TimedeltaArray`). This avoids
+adding new entries to the C++ DType enum (which would require touching 38+
+dispatch sites) and keeps arithmetic entirely in TypeScript.
+
+Key design choices:
+- `DatetimeArray extends NDArray`: wraps an `int64` NDArray + `unit: string`.
+  The stored integers are epoch offsets in the given unit (same as NumPy's
+  internal representation).
+- `TimedeltaArray extends NDArray`: same pattern — int64 values + unit string.
+- **NaT**: represented as `BigInt(-9223372036854775808n)` (int64 min), matching
+  NumPy's sentinel. Checked with a constant `NAT_VALUE`.
+- **Unit hierarchy**: 'Y' > 'M' > 'W' > 'D' > 'h' > 'm' > 's' > 'ms' > 'us' > 'ns'
+  > 'ps' > 'fs' > 'as'. Conversions where numerics are exact use BigInt
+  multiplication/division; Y and M remain in their abstract units (NumPy
+  forbids Y/M ↔ finer unit conversion).
+- **Arithmetic**: `datetime + timedelta → datetime` (same unit if compatible,
+  else error), `datetime - datetime → timedelta`, `timedelta ± timedelta →
+  timedelta`. Units must be compatible (no Y/M mixing with sub-day units).
+- **Busday functions**: `is_busday`, `busday_count`, `busday_offset` are
+  implemented in pure TS (inner loops iterate over `days-since-epoch`). C++
+  helpers only needed if perf profiling shows a bottleneck; a pure TS loop
+  over typical arrays (≤10k dates) runs in <10 ms on modern hardware.
+- **`np.array()`** integration: P16-D adds a pre-check in `p16d.ts` —
+  if the user passes `dtype: "datetime64[D]"` (or similar strings), the input
+  is routed to `DatetimeArray.from()`. Automatic inference from ISO-8601
+  strings is also supported.
