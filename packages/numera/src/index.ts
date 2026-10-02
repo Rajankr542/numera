@@ -45,8 +45,9 @@ import { p13 } from "./p13.js";
 import { p14 } from "./p14.js";
 import { p15 } from "./p15.js";
 import { p16a } from "./p16a.js";
-import { p16d } from "./p16d.js";
+import { p16b } from "./p16b.js";
 import { p16c } from "./p16c.js";
+import { p16d } from "./p16d.js";
 import { p16e } from "./p16e.js";
 import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 import {
@@ -201,6 +202,13 @@ export * from "./p13.js";
 export * from "./p14.js";
 export * from "./p15.js";
 export * from "./p16a.js";
+// P16B: export only the np.ma namespace and unique class names — ma.ts has
+// many names (equal, add, sum, etc.) that shadow earlier milestone exports,
+// so we do NOT do `export * from "./p16b.js"` here.
+export { ma, MaskedArray, MaskedIterator, MaskError, MAError, MaskType, masked, masked_singleton, nomask, mvoid, bool_ } from "./p16b.js";
+export type { MaskedArrayOptions } from "./p16b.js";
+// P16C: np.strings/np.char are sub-namespaces; do NOT export * — p16c.ts
+// exports equal/greater/less/split/partition that clash with earlier milestones.
 export * from "./p16d.js";
 export * from "./p16e.js";
 /** Development instrumentation: live native buffers / bytes (PLAN §33). */
@@ -326,8 +334,10 @@ const np = {
   ...p14,
   ...p15,
   ...p16a,
-  ...p16d,
+  ...p16b,
+  ma: p16b.ma,
   ...p16c,
+  ...p16d,
   ...p16e,
 } as const;
 

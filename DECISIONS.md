@@ -2563,3 +2563,77 @@ All fields must have compatible shapes (broadcast-compatible leading dims).
 
 **Compatibility:** `recarray` instances do not support NumPy's `view()` casting
 or structured-dtype memory layout. Recorded in COMPATIBILITY.md.
+## D-200 — np.ma MaskedArray class design — Accepted — 2026-10-02
+Pure TypeScript implementation; no new C++ needed. A `MaskedArray` wraps two
+NDArrays: `_data` (any dtype) and `_mask` (bool NDArray or the `nomask`
+sentinel). The `nomask` sentinel is `false` (a scalar bool, matching NumPy's
+`np.ma.nomask is False`). The `masked` singleton is a 0-d MaskedArray with
+data=0 and mask=true (it acts as a "masked scalar" sentinel). All operations
+that produce a scalar result return a MaskedArray (or the `masked` singleton)
+rather than a plain number, to preserve masked semantics.
+
+## D-201 — np.ma nomask and masked constants — Accepted — 2026-10-02
+`nomask` is exported as `false as const` (matching `np.ma.nomask is False`).
+`masked` is a singleton `MaskedArray` with shape `()`, `_data = array([0])`,
+`_mask = array([true])`. `masked_singleton` is an alias. `masked_print_option`
+is a configurable string defaulting to "--"; it is mutable via `.set(s)`.
+
+## D-202 — MaskError, MAError, MaskedIterator — Accepted — 2026-10-02
+`MaskError` extends `NativpyError` (from errors.ts); exported as `np.ma.MaskError`.
+`MAError` is an alias for `MaskError`. `MaskedIterator` iterates over the elements of
+a `MaskedArray`, yielding either element values or the `masked` singleton for masked
+positions; it implements the JS iterator protocol.
+
+## D-203 — np.ma constructors — Accepted — 2026-10-02
+`masked_array(data, mask?, fill_value?, dtype?, copy?)`: primary constructor.
+`array` is an alias for `masked_array`. `asarray(data)` returns a MaskedArray view
+(copy=false). All `masked_*` predicates call `masked_where` internally.
+`masked_invalid` masks NaN and Inf (uses isNaN/isFinite). `masked_values` uses
+`np.isclose` semantics. `fix_invalid` replaces invalid (NaN/Inf) with fill_value.
+
+## D-204 — np.ma mask utilities — Accepted — 2026-10-02
+`make_mask(m, copy?, shrink?, dtype?)`: converts input to a bool mask NDArray.
+`make_mask_none(shape)`: returns a false-filled bool NDArray.
+`make_mask_descr(ndtype)`: for structured dtypes, returns corresponding bool dtype
+(for simple dtypes, returns bool). `getmask(a)`: returns the mask or `nomask`.
+`getmaskarray(a)`: always returns a bool NDArray (expands nomask to all-false).
+`getdata(a)`: returns the underlying NDArray. `filled(a, fill_value?)`: returns a
+plain NDArray with masked elements replaced by fill_value. `is_masked(a)`: true if
+any element is masked. `is_mask(m)`: true if m is a valid mask (bool NDArray or false).
+`mask_or(m1, m2)`: element-wise OR of two masks. `flatten_mask(m)`: flattens a
+structured mask to bool. `shrink_mask(a)`: replaces a uniform-false mask with nomask.
+
+## D-205 — np.ma arithmetic propagates mask — Accepted — 2026-10-02
+Binary ops: if either operand is masked at position i, output is masked there.
+Unary ops: preserve the mask unchanged. All NumPy ufuncs on np.ma inputs delegate
+to the plain ufunc on `.data` and combine masks. Division by masked zero is masked
+(not an error). Power: 0**negative is masked. The `fill_value` for arithmetic
+results is derived from `default_fill_value` of the result dtype.
+
+## D-206 — np.ma reductions skip masked — Accepted — 2026-10-02
+Reductions use `filled(a, fill_identity)` before delegating to the plain NDArray
+reduction, where `fill_identity` is: 0 for sum/cumsum, 1 for prod/cumprod, +Inf for
+min, -Inf for max, false for all (fill with true, treat unmasked only), true for any
+(fill with false). Result mask: scalar result is masked only when ALL elements are
+masked. When axis= is given, an output position is masked when all contributing
+inputs were masked.
+
+## D-207 — np.ma shape/manipulation methods — Accepted — 2026-10-02
+MaskedArray exposes the same shape-manipulation surface as NDArray: reshape,
+ravel, flatten, transpose, T, squeeze, expand_dims, repeat, take, put, sort,
+argsort, swapaxes. Each delegates to the plain NDArray operation on `_data` and
+applies the same operation to `_mask` (or keeps `nomask` if mask is `nomask`).
+
+## D-208 — np.ma concatenate/stack — Accepted — 2026-10-02
+concatenate/vstack/hstack/dstack/stack gather both `.data` and `.mask` from all
+inputs, run the plain NDArray operation on each, and return a MaskedArray.
+If all input masks are `nomask`, the result mask is `nomask`.
+
+## D-209 — np.ma utility functions — Accepted — 2026-10-02
+Functions that do not neatly fit other slices (clip, where, anom, average, etc.)
+delegate to their plain-np counterparts on `.filled()` data and combine masks.
+`default_fill_value`: returns the NumPy default fill value for the dtype
+(bool=true, int=999999, float=1e20, complex=1e20+0j, object='N/A').
+`maximum_fill_value`/`minimum_fill_value`: return dtype max/min.
+`common_fill_value(a,b)`: returns shared fill value or masked.
+`ids(a)`: returns [id(data), id(mask)] as a tuple (JS: [data buffer id, mask buffer id]).
