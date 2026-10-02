@@ -2397,3 +2397,26 @@ File ownership: each branch owns `packages/numera/src/p16[abcde]*.ts`,
 `api/aliases.d/p16[abcde].json`, `api/exclusions.d/p16[abcde].json`,
 `docs/plan/slices/p16[abcde].md`. P16-B also owns `packages/numera/src/ma.ts`.
 Append-only: DECISIONS.md, PROGRESS.md, COMPATIBILITY.md.
+
+## D-191 — P16-A constants, dtype aliases, vectorize, shares_memory, cumsum/cumprod (P16-A) — Accepted — 2026-10-02
+- Math constants `pi`, `e`, `inf`, `nan`, `euler_gamma`, `PINF`, `NINF`,
+  `PZERO`, `NZERO` are plain JS primitive number exports.
+- Bool sentinels `True_` = `true`, `False_` = `false` (JS booleans; no scalar
+  class hierarchy).
+- Dtype aliases re-export existing `DType` singletons from `dtype.ts`:
+  `int_/intp/long` → int64, `intc` → int32, `byte` → int8, `short` → int16,
+  `uint/uintp/ulong` → uint64, `uintc` → uint32, `ubyte` → uint8,
+  `ushort` → uint16, `double/longdouble` → float64, `single` → float32,
+  `half` → float16, `cdouble/clongdouble` → complex128, `csingle` → complex64.
+  No new DType instances are created; aliases share singletons.
+- `vectorize(fn, {otypes?, signature?})`: pure TS loop.  Inputs are broadcast
+  to the common shape by walking multi-indices.  `otypes[0]` forces output
+  dtype; otherwise inferred from the JS type of the first result
+  (boolean → bool, bigint → int64, number → float64, {re,im} → complex128).
+  `signature` must be `null`/omitted; a non-null value raises `ValueError`.
+  The returned function has a `.pyfunc` property.
+- `shares_memory(a, b, {maxWork?})`: delegates to `mayShareMemory` (native
+  `sharesMemory`). `maxWork` is accepted and ignored.
+- `cumsum`/`cumprod` (both `np.*` functions and `NDArray.prototype.*` methods):
+  implemented via `add.accumulate` / `multiply.accumulate`. Null/omitted axis
+  flattens the array first (NumPy behaviour).
