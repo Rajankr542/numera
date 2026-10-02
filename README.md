@@ -8,7 +8,7 @@ The built site is in **`html/`**. It is plain static HTML, CSS and JS with relat
 html/
   index.html, latest.html   → redirect to the latest version
   versions.json             → version list read by the version picker
-  assets/                   → style.css, app.js, favicon.svg
+  assets/                   → style.css, app.js, logo.png, favicons
   404.html, robots.txt, .nojekyll
   v1.0.2/  v1.0.1/          → one folder per release
     index.html              → introduction

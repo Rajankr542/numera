@@ -502,8 +502,8 @@ function redirectPage(to) {
 function notFound() {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Page not found · numera</title>
-<style>body{font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#fbfaf7;color:#1d1f23}a{color:#0b6e4f}svg{width:48px;height:48px;fill:#c9c3b3}svg .hot{fill:#0b6e4f}main{text-align:center;padding:24px}</style></head>
-<body><main>${logo}<h1>Page not found</h1><p>This page does not exist in this version of the docs.</p><p><a id="home" href="/latest.html">Go to the latest documentation</a></p></main>
-<script>{const m=location.pathname.match(/^(.*?\/)v\d+\.\d+\.\d+[^/]*\//);if(m)document.getElementById("home").href=m[1]+"latest.html";}</script></body></html>
+<style>body{font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#fbfaf7;color:#1d1f23}a{color:#0b6e4f}.logo-mark{width:56px;height:56px;margin:0 auto}main{text-align:center;padding:24px}</style></head>
+<body><main>${logo("/assets/logo.png").replace("<img", '<img id="logo"')}<h1>Page not found</h1><p>This page does not exist in this version of the docs.</p><p><a id="home" href="/latest.html">Go to the latest documentation</a></p></main>
+<script>{const m=location.pathname.match(/^(.*?\/)v\d+\.\d+\.\d+[^/]*\//);if(m){document.getElementById("home").href=m[1]+"latest.html";document.getElementById("logo").src=m[1]+"assets/logo.png";}}</script></body></html>
 `;
 }

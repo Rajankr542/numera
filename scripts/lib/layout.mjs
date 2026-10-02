@@ -9,7 +9,7 @@ export const SITE = {
   npm: "https://www.npmjs.com/package/@cyfora/numera",
 };
 
-export const logo = `<svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg>`;
+export const logo = (src) => `<img class="logo-mark" src="${src}" width="24" height="24" alt="Cyfora">`;
 
 const icon = {
   search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`,
@@ -62,7 +62,9 @@ export function page(p) {
 <meta property="og:title" content="${esc(p.title)} · numera">
 <meta property="og:description" content="${esc(p.description || "")}">
 <meta name="theme-color" content="#0b6e4f">
-<link rel="icon" href="${p.toRoot}assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="${p.toRoot}assets/favicon.ico" sizes="any">
+<link rel="icon" href="${p.toRoot}assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="${p.toRoot}assets/apple-touch-icon.png">
 <link rel="stylesheet" href="${p.toRoot}assets/style.css">
 <script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
@@ -71,7 +73,7 @@ export function page(p) {
 <header class="top">
   <div class="top-in">
     <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false">${icon.menu}</button>
-    <a class="brand" href="${v("index.html")}">${logo}<span>numera</span></a>
+    <a class="brand" href="${v("index.html")}">${logo(p.toRoot + "assets/logo.png")}<span>numera</span></a>
     <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version">${versionOptions}</select></label>
     <nav class="tabs" aria-label="Sections">${tabs
       .map(([id, label, href]) => `<a href="${v(href)}"${p.tab === id ? ' aria-current="page"' : ""}>${label}</a>`)
@@ -120,7 +122,7 @@ function footer(p) {
   return `<footer class="foot">
   <div class="foot-in">
     <div class="foot-brand">
-      <a class="brand" href="${p.toVer}index.html">${logo}<span>numera</span></a>
+      <a class="brand" href="${p.toVer}index.html">${logo(p.toRoot + "assets/logo.png")}<span>numera</span></a>
       <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
     </div>
     <div class="foot-cols">

@@ -46,8 +46,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .top-in { height: 100%; max-width: 1480px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; gap: 16px; }
 .brand { display: inline-flex; align-items: center; gap: 9px; color: var(--ink); font: 700 19px/1 var(--mono); letter-spacing: -0.03em; }
 .brand:hover { text-decoration: none; }
-.logo-mark { width: 22px; height: 22px; stroke: none; fill: var(--line-2); }
-.logo-mark .hot { fill: var(--accent); }
+.logo-mark { width: 24px; height: 24px; display: block; object-fit: contain; }
 .ver-pick select { appearance: none; -webkit-appearance: none; font: 600 12px/1 var(--mono); color: var(--accent); background: var(--accent-soft)
   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 8px center;
   border: 1px solid transparent; border-radius: 999px; padding: 6px 24px 6px 10px; cursor: pointer; }
