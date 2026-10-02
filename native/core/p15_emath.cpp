@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <complex>
-#include <cstring>
 
 #include "complex_kernels.hpp"
 #include "fp_errors.hpp"
@@ -23,21 +22,19 @@ __extension__ typedef _Complex double c99d;
 __extension__ typedef _Complex float c99f;
 
 // C99 casin/cacos/catanh (NumPy's npy_casin etc. use the platform libm).
+// Use __real__/__imag__ builtins to avoid memcpy into std::complex<T>
+// (GCC -Werror=class-memaccess rejects memcpy into non-trivial types).
 template <typename T, typename Fd, typename Ff>
 std::complex<T> c99(std::complex<T> z, Fd fd, Ff ff) noexcept {
-  std::complex<T> out;
   if constexpr (std::is_same_v<T, double>) {
-    c99d c;
-    std::memcpy(&c, &z, sizeof c);
+    c99d c = __builtin_complex(z.real(), z.imag());
     const c99d r = fd(c);
-    std::memcpy(&out, &r, sizeof out);
+    return {static_cast<double>(__real__ r), static_cast<double>(__imag__ r)};
   } else {
-    c99f c;
-    std::memcpy(&c, &z, sizeof c);
+    c99f c = __builtin_complex(static_cast<float>(z.real()), static_cast<float>(z.imag()));
     const c99f r = ff(c);
-    std::memcpy(&out, &r, sizeof out);
+    return {static_cast<float>(__real__ r), static_cast<float>(__imag__ r)};
   }
-  return out;
 }
 
 template <typename T>
