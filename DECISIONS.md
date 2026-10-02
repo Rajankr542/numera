@@ -1606,3 +1606,24 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   keep the old data instead of dangling.
 - `trimZeros(filt, trim="fb", axis?)` trims every selected axis to the bounding
   box of nonzero elements (NumPy 2.2+ N-d behaviour) and returns a view.
+
+## D-094 — P6 conversions and metadata helpers (P6) — Accepted — 2026-10-02
+- `copyto(dst, src, {casting = "same_kind", where})` casts every element under
+  `casting` (`DTypeError` otherwise; NumPy `TypeError`), broadcasts `src` and
+  `where` to `dst` (`BroadcastError` / `ValueError`) and checks writeability.
+  JS scalars follow NEP 50 weak-scalar rules: a JS number is weak int64 if it
+  is a safe integer, else weak float64; booleans are bool; a weak integer must
+  fit `dst`'s integer dtype (`ValueError`, NumPy `OverflowError`) and may not
+  go into bool except under "unsafe". A non-bool `where` array raises
+  `DTypeError`; nested JS lists for `where` are converted to bool first.
+- `asanyarray` is `asarray` (no subclasses). `asarrayChkfinite` raises
+  `ValueError("array must not contain infs or NaNs")` using a native scan.
+- `require(a, dtype?, requirements?)` accepts NumPy's flag letters/names
+  (C/C_CONTIGUOUS/CONTIGUOUS, F/F_CONTIGUOUS/FORTRAN, A/ALIGNED, W/WRITEABLE,
+  O/OWNDATA, E/ENSUREARRAY) as a string of letters or a list; unknown flags
+  raise `ValueError` (NumPy `KeyError`). Returns the input unchanged when it
+  already satisfies them.
+- `broadcastArrays(...arrays)` returns writeable broadcast views (NumPy marks
+  them writeable with a FutureWarning; writes through zero strides alias).
+  The read-only flag is not set, matching current NumPy results.
+- `shape`, `size(a, axis?)`, `ndim`, `isfortran` accept any array-like.

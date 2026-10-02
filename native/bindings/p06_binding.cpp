@@ -117,6 +117,13 @@ void init_p06_binding(Napi::Env env, Napi::Object exports) {
   m.Set("roll", fn(env, "roll", [](Info i, Napi::Env e) {
           return wrap(e, roll(arr(i, 0), arg_ints(i[1], "shift")));
         }));
+  m.Set("copyto", fn(env, "copyto", [](Info i, Napi::Env e) -> Napi::Value {
+          copyto(arr(i, 0), arr(i, 1), casting_or(i[2], Casting::SameKind), opt_array(i[3]));
+          return e.Undefined();
+        }));
+  m.Set("allFinite", fn(env, "allFinite", [](Info i, Napi::Env e) -> Napi::Value {
+          return Napi::Boolean::New(e, all_finite(arr(i, 0)));
+        }));
   exports.Set("p06", m);
 }
 

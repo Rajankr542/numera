@@ -217,6 +217,47 @@ np.rot90([[1, 2], [3, 4]], 2);    // => [[4, 3], [2, 1]]`,
 np.permuteDims(np.zeros([2, 3, 4]), [2, 0, 1]).shape; // => [4, 2, 3]
 np.matrixTranspose(np.zeros([2, 3, 4])).shape;       // => [2, 4, 3]`,
       },
+      {
+        name: "copyto",
+        sig: "np.copyto(dst, src, [{casting, where}])",
+        desc: "Copies `src` (broadcast to `dst`'s shape) into `dst` in place. `casting` defaults to `\"same_kind\"`; JS scalars follow NEP 50 (an integer must fit an integer `dst`). `where` is a boolean mask; only elements where it is true are written.",
+        returns: "undefined",
+        example: `const d = np.zeros([2, 3]);
+np.copyto(d, [1, 2, 3], { where: [true, false, true] });
+d.toArray();                                  // => [[1, 0, 3], [1, 0, 3]]`,
+      },
+      {
+        name: "broadcastArrays",
+        sig: "np.broadcastArrays(...arrays)",
+        desc: "Broadcasts the inputs against each other and returns views of the common shape (inputs already of that shape are returned as is).",
+        returns: "NDArray[]",
+        example: `np.broadcastArrays([1, 2, 3], [[1], [2]]).map((x) => x.shape); // => [[2, 3], [2, 3]]`,
+      },
+      {
+        name: "asanyarray",
+        sig: "np.asanyarray(a, [{dtype}]) / np.asarrayChkfinite(a, [{dtype}])",
+        desc: "`asanyarray` is `asarray` (numera has no array subclasses). `asarrayChkfinite` also raises `ValueError` if the result contains NaN or an infinity.",
+        returns: "NDArray",
+        example: `np.asanyarray([1, 2]).dtype.name;   // => "int64"
+np.asarrayChkfinite([1, 2]).size;    // => 2`,
+      },
+      {
+        name: "require",
+        sig: "np.require(a, [dtype], [requirements])",
+        desc: "Returns `a` as an array of `dtype` that satisfies the requirement flags, copying only if needed: `C`/`C_CONTIGUOUS`/`CONTIGUOUS`, `F`/`F_CONTIGUOUS`/`FORTRAN`, `A`/`ALIGNED`, `W`/`WRITEABLE`, `O`/`OWNDATA`, `E`/`ENSUREARRAY`, as a string of letters or a list.",
+        returns: "NDArray",
+        example: `np.require([[1, 2], [3, 4]], "float32", ["F", "W"]).flags.fContiguous; // => true`,
+      },
+      {
+        name: "shape",
+        sig: "np.shape(a) / np.size(a, [axis]) / np.ndim(a) / np.isfortran(a)",
+        desc: "Metadata of any array-like: shape, number of elements (or the length of `axis`), number of dimensions. `isfortran` is true for arrays that are F- but not C-contiguous.",
+        returns: "number[] / number / boolean",
+        example: `np.shape([[1, 2, 3]]);                          // => [1, 3]
+np.size([[1, 2, 3]], 1);                        // => 3
+np.ndim(5);                                     // => 0
+np.isfortran(np.zeros([2, 3], { order: "F" })); // => true`,
+      },
     ],
   },
 ];

@@ -18,6 +18,8 @@ export interface P06Native {
   bufferRefs(a: N): number;
   flip(a: N, axes: number[] | null): N;
   roll(a: N, shifts: number[]): N;
+  copyto(dst: N, src: N, casting: string | null, where: N | null): void;
+  allFinite(a: N): boolean;
   pad(a: N, mode: string, width: number[], values: N | null, statLength: number[] | null, odd: boolean): N;
 }
 

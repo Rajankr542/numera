@@ -1,3 +1,6 @@
+#include <limits>
+
+#include "broadcast.hpp"
 #include "creation.hpp"
 #include "error.hpp"
 #include "layout.hpp"
@@ -224,4 +227,35 @@ TEST_CASE("p06: flip / roll") {
   const NDArray F = copy_order(a, DType::Int64, Order::F);
   CHECK(roll(F, {1, 0}).strides() == Strides({8, 16}));
   CHECK(roll(iota({0}), {3}).shape() == Shape({0}));
+}
+
+TEST_CASE("p06: copyto / all_finite") {
+  NDArray d = NDArray::zeros({2, 3}, DType::Float64);
+  copyto(d, iota({3}), Casting::SameKind, nullptr);
+  CHECK(values(d) == std::vector<std::int64_t>({0, 1, 2, 0, 1, 2}));
+  NDArray mask = NDArray::zeros({3}, DType::Bool);
+  mask.set_int64(1, 1);
+  copyto(d, arange(7, 8, 1, DType::Int64), Casting::SameKind, &mask);
+  CHECK(values(d) == std::vector<std::int64_t>({0, 7, 2, 0, 7, 2}));
+  NDArray i8 = NDArray::zeros({3}, DType::Int8);
+  CHECK_THROWS_KIND(copyto(i8, iota({3}, DType::Float32), Casting::SameKind, nullptr), ErrorKind::DType);
+  copyto(i8, iota({3}, DType::Float32), Casting::Unsafe, nullptr);
+  CHECK_THROWS_KIND(copyto(i8, iota({2}), Casting::Unsafe, nullptr), ErrorKind::Value);
+  CHECK_THROWS_KIND(copyto(i8, iota({3}), Casting::Unsafe, &i8), ErrorKind::DType);
+  CHECK_THROWS_KIND(copyto(iota({3}), iota({2, 3}), Casting::Unsafe, nullptr), ErrorKind::Value);
+  CHECK_THROWS_KIND(copyto(broadcast_to(iota({1}), {3}), iota({3}), Casting::Unsafe, nullptr),
+                    ErrorKind::Value);
+  CHECK(all_finite(iota({3})));
+  NDArray f = NDArray::zeros({3}, DType::Float16);
+  CHECK(all_finite(f));
+  f.set_double(2, std::numeric_limits<double>::infinity());
+  CHECK(!all_finite(f));
+  NDArray c = NDArray::zeros({2}, DType::Complex64);
+  CHECK(all_finite(c));
+}
+
+TEST_CASE("p06: copyto leading length-1 axes") {
+  NDArray d = NDArray::zeros({3}, DType::Int64);
+  copyto(d, iota({1, 1, 3}), Casting::SameKind, nullptr);
+  CHECK(values(d) == std::vector<std::int64_t>({0, 1, 2}));
 }

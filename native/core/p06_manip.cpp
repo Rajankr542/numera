@@ -866,3 +866,81 @@ NDArray roll(const NDArray& a, const std::vector<std::int64_t>& shifts) {
 }
 
 }  // namespace nativpy
+
+// ---- copyto / all_finite (D-094) ----
+
+namespace nativpy {
+
+namespace {
+
+bool broadcasts_into(const Shape& from, const Shape& to) {
+  if (from.size() > to.size()) {
+    for (std::size_t d = 0; d < from.size() - to.size(); ++d) {
+      if (from[d] != 1) return false;
+    }
+  }
+  const std::size_t k = std::min(from.size(), to.size());
+  for (std::size_t i = 1; i <= k; ++i) {
+    const std::int64_t f = from[from.size() - i];
+    if (f != 1 && f != to[to.size() - i]) return false;
+  }
+  return true;
+}
+
+}  // namespace
+
+void copyto(const NDArray& dst, const NDArray& src, Casting casting, const NDArray* where) {
+  dst.check_writeable();
+  check_cast(src.dtype(), dst.dtype(), casting);
+  if (!broadcasts_into(src.shape(), dst.shape())) {
+    throw_error(ErrorKind::Value, "could not broadcast input array from shape " +
+                                      shape_to_string(src.shape()) + " into shape " +
+                                      shape_to_string(dst.shape()));
+  }
+  // Drop leading length-1 axes that dst does not have (NumPy allows them).
+  const auto squeeze_lead = [&](const NDArray& x) {
+    if (x.ndim() <= dst.ndim()) return x;
+    const auto extra = static_cast<std::ptrdiff_t>(x.ndim() - dst.ndim());
+    return x.view(Shape(x.shape().begin() + extra, x.shape().end()),
+                  Strides(x.strides().begin() + extra, x.strides().end()), x.offset());
+  };
+  if (where == nullptr) {
+    copy_into(dst, squeeze_lead(src));
+    return;
+  }
+  if (where->dtype() != DType::Bool) {
+    throw_error(ErrorKind::DType, "Cannot cast array data from " + dtype_repr(where->dtype()) +
+                                      " to dtype('bool') according to the rule 'safe'");
+  }
+  if (!broadcasts_into(where->shape(), dst.shape())) {
+    throw_error(ErrorKind::Value, "could not broadcast where mask from shape " +
+                                      shape_to_string(where->shape()) + " into shape " +
+                                      shape_to_string(dst.shape()));
+  }
+  masked_copy_into(dst, squeeze_lead(src), squeeze_lead(*where));
+}
+
+bool all_finite(const NDArray& a) {
+  bool ok = true;
+  dispatch_dtype(a.dtype(), [&](auto tag) {
+    using T = dtype_t<decltype(tag)::value>;
+    if constexpr (std::is_integral_v<T>) {
+      return;
+    } else {
+      for_each_element(a, [&](const std::byte* p) {
+        if (!ok) return;
+        const T v = load<T>(p);
+        if constexpr (is_complex_v<T>) {
+          ok = std::isfinite(v.real()) && std::isfinite(v.imag());
+        } else if constexpr (std::is_same_v<T, float16_t>) {
+          ok = std::isfinite(half_to_double(v));
+        } else {
+          ok = std::isfinite(v);
+        }
+      });
+    }
+  });
+  return ok;
+}
+
+}  // namespace nativpy

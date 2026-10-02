@@ -21,6 +21,17 @@ import {
   vstack,
 } from "./p06_join.js";
 
+import {
+  asanyarray,
+  asarrayChkfinite,
+  broadcastArrays,
+  copyto,
+  isfortran,
+  ndim,
+  require,
+  shape,
+  size,
+} from "./p06_convert.js";
 import { append, del, insert, resize, trimZeros } from "./p06_edit.js";
 import { pad } from "./p06_pad.js";
 import { flip, fliplr, flipud, matrixTranspose, permuteDims, roll, rollaxis, rot90 } from "./p06_reorder.js";
@@ -31,6 +42,7 @@ export * from "./p06_tile.js";
 export * from "./p06_pad.js";
 export * from "./p06_edit.js";
 export * from "./p06_reorder.js";
+export * from "./p06_convert.js";
 
 export const p06 = {
   concatenate,
@@ -66,4 +78,13 @@ export const p06 = {
   rot90,
   permuteDims,
   matrixTranspose,
+  broadcastArrays,
+  asanyarray,
+  asarrayChkfinite,
+  require,
+  copyto,
+  shape,
+  size,
+  ndim,
+  isfortran,
 } as const;
