@@ -109,3 +109,20 @@ differential tests (`pnpm test:diff`).
 - Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
 - FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
 - Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+
+## P6 array manipulation divergences (build-first, unverified by differential tests)
+
+| Behaviour | NumPy | numera | Decision |
+|---|---|---|---|
+| `np.delete` name | `delete` | named export `delete` (implemented as `del`, a reserved word in JS) | D-090 |
+| slice arguments to `insert`/`delete` | `slice(a, b, c)` | `{start, stop, step}` object | D-093 |
+| `pad` option names | `constant_values`, `end_values`, `stat_length`, `reflect_type` | `constantValues`, `endValues`, `statLength`, `reflectType` | D-092 |
+| `pad` `linear_ramp`/`mean`/`median` precision | computed in the array's float dtype | computed in float64 (complex128), cast once | D-092 |
+| `pad` mode `empty` | uninitialised padding | zero padding | D-092 |
+| non-integer `pad_width` / `repeats` | `TypeError` | `DTypeError` | D-091, D-092 |
+| `ndarray.resize` refcheck | Python refcount | count of live native arrays sharing the buffer (views not yet garbage-collected count) | D-093 |
+| `delete` with an index array | advanced-indexing result layout | F if input F- and not C-contiguous, else C | D-093 |
+| `copyto` casting / overflow errors | `TypeError` / `OverflowError` | `DTypeError` / `ValueError` | D-094 |
+| `require` unknown flag | `KeyError` | `ValueError` | D-094 |
+| `broadcast_arrays` writeable views | writeable with `FutureWarning` | writeable, no warning | D-094 |
+| `asanyarray` | keeps subclasses | same as `asarray` (no subclasses) | D-094 |

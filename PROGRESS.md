@@ -1029,3 +1029,10 @@ semantics for empty or disjoint views.
 
 Known gaps: see COMPATIBILITY.md. CI workflow is written but has not run yet
 (no remote).
+
+## 2026-10-02 — P6 array manipulation, build-first (D-090–D-094)
+- Native: `native/core/p06_manip.{hpp,cpp}` has kernels for concatenate, split views, tile, repeat, resize (copying and in-place), pad (a per-lane kernel for every mode), insert_along, delete_along, trim_zeros, flip, roll, copyto and all_finite. Binding: `addon.p06` (`native/bindings/p06_binding.cpp`).
+- TS (`packages/numera/src/p06*.ts`): concatenate/concat, stack, vstack, hstack, dstack, columnStack, block, unstack; split, arraySplit, hsplit, vsplit, dsplit; tile, repeat; pad; append, insert, delete, resize, trimZeros; flip, fliplr, flipud, roll, rollaxis, rot90, permuteDims, matrixTranspose; atleast1d/2d/3d, broadcastArrays; asanyarray, asarrayChkfinite, require, copyto; shape, size, ndim, isfortran; applyAlongAxis, applyOverAxes. Two NDArray methods are added: `repeat`, and `resize`, which changes the array in place.
+- Tests: `tests/native/test_p06_manip.cpp` and `packages/numera/test/p06_*.test.ts`. Every example in the docs entries (`docs/site/parts/p06.mjs`) runs as part of the tests.
+- Verified: `pnpm build`, `test` (352), `test:native`, `test:asan`, `typecheck` and `api:check` pass. All P6 np/ndarray names count in `api:coverage`.
+- Not yet done (V phase): NumPy differential groups and benchmarks; P6 names are listed in `api/bench-exempt/p06.json`. No NumPy-compatibility or performance claims are made for P6.
