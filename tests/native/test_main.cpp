@@ -1,5 +1,6 @@
 #include "test_harness.hpp"
 
+#include "fp_errors.hpp"
 namespace nptest {
 
 namespace {
@@ -22,6 +23,10 @@ int main() {
   int failed_cases = 0;
   for (const auto& tc : nptest::registry()) {
     const int before = nptest::g_failures;
+    // Reset errstate to defaults before each test so no test pollutes the next,
+    // regardless of static-initialiser-driven registration order (D-026 note:
+    // file(GLOB) order is filesystem-dependent on Linux vs macOS).
+    nativpy::set_errstate({});
     try {
       tc.fn();
     } catch (const std::exception& e) {

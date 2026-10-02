@@ -44,6 +44,20 @@ class FpScope {
   bool outer_;
 };
 
+// RAII guard: saves the current ErrState on construction and restores it on
+// destruction (even if an exception unwinds the stack).  Use in tests and any
+// code that temporarily changes the error mode.
+class ErrStateGuard {
+ public:
+  ErrStateGuard() noexcept : saved_(get_errstate()) {}
+  ~ErrStateGuard() noexcept { set_errstate(saved_); }
+  ErrStateGuard(const ErrStateGuard&) = delete;
+  ErrStateGuard& operator=(const ErrStateGuard&) = delete;
+
+ private:
+  ErrState saved_;
+};
+
 // Integer kernels: raise the matching FP flag (NumPy's integer error path).
 void raise_fp_divbyzero() noexcept;
 void raise_fp_overflow() noexcept;

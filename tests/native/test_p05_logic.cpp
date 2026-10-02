@@ -83,8 +83,8 @@ TEST_CASE("p05 compare: complex lexicographic order (NumPy CLT/CLE)") {
 }
 
 TEST_CASE("p05 compare: complex NaN raises invalid like NumPy") {
-  const ErrState old = get_errstate();
-  ErrState s = old;
+  const ErrStateGuard guard;  // restores errstate on exit, even if an exception escapes
+  ErrState s = get_errstate();
   s.invalid = FpMode::Raise;
   set_errstate(s);
   using C = std::complex<double>;
@@ -92,7 +92,6 @@ TEST_CASE("p05 compare: complex NaN raises invalid like NumPy") {
   // equal is quiet; real float compares are quiet.
   CHECK(ints(bin("equal", cvec({C(kNaN, 0)}), cvec({C(1, 0)}))) == IV({0}));
   CHECK(ints(bin("less", vec_d({kNaN}), vec_d({1}))) == IV({0}));
-  set_errstate(old);
 }
 
 TEST_CASE("p05 compare: dtype= only bool; out casting") {
