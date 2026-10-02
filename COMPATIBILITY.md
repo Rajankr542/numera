@@ -109,3 +109,19 @@ differential tests (`pnpm test:diff`).
 - Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
 - FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
 - Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+
+## P9 sorting, searching and sets — divergences
+
+| Area | NumPy 2.5.3 | nativpy | Decision |
+|---|---|---|---|
+| `kind: "heapsort"` | heapsort | introsort (same result; heapsort only as the depth-limit fallback) | D-120 |
+| `kind: "mergesort"`/`"stable"` | timsort/radix sort | `std::stable_sort` (same stable order) | D-120 |
+| `NDArray.sort({axis: null})`, `lexsort` with `axis: null` | `TypeError` | `DTypeError` | D-120, D-122 |
+| sort/partition axis out of range | `AxisError` | `IndexError` | D-120 |
+| `unique` with multiple-return flags | tuple | object `{values, indices?, inverse?, counts?}` | D-123 |
+| `unique` of equal signed zeros (`[0, -0]`) with no flags | hash path; which zero is kept is unspecified | sort path; keeps the first zero in stable sorted order | D-123 |
+| `unique({sorted: false})` | hash-table order | sorted order | D-123 |
+| `uniqueAll`/`uniqueCounts`/`uniqueInverse` | named tuples (`inverse_indices`) | objects (`inverseIndices`) | D-123 |
+| `intersect1d({returnIndices: true})` | tuple | object `{values, indices1, indices2}` | D-124 |
+| `isin({kind: "table"})` | lookup table | sort + binary search (same result; errors identical) | D-124 |
+| `ediff1d` incompatible `toBegin`/`toEnd`, bool input | `TypeError` | `DTypeError` | D-124 |

@@ -1029,3 +1029,20 @@ semantics for empty or disjoint views.
 
 Known gaps: see COMPATIBILITY.md. CI workflow is written but has not run yet
 (no remote).
+
+## 2026-10-02 — P9 sorting, searching and set functions (D-120–D-124)
+
+Done:
+- Native kernels in `native/core/p09_sort_kernels.hpp`, `p09_sorting.cpp` and `p09_sets.cpp`
+  for every dtype (bool, ints, float16/32/64, complex):
+  - ports of NumPy's introsort and introselect;
+  - `std::stable_sort` for the stable kinds;
+  - batched binary search;
+  - `_unique1d`-style unique for 1-D input and along an axis.
+- `sort argsort sortComplex partition argpartition lexsort searchsorted unique
+  uniqueAll uniqueCounts uniqueInverse uniqueValues intersect1d union1d setdiff1d
+  setxor1d isin ediff1d`, plus the methods `NDArray.sort/argsort/partition/argpartition/searchsorted`.
+- Verified locally: `pnpm build`, `pnpm test` (324), `pnpm test:native`, `pnpm api:check`.
+  `partition`/`argpartition` reproduce NumPy's exact output on the reference vector.
+- Not done: benchmarks (names listed in `api/bench-exempt/p09.json`) and NumPy
+  differential cases for P9.
