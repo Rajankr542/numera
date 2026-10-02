@@ -133,3 +133,26 @@ TEST_CASE("p04 square/reciprocal: integer loops") {
   CHECK_EQ(r.get_int64(2), std::int64_t{1});
   CHECK(near(un("reciprocal", vec_d({4.0})).get_double(0), 0.25));
 }
+
+TEST_CASE("p04 rounding: floor ceil trunc rint") {
+  const NDArray x = vec_d({-1.5, -0.5, 0.5, 1.5, 2.5});
+  const NDArray f = un("floor", x), c = un("ceil", x), t = un("trunc", x), r = un("rint", x);
+  const double ef[] = {-2, -1, 0, 1, 2}, ec[] = {-1, -0.0, 1, 2, 3}, et[] = {-1, -0.0, 0, 1, 2},
+               er[] = {-2, -0.0, 0, 2, 2};
+  for (int i = 0; i < 5; ++i) {
+    CHECK_EQ(f.get_double(i), ef[i]);
+    CHECK_EQ(c.get_double(i), ec[i]);
+    CHECK_EQ(t.get_double(i), et[i]);
+    CHECK_EQ(r.get_double(i), er[i]);
+  }
+  CHECK(std::signbit(t.get_double(1)));
+  CHECK(un("floor", vec_i({3}, DType::Int16)).dtype() == DType::Int16);
+  CHECK(un("trunc", vec_i({1}, DType::Bool)).dtype() == DType::Bool);
+  CHECK(un("rint", vec_i({1}, DType::Int16)).dtype() == DType::Float32);
+  NDArray z = NDArray::empty({1}, DType::Complex128);
+  store(z.data(), std::complex<double>(1.5, 2.5));
+  CHECK(load<std::complex<double>>(un("rint", z).data()) == std::complex<double>(2.0, 2.0));
+  CHECK_THROWS_KIND(un("floor", z), ErrorKind::DType);
+  CHECK_EQ(un("positive", vec_i({-3}, DType::Int8)).get_int64(0), std::int64_t{-3});
+  CHECK_THROWS_KIND(un("positive", vec_i({1}, DType::Bool)), ErrorKind::DType);
+}

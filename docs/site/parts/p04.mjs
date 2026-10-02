@@ -85,6 +85,37 @@ np.square([2, -3]);      // => [4, 9]
 np.reciprocal([4, 0.5]); // => [0.25, 2]
 np.reciprocal([2, 1]);   // => [0, 1]`,
       },
+      {
+        name: "floor",
+        sig: "np.floor(x, opts?) · np.ceil · np.trunc · np.fix · np.rint",
+        desc: "Round down, up, toward zero (`fix` is the same as `trunc`) and to the nearest even integer. `floor`/`ceil`/`trunc` keep integer and bool dtypes; `rint` gives floats and also rounds complex parts.",
+        args: [arrayArg("x"), ufuncOpts],
+        returns: "NDArray",
+        example: `np.floor([-1.5, 1.5]);  // => [-2, 1]
+np.ceil([-1.5, 1.5]);   // => [-1, 2]
+np.trunc([-1.7, 1.7]);  // => [-1, 1]
+np.fix([-1.7, 1.7]);    // => [-1, 1]
+np.rint([0.5, 1.5]);    // => [0, 2]`,
+      },
+      {
+        name: "round",
+        sig: "np.round(a, decimals = 0, { out? }) · np.around · a.round(decimals?)",
+        desc: "Round half to even to `decimals` places; negative `decimals` round to tens, hundreds, …. Floats compute `rint(a * 10**d) / 10**d` like NumPy. Integer inputs keep their dtype.",
+        args: [arrayArg(), { name: "[decimals]", type: "number", desc: "Number of decimal places (integer, default 0)." }],
+        returns: "NDArray",
+        example: `np.round([0.5, 1.5, 2.5]);   // => [0, 2, 2]
+np.round([1.25, 2.567], 2);  // => [1.25, 2.57]
+np.around([15, 25], -1);     // => [20, 20]
+np.array([3.14159]).round(3); // => [3.142]`,
+      },
+      {
+        name: "positive",
+        sig: "np.positive(x, opts?)",
+        desc: "Element-wise `+x` (a copy). No `bool` loop, as in NumPy.",
+        args: [arrayArg("x"), ufuncOpts],
+        returns: "NDArray",
+        example: `np.positive([-3, 2]); // => [-3, 2]`,
+      },
     ],
   },
 ];

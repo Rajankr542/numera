@@ -117,6 +117,31 @@ struct CReciprocalF {
     return kernels::cdiv<R>(std::complex<R>{1, 0}, z);
   }
 };
+// P4-3 rounding. Integer/bool loops are the identity (NumPy).
+struct FloorF {
+  template <typename T> T operator()(T v) const noexcept {
+    if constexpr (std::is_floating_point_v<T>) return std::floor(v); else return v;
+  }
+};
+struct CeilF {
+  template <typename T> T operator()(T v) const noexcept {
+    if constexpr (std::is_floating_point_v<T>) return std::ceil(v); else return v;
+  }
+};
+struct TruncF {
+  template <typename T> T operator()(T v) const noexcept {
+    if constexpr (std::is_floating_point_v<T>) return std::trunc(v); else return v;
+  }
+};
+P04_STD_UN(RintF, nearbyint)
+struct CRintF {
+  template <typename R> std::complex<R> operator()(std::complex<R> z) const noexcept {
+    return {std::nearbyint(z.real()), std::nearbyint(z.imag())};
+  }
+};
+struct IdentityF {
+  template <typename T> T operator()(T v) const noexcept { return v; }
+};
 #undef P04_STD_UN
 #undef P04_STD_BIN
 
@@ -161,9 +186,27 @@ LoopTypes d_float(DType, DType d) {
 
 // Integer-preserving unary (square, reciprocal): bool -> int8 (no bool loop).
 LoopTypes r_no_bool(DType a, DType) { return same(a == DType::Bool ? DType::Int8 : a); }
+// positive / sign: NumPy has no bool loop and bool does not cast to one safely.
+template <const char* Name>
+LoopTypes r_no_bool_strict(DType a, DType) {
+  if (a == DType::Bool) bad_loop(Name, a);
+  return same(a);
+}
 template <const char* Name>
 LoopTypes d_not_bool(DType, DType d) {
   if (d == DType::Bool) no_loop(Name);
+  return same(d);
+}
+
+// floor/ceil/trunc keep integer and bool dtypes; no complex loop.
+template <const char* Name>
+LoopTypes r_keep_real(DType a, DType) {
+  if (is_complex(a)) bad_loop(Name, a);
+  return same(a);
+}
+template <const char* Name>
+LoopTypes d_real(DType, DType d) {
+  if (is_complex(d)) no_loop(Name);
   return same(d);
 }
 
@@ -198,6 +241,11 @@ P04_NAME(kLogaddexp2, "logaddexp2")
 P04_NAME(kCbrt, "cbrt")
 P04_NAME(kSquare, "square")
 P04_NAME(kReciprocal, "reciprocal")
+P04_NAME(kFloor, "floor")
+P04_NAME(kCeil, "ceil")
+P04_NAME(kTrunc, "trunc")
+P04_NAME(kRint, "rint")
+P04_NAME(kPositive, "positive")
 #undef P04_NAME
 
 // Unary float ufunc with a complex loop sharing the same functor.
@@ -210,6 +258,11 @@ template <const char* Name, typename F>
 constexpr Ufunc float_unary() {
   return {Name, 1, std::nullopt, r_float1<Name>, d_float<Name>, nullptr, {},
           unary_table<F, Avail::FloatOnly, V>()};
+}
+template <const char* Name, typename F>
+constexpr Ufunc keep_real_unary() {
+  return {Name, 1, std::nullopt, r_keep_real<Name>, d_real<Name>, nullptr, {},
+          unary_table<F, Avail::All, V>()};
 }
 template <const char* Name, typename F>
 constexpr Ufunc float_binary(std::optional<double> identity = std::nullopt) {
@@ -250,6 +303,14 @@ constexpr std::array kTable{
           unary_table<SquareF, Avail::NotBool, CSquareF>()},
     Ufunc{kReciprocal, 1, std::nullopt, r_no_bool, d_not_bool<kReciprocal>, nullptr, {},
           unary_table<ReciprocalF, Avail::NotBool, CReciprocalF>()},
+    // P4-3 rounding
+    keep_real_unary<kFloor, FloorF>(),
+    keep_real_unary<kCeil, CeilF>(),
+    keep_real_unary<kTrunc, TruncF>(),
+    float_c_unary<kRint, RintF, CRintF>(),
+    // P4-4 arithmetic
+    Ufunc{kPositive, 1, std::nullopt, r_no_bool_strict<kPositive>, d_not_bool<kPositive>, nullptr, {},
+          unary_table<IdentityF, Avail::NotBool, IdentityF>()},
 };
 
 }  // namespace

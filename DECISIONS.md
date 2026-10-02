@@ -1549,3 +1549,17 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - Array-API aliases (`asin` … `atan2`, `pow`) are the same JS objects.
 - The long-double (`g`/`G`) and object loops have no numera dtype and are out
   of scope. libm results are not claimed bit-identical to NumPy (D-014).
+
+## D-071 — P4 np.round / around / fix — Accepted — 2026-10-02
+- `np.round(a, decimals = 0, { out })` (alias `around`, method `a.round`) is a
+  TS composition like NumPy's `PyArray_Round`: floats/complex use `rint` for
+  `decimals = 0`, else `rint(a * 10**d) / 10**d` (or `* 10**-d` for negative
+  `d`), so results carry the same floating-point error as NumPy. Integer
+  inputs return a copy for `decimals >= 0`; negative `decimals` round through
+  float64 and cast back to the input dtype (wrapping like NumPy, e.g. int8
+  127 → -126). `bool` with `decimals = 0` gives float16 (`rint`), with other
+  decimals raises `DTypeError` (NumPy's casting error). Non-integer `decimals`
+  raise `DTypeError`.
+- `np.fix` is `np.trunc` (NumPy 2.5 deprecates `fix` in favour of `trunc` and
+  returns the same values and dtypes).
+- `positive` has no bool loop (NumPy raises `UFuncTypeError`; numera `DTypeError`).
