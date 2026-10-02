@@ -109,3 +109,19 @@ differential tests (`pnpm test:diff`).
 - Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
 - FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
 - Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+
+## P5 — comparison, logic and bitwise
+
+| Area | NumPy | numera | Decision |
+|---|---|---|---|
+| logical ufuncs with `casting=` | mixed dtypes accepted under `casting="no"` (inputs go through the bool loop) | casting is checked against the promoted dtype, so mixed inputs under `"no"` raise `DTypeError` | D-080 |
+| `uint64` vs `int64` comparisons | exact comparison | compared via `float64` (can differ for values above 2^53) | D-080 |
+| `dtype=` on comparison/logical/classification ufuncs | output signature, only `bool` | same; other dtypes raise `DTypeError` | D-080 |
+| `isnat` | works for datetime64/timedelta64 | always raises `DTypeError` (no datetime dtypes yet) | D-081 |
+| `isscalar` | true for Python and NumPy scalars | true for JS number/boolean/bigint/string and complex scalars; false for every `NDArray`, including 0-d | D-081 |
+| bitwise ufuncs on float / `uint64`+`int64` mixes | `TypeError` | `DTypeError` | D-082 |
+| `isclose` with `float16` | each step rounded to float16 | evaluated in float32 (can differ only right at the tolerance boundary) | D-083 |
+| `isclose` `rtol`/`atol` | scalars or arrays | JS numbers only | D-083 |
+| `allclose` / `arrayEqual` / `arrayEquiv` result | Python `bool` | JS `boolean` | D-083 |
+| `bitorder=` | prefix match (`"l..."`, `"b..."`) | only `"big"` / `"little"`; anything else raises `ValueError` | D-084 |
+| `packbits`/`unpackbits` bad axis | `AxisError` | `IndexError` | D-084 |
