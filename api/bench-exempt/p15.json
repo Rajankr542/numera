@@ -1,1 +1,25 @@
-[]
+[
+ "emath.arccos [nativpy] [numpy]",
+ "emath.arcsin [nativpy] [numpy]",
+ "emath.arctanh [nativpy] [numpy]",
+ "emath.log [nativpy] [numpy]",
+ "emath.log10 [nativpy] [numpy]",
+ "emath.log2 [nativpy] [numpy]",
+ "emath.logn [nativpy] [numpy]",
+ "emath.power [nativpy] [numpy]",
+ "emath.sqrt [nativpy] [numpy]",
+ "testing.assert_ [nativpy] [numpy]",
+ "testing.assert_allclose [nativpy] [numpy]",
+ "testing.assert_almost_equal [nativpy] [numpy]",
+ "testing.assert_approx_equal [nativpy] [numpy]",
+ "testing.assert_array_almost_equal [nativpy] [numpy]",
+ "testing.assert_array_almost_equal_nulp [nativpy] [numpy]",
+ "testing.assert_array_compare [nativpy] [numpy]",
+ "testing.assert_array_equal [nativpy] [numpy]",
+ "testing.assert_array_less [nativpy] [numpy]",
+ "testing.assert_array_max_ulp [nativpy] [numpy]",
+ "testing.assert_equal [nativpy] [numpy]",
+ "testing.assert_raises [nativpy] [numpy]",
+ "testing.assert_raises_regex [nativpy] [numpy]",
+ "testing.assert_string_equal [nativpy] [numpy]"
+]

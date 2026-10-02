@@ -2731,3 +2731,78 @@ delegate to their plain-np counterparts on `.filled()` data and combine masks.
 - `gradient(f, ...spacings, {axis, edgeOrder})`: a trailing plain object is the
   options; a JS-number spacing is a weak scalar (keeps float32), a 0-d array or
   uniform coordinates are strong (NumPy semantics).
+
+## D-180 — np.emath (P15-1) — Accepted — 2026-10-02
+- `np.emath` is a namespace object on `np` (from `p15.ts`), with the 9 NumPy
+  names `sqrt log log2 log10 logn power arccos arcsin arctanh`. Only the
+  namespace is a named export (its members would clash with top-level names).
+- Whole-array promotion, as `numpy.lib._scimath_impl`: if any real element is
+  out of domain (`x < 0` for sqrt/log*, `|x| > 1` for the inverse trig), the
+  whole array is converted to complex (`complex64` for int8/uint8/int16/uint16/
+  float32, else `complex128`, i.e. float16 → complex128 like `_tocomplex`).
+  In-domain real input uses the ufunc's float loop (bool/int8/uint8 → float16,
+  int16/uint16 → float32). Native kernel `native/core/p15_emath.cpp`
+  (P4's `log2`/`arcsin`/... ufuncs are not on this branch): complex sqrt/log
+  are NumPy's ports from `complex_kernels.hpp`, complex log2/log10 are
+  `clog(z) * log2(e)` / `* log10(e)` (NumPy's npy_clog2 formula), complex
+  arccos/arcsin/arctanh use the C99 libm `cacos/casin/catanh` (as NumPy).
+  FP errors follow `np.seterr` (D-054) under the emath function's name.
+- `logn(n, x)` = `log(x) / log(n)` and `power(x, p)` = `np.power` after the
+  same fixups; NumPy's `_fix_int_lt_zero` (`p * 1.0`) gives float64 for integer
+  `p`. Results are always arrays (0-d for scalars), no out/where options.
+
+## D-181 — np.testing (P15-2) — Accepted — 2026-10-02
+- `np.testing` is a namespace object; `AssertionError` (a `NativpyError`
+  subclass, code `NATIVPY_ASSERTION`) is also a named export. Names are
+  camelCase (`assert_array_equal` → `assertArrayEqual`); `assert_` keeps its
+  trailing underscore. Python keyword arguments become an options object
+  (`errMsg`, `verbose`, `strict`, `rtol`, `atol`, `equalNan`, `decimal`,
+  `significant`, `maxulp`, `dtype`); `assertArrayAlmostEqualNulp(x, y, nulp)`
+  keeps a positional `nulp`.
+- Messages follow NumPy 2.x (`build_err_msg`, `assert_array_compare`):
+  header, mismatch count/percent, up to 5 mismatching indices, max
+  absolute/relative difference, and `array_repr`s. The reprs come from a private
+  formatter (`p15_format.ts`) modelled on NumPy's arrayprint (floatmode
+  "maxprec", 75 columns, summarization above 1000 elements). JS numbers that
+  are integers print as Python ints (`1`, not `1.0`) because JS has no separate
+  float scalar type.
+- `assertRaises(ErrorClass, fn, ...args)` / `assertRaisesRegex` take a JS
+  callback and return the caught error (no context-manager form).
+  `assertWarns(type | null, fn, ...args)` / `assertNoWarnings(fn, ...args)` watch
+  `process.emitWarning` while `fn` runs synchronously (numera's `np.seterr` "warn"
+  path). `assertStringEqual` produces `-`/`+` line diffs without difflib's `?`
+  hint lines.
+- Excluded from coverage (`api/exclusions.d/p15.json`): Python/NumPy build flags,
+  unittest/nose classes, warnings-module context managers, gc/proc/exec/thread
+  helpers, `test`.
+
+## D-182 — np.polynomial (P15-3) — Accepted — 2026-10-02
+- `np.polynomial` exposes the six classes (`Polynomial`, `Chebyshev`,
+  `Legendre`, `Laguerre`, `Hermite`, `HermiteE`), `setDefaultPrintstyle`, and
+  the per-basis modules `np.polynomial.{polynomial, chebyshev, legendre,
+  laguerre, hermite, hermite_e}`. Module functions keep NumPy's prefixed
+  names (`chebadd`, `lagval`, `herme2poly`, `chebdomain`, ...).
+- Series arithmetic (add/sub/mul/mulx/div/pow/val/der/int/vander/companion/
+  fromroots, conversions to/from the power basis) is a native kernel
+  (`native/core/p15_polynomial.cpp`) over 1-D float64/complex128
+  coefficients, following NumPy's algorithms and operation order. Coefficients
+  are always float64 or complex128 (NumPy also keeps object arrays). Only 1-D
+  coefficient arrays are supported: there is no `axis` argument for der/int and
+  no `tensor` argument for val. The multidimensional `*val2d/3d`, `*grid2d/3d`,
+  `*vander2d/3d` and Gauss quadrature/weight helpers are not provided yet.
+- Fitting uses `np.linalg.lstsq` with NumPy's column scaling. Roots are the
+  `np.linalg.eigvals` of the companion matrix, sorted, and made real when the
+  input is real and every imaginary part is 0 (NumPy's power, Laguerre and
+  Hermite modules). A rank-deficient fit emits `process.emitWarning(...,
+  "RankWarning")`.
+- Python operators map to methods: `add sub rsub mul truediv floordiv mod
+  divmod pow neg pos equals`. `p.call(x)` evaluates; `p.call(q)` with a
+  series composes. `toString()` is `str()` (unicode, or ascii after
+  `setDefaultPrintstyle("ascii")`) and `repr()` is `repr()`. `fit(x, y, deg,
+  { domain, window, rcond, w, symbol })` returns the series, and `fitFull`
+  also returns the diagnostics. `fromroots`/`basis` take an options object,
+  `integ(m, k, lbnd)` and `deriv(m)` are positional.
+- Class default domain/window are float64 static `defaultDomain` /
+  `defaultWindow` (`Cls.domain` getters return copies). Division by a zero
+  series throws `ValueError` (NumPy: ZeroDivisionError).
+- `polynomial.test` is excluded from coverage.

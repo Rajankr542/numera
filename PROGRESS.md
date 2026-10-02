@@ -1251,3 +1251,11 @@ Commit: 5de4602
   `pnpm test:asan` 100% (0.34 s, ASan+UBSan), `pnpm api:check` passes.
   API coverage 19.0% → 22.4% (237/1060). Benchmarks and NumPy differential
   cases deferred to the V phase (bench-exempt in `api/bench-exempt/p10.json`).
+
+## P15 — Submodules: emath, testing, polynomial (D-180–D-182)
+
+- P15-1 `np.emath` (9 names): sqrt/log/log2/log10/logn/power/arccos/arcsin/arctanh with complex-promotion native kernels.
+- P15-2 `np.testing` (14 names): assert_array_equal, assert_array_almost_equal, assert_allclose, assert_raises, assert_warns, assert_no_warnings, assert_string_equal, assert_equal, assert_approx_equal, assert_array_less, assert_array_max_ulp, raises, suppress_warnings, assert_no_gc_cycles.
+- P15-3 `np.polynomial` (6 names): Polynomial, Chebyshev, Legendre, Laguerre, Hermite, HermiteE classes with native series kernels.
+- `np.ma` (224 names) delegated to and completed in P16B (D-200..D-209).
+- Checks: `pnpm build` ✅, `pnpm test` 564/564 ✅.
