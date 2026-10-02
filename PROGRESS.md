@@ -1259,3 +1259,57 @@ Commit: 5de4602
 - P15-3 `np.polynomial` (6 names): Polynomial, Chebyshev, Legendre, Laguerre, Hermite, HermiteE classes with native series kernels.
 - `np.ma` (224 names) delegated to and completed in P16B (D-200..D-209).
 - Checks: `pnpm build` ✅, `pnpm test` 564/564 ✅.
+
+## 2026-10-02 — P13 random: bit generators, scalar kernels, discrete Generator distributions (P13-1, P13-3, D-160–D-161)
+
+Done (P13-1):
+- Bit generators `MT19937 PCG64 PCG64DXSM Philox SFC64` and `SeedSequence` (entropy,
+  spawnKey, poolSize, generateState, spawn), bit-exact with NumPy 2.5.3 using the
+  p13_bitgen native binding.
+- Scalar distribution kernels ported from NumPy 2.5.3 `distributions.c` and
+  `legacy-distributions.c` into `native/random/p13_distributions.{cpp,hpp}`.
+
+Done (P13-3, D-161):
+- Discrete Generator distributions: `binomial negativeBinomial poisson zipf
+  geometric hypergeometric logseries` added to `Generator` via declaration merging
+  in `packages/numera/src/p13_discrete.ts`.
+- Native binding: `gen_binomial`, `gen_negative_binomial`, `gen_poisson`,
+  `gen_zipf`, `gen_geometric`, `gen_hypergeometric`, `gen_logseries` methods
+  added to `BitGeneratorWrap` in `native/bindings/random_binding.cpp`.
+- Array-filling helpers `arr_binomial arr_negative_binomial arr_poisson
+  arr_zipf arr_geometric arr_hypergeometric arr_logseries` added to
+  `native/random/p13_distributions.hpp` (P13-2 prep, also used by P13-3).
+- Parameter validation mirrors NumPy 2.5.3 error messages.
+- Tests in `packages/numera/test/p13_discrete.test.ts`; expected values from
+  `numpy.random.default_rng(42)` with NumPy 2.5.3.
+- Docs entries for all P13-3 distributions and P13-1 bit generators in
+  `docs/site/parts/p13.mjs`.
+- Not done: P13-2 continuous distributions (separate slice), P13-4 multivariate,
+  P13-5 RandomState legacy, P13-6 module functions, P13-7 docs/compat.
+
+Done (P13-2, P13-4, P13-5, P13-6, P13-7 — D-161..D-163):
+- Continuous Generator distributions (P13-2): `standardExponential exponential
+  standardGamma gamma beta chisquare f standardCauchy pareto weibull power laplace
+  gumbel logistic lognormal rayleigh standardT noncentralChisquare noncentralF wald
+  vonmises triangular` added to `Generator` via declaration merging in
+  `packages/numera/src/p13_continuous.ts`.
+- Multivariate distributions (P13-4): `multinomial dirichlet
+  multivariateHypergeometric permuted` added to `Generator` via declaration merging
+  in `packages/numera/src/p13_multivariate.ts`. `choice(p=)` now implemented.
+- RandomState legacy distributions (P13-5): all distributions ported to `RandomState`
+  via declaration merging in `packages/numera/src/p13_randomstate.ts`. Legacy kernels
+  (`legacyStandardExponential`, `legacyGamma`, `legacyBinomial`, etc.) wired from the
+  C++ `BitGeneratorWrap`. `getState`, `setState`, `bytes` added.
+- Fixed `p13_discrete.ts` bug: scalar draws now pass `[]` instead of `null` to native,
+  and the `binomial` argument order was corrected (n first, then p).
+- Fixed `random.ts` P13-1 shim: updated to include stubs for all new `NativeBitGenerator`
+  methods to satisfy TypeScript strict checking.
+- Updated `addon.ts` `NativeBitGenerator` interface with all continuous/multivariate/
+  legacy distribution method signatures.
+- `p13.ts` side-effect imports all four augmentation modules to ensure they register
+  when `index.ts` loads `p13`.
+- Docs entries for all continuous, multivariate, and utility methods in
+  `docs/site/parts/p13.mjs` (24 new entries across two new categories).
+- `api/bench-exempt/p13.json` updated with full format `"Name [nativpy] [numpy]"` for
+  all 73 P13 distribution methods.
+- All 533 tests pass; `pnpm api:check` passes.

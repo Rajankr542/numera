@@ -47,7 +47,7 @@ describe("random: Generator (defaultRng / PCG64)", () => {
     expect(() => g.integers(5, 5)).toThrow(np.ValueError);
     expect(() => g.integers(0, 300, 1, "uint8")).toThrow(np.ValueError);
     expect(() => g.choice(3, 5, false)).toThrow(np.ValueError);
-    expect(() => g.choice(3, 2, true, [0.5, 0.25, 0.25])).toThrow(np.NotImplementedError);
+    expect(() => g.choice(3, 2, true, [0.5, 0.25, 0.25])).not.toThrow();
     expect(() => g.shuffle(np.broadcastTo(np.arange(3), [2, 3]))).toThrow(np.ValueError);
   });
 });
