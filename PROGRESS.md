@@ -1098,3 +1098,8 @@ Done:
 - Tests: `tests/native/test_p06_manip.cpp` and `packages/numera/test/p06_*.test.ts`. Every example in the docs entries (`docs/site/parts/p06.mjs`) runs as part of the tests.
 - Verified: `pnpm build`, `test` (352), `test:native`, `test:asan`, `typecheck` and `api:check` pass. All P6 np/ndarray names count in `api:coverage`.
 - Not yet done (V phase): NumPy differential groups and benchmarks; P6 names are listed in `api/bench-exempt/p06.json`. No NumPy-compatibility or performance claims are made for P6.
+## 2026-10-02 — P14 extra dtypes and I/O, partial (D-170–D-173)
+- I/O: `save load savez savezCompressed` (.npy v1/v2/v3 and .npz with stored/deflate), `loadtxt savetxt` (native tokenizer and formatter), `genfromtxt fromregex`, `fromfile` and `NDArray.tofile`.
+- Misc: `baseRepr binaryRepr`; native windows `bartlett blackman hamming hanning kaiser`; legacy polynomials `poly poly1d polyadd polyder polydiv polyfit polyint polymul polysub polyval roots` (native convolve/polydiv).
+- Tests: `tests/native/test_p14_*.cpp`, `packages/numera/test/p14_*.test.ts`, docs examples in `docs/site/parts/p14.mjs`. Verified: `pnpm build`, `test`, `test:native`, `api:check`, `test:asan`.
+- Remaining: datetime64/timedelta64 (P14-8..10, D-174/D-175; this needs a core DType enum change touching ~38 dispatch sites), str_/bytes_/np.strings/structured (P14-11), and NumPy differential cases and benchmarks (names are in `api/bench-exempt/p14.json`).

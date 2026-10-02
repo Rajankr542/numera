@@ -185,3 +185,14 @@ cases come in the V phase.
 | `require` unknown flag | `KeyError` | `ValueError` | D-094 |
 | `broadcast_arrays` writeable views | writeable with `FutureWarning` | writeable, no warning | D-094 |
 | `asanyarray` | keeps subclasses | same as `asarray` (no subclasses) | D-094 |
+| `load` of an empty file | `EOFError` | `ValueError` | D-170 |
+| `savezCompressed` output bytes | zlib deflate | Node zlib deflate (content equal, bytes may differ) | D-170 |
+| `allow_pickle` / `mmap_mode` in `load` | object arrays via pickle, memory maps | not supported (`ValueError`) | D-170 |
+| `savetxt` `%x` on bool | `TypeError` | accepted (0/1) | D-171 |
+| `fromfile` with `offset` past the end | `ValueError` (negative dimensions) | empty array | D-171 |
+| `fromregex` result | structured array | `{name: NDArray}` object | D-171 |
+| `genfromtxt` `dtype=None`, `names`, `converters`, `usemask` | supported | not supported | D-171 |
+| `base_repr` of a float | truncates | `TypeError` | D-172 |
+| `kaiser` window | NumPy i0 | same Chebyshev coefficients, may differ by 1 ulp (libm) | D-172 |
+| poly1d operators | `p(x) p+q p*q p/q p**n p[k]` | methods `call add mul div pow get/set` | D-173 |
+| `polyfit` rank warning | `RankWarning` class | Node warning named `RankWarning` | D-173 |
