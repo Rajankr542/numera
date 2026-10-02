@@ -1,0 +1,10 @@
+[
+  "np.busday_count [nativpy] [numpy]",
+  "np.busday_offset [nativpy] [numpy]",
+  "np.datetime_as_string [nativpy] [numpy]",
+  "np.is_busday [nativpy] [numpy]",
+  "np.datetime64 [nativpy] [numpy]",
+  "np.timedelta64 [nativpy] [numpy]",
+  "np.datetime_data [nativpy] [numpy]",
+  "np.busdaycalendar [nativpy] [numpy]"
+]
