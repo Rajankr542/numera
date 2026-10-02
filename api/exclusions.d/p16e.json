@@ -1,0 +1,13 @@
+{
+ "_doc": "P16E exclusions: numpy name -> reason (D-230)",
+ "np": {
+  "asmatrix": "matrix class is excluded (D-032 c); use ndarray",
+  "bmat": "builds a matrix; matrix class is excluded (D-032 c)",
+  "matrix": "matrix class excluded (D-032 c); numera has no matrix type",
+  "ptp": "deprecated since NumPy 1.16; removed from NumPy 2.x API — use np.max(a) - np.min(a)"
+ },
+ "rec": {
+  "fromfile": "binary structured file I/O deferred to a future milestone (D-230)",
+  "fromstring": "structured buffer parsing deferred to a future milestone (D-230)"
+ }
+}

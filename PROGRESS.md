@@ -1187,3 +1187,15 @@ Commit: 5de4602
 - Verified: `pnpm build`, `pnpm test` (811 tests), `pnpm api:check` pass.
 - Divergences: encode/decode are identity stubs; mod supports %s/%d/%f/%e/%g/%x only; translate uses Map<char,char|null> (D-213).
 - Benchmarks deferred (build-first policy); names in `api/bench-exempt/p16c.json`.
+## 2026-10-02 — P16E np.rec record arrays, shares_memory, exclusions (D-230)
+- `np.rec` module: `recarray` class (named-field column arrays with attribute access),
+  `record` alias, `format_parser` (dtype-string → FieldDesc[]), `fromarrays`, `fromrecords`,
+  `rec.array` (flexible constructor), `find_duplicate`. `fromfile`/`fromstring` deferred
+  (excluded). `np.recarray` and `np.sharesMemory` added to np root.
+- Exclusions: `np.asmatrix`, `np.bmat`, `np.matrix` (matrix class excluded, D-032 c);
+  `np.ptp` (removed in NumPy 2.x); `rec.fromfile`, `rec.fromstring` (deferred, D-230).
+- Wiring: addon.cpp, milestone_bindings.hpp, index.ts, docs/site/api.mjs all updated.
+- rec surface: 7/7 implemented, 2 excluded → 100% coverage.
+- Verified: `pnpm build`, `pnpm test` (801 tests), `pnpm api:check` pass.
+- Gaps: `rec.fromfile`/`rec.fromstring` (binary I/O for structured data); no benchmarks
+  (listed in `api/bench-exempt/p16e.json`).

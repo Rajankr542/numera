@@ -269,3 +269,9 @@ listed in "Documented divergences" (D-140, D-141).
 | `np.strings.decode(a, encoding)` | decodes bytes_ to str_ with given codec | identity stub — returns input unchanged | D-213 |
 | `np.strings.mod(a, values)` | full Python `%`-format (all conversion types) | subset only: `%s %d %i %o %u %x %X %e %E %f %F %g %G %%` | D-213 |
 | `np.strings.translate(a, table)` | `table` is dict keyed by ordinal (`int`) | `table` is `Map<string, string\|null>` (char→char/null) — ASCII-compatible only | D-213 |
+| `np.rec.recarray` memory model | C-contiguous structured buffer, single allocation | JS object with separate named NDArray columns | D-230 |
+| `np.rec.recarray` field access | `r.x` returns a view into the struct buffer | `r.x` returns the column NDArray directly | D-230 |
+| `np.rec.fromfile` / `fromstring` | reads structured binary data from file/buffer | raises `NotImplementedError` (deferred) | D-230 |
+| `np.shares_memory` `maxWork` | may be approximate for high-dim overlapping views | always exact (native `sharesMemory`) | D-230 |
+| `np.ptp` | deprecated peak-to-peak function | excluded (removed in NumPy 2.x) | D-230 |
+| `np.asmatrix` / `np.bmat` / `np.matrix` | matrix class | excluded (D-032 c) | D-230 |

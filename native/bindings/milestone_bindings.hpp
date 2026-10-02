@@ -21,5 +21,6 @@ void init_p13_binding(Napi::Env env, Napi::Object exports);  // exports.p13
 void init_p14_binding(Napi::Env env, Napi::Object exports);  // exports.p14
 void init_p15_binding(Napi::Env env, Napi::Object exports);  // exports.p15
 void init_p16c_binding(Napi::Env env, Napi::Object exports); // exports.p16c
+void init_p16e_binding(Napi::Env env, Napi::Object exports); // exports.p16e
 
 }  // namespace nativpy::bindings

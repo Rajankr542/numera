@@ -28,6 +28,7 @@ import { categories as p15 } from "./parts/p15.mjs";
 import { categories as p16a } from "./parts/p16a.mjs";
 import { categories as p16d } from "./parts/p16d.mjs";
 import { categories as p16c } from "./parts/p16c.mjs";
+import { categories as p16e } from "./parts/p16e.mjs";
 
 const shape = { name: "shape", type: "number | number[]", desc: "Dimensions of the new array." };
 const dtypeOpt = { name: "[options.dtype]", type: "DTypeLike", desc: "Element type, e.g. `\"float32\"` or `np.int32`. Default `float64`." };
@@ -1033,4 +1034,4 @@ function mergeParts(base, parts) {
 }
 
 /** @type {Category[]} */
-export const categories = mergeParts(baseCategories, [p03, p04, p05, p06, p07, p08, p09, p10, p11, p12, p13, p14, p15, p16a, p16c, p16d]);
+export const categories = mergeParts(baseCategories, [p03, p04, p05, p06, p07, p08, p09, p10, p11, p12, p13, p14, p15, p16a, p16c, p16d, p16e]);

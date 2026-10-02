@@ -47,6 +47,7 @@ import { p15 } from "./p15.js";
 import { p16a } from "./p16a.js";
 import { p16d } from "./p16d.js";
 import { p16c } from "./p16c.js";
+import { p16e } from "./p16e.js";
 import { expandDims, moveAxis, ravel, reshape, squeeze, swapAxes, transpose } from "./shape.js";
 import {
   abs,
@@ -201,6 +202,7 @@ export * from "./p14.js";
 export * from "./p15.js";
 export * from "./p16a.js";
 export * from "./p16d.js";
+export * from "./p16e.js";
 /** Development instrumentation: live native buffers / bytes (PLAN §33). */
 export function memoryStats(): { buffers: number; bytes: number } {
   return addon.memoryStats();
@@ -326,6 +328,7 @@ const np = {
   ...p16a,
   ...p16d,
   ...p16c,
+  ...p16e,
 } as const;
 
 export { lib };
