@@ -1722,3 +1722,60 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `unpackbits` `count`: `null` → all bits; `>= 0` keeps that many (zero-padded
   past the end); negative drops `-count` bits, ValueError
   "-count larger than number of elements" when too negative.
+
+## D-150 — `out=` for every `np.fft` transform (P12-1) — Accepted — 2026-10-02
+- Every transform (`fft ifft rfft irfft hfft ihfft fft2 ifft2 fftn ifftn rfft2
+  irfft2 rfftn irfftn`) accepts `out` as a positional parameter after `norm`
+  or in the trailing options object (`{ n|s, axis|axes, norm, out }`). With
+  `out` the function writes into it and returns that same `NDArray` object.
+- Each 1-D step follows NumPy's `_raw_fft`: the result is computed as without
+  `out` (D-020 precision rule: float16/float32/complex64 inputs compute in float32,
+  the rest in float64), then written into `out`:
+  - `out.ndim` must equal the input's and `out.shape[axis]` the output length,
+    otherwise `ValueError` "output array has wrong shape.".
+  - The result dtype must cast to `out.dtype` under `same_kind`, otherwise
+    `DTypeError` "Cannot cast ufunc 'fft' output from complex128 to float64 with
+    casting rule 'same_kind'" (NumPy: `UFuncTypeError`).
+  - A read-only `out` raises `ValueError` "output array is read-only".
+  - The other dimensions broadcast from the result to `out` (NumPy broadcasts the
+    input loop dimensions); a mismatch raises `BroadcastError` (NumPy: `ValueError`).
+  - `out` may alias the input (`fft(c, { out: c })`).
+- Multi-axis transforms pass `out` to every 1-D step, as NumPy does
+  (`fftn`/`fft2`/`rfftn`/`rfft2`: each step writes into `out` and the next step
+  reads from it, so intermediate results are rounded to `out.dtype`, and an `s`
+  that changes a non-final shape makes `out` fail the shape check, as in NumPy).
+  `irfftn`/`irfft2` pass `out` only to the final `irfft` step. `fftn(a, {axes: []})`
+  returns `a` and leaves `out` untouched.
+- NumPy picks the compute precision from its ufunc type resolution (for example
+  float32 *real* input to `fft` runs the float64 loop and is then rounded to
+  complex64). numera keeps the D-020 rule, so results can differ from NumPy
+  within float32 rounding; documented in COMPATIBILITY.md.
+- Implementation: `native/fft/p12_fft.{hpp,cpp}` builds on the public M10
+  functions in `native/fft/fft.hpp` and `copy_into` (`addon.p12`).
+
+## D-151 — hfft/ihfft and real N-D transforms (P12-2) — Accepted — 2026-10-02
+- `hfft(a, n?, axis=-1, norm?, out?)` = `irfft(conj(a), n, axis, swap(norm))`, default
+  `n = 2 * (m - 1)`; `ihfft(a, n?, axis=-1, norm?, out?)` = `conj(rfft(a, n, axis,
+  swap(norm)))` (conjugated in place in `out`), default `n = m`. `swap` exchanges
+  "backward" and "forward". dtypes follow `irfft`/`rfft` (hfft float16 → float16,
+  complex64 → float32; ihfft float16/float32 → complex64; complex input to
+  `ihfft` raises `DTypeError` as `rfft` does).
+- `rfftn(a, s?, axes?, norm?, out?)`: `rfft` over the last axis in `axes`, then
+  `fft` over the others from last to first. `irfftn`: `ifft` over all axes but
+  the last (from first to last), then `irfft` over the last. `rfft2`/`irfft2`
+  are the same with `axes` default `[-2, -1]`.
+- `s`/`axes` follow `_cook_nd_args`: no `s` and no `axes` = all axes; `s`
+  without `axes` = the last `len(s)` axes (no deprecation warning, D-020);
+  `s[i] = -1` = the input length; for `irfftn` without `s` the last length is
+  `2 * (m - 1)`. An empty `axes` raises `IndexError` (NumPy: `IndexError` "list
+  index out of range"); 0-d input raises `IndexError`.
+
+## D-152 — fftshift / ifftshift (P12-3) — Accepted — 2026-10-02
+- `fftshift(x, axes?)` / `ifftshift(x, axes?)`: `axes` is `null`/omitted (all
+  axes), a number, or a number array (repeated axes add up, as `np.roll`). The
+  shift is `shape[ax] // 2` (`ifftshift`: its negative). Any dtype; the result
+  is a new C-contiguous array of the input dtype, computed by a native roll
+  (`addon.p12.roll`).
+- 0-d input with default axes and an empty `axes` list raise `ValueError` (NumPy
+  fails in `np.roll` with "not enough values to unpack"). Out-of-range axes raise
+  `IndexError` (D-012).
