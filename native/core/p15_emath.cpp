@@ -18,36 +18,60 @@ std::complex<T> casin_(std::complex<T> z) noexcept { return std::asin(z); }
 template <typename T>
 std::complex<T> catanh_(std::complex<T> z) noexcept { return std::atanh(z); }
 #else
+// Call C99 libm cacos/casin/catanh via GCC/Clang _Complex types.
+// This matches NumPy's npy_casin etc. which delegate to platform libm.
+//
+// Rules to stay portable across GCC 11-14 and Clang:
+//   - Use __real__ / __imag__ to read/write _Complex fields (no memcpy into
+//     std::complex — GCC -Werror=class-memaccess rejects that).
+//   - Use  __real__ v = x; __imag__ v = y;  to construct — avoids
+//     __builtin_complex which is not available on every GCC build config.
+//   - Call the C99 function by the plain name (cacos, casin, catanh) declared
+//     by <tgmath.h>; avoid __builtin_cacos etc. which are also not universal.
 __extension__ typedef _Complex double c99d;
-__extension__ typedef _Complex float c99f;
+__extension__ typedef _Complex float  c99f;
 
-// C99 casin/cacos/catanh (NumPy's npy_casin etc. use the platform libm).
-// Use __real__/__imag__ builtins to avoid memcpy into std::complex<T>
-// (GCC -Werror=class-memaccess rejects memcpy into non-trivial types).
+inline c99d make_c99d(double re, double im) noexcept {
+  c99d v; __real__ v = re; __imag__ v = im; return v;
+}
+inline c99f make_c99f(float re, float im) noexcept {
+  c99f v; __real__ v = re; __imag__ v = im; return v;
+}
+
+// Declare the C99 libm functions explicitly to avoid pulling in <complex.h>
+// (which in C++ mode can redefine 'complex', 'real', 'imag' as macros and
+// break std::complex usage in the same translation unit).
+extern "C" {
+  c99d cacos(c99d) noexcept;
+  c99d casin(c99d) noexcept;
+  c99d catanh(c99d) noexcept;
+  c99f cacosf(c99f) noexcept;
+  c99f casinf(c99f) noexcept;
+  c99f catanhf(c99f) noexcept;
+}
+
 template <typename T, typename Fd, typename Ff>
 std::complex<T> c99(std::complex<T> z, Fd fd, Ff ff) noexcept {
   if constexpr (std::is_same_v<T, double>) {
-    c99d c = __builtin_complex(z.real(), z.imag());
-    const c99d r = fd(c);
+    const c99d r = fd(make_c99d(z.real(), z.imag()));
     return {static_cast<double>(__real__ r), static_cast<double>(__imag__ r)};
   } else {
-    c99f c = __builtin_complex(static_cast<float>(z.real()), static_cast<float>(z.imag()));
-    const c99f r = ff(c);
+    const c99f r = ff(make_c99f(z.real(), z.imag()));
     return {static_cast<float>(__real__ r), static_cast<float>(__imag__ r)};
   }
 }
 
 template <typename T>
 std::complex<T> cacos_(std::complex<T> z) noexcept {
-  return c99(z, [](c99d c) { return __builtin_cacos(c); }, [](c99f c) { return __builtin_cacosf(c); });
+  return c99(z, [](c99d c) { return cacos(c); }, [](c99f c) { return cacosf(c); });
 }
 template <typename T>
 std::complex<T> casin_(std::complex<T> z) noexcept {
-  return c99(z, [](c99d c) { return __builtin_casin(c); }, [](c99f c) { return __builtin_casinf(c); });
+  return c99(z, [](c99d c) { return casin(c); }, [](c99f c) { return casinf(c); });
 }
 template <typename T>
 std::complex<T> catanh_(std::complex<T> z) noexcept {
-  return c99(z, [](c99d c) { return __builtin_catanh(c); }, [](c99f c) { return __builtin_catanhf(c); });
+  return c99(z, [](c99d c) { return catanh(c); }, [](c99f c) { return catanhf(c); });
 }
 #endif
 

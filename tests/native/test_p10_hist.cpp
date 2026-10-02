@@ -82,7 +82,7 @@ TEST_CASE("p10_hist: histogram estimators") {
   // At least check they run without error for a normal-ish sample.
   const std::vector<double> vals = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   const NDArray a = dbl({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
-  for (const std::string& est : {"auto", "fd", "sturges", "scott", "rice", "doane", "sqrt"}) {
+  for (const char* est : {"auto", "fd", "sturges", "scott", "rice", "doane", "sqrt"}) {
     p10::HistBins bins;
     bins.estimator = est;
     std::vector<std::string> warns;
