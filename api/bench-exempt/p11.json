@@ -1,1 +1,6 @@
-[]
+[
+ "linalg.cholesky [nativpy] [numpy]",
+ "linalg.matrix_power [nativpy] [numpy]",
+ "linalg.slogdet [nativpy] [numpy]",
+ "linalg.svdvals [nativpy] [numpy]"
+]
