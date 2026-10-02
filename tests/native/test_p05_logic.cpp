@@ -83,14 +83,23 @@ TEST_CASE("p05 compare: complex lexicographic order (NumPy CLT/CLE)") {
 }
 
 TEST_CASE("p05 compare: complex NaN raises invalid like NumPy") {
-  const ErrStateGuard guard;  // restores errstate on exit, even if an exception escapes
-  ErrState s = get_errstate();
-  s.invalid = FpMode::Raise;
-  set_errstate(s);
   using C = std::complex<double>;
-  CHECK_THROWS_KIND(bin("less", cvec({C(kNaN, 0)}), cvec({C(1, 0)})), ErrorKind::FloatingPoint);
-  // equal is quiet; real float compares are quiet.
-  CHECK(ints(bin("equal", cvec({C(kNaN, 0)}), cvec({C(1, 0)}))) == IV({0}));
+  // complex less/lessEqual/greater/greaterEqual raise FE_INVALID on NaN (like
+  // NumPy's CLT/CLE/CGT/CGE macros). Scope the Raise mode tightly so only
+  // the complex ordered-compare path is tested; real float < with NaN also
+  // raises FE_INVALID on Linux/GCC (IEEE 754 signaling), so it must run
+  // outside the Raise scope.
+  {
+    const ErrStateGuard guard;
+    ErrState s = get_errstate();
+    s.invalid = FpMode::Raise;
+    set_errstate(s);
+    CHECK_THROWS_KIND(bin("less", cvec({C(kNaN, 0)}), cvec({C(1, 0)})), ErrorKind::FloatingPoint);
+    // equal uses == which is quiet (no FE_INVALID) even with NaN.
+    CHECK(ints(bin("equal", cvec({C(kNaN, 0)}), cvec({C(1, 0)}))) == IV({0}));
+  }
+  // Real float < with NaN: returns false, raises FE_INVALID but we are back
+  // in Warn mode so it does not throw.
   CHECK(ints(bin("less", vec_d({kNaN}), vec_d({1}))) == IV({0}));
 }
 
