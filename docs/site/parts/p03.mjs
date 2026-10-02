@@ -95,4 +95,34 @@ f.astype("float64", { copy: false }) === f; // => true`,
       },
     ],
   },
+  {
+    id: "utilities",
+    entries: [
+      {
+        name: "ndindex",
+        sig: "np.ndindex(...shape)",
+        desc: "Generator of every index of `shape` (dimensions as arguments or one array) in C order. `ndindex()` yields `[]` once.",
+        returns: "Generator<number[]>",
+        example: `[...np.ndindex(2, 2)]; // => [[0, 0], [0, 1], [1, 0], [1, 1]]`,
+      },
+      {
+        name: "ndenumerate",
+        sig: "np.ndenumerate(a)",
+        desc: "Generator of `[index, value]` pairs in C order; values are JS scalars.",
+        returns: "Generator<[number[], number | boolean | Complex]>",
+        example: `[...np.ndenumerate(np.array([[1, 2], [3, 4]]))]; // => [[[0, 0], 1], [[0, 1], 2], [[1, 0], 3], [[1, 1], 4]]`,
+      },
+      {
+        name: "nditer",
+        sig: "np.nditer(op | ops, { flags, order = \"K\", opFlags })",
+        desc: "Read-only multi-dimensional iterator (`NDIter`). Each step yields a 0-d read-only view (an array of views for several operands, which broadcast together). `\"K\"` walks memory order. Flags: `multi_index`, `c_index`, `f_index`, `zerosize_ok`; members `multiIndex`, `index`, `iterindex`, `itersize`, `shape`, `ndim`, `nop`, `operands`, `value`, `finished`, `iternext()`, `reset()`. Buffering, `external_loop` and writable operands raise `NotImplementedError`.",
+        returns: "NDIter",
+        example: `const out = [];
+for (const x of np.nditer(np.array([[1, 2], [3, 4]]).T)) out.push(x.item());
+out; // => [1, 2, 3, 4]
+const it = np.nditer([np.array([[1], [2]]), np.array([10, 20])]);
+[...it].map(([x, y]) => x.item() + y.item()); // => [11, 21, 12, 22]`,
+      },
+    ],
+  },
 ];

@@ -6,5 +6,11 @@
 //   declare module "./ndarray.js" { interface NDArray { foo(): NDArray } }
 //   NDArray.prototype.foo = function () { ... };
 // (see AGENTS.md "Parallel milestones").
+import { ndenumerate, nditer, ndindex } from "./p03_iter.js";
 
-export const p03 = {} as const;
+export { FlatIter } from "./ndarray.js";
+export type { FlatIndex, ScalarValue } from "./ndarray.js";
+export { NDIter, ndenumerate, nditer, ndindex } from "./p03_iter.js";
+export type { NDIterOptions } from "./p03_iter.js";
+
+export const p03 = { ndindex, ndenumerate, nditer } as const;

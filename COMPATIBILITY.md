@@ -110,12 +110,16 @@ differential tests (`pnpm test:diff`).
 - FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
 - Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
 
-## P3 NDArray methods and core API (build-first; NumPy differential checks pending)
+## Documented divergences
+P3 NDArray methods and core API (build-first; NumPy differential checks pending):
+
 | NumPy | NumPy behaviour | numera | Decision |
 |---|---|---|---|
 | `a.flat` | `flatiter` object, `a.flat[i]` | `FlatIter` with `get(i)`/`set(i, v)`, iterable; `a.flat = v` assigns cyclically | D-060 |
-| `a.flat[i]` for an integer | NumPy scalar | JS scalar (D-005) | D-060 |
+| `a.flat[i]` for an integer | NumPy scalar | JS scalar | D-060 |
 | `a.tobytes()` | Python `bytes` | `Uint8Array` copy | D-060 |
 | `a.setflags(align=, uic=)` | supported | `NotImplementedError` (only `write`) | D-060 |
-| `a.fill(300)` on int8 | `OverflowError` | `ValueError` (D-009 rules) | D-060 |
+| `a.fill(300)` on int8 | `OverflowError` | `ValueError` | D-060 |
 | `a.astype(dt, casting=)` disallowed | `TypeError` | `DTypeError` | D-060 |
+| `np.nditer` | full iterator (buffering, writable operands, context manager) | read-only `NDIter`, flags `multi_index`/`c_index`/`f_index`/`zerosize_ok`; others raise `NotImplementedError` | D-061 |
+| `np.ndenumerate` values | NumPy scalars | JS scalars | D-061 |

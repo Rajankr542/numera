@@ -19,6 +19,8 @@ export interface P03Native {
   byteswap(a: N, inplace: boolean): N;
   matrixTranspose(a: N): N;
   flatAssign(a: N, positions: N | null, values: N): undefined;
+  // P3-3 (D-061)
+  iterPlan(ops: N[], order: string | undefined): { shape: number[]; axes: number[]; flipped: boolean[] };
 }
 
 export const p03native = nativeModule<P03Native>("p03");

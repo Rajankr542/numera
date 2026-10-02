@@ -1571,3 +1571,29 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `astype(dt, {order, copy, casting})`: `casting` (default `"unsafe"`) is checked
   with `canCast`; a disallowed cast raises `DTypeError` ("Cannot cast array data
   from dtype('float64') to dtype('int32') according to the rule 'safe'").
+
+## D-061 — ndindex / ndenumerate / nditer (P3-3) — Accepted — 2026-10-02
+- Native `native/core/p03_iter.{hpp,cpp}` computes the iteration plan: broadcast
+  shape, the axis order (outermost → innermost) and per-axis flips. Orders:
+  `"C"` row-major, `"F"` column-major, `"A"` F if every operand is F-contiguous
+  else C, `"K"` (default) NumPy's memory order: axes sorted by |stride|
+  (`keep_order_axes`, D-050) and an axis is flipped when no operand has a positive
+  stride on it and at least one has a negative stride (NumPy
+  `npyiter_flip_negative_strides`). TS walks the plan and builds 0-d read-only views.
+- `np.nditer(op | op[], {flags, order, opFlags})` returns an `NDIter` (JS has no
+  context manager or Python iterator object; it is a JS iterable). Each step
+  yields a 0-d read-only `NDArray` view (one operand) or an array of them.
+  Supported flags: `multi_index`, `c_index`, `f_index`, `zerosize_ok`
+  (camelCase spellings accepted). `buffered`, `external_loop`, `reduce_ok`,
+  `refs_ok`, `ranged`, `delay_bufalloc`, `grow_inner`, `copy_if_overlap`,
+  `common_dtype` raise `NotImplementedError`; unknown flags raise `ValueError`
+  (NumPy message). `opFlags` other than `readonly` raise `NotImplementedError`.
+- Members: `shape`, `ndim`, `nop`, `itersize`, `iterindex` (get/set), `multiIndex`
+  (get/set, coordinates in operand space even when an axis is flipped), `index`
+  (C or F flat index of the broadcast shape), `finished`, `value`, `operands`,
+  `iternext()`, `reset()`. Errors follow NumPy: missing `multi_index` / index
+  → `ValueError`, out-of-range `iterindex`/`multiIndex` → `IndexError`, zero-size
+  operands without `zerosize_ok` → `ValueError`, broadcast mismatch → `BroadcastError`.
+- `np.ndindex(...shape)` (numbers or one shape array) and `np.ndenumerate(a)` are
+  generators of `number[]` / `[number[], scalar]` in C order (scalars are JS values,
+  D-005).

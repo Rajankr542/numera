@@ -2,6 +2,7 @@
 
 #include "binding_utils.hpp"
 #include "milestone_bindings.hpp"
+#include "p03_iter.hpp"
 #include "p03_methods.hpp"
 #include "shape_ops.hpp"
 
@@ -46,6 +47,23 @@ void init_p03_binding(Napi::Env env, Napi::Object exports) {
             flat_assign(a, &arr(i, 1), arr(i, 2));
           }
           return e.Undefined();
+        }));
+
+  // ---- P3-3 iteration plan (D-061) ----
+  // iterPlan(ops[], order) -> { shape, axes, flipped }
+  m.Set("iterPlan", fn(env, "iterPlan", [](Info i, Napi::Env e) -> Napi::Value {
+          const IterPlan p = iter_plan(arg_arrays(i[0], "operands"), arg_order(i[1], Order::K));
+          Napi::Object out = Napi::Object::New(e);
+          out.Set("shape", ints_to_js(e, p.shape));
+          Napi::Array axes = Napi::Array::New(e, p.axes.size());
+          Napi::Array flipped = Napi::Array::New(e, p.flipped.size());
+          for (std::uint32_t k = 0; k < p.axes.size(); ++k) {
+            axes.Set(k, Napi::Number::New(e, static_cast<double>(p.axes[k])));
+            flipped.Set(k, Napi::Boolean::New(e, p.flipped[k]));
+          }
+          out.Set("axes", axes);
+          out.Set("flipped", flipped);
+          return out;
         }));
 
   exports.Set("p03", m);
