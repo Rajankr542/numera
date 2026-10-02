@@ -47,6 +47,15 @@ struct Rows {
   std::int64_t n = 1;
 };
 
+// Copy of `a` with NaN (either component for complex) replaced by `v`;
+// `a` itself for non-float dtypes.
+NDArray replace_nan(const NDArray& a, double v);
+
+// Int64 count of non-NaN elements per reduced slice (keepdims applied).
+NDArray count_not_nan(const NDArray& a, const std::optional<std::vector<std::int64_t>>& axis, bool keepdims);
+
+bool is_inexact(DType dt) noexcept;
+
 // axis nullopt = all axes. The data keeps a's dtype unless `dt` is given.
 Rows to_rows(const NDArray& a, const std::optional<std::vector<std::int64_t>>& axis, bool keepdims,
              std::optional<DType> dt = std::nullopt);

@@ -5,6 +5,7 @@ import { array } from "./creation.js";
 import { dtype as toDType, type DTypeLike } from "./dtype.js";
 import { wrapNative } from "./errors.js";
 import { NDArray } from "./ndarray.js";
+import type { ArgReduceOptions, ReduceOptions, VarOptions } from "./reduce.js";
 import type { ArrayLike } from "./ufunc.js";
 
 type N = NativeNDArray;
@@ -31,6 +32,16 @@ interface P10Native {
   ): N;
   diff(a: N, n: number, axis: number, prepend: N | null, append: N | null): N;
   ptp(a: N, axis: number[] | null, keepdims: boolean): N;
+  nanReduce(op: string, a: N, opts: NativeReduceOptions): N;
+  nanArgReduce(isMax: boolean, a: N, axis: number | null, keepdims: boolean): N;
+}
+
+interface NativeReduceOptions {
+  axis: number[] | null;
+  keepdims: boolean;
+  dtype: string | null;
+  initial: number | null;
+  ddof: number;
 }
 
 const native = (): P10Native => nativeModule<P10Native>("p10");
@@ -199,6 +210,45 @@ export function ptp(a: ArrayLike, opts: PtpOptions = {}): NDArray {
   return wrap(() => native().ptp(x._native, axes(opts.axis), opts.keepdims ?? false));
 }
 
+// ---- NaN reductions (D-133) ----
+
+function nanImpl(op: string, a: ArrayLike, opts: ReduceOptions & { ddof?: number }): NDArray {
+  const x = toArray(a);
+  return wrap(() =>
+    native().nanReduce(op, x._native, {
+      axis: axes(opts.axis),
+      keepdims: opts.keepdims ?? false,
+      dtype: opts.dtype == null ? null : toDType(opts.dtype).name,
+      initial: opts.initial ?? null,
+      ddof: opts.ddof ?? 0,
+    }),
+  );
+}
+
+/** NumPy nansum: NaNs count as 0. */
+export const nansum = (a: ArrayLike, opts: ReduceOptions = {}): NDArray => nanImpl("sum", a, opts);
+/** NumPy nanprod: NaNs count as 1. */
+export const nanprod = (a: ArrayLike, opts: ReduceOptions = {}): NDArray => nanImpl("prod", a, opts);
+/** NumPy nanmean: mean of the non-NaN values (all-NaN slices give NaN). */
+export const nanmean = (a: ArrayLike, opts: Omit<ReduceOptions, "initial"> = {}): NDArray => nanImpl("mean", a, opts);
+/** NumPy nanvar. */
+export const nanvar = (a: ArrayLike, opts: VarOptions = {}): NDArray => nanImpl("var", a, opts);
+/** NumPy nanstd. */
+export const nanstd = (a: ArrayLike, opts: VarOptions = {}): NDArray => nanImpl("std", a, opts);
+/** NumPy nanmin (all-NaN slices give NaN). */
+export const nanmin = (a: ArrayLike, opts: Omit<ReduceOptions, "dtype"> = {}): NDArray => nanImpl("min", a, opts);
+/** NumPy nanmax. */
+export const nanmax = (a: ArrayLike, opts: Omit<ReduceOptions, "dtype"> = {}): NDArray => nanImpl("max", a, opts);
+
+function nanArg(isMax: boolean, a: ArrayLike, opts: ArgReduceOptions): NDArray {
+  const x = toArray(a);
+  return wrap(() => native().nanArgReduce(isMax, x._native, opts.axis ?? null, opts.keepdims ?? false));
+}
+/** NumPy nanargmin: raises `ValueError` for an all-NaN slice. */
+export const nanargmin = (a: ArrayLike, opts: ArgReduceOptions = {}): NDArray => nanArg(false, a, opts);
+/** NumPy nanargmax. */
+export const nanargmax = (a: ArrayLike, opts: ArgReduceOptions = {}): NDArray => nanArg(true, a, opts);
+
 declare module "./ndarray.js" {
   interface NDArray {
     /** NumPy `a.cumsum({axis, dtype, out})`. */
@@ -234,4 +284,13 @@ export const p10 = {
   nancumprod,
   diff,
   ptp,
+  nansum,
+  nanprod,
+  nanmean,
+  nanvar,
+  nanstd,
+  nanmin,
+  nanmax,
+  nanargmin,
+  nanargmax,
 } as const;

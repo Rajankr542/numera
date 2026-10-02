@@ -21,28 +21,6 @@ NDArray axis_slice(const NDArray& a, std::size_t ax, std::int64_t start, std::in
   return a.view(shape, a.strides(), a.offset() + start * a.strides()[ax]);
 }
 
-// Copy of `a` with NaN (either component for complex) replaced by `v`.
-NDArray replace_nan(const NDArray& a, double v) {
-  const DType dt = a.dtype();
-  if (dtype_info(dt).kind != 'f' && !is_complex(dt)) return a;
-  NDArray c = a.copy();
-  dispatch_dtype(dt, [&](auto tag) {
-    using S = dtype_t<decltype(tag)::value>;
-    if constexpr (std::is_same_v<S, float16_t> || std::is_floating_point_v<S>) {
-      using C = compute_t<S>;
-      for (std::int64_t i = 0; i < c.size(); ++i) {
-        if (std::isnan(at<C, S>(c, i))) put<S>(c, i, v);
-      }
-    } else if constexpr (is_complex_v<S>) {
-      for (std::int64_t i = 0; i < c.size(); ++i) {
-        const S z = at<S, S>(c, i);
-        if (std::isnan(z.real()) || std::isnan(z.imag())) put<S>(c, i, S(static_cast<typename S::value_type>(v)));
-      }
-    }
-  });
-  return c;
-}
-
 [[noreturn]] void bool_subtract_error() {
   throw_error(ErrorKind::DType,
               "numpy boolean subtract, the `-` operator, is not supported, use the bitwise_xor, the `^` "

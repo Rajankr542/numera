@@ -1,6 +1,7 @@
 #include "binding_utils.hpp"
 #include "milestone_bindings.hpp"
 #include "p10_cumdiff.hpp"
+#include "p10_nan.hpp"
 #include "p10_quantile.hpp"
 
 namespace nativpy::bindings {
@@ -30,6 +31,30 @@ std::optional<DType> opt_dtype(const Napi::Value& v) {
   const auto dt = dtype_from_name(name);
   if (!dt) throw_error(ErrorKind::DType, "data type '" + name + "' not understood");
   return dt;
+}
+
+ReduceOp reduce_op(const std::string& name) {
+  if (name == "sum") return ReduceOp::Sum;
+  if (name == "prod") return ReduceOp::Prod;
+  if (name == "min") return ReduceOp::Min;
+  if (name == "max") return ReduceOp::Max;
+  if (name == "mean") return ReduceOp::Mean;
+  if (name == "var") return ReduceOp::Var;
+  if (name == "std") return ReduceOp::Std;
+  throw_error(ErrorKind::Value, "unknown reduction '" + name + "'");
+}
+
+// {axis: number[] | null, keepdims, dtype, initial, ddof}
+ReduceOptions reduce_opts(const Napi::Value& o) {
+  ReduceOptions r;
+  r.axis = opt_ints(prop(o, "axis"), "axis");
+  r.keepdims = opt_bool(o, "keepdims");
+  r.dtype = opt_dtype(prop(o, "dtype"));
+  const Napi::Value init = prop(o, "initial");
+  if (!is_nullish(init)) r.initial = arg_double(init, "initial");
+  const Napi::Value ddof = prop(o, "ddof");
+  if (!is_nullish(ddof)) r.ddof = arg_int(ddof, "ddof");
+  return r;
 }
 
 }  // namespace
@@ -73,6 +98,14 @@ void init_p10_binding(Napi::Env env, Napi::Object exports) {
   // ptp(a, axis: number[] | null, keepdims)
   m.Set("ptp", fn(env, "ptp", [](Info i, Napi::Env e) {
           return wrap(e, p10::ptp(arr(i, 0), opt_ints(i[1], "axis"), arg_bool(i[2])));
+        }));
+  // nanReduce(op, a, opts)
+  m.Set("nanReduce", fn(env, "nanReduce", [](Info i, Napi::Env e) {
+          return wrap(e, p10::nan_reduce(reduce_op(arg_string(i[0], "op")), arr(i, 1), reduce_opts(i[2])));
+        }));
+  // nanArgReduce(isMax, a, axis | null, keepdims)
+  m.Set("nanArgReduce", fn(env, "nanArgReduce", [](Info i, Napi::Env e) {
+          return wrap(e, p10::nan_arg_reduce(arg_bool(i[0]), arr(i, 1), opt_int(i[2], "axis"), arg_bool(i[3])));
         }));
   exports.Set("p10", m);
 }

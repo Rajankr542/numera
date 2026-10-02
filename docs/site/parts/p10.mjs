@@ -74,6 +74,27 @@ np.diff([[1, 2], [4, 8]], { axis: 0 }); // => [[3, 6]]`,
         example: `np.ptp([[1, 5], [2, 9]]);            // => 8
 np.ptp([[1, 5], [2, 9]], { axis: 0 }); // => [1, 4]`,
       },
+      {
+        name: "nansum",
+        sig: "np.nansum · np.nanprod · np.nanmean · np.nanvar · np.nanstd · np.nanmin · np.nanmax (a, { axis?, keepdims?, dtype?, initial?, ddof? })",
+        desc: "Reductions that ignore NaN: NaN counts as 0 for `nansum`, 1 for `nanprod`, and is left out of the count for `nanmean`/`nanvar`/`nanstd`. All-NaN slices give 0 (`nansum`), 1 (`nanprod`) or NaN (the others; NumPy also warns). Integer input behaves like the plain reduction. Options are those of `sum`/`mean`/`var`/`min`.",
+        args: [arr(), axisArg, keepdimsArg, { name: "[options.ddof]", type: "number", desc: "`nanvar`/`nanstd`: divisor is count - ddof." }],
+        returns: "NDArray",
+        example: `const x = np.array([[1, NaN, 3], [4, 5, NaN]]);
+np.nansum(x);                 // => 13
+np.nanmean(x, { axis: 1 });   // => [2, 4.5]
+np.nanmax(x, { axis: 0 });    // => [4, 5, 3]
+np.nanvar([1, NaN, 2], { ddof: 1 }); // => 0.5`,
+      },
+      {
+        name: "nanargmin",
+        sig: "np.nanargmin(a, { axis?, keepdims? }) · np.nanargmax(a, ...)",
+        desc: "Index of the minimum / maximum ignoring NaNs. An all-NaN slice raises `ValueError(\"All-NaN slice encountered\")`.",
+        args: [arr(), { name: "[options.axis]", type: "number | null", desc: "Axis; default the flattened array." }, keepdimsArg],
+        returns: "NDArray (int64)",
+        example: `np.nanargmax([NaN, 2, 5, NaN]);                  // => 2
+np.nanargmin([[NaN, 1], [2, 3]], { axis: 0 });   // => [1, 0]`,
+      },
     ],
   },
 ];

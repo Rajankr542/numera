@@ -89,3 +89,30 @@ describe("P10 cumulative ops, diff, ptp", () => {
     expect(() => np.ptp([])).toThrow(ValueError);
   });
 });
+
+describe("P10 NaN reductions", () => {
+  const x = np.array([[1, NaN, 3], [NaN, NaN, NaN]]);
+  it("sum / prod / mean / var / std", () => {
+    expect(np.nansum(x, { axis: 1 }).toArray()).toEqual([4, 0]);
+    expect(np.nanprod(x, { axis: 1 }).toArray()).toEqual([3, 1]);
+    expect(np.nanmean(x, { axis: 1 }).toArray()).toEqual([2, NaN]);
+    expect(np.nanvar(x, { axis: 1 }).toArray()).toEqual([1, NaN]);
+    expect(np.nanstd(x, { axis: 1, keepdims: true }).toArray()).toEqual([[1], [NaN]]);
+    expect(np.nanvar([1, NaN, 2], { ddof: 1 }).item()).toBe(0.5);
+    expect(np.nanvar(np.array([1, NaN, 2], { dtype: "float32" })).dtype.name).toBe("float32");
+    expect(np.nansum(np.array([100, 100], { dtype: "int8" })).dtype.name).toBe("int64");
+    expect(np.nanmean(np.array([1, 2], { dtype: "int8" })).item()).toBe(1.5);
+    expect(np.nanmean([]).item()).toBeNaN();
+    expect(() => np.nanmean([1, NaN], { dtype: "int64" })).toThrow(DTypeError);
+  });
+  it("min / max / argmin / argmax", () => {
+    expect(np.nanmin(x, { axis: 1 }).toArray()).toEqual([1, NaN]);
+    expect(np.nanmax(x, { axis: 1 }).toArray()).toEqual([3, NaN]);
+    expect(np.nanmin(x, { axis: 1, initial: 0 }).toArray()).toEqual([0, 0]);
+    expect(Object.is(np.nanmin([0, -0]).item(), -0)).toBe(true);
+    expect(np.nanargmax([NaN, 2, 5, NaN]).item()).toBe(2);
+    expect(np.nanargmin([[NaN, 1], [2, 3]], { axis: 0 }).toArray()).toEqual([1, 0]);
+    expect(() => np.nanargmin(x, { axis: 1 })).toThrow(ValueError);
+    expect(() => np.nanmin([])).toThrow(ValueError);
+  });
+});
