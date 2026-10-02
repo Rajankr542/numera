@@ -1,0 +1,13 @@
+{
+ "version": "1.0.1",
+ "package": "@cyfora/numera",
+ "date": "2026-09-30",
+ "numpy": "2.5.3",
+ "node": ">=18",
+ "documented": 75,
+ "coverage": {
+  "implemented": 158,
+  "total": 1054,
+  "coverage": 15
+ }
+}

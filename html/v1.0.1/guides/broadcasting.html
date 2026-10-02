@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.1" data-path="guides/broadcasting.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Broadcasting · numera v1.0.1</title>
+<meta name="description" content="How arrays of different shapes combine in element-wise operations.">
+<meta property="og:title" content="Broadcasting · numera">
+<meta property="og:description" content="How arrays of different shapes combine in element-wise operations.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.2">v1.0.2 (latest)</option><option value="1.0.1" selected>v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html" aria-current="page">Guides</a><a href="../reference/index.html">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+<div class="banner">You are reading the docs for <strong>v1.0.1</strong>. The latest release is <a href="../../v1.0.2/index.html" data-switch="1.0.2">v1.0.2</a>.</div>
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Getting started</p><ul><li><a href="../index.html">Introduction</a></li><li><a href="../guides/installation.html">Installation</a></li><li><a href="../guides/quickstart.html">Quickstart</a></li><li><a href="../guides/numpy-migration.html">Coming from NumPy</a></li></ul></div><div class="side-group"><p class="side-title">Core concepts</p><ul><li><a href="../guides/array-basics.html">Array basics</a></li><li><a href="../guides/dtypes.html">Data types</a></li><li><a href="../guides/broadcasting.html" aria-current="page">Broadcasting</a></li><li><a href="../guides/indexing.html">Indexing and slicing</a></li><li><a href="../guides/reductions.html">Reductions</a></li></ul></div><div class="side-group"><p class="side-title">Topics</p><ul><li><a href="../guides/random.html">Random numbers</a></li><li><a href="../guides/linalg-fft.html">Linear algebra and FFT</a></li><li><a href="../guides/errors.html">Errors</a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose"><p class="eyebrow">Core concepts</p><h1>Broadcasting</h1><p>Broadcasting describes how element-wise operations treat arrays of different shapes. numera follows NumPy's rules exactly.</p>
+<h2 id="the-rule">The rule<a class="anchor" href="#the-rule" aria-label="Link to this section">#</a></h2>
+<p>Compare the shapes starting from the <strong>last</strong> dimension. Two dimensions are compatible when they are equal or one of them is 1. Missing leading dimensions count as 1.</p>
+<div class="table"><table><thead><tr><th>A</th><th>B</th><th>Result</th></tr></thead><tbody><tr><td><code>[3, 4]</code></td><td><code>[4]</code></td><td><code>[3, 4]</code></td></tr><tr><td><code>[3, 1]</code></td><td><code>[4]</code></td><td><code>[3, 4]</code></td></tr><tr><td><code>[8, 1, 6, 1]</code></td><td><code>[7, 1, 5]</code></td><td><code>[8, 7, 6, 5]</code></td></tr><tr><td><code>[2, 3]</code></td><td><code>[3, 2]</code></td><td>error: <code>BroadcastError</code></td></tr></tbody></table></div>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">broadcastShapes</span>([<span class="t-num">3</span>, <span class="t-num">1</span>], [<span class="t-num">4</span>]);             <span class="t-res">// =&gt; [3, 4]</span>
+np.<span class="t-fn">broadcastShapes</span>([<span class="t-num">8</span>, <span class="t-num">1</span>, <span class="t-num">6</span>, <span class="t-num">1</span>], [<span class="t-num">7</span>, <span class="t-num">1</span>, <span class="t-num">5</span>]); <span class="t-res">// =&gt; [8, 7, 6, 5]</span>
+np.<span class="t-fn">multiply</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]], <span class="t-num">10</span>);           <span class="t-res">// =&gt; [[10, 20], [30, 40]]</span></code></pre></div>
+<h2 id="row-and-column-vectors">Row and column vectors<a class="anchor" href="#row-and-column-vectors" aria-label="Link to this section">#</a></h2>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> col = np.<span class="t-fn">arange</span>(<span class="t-num">3</span>).<span class="t-fn">reshape</span>(<span class="t-num">3</span>, <span class="t-num">1</span>);
+np.<span class="t-fn">add</span>(col, np.<span class="t-fn">arange</span>(<span class="t-num">2</span>));                <span class="t-res">// =&gt; [[0, 1], [1, 2], [2, 3]]</span>
+np.<span class="t-fn">add</span>(np.<span class="t-fn">arange</span>(<span class="t-num">3</span>).<span class="t-fn">get</span>(np.ellipsis, np.newaxis), [<span class="t-num">10</span>, <span class="t-num">20</span>]); <span class="t-res">// =&gt; [[10, 20], [11, 21], [12, 22]]</span></code></pre></div>
+<h2 id="centring-data">Centring data<a class="anchor" href="#centring-data" aria-label="Link to this section">#</a></h2>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> m = np.<span class="t-fn">array</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]]);
+np.<span class="t-fn">subtract</span>(m, np.<span class="t-fn">mean</span>(m, { axis: <span class="t-num">0</span> }));                   <span class="t-res">// =&gt; [[-1, -1], [1, 1]]</span>
+np.<span class="t-fn">subtract</span>(m, np.<span class="t-fn">mean</span>(m, { axis: <span class="t-num">1</span>, keepdims: <span class="t-kw">true</span> }));   <span class="t-res">// =&gt; [[-0.5, 0.5], [-0.5, 0.5]]</span></code></pre></div>
+<h2 id="errors">Errors<a class="anchor" href="#errors" aria-label="Link to this section">#</a></h2>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">let</span> msg;
+<span class="t-kw">try</span> { np.<span class="t-fn">add</span>(np.<span class="t-fn">ones</span>([<span class="t-num">2</span>, <span class="t-num">3</span>]), np.<span class="t-fn">ones</span>([<span class="t-num">3</span>, <span class="t-num">2</span>])); } <span class="t-kw">catch</span> (e) { msg = e.message; }
+msg; <span class="t-res">// =&gt; &quot;operands could not be broadcast together with shapes (2, 3) (3, 2)&quot;</span></code></pre></div>
+<h2 id="explicit-broadcasting">Explicit broadcasting<a class="anchor" href="#explicit-broadcasting" aria-label="Link to this section">#</a></h2>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">broadcastTo</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>], [<span class="t-num">2</span>, <span class="t-num">3</span>]);        <span class="t-res">// =&gt; [[1, 2, 3], [1, 2, 3]]</span>
+np.<span class="t-fn">broadcastTo</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>], [<span class="t-num">2</span>, <span class="t-num">3</span>]).flags.writeable; <span class="t-res">// =&gt; false</span>
+np.<span class="t-fn">matmul</span>(np.<span class="t-fn">ones</span>([<span class="t-num">5</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]), np.<span class="t-fn">ones</span>([<span class="t-num">3</span>, <span class="t-num">4</span>])).shape; <span class="t-res">// =&gt; [5, 2, 4]</span></code></pre></div></article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../guides/dtypes.html"><small>Previous</small><span>Data types</span></a><a class="pg next" href="../guides/indexing.html"><small>Next</small><span>Indexing and slicing</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l2"><a href="#the-rule">The rule</a></li><li class="l2"><a href="#row-and-column-vectors">Row and column vectors</a></li><li class="l2"><a href="#centring-data">Centring data</a></li><li class="l2"><a href="#errors">Errors</a></li><li class="l2"><a href="#explicit-broadcasting">Explicit broadcasting</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.1</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.2","versions":["1.0.2","1.0.1"],"pages":{"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>

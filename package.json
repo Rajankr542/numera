@@ -1,0 +1,14 @@
+{
+  "name": "numera-api-docs",
+  "private": true,
+  "type": "module",
+  "description": "Static, versioned documentation site for @cyfora/numera",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check:links": "node scripts/check-links.mjs",
+    "check:examples": "node scripts/check-examples.mjs",
+    "snapshot": "node scripts/snapshot.mjs",
+    "serve": "python3 -m http.server 8000 --directory html"
+  }
+}

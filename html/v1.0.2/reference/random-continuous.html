@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.2" data-path="reference/random-continuous.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Random — continuous distributions (Generator) · numera v1.0.2</title>
+<meta name="description" content="Continuous distribution samplers on np.random.Generator. Obtain a generator with np.random.defaultRng(seed). All methods return a JS number when size is omitted and a float64 NDArray otherwise.">
+<meta property="og:title" content="Random — continuous distributions (Generator) · numera">
+<meta property="og:description" content="Continuous distribution samplers on np.random.Generator. Obtain a generator with np.random.defaultRng(seed). All methods return a JS number when size is omitted and a float64 NDArray otherwise.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.2" selected>v1.0.2 (latest)</option><option value="1.0.1">v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html">Guides</a><a href="../reference/index.html" aria-current="page">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Reference</p><ul><li><a href="../reference/index.html">Overview</a></li><li><a href="../reference/numpy-index.html">NumPy name index</a></li></ul></div><div class="side-group"><p class="side-title">Array objects</p><ul><li><a href="../reference/ndarray.html">NDArray<span class="badge">20</span></a></li><li><a href="../reference/dtype.html">Data types<span class="badge">43</span></a></li></ul></div><div class="side-group"><p class="side-title">Universal functions</p><ul><li><a href="../reference/ufuncs.html">ufunc overview<span class="badge">106</span></a></li><li><a href="../reference/math.html">Math (ufuncs)<span class="badge">31</span></a></li><li><a href="../reference/logic.html">Comparison, logic and bitwise<span class="badge">13</span></a></li></ul></div><div class="side-group"><p class="side-title">Routines</p><ul><li><a href="../reference/creation.html">Array creation<span class="badge">25</span></a></li><li><a href="../reference/shape.html">Shape manipulation<span class="badge">41</span></a></li><li><a href="../reference/indexing.html">Indexing<span class="badge">20</span></a></li><li><a href="../reference/grids.html">Grids and index helpers<span class="badge">9</span></a></li><li><a href="../reference/tri-indices.html">Triangle and diagonal indices<span class="badge">8</span></a></li><li><a href="../reference/reduce.html">Reductions<span class="badge">5</span></a></li><li><a href="../reference/reduce-where.html">Reductions with where= / out=<span class="badge">5</span></a></li><li><a href="../reference/sorting.html">Sorting, searching and sets<span class="badge">15</span></a></li><li><a href="../reference/statistics.html">Statistics<span class="badge">19</span></a></li><li><a href="../reference/polynomials.html">Polynomials<span class="badge">11</span></a></li><li><a href="../reference/windows.html">Window functions<span class="badge">5</span></a></li><li><a href="../reference/io.html">Input and output<span class="badge">11</span></a></li><li><a href="../reference/utilities.html">Utilities<span class="badge">40</span></a></li><li><a href="../reference/errors.html">Errors<span class="badge">3</span></a></li></ul></div><div class="side-group"><p class="side-title">Modules</p><ul><li><a href="../reference/linalg.html">np.linalg<span class="badge">35</span></a></li><li><a href="../reference/fft.html">np.fft<span class="badge">8</span></a></li><li><a href="../reference/random.html">np.random<span class="badge">6</span></a></li><li><a href="../reference/random-bitgen.html">Random — bit generators<span class="badge">7</span></a></li><li><a href="../reference/random-discrete.html">Random — discrete distributions (Generator)<span class="badge">6</span></a></li><li><a href="../reference/random-continuous.html" aria-current="page">Random — continuous distributions (Generator)<span class="badge">22</span></a></li><li><a href="../reference/random-multivariate.html">Random — multivariate distributions (Generator)<span class="badge">4</span></a></li><li><a href="../reference/random-state.html">Random state<span class="badge">5</span></a></li><li><a href="../reference/emath.html">np.emath (complex-valued math)<span class="badge">4</span></a></li><li><a href="../reference/testing.html">np.testing (assertions)<span class="badge">8</span></a></li><li><a href="../reference/polynomial.html">np.polynomial (series classes)<span class="badge">4</span></a></li><li><a href="../reference/ma.html">Masked arrays (np.ma)<span class="badge">1</span></a></li><li><a href="../reference/strings.html">String operations (np.strings / np.char)<span class="badge">8</span></a></li><li><a href="../reference/rec.html">Record arrays (np.rec)<span class="badge">5</span></a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose ref">
+<p class="eyebrow">API reference</p>
+<h1>Random — continuous distributions (Generator)</h1>
+<p class="lede">Continuous distribution samplers on <code>np.random.Generator</code>. Obtain a generator with <code>np.random.defaultRng(seed)</code>. All methods return a JS number when <code>size</code> is omitted and a <code>float64</code> <code>NDArray</code> otherwise.</p>
+<div class="summary-table table"><table><thead><tr><th>Name</th><th>Summary</th></tr></thead><tbody><tr><td><a href="#standardExponential"><code>np.standardExponential</code></a></td><td>Draw samples from the standard exponential distribution (rate=1).</td></tr><tr><td><a href="#exponential"><code>np.exponential</code></a></td><td>Draw samples from an exponential distribution with given scale (inverse rate).</td></tr><tr><td><a href="#standardGamma"><code>np.standardGamma</code></a></td><td>Draw samples from a standard Gamma distribution (scale=1).</td></tr><tr><td><a href="#gamma"><code>np.gamma</code></a></td><td>Draw samples from a Gamma distribution.</td></tr><tr><td><a href="#beta"><code>np.beta</code></a></td><td>Draw samples from a Beta distribution with shape parameters <code>a</code> and <code>b</code>.</td></tr><tr><td><a href="#chisquare"><code>np.chisquare</code></a></td><td>Draw samples from a chi-square distribution with <code>df</code> degrees of freedom.</td></tr><tr><td><a href="#f"><code>np.f</code></a></td><td>Draw samples from an F distribution.</td></tr><tr><td><a href="#standardCauchy"><code>np.standardCauchy</code></a></td><td>Draw samples from the standard Cauchy distribution (location=0, scale=1).</td></tr><tr><td><a href="#pareto"><code>np.pareto</code></a></td><td>Draw samples from a Pareto II (Lomax) distribution with shape <code>a</code>.</td></tr><tr><td><a href="#weibull"><code>np.weibull</code></a></td><td>Draw samples from a Weibull distribution with shape <code>a</code>.</td></tr><tr><td><a href="#Generator-power"><code>rng.power</code></a></td><td>Draw samples from a power distribution with exponent <code>a</code> in (0, 1].</td></tr><tr><td><a href="#laplace"><code>np.laplace</code></a></td><td>Draw samples from the Laplace (double exponential) distribution.</td></tr><tr><td><a href="#gumbel"><code>np.gumbel</code></a></td><td>Draw samples from a Gumbel distribution.</td></tr><tr><td><a href="#logistic"><code>np.logistic</code></a></td><td>Draw samples from a logistic distribution.</td></tr><tr><td><a href="#lognormal"><code>np.lognormal</code></a></td><td>Draw samples from a log-normal distribution.</td></tr><tr><td><a href="#rayleigh"><code>np.rayleigh</code></a></td><td>Draw samples from a Rayleigh distribution.</td></tr><tr><td><a href="#standardT"><code>np.standardT</code></a></td><td>Draw samples from a standard Student's t-distribution.</td></tr><tr><td><a href="#noncentralChisquare"><code>np.noncentralChisquare</code></a></td><td>Draw samples from a noncentral chi-square distribution.</td></tr><tr><td><a href="#noncentralF"><code>np.noncentralF</code></a></td><td>Draw samples from a noncentral F distribution.</td></tr><tr><td><a href="#wald"><code>np.wald</code></a></td><td>Draw samples from a Wald (inverse Gaussian) distribution.</td></tr><tr><td><a href="#vonmises"><code>np.vonmises</code></a></td><td>Draw samples from a von Mises distribution.</td></tr><tr><td><a href="#triangular"><code>np.triangular</code></a></td><td>Draw samples from a triangular distribution over <code>[left, right]</code> with peak at <code>mode</code>.</td></tr></tbody></table></div>
+<article class="api" id="standardExponential">
+<header class="api-head"><h3><code>np.standardExponential</code></h3><a class="anchor" href="#standardExponential" aria-label="Link to standardExponential">#</a></header>
+<pre class="sig"><code>rng.standardExponential(size?)</code></pre>
+<p>Draw samples from the standard exponential distribution (rate=1). Equivalent to <code>numpy.random.Generator.standard_exponential</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.standard_exponential.html#numpy.random.Generator.standard_exponential" rel="noopener" target="_blank" title="Draw samples from the standard exponential distribution.">numpy.random.Generator.standard_exponential</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">standardExponential</span>(); <span class="t-res">// =&gt; 2.4042086039659947</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">standardExponential</span>(size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="exponential">
+<header class="api-head"><h3><code>np.exponential</code></h3><a class="anchor" href="#exponential" aria-label="Link to exponential">#</a></header>
+<pre class="sig"><code>rng.exponential(scale?, size?)</code></pre>
+<p>Draw samples from an exponential distribution with given scale (inverse rate). Equivalent to <code>numpy.random.Generator.exponential</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.exponential.html#numpy.random.Generator.exponential" rel="noopener" target="_blank" title="Draw samples from an exponential distribution.">numpy.random.Generator.exponential</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>[scale]</code><span class="ty">number</span></dt><dd>Scale (1/rate). Default 1.0.</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">exponential</span>(<span class="t-num">2</span>); <span class="t-res">// =&gt; 4.808417207931989</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">exponential</span>(scale?: number | <span class="t-kw">undefined</span>, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="standardGamma">
+<header class="api-head"><h3><code>np.standardGamma</code></h3><a class="anchor" href="#standardGamma" aria-label="Link to standardGamma">#</a></header>
+<pre class="sig"><code>rng.standardGamma(shape, size?)</code></pre>
+<p>Draw samples from a standard Gamma distribution (scale=1). Equivalent to <code>numpy.random.Generator.standard_gamma</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.standard_gamma.html#numpy.random.Generator.standard_gamma" rel="noopener" target="_blank" title="Draw samples from a standard Gamma distribution.">numpy.random.Generator.standard_gamma</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>shape</code><span class="ty">number</span></dt><dd>Shape parameter (&gt; 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">standardGamma</span>(<span class="t-num">2</span>); <span class="t-res">// =&gt; 2.0918172704999494</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">standardGamma</span>(shape: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="gamma">
+<header class="api-head"><h3><code>np.gamma</code></h3><a class="anchor" href="#gamma" aria-label="Link to gamma">#</a></header>
+<pre class="sig"><code>rng.gamma(shape, scale?, size?)</code></pre>
+<p>Draw samples from a Gamma distribution. Equivalent to <code>numpy.random.Generator.gamma</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.gamma.html#numpy.random.Generator.gamma" rel="noopener" target="_blank" title="Draw samples from a Gamma distribution.">numpy.random.Generator.gamma</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>shape</code><span class="ty">number</span></dt><dd>Shape parameter (&gt; 0).</dd></div><div><dt><code>[scale]</code><span class="ty">number</span></dt><dd>Scale parameter (&gt; 0). Default 1.0.</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">gamma</span>(<span class="t-num">2</span>, <span class="t-num">3</span>); <span class="t-res">// =&gt; 6.275451811499848</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">gamma</span>(shape: number, scale?: number | <span class="t-kw">undefined</span>, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="beta">
+<header class="api-head"><h3><code>np.beta</code></h3><a class="anchor" href="#beta" aria-label="Link to beta">#</a></header>
+<pre class="sig"><code>rng.beta(a, b, size?)</code></pre>
+<p>Draw samples from a Beta distribution with shape parameters <code>a</code> and <code>b</code>. Equivalent to <code>numpy.random.Generator.beta</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.beta.html#numpy.random.Generator.beta" rel="noopener" target="_blank" title="Draw samples from a Beta distribution.">numpy.random.Generator.beta</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">number</span></dt><dd>Alpha shape parameter (&gt; 0).</dd></div><div><dt><code>b</code><span class="ty">number</span></dt><dd>Beta shape parameter (&gt; 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">beta</span>(<span class="t-num">2</span>, <span class="t-num">5</span>); <span class="t-res">// =&gt; 0.24395464376443093</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">beta</span>(a: number, b: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="chisquare">
+<header class="api-head"><h3><code>np.chisquare</code></h3><a class="anchor" href="#chisquare" aria-label="Link to chisquare">#</a></header>
+<pre class="sig"><code>rng.chisquare(df, size?)</code></pre>
+<p>Draw samples from a chi-square distribution with <code>df</code> degrees of freedom. Equivalent to <code>numpy.random.Generator.chisquare</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.chisquare.html#numpy.random.Generator.chisquare" rel="noopener" target="_blank" title="Draw samples from a chi-square distribution.">numpy.random.Generator.chisquare</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>df</code><span class="ty">number</span></dt><dd>Degrees of freedom (&gt; 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">chisquare</span>(<span class="t-num">2</span>); <span class="t-res">// =&gt; 4.808417207931989</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">chisquare</span>(df: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="f">
+<header class="api-head"><h3><code>np.f</code></h3><a class="anchor" href="#f" aria-label="Link to f">#</a></header>
+<pre class="sig"><code>rng.f(dfnum, dfden, size?)</code></pre>
+<p>Draw samples from an F distribution. Equivalent to <code>numpy.random.Generator.f</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.f.html#numpy.random.Generator.f" rel="noopener" target="_blank" title="Draw samples from an F distribution.">numpy.random.Generator.f</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>dfnum</code><span class="ty">number</span></dt><dd>Numerator degrees of freedom (&gt; 0).</dd></div><div><dt><code>dfden</code><span class="ty">number</span></dt><dd>Denominator degrees of freedom (&gt; 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">f</span>(<span class="t-num">2</span>, <span class="t-num">5</span>); <span class="t-res">// =&gt; 6.208757071292293</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">f</span>(dfnum: number, dfden: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="standardCauchy">
+<header class="api-head"><h3><code>np.standardCauchy</code></h3><a class="anchor" href="#standardCauchy" aria-label="Link to standardCauchy">#</a></header>
+<pre class="sig"><code>rng.standardCauchy(size?)</code></pre>
+<p>Draw samples from the standard Cauchy distribution (location=0, scale=1). Equivalent to <code>numpy.random.Generator.standard_cauchy</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.standard_cauchy.html#numpy.random.Generator.standard_cauchy" rel="noopener" target="_blank" title="Draw samples from a standard Cauchy distribution with mode = 0.">numpy.random.Generator.standard_cauchy</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+<span class="t-kw">typeof</span> rng.<span class="t-fn">standardCauchy</span>(); <span class="t-res">// =&gt; &quot;number&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">standardCauchy</span>(size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="pareto">
+<header class="api-head"><h3><code>np.pareto</code></h3><a class="anchor" href="#pareto" aria-label="Link to pareto">#</a></header>
+<pre class="sig"><code>rng.pareto(a, size?)</code></pre>
+<p>Draw samples from a Pareto II (Lomax) distribution with shape <code>a</code>. Equivalent to <code>numpy.random.Generator.pareto</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.pareto.html#numpy.random.Generator.pareto" rel="noopener" target="_blank" title="Draw samples from a Pareto II (AKA Lomax) distribution with specified shape.">numpy.random.Generator.pareto</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">number</span></dt><dd>Shape parameter (&gt; 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">pareto</span>(<span class="t-num">3</span>) &gt;= <span class="t-num">0</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">pareto</span>(a: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="weibull">
+<header class="api-head"><h3><code>np.weibull</code></h3><a class="anchor" href="#weibull" aria-label="Link to weibull">#</a></header>
+<pre class="sig"><code>rng.weibull(a, size?)</code></pre>
+<p>Draw samples from a Weibull distribution with shape <code>a</code>. Equivalent to <code>numpy.random.Generator.weibull</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.weibull.html#numpy.random.Generator.weibull" rel="noopener" target="_blank" title="Draw samples from a Weibull distribution.">numpy.random.Generator.weibull</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">number</span></dt><dd>Shape parameter (&gt;= 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">weibull</span>(<span class="t-num">1</span>); <span class="t-res">// =&gt; 2.4042086039659947</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">weibull</span>(a: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="Generator-power">
+<header class="api-head"><h3><code>rng.power</code></h3><a class="anchor" href="#Generator-power" aria-label="Link to Generator.power">#</a></header>
+<pre class="sig"><code>rng.power(a, size?)</code></pre>
+<p>Draw samples from a power distribution with exponent <code>a</code> in (0, 1]. Equivalent to <code>numpy.random.Generator.power</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.power.html#numpy.random.Generator.power" rel="noopener" target="_blank" title="Draws samples in [0, 1] from a power distribution with positive exponent a - 1.">numpy.random.Generator.power</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">number</span></dt><dd>Exponent in (0, 1].</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">power</span>(<span class="t-num">0.5</span>); <span class="t-res">// =&gt; 0.8274868469979773</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">power</span>(a: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="laplace">
+<header class="api-head"><h3><code>np.laplace</code></h3><a class="anchor" href="#laplace" aria-label="Link to laplace">#</a></header>
+<pre class="sig"><code>rng.laplace(loc?, scale?, size?)</code></pre>
+<p>Draw samples from the Laplace (double exponential) distribution. Equivalent to <code>numpy.random.Generator.laplace</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.laplace.html#numpy.random.Generator.laplace" rel="noopener" target="_blank" title="Draw samples from the Laplace or double exponential distribution with specified location (or mean) and scale (decay).">numpy.random.Generator.laplace</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>[loc]</code><span class="ty">number</span></dt><dd>Location (mean). Default 0.0.</dd></div><div><dt><code>[scale]</code><span class="ty">number</span></dt><dd>Scale (&gt;= 0). Default 1.0.</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+<span class="t-kw">typeof</span> rng.<span class="t-fn">laplace</span>(); <span class="t-res">// =&gt; &quot;number&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">laplace</span>(loc?: number | <span class="t-kw">undefined</span>, scale?: number | <span class="t-kw">undefined</span>, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="gumbel">
+<header class="api-head"><h3><code>np.gumbel</code></h3><a class="anchor" href="#gumbel" aria-label="Link to gumbel">#</a></header>
+<pre class="sig"><code>rng.gumbel(loc?, scale?, size?)</code></pre>
+<p>Draw samples from a Gumbel distribution. Equivalent to <code>numpy.random.Generator.gumbel</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.gumbel.html#numpy.random.Generator.gumbel" rel="noopener" target="_blank" title="Draw samples from a Gumbel distribution.">numpy.random.Generator.gumbel</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>[loc]</code><span class="ty">number</span></dt><dd>Location. Default 0.0.</dd></div><div><dt><code>[scale]</code><span class="ty">number</span></dt><dd>Scale (&gt;= 0). Default 1.0.</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+<span class="t-kw">typeof</span> rng.<span class="t-fn">gumbel</span>(); <span class="t-res">// =&gt; &quot;number&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">gumbel</span>(loc?: number | <span class="t-kw">undefined</span>, scale?: number | <span class="t-kw">undefined</span>, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="logistic">
+<header class="api-head"><h3><code>np.logistic</code></h3><a class="anchor" href="#logistic" aria-label="Link to logistic">#</a></header>
+<pre class="sig"><code>rng.logistic(loc?, scale?, size?)</code></pre>
+<p>Draw samples from a logistic distribution. Equivalent to <code>numpy.random.Generator.logistic</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.logistic.html#numpy.random.Generator.logistic" rel="noopener" target="_blank" title="Draw samples from a logistic distribution.">numpy.random.Generator.logistic</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>[loc]</code><span class="ty">number</span></dt><dd>Location. Default 0.0.</dd></div><div><dt><code>[scale]</code><span class="ty">number</span></dt><dd>Scale (&gt;= 0). Default 1.0.</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+<span class="t-kw">typeof</span> rng.<span class="t-fn">logistic</span>(); <span class="t-res">// =&gt; &quot;number&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">logistic</span>(loc?: number | <span class="t-kw">undefined</span>, scale?: number | <span class="t-kw">undefined</span>, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="lognormal">
+<header class="api-head"><h3><code>np.lognormal</code></h3><a class="anchor" href="#lognormal" aria-label="Link to lognormal">#</a></header>
+<pre class="sig"><code>rng.lognormal(mean?, sigma?, size?)</code></pre>
+<p>Draw samples from a log-normal distribution. Equivalent to <code>numpy.random.Generator.lognormal</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.lognormal.html#numpy.random.Generator.lognormal" rel="noopener" target="_blank" title="Draw samples from a log-normal distribution.">numpy.random.Generator.lognormal</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>[mean]</code><span class="ty">number</span></dt><dd>Mean of the underlying normal. Default 0.0.</dd></div><div><dt><code>[sigma]</code><span class="ty">number</span></dt><dd>Std dev of underlying normal (&gt;= 0). Default 1.0.</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">lognormal</span>() &gt; <span class="t-num">0</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">lognormal</span>(mean?: number | <span class="t-kw">undefined</span>, sigma?: number | <span class="t-kw">undefined</span>, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="rayleigh">
+<header class="api-head"><h3><code>np.rayleigh</code></h3><a class="anchor" href="#rayleigh" aria-label="Link to rayleigh">#</a></header>
+<pre class="sig"><code>rng.rayleigh(scale?, size?)</code></pre>
+<p>Draw samples from a Rayleigh distribution. Equivalent to <code>numpy.random.Generator.rayleigh</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.rayleigh.html#numpy.random.Generator.rayleigh" rel="noopener" target="_blank" title="Draw samples from a Rayleigh distribution.">numpy.random.Generator.rayleigh</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>[scale]</code><span class="ty">number</span></dt><dd>Scale parameter (&gt;= 0). Default 1.0.</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">rayleigh</span>() &gt; <span class="t-num">0</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">rayleigh</span>(scale?: number | <span class="t-kw">undefined</span>, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="standardT">
+<header class="api-head"><h3><code>np.standardT</code></h3><a class="anchor" href="#standardT" aria-label="Link to standardT">#</a></header>
+<pre class="sig"><code>rng.standardT(df, size?)</code></pre>
+<p>Draw samples from a standard Student's t-distribution. Equivalent to <code>numpy.random.Generator.standard_t</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.standard_t.html#numpy.random.Generator.standard_t" rel="noopener" target="_blank" title="Draw samples from a standard Student's t distribution with `df` degrees of freedom.">numpy.random.Generator.standard_t</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>df</code><span class="ty">number</span></dt><dd>Degrees of freedom (&gt; 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+<span class="t-kw">typeof</span> rng.<span class="t-fn">standardT</span>(<span class="t-num">2</span>); <span class="t-res">// =&gt; &quot;number&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">standardT</span>(df: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="noncentralChisquare">
+<header class="api-head"><h3><code>np.noncentralChisquare</code></h3><a class="anchor" href="#noncentralChisquare" aria-label="Link to noncentralChisquare">#</a></header>
+<pre class="sig"><code>rng.noncentralChisquare(df, nonc, size?)</code></pre>
+<p>Draw samples from a noncentral chi-square distribution. Equivalent to <code>numpy.random.Generator.noncentral_chisquare</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.noncentral_chisquare.html#numpy.random.Generator.noncentral_chisquare" rel="noopener" target="_blank" title="Draw samples from a noncentral chi-square distribution.">numpy.random.Generator.noncentral_chisquare</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>df</code><span class="ty">number</span></dt><dd>Degrees of freedom (&gt; 0).</dd></div><div><dt><code>nonc</code><span class="ty">number</span></dt><dd>Noncentrality parameter (&gt;= 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">noncentralChisquare</span>(<span class="t-num">3</span>, <span class="t-num">1</span>) &gt; <span class="t-num">0</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">noncentralChisquare</span>(df: number, nonc: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="noncentralF">
+<header class="api-head"><h3><code>np.noncentralF</code></h3><a class="anchor" href="#noncentralF" aria-label="Link to noncentralF">#</a></header>
+<pre class="sig"><code>rng.noncentralF(dfnum, dfden, nonc, size?)</code></pre>
+<p>Draw samples from a noncentral F distribution. Equivalent to <code>numpy.random.Generator.noncentral_f</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.noncentral_f.html#numpy.random.Generator.noncentral_f" rel="noopener" target="_blank" title="Draw samples from the noncentral F distribution.">numpy.random.Generator.noncentral_f</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>dfnum</code><span class="ty">number</span></dt><dd>Numerator degrees of freedom (&gt; 0).</dd></div><div><dt><code>dfden</code><span class="ty">number</span></dt><dd>Denominator degrees of freedom (&gt; 0).</dd></div><div><dt><code>nonc</code><span class="ty">number</span></dt><dd>Noncentrality parameter (&gt;= 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">noncentralF</span>(<span class="t-num">3</span>, <span class="t-num">5</span>, <span class="t-num">1</span>) &gt; <span class="t-num">0</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">noncentralF</span>(dfnum: number, dfden: number, nonc: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="wald">
+<header class="api-head"><h3><code>np.wald</code></h3><a class="anchor" href="#wald" aria-label="Link to wald">#</a></header>
+<pre class="sig"><code>rng.wald(mean, scale, size?)</code></pre>
+<p>Draw samples from a Wald (inverse Gaussian) distribution. Equivalent to <code>numpy.random.Generator.wald</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.wald.html#numpy.random.Generator.wald" rel="noopener" target="_blank" title="Draw samples from a Wald, or inverse Gaussian, distribution.">numpy.random.Generator.wald</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>mean</code><span class="ty">number</span></dt><dd>Distribution mean (&gt; 0).</dd></div><div><dt><code>scale</code><span class="ty">number</span></dt><dd>Scale parameter (&gt; 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+rng.<span class="t-fn">wald</span>(<span class="t-num">1</span>, <span class="t-num">1</span>) &gt; <span class="t-num">0</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">wald</span>(mean: number, scale: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="vonmises">
+<header class="api-head"><h3><code>np.vonmises</code></h3><a class="anchor" href="#vonmises" aria-label="Link to vonmises">#</a></header>
+<pre class="sig"><code>rng.vonmises(mu, kappa, size?)</code></pre>
+<p>Draw samples from a von Mises distribution. Equivalent to <code>numpy.random.Generator.vonmises</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.vonmises.html#numpy.random.Generator.vonmises" rel="noopener" target="_blank" title="Draw samples from a von Mises distribution.">numpy.random.Generator.vonmises</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>mu</code><span class="ty">number</span></dt><dd>Mode angle in radians.</dd></div><div><dt><code>kappa</code><span class="ty">number</span></dt><dd>Concentration parameter (&gt;= 0).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+<span class="t-kw">typeof</span> rng.<span class="t-fn">vonmises</span>(<span class="t-num">0</span>, <span class="t-num">1</span>); <span class="t-res">// =&gt; &quot;number&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">vonmises</span>(mu: number, kappa: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+<article class="api" id="triangular">
+<header class="api-head"><h3><code>np.triangular</code></h3><a class="anchor" href="#triangular" aria-label="Link to triangular">#</a></header>
+<pre class="sig"><code>rng.triangular(left, mode, right, size?)</code></pre>
+<p>Draw samples from a triangular distribution over <code>[left, right]</code> with peak at <code>mode</code>. Equivalent to <code>numpy.random.Generator.triangular</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/random/generated/numpy.random.Generator.triangular.html#numpy.random.Generator.triangular" rel="noopener" target="_blank" title="Draw samples from the triangular distribution over the interval ``[left, right]``.">numpy.random.Generator.triangular</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>left</code><span class="ty">number</span></dt><dd>Lower bound.</dd></div><div><dt><code>mode</code><span class="ty">number</span></dt><dd>Peak value in [left, right].</dd></div><div><dt><code>right</code><span class="ty">number</span></dt><dd>Upper bound (&gt; left).</dd></div><div><dt><code>[size]</code><span class="ty">number | number[]</span></dt><dd>Output shape; omit for a scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | NDArray&lt;float64&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> rng = np.random.<span class="t-fn">defaultRng</span>(<span class="t-num">42</span>);
+<span class="t-kw">const</span> v = rng.<span class="t-fn">triangular</span>(<span class="t-num">0</span>, <span class="t-num">0.5</span>, <span class="t-num">1</span>);
+v &gt;= <span class="t-num">0</span> &amp;&amp; v &lt;= <span class="t-num">1</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>rng.<span class="t-fn">triangular</span>(left: number, mode: number, right: number, size?: Size | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): number | NDArray</code></pre></details>
+</article>
+</article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../reference/random-discrete.html"><small>Previous</small><span>Random — discrete distributions (Generator)</span></a><a class="pg next" href="../reference/random-multivariate.html"><small>Next</small><span>Random — multivariate distributions (Generator)</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l3"><a href="#standardExponential">np.standardExponential</a></li><li class="l3"><a href="#exponential">np.exponential</a></li><li class="l3"><a href="#standardGamma">np.standardGamma</a></li><li class="l3"><a href="#gamma">np.gamma</a></li><li class="l3"><a href="#beta">np.beta</a></li><li class="l3"><a href="#chisquare">np.chisquare</a></li><li class="l3"><a href="#f">np.f</a></li><li class="l3"><a href="#standardCauchy">np.standardCauchy</a></li><li class="l3"><a href="#pareto">np.pareto</a></li><li class="l3"><a href="#weibull">np.weibull</a></li><li class="l3"><a href="#Generator-power">rng.power</a></li><li class="l3"><a href="#laplace">np.laplace</a></li><li class="l3"><a href="#gumbel">np.gumbel</a></li><li class="l3"><a href="#logistic">np.logistic</a></li><li class="l3"><a href="#lognormal">np.lognormal</a></li><li class="l3"><a href="#rayleigh">np.rayleigh</a></li><li class="l3"><a href="#standardT">np.standardT</a></li><li class="l3"><a href="#noncentralChisquare">np.noncentralChisquare</a></li><li class="l3"><a href="#noncentralF">np.noncentralF</a></li><li class="l3"><a href="#wald">np.wald</a></li><li class="l3"><a href="#vonmises">np.vonmises</a></li><li class="l3"><a href="#triangular">np.triangular</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.2</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.2","versions":["1.0.2","1.0.1"],"pages":{"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>

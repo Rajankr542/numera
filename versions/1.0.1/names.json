@@ -1,0 +1,4947 @@
+{
+ "numpy_version": "2.5.3",
+ "surfaces": {
+  "Generator": {
+   "implemented": [
+    {
+     "numpy": "choice",
+     "js": "choice",
+     "kind": "method",
+     "sig": [
+      "rng.choice(a: Population, size?: Size | { size?: Size | undefined; replace?: boolean | undefined; p?: unknown; axis?: number | undefined; shuffle?: boolean | undefined; } | null | undefined, replace?: boolean | undefined, p?: unknown, axis?: number | undefined, shuffle?: boolean | undefined): Out"
+     ]
+    },
+    {
+     "numpy": "integers",
+     "js": "integers",
+     "kind": "method",
+     "sig": [
+      "rng.integers(low: number | bigint | { low: number | bigint; high?: number | bigint | null | undefined; size?: Size | undefined; dtype?: DTypeLike | undefined; endpoint?: boolean | undefined; }, high?: number | bigint | null | undefined, size?: Size | undefined, dt?: DTypeLike | undefined, endpoint?: boolean | undefined): Out"
+     ]
+    },
+    {
+     "numpy": "normal",
+     "js": "normal",
+     "kind": "method",
+     "sig": [
+      "rng.normal(loc?: number | { loc?: number | undefined; scale?: number | undefined; size?: Size | undefined; } | undefined, scale?: number | undefined, size?: Size | undefined): Out"
+     ]
+    },
+    {
+     "numpy": "permutation",
+     "js": "permutation",
+     "kind": "method",
+     "sig": [
+      "rng.permutation(x: NDArray | NestedArray, axis?: number | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "random",
+     "js": "random",
+     "kind": "method",
+     "sig": [
+      "rng.random(size?: Size | { size?: Size | undefined; dtype?: DTypeLike | undefined; } | undefined, dt?: DTypeLike | undefined): Out"
+     ]
+    },
+    {
+     "numpy": "shuffle",
+     "js": "shuffle",
+     "kind": "method",
+     "sig": [
+      "rng.shuffle(x: NDArray, axis?: number | undefined): void"
+     ]
+    },
+    {
+     "numpy": "standard_normal",
+     "js": "standardNormal",
+     "kind": "method",
+     "sig": [
+      "rng.standardNormal(size?: Size | { size?: Size | undefined; dtype?: DTypeLike | undefined; } | undefined, dt?: DTypeLike | undefined): Out"
+     ]
+    },
+    {
+     "numpy": "uniform",
+     "js": "uniform",
+     "kind": "method",
+     "sig": [
+      "rng.uniform(low?: number | { low?: number | undefined; high?: number | undefined; size?: Size | undefined; } | undefined, high?: number | undefined, size?: Size | undefined): Out"
+     ]
+    }
+   ],
+   "missing": [
+    {
+     "numpy": "beta",
+     "kind": "method"
+    },
+    {
+     "numpy": "binomial",
+     "kind": "method"
+    },
+    {
+     "numpy": "bit_generator",
+     "kind": "attribute"
+    },
+    {
+     "numpy": "bytes",
+     "kind": "method"
+    },
+    {
+     "numpy": "chisquare",
+     "kind": "method"
+    },
+    {
+     "numpy": "dirichlet",
+     "kind": "method"
+    },
+    {
+     "numpy": "exponential",
+     "kind": "method"
+    },
+    {
+     "numpy": "f",
+     "kind": "method"
+    },
+    {
+     "numpy": "gamma",
+     "kind": "method"
+    },
+    {
+     "numpy": "geometric",
+     "kind": "method"
+    },
+    {
+     "numpy": "gumbel",
+     "kind": "method"
+    },
+    {
+     "numpy": "hypergeometric",
+     "kind": "method"
+    },
+    {
+     "numpy": "laplace",
+     "kind": "method"
+    },
+    {
+     "numpy": "logistic",
+     "kind": "method"
+    },
+    {
+     "numpy": "lognormal",
+     "kind": "method"
+    },
+    {
+     "numpy": "logseries",
+     "kind": "method"
+    },
+    {
+     "numpy": "multinomial",
+     "kind": "method"
+    },
+    {
+     "numpy": "multivariate_hypergeometric",
+     "kind": "method"
+    },
+    {
+     "numpy": "multivariate_normal",
+     "kind": "method"
+    },
+    {
+     "numpy": "negative_binomial",
+     "kind": "method"
+    },
+    {
+     "numpy": "noncentral_chisquare",
+     "kind": "method"
+    },
+    {
+     "numpy": "noncentral_f",
+     "kind": "method"
+    },
+    {
+     "numpy": "pareto",
+     "kind": "method"
+    },
+    {
+     "numpy": "permuted",
+     "kind": "method"
+    },
+    {
+     "numpy": "poisson",
+     "kind": "method"
+    },
+    {
+     "numpy": "power",
+     "kind": "method"
+    },
+    {
+     "numpy": "rayleigh",
+     "kind": "method"
+    },
+    {
+     "numpy": "spawn",
+     "kind": "method"
+    },
+    {
+     "numpy": "standard_cauchy",
+     "kind": "method"
+    },
+    {
+     "numpy": "standard_exponential",
+     "kind": "method"
+    },
+    {
+     "numpy": "standard_gamma",
+     "kind": "method"
+    },
+    {
+     "numpy": "standard_t",
+     "kind": "method"
+    },
+    {
+     "numpy": "triangular",
+     "kind": "method"
+    },
+    {
+     "numpy": "vonmises",
+     "kind": "method"
+    },
+    {
+     "numpy": "wald",
+     "kind": "method"
+    },
+    {
+     "numpy": "weibull",
+     "kind": "method"
+    },
+    {
+     "numpy": "zipf",
+     "kind": "method"
+    }
+   ]
+  },
+  "RandomState": {
+   "implemented": [
+    {
+     "numpy": "choice",
+     "js": "choice",
+     "kind": "method",
+     "sig": [
+      "rs.choice(a: Population, size?: Size | { size?: Size | undefined; replace?: boolean | undefined; p?: unknown; } | null | undefined, replace?: boolean | undefined, p?: unknown): Out"
+     ]
+    },
+    {
+     "numpy": "normal",
+     "js": "normal",
+     "kind": "method",
+     "sig": [
+      "rs.normal(loc?: number | { loc?: number | undefined; scale?: number | undefined; size?: Size | undefined; } | undefined, scale?: number | undefined, size?: Size | undefined): Out"
+     ]
+    },
+    {
+     "numpy": "permutation",
+     "js": "permutation",
+     "kind": "method",
+     "sig": [
+      "rs.permutation(x: NDArray | NestedArray): NDArray"
+     ]
+    },
+    {
+     "numpy": "rand",
+     "js": "rand",
+     "kind": "method",
+     "sig": [
+      "rs.rand(...dims: number[]): Out"
+     ]
+    },
+    {
+     "numpy": "randint",
+     "js": "randint",
+     "kind": "method",
+     "sig": [
+      "rs.randint(low: number | bigint | { low: number | bigint; high?: number | bigint | null | undefined; size?: Size | undefined; dtype?: DTypeLike | undefined; }, high?: number | bigint | null | undefined, size?: Size | undefined, dt?: DTypeLike | undefined): Out"
+     ]
+    },
+    {
+     "numpy": "randn",
+     "js": "randn",
+     "kind": "method",
+     "sig": [
+      "rs.randn(...dims: number[]): Out"
+     ]
+    },
+    {
+     "numpy": "random",
+     "js": "random",
+     "kind": "method",
+     "sig": [
+      "rs.random(size?: Size | null | undefined): Out"
+     ]
+    },
+    {
+     "numpy": "random_sample",
+     "js": "randomSample",
+     "kind": "method",
+     "sig": [
+      "rs.randomSample(size?: Size | null | undefined): Out"
+     ]
+    },
+    {
+     "numpy": "seed",
+     "js": "seed",
+     "kind": "method",
+     "sig": [
+      "rs.seed(seed?: Seed | null | undefined): void"
+     ]
+    },
+    {
+     "numpy": "shuffle",
+     "js": "shuffle",
+     "kind": "method",
+     "sig": [
+      "rs.shuffle(x: NDArray): void"
+     ]
+    },
+    {
+     "numpy": "standard_normal",
+     "js": "standardNormal",
+     "kind": "method",
+     "sig": [
+      "rs.standardNormal(size?: Size | null | undefined): Out"
+     ]
+    },
+    {
+     "numpy": "uniform",
+     "js": "uniform",
+     "kind": "method",
+     "sig": [
+      "rs.uniform(low?: number | { low?: number | undefined; high?: number | undefined; size?: Size | undefined; } | undefined, high?: number | undefined, size?: Size | undefined): Out"
+     ]
+    }
+   ],
+   "missing": [
+    {
+     "numpy": "beta",
+     "kind": "method"
+    },
+    {
+     "numpy": "binomial",
+     "kind": "method"
+    },
+    {
+     "numpy": "bytes",
+     "kind": "method"
+    },
+    {
+     "numpy": "chisquare",
+     "kind": "method"
+    },
+    {
+     "numpy": "dirichlet",
+     "kind": "method"
+    },
+    {
+     "numpy": "exponential",
+     "kind": "method"
+    },
+    {
+     "numpy": "f",
+     "kind": "method"
+    },
+    {
+     "numpy": "gamma",
+     "kind": "method"
+    },
+    {
+     "numpy": "geometric",
+     "kind": "method"
+    },
+    {
+     "numpy": "get_state",
+     "kind": "method"
+    },
+    {
+     "numpy": "gumbel",
+     "kind": "method"
+    },
+    {
+     "numpy": "hypergeometric",
+     "kind": "method"
+    },
+    {
+     "numpy": "laplace",
+     "kind": "method"
+    },
+    {
+     "numpy": "logistic",
+     "kind": "method"
+    },
+    {
+     "numpy": "lognormal",
+     "kind": "method"
+    },
+    {
+     "numpy": "logseries",
+     "kind": "method"
+    },
+    {
+     "numpy": "multinomial",
+     "kind": "method"
+    },
+    {
+     "numpy": "multivariate_normal",
+     "kind": "method"
+    },
+    {
+     "numpy": "negative_binomial",
+     "kind": "method"
+    },
+    {
+     "numpy": "noncentral_chisquare",
+     "kind": "method"
+    },
+    {
+     "numpy": "noncentral_f",
+     "kind": "method"
+    },
+    {
+     "numpy": "pareto",
+     "kind": "method"
+    },
+    {
+     "numpy": "poisson",
+     "kind": "method"
+    },
+    {
+     "numpy": "power",
+     "kind": "method"
+    },
+    {
+     "numpy": "random_integers",
+     "kind": "method"
+    },
+    {
+     "numpy": "rayleigh",
+     "kind": "method"
+    },
+    {
+     "numpy": "set_state",
+     "kind": "method"
+    },
+    {
+     "numpy": "standard_cauchy",
+     "kind": "method"
+    },
+    {
+     "numpy": "standard_exponential",
+     "kind": "method"
+    },
+    {
+     "numpy": "standard_gamma",
+     "kind": "method"
+    },
+    {
+     "numpy": "standard_t",
+     "kind": "method"
+    },
+    {
+     "numpy": "triangular",
+     "kind": "method"
+    },
+    {
+     "numpy": "vonmises",
+     "kind": "method"
+    },
+    {
+     "numpy": "wald",
+     "kind": "method"
+    },
+    {
+     "numpy": "weibull",
+     "kind": "method"
+    },
+    {
+     "numpy": "zipf",
+     "kind": "method"
+    }
+   ]
+  },
+  "char": {
+   "implemented": [],
+   "missing": [
+    {
+     "numpy": "add",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "array",
+     "kind": "function"
+    },
+    {
+     "numpy": "asarray",
+     "kind": "function"
+    },
+    {
+     "numpy": "capitalize",
+     "kind": "function"
+    },
+    {
+     "numpy": "center",
+     "kind": "function"
+    },
+    {
+     "numpy": "count",
+     "kind": "function"
+    },
+    {
+     "numpy": "decode",
+     "kind": "function"
+    },
+    {
+     "numpy": "encode",
+     "kind": "function"
+    },
+    {
+     "numpy": "endswith",
+     "kind": "function"
+    },
+    {
+     "numpy": "equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "expandtabs",
+     "kind": "function"
+    },
+    {
+     "numpy": "find",
+     "kind": "function"
+    },
+    {
+     "numpy": "greater",
+     "kind": "function"
+    },
+    {
+     "numpy": "greater_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "index",
+     "kind": "function"
+    },
+    {
+     "numpy": "isalnum",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isalpha",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isdecimal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isdigit",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "islower",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isnumeric",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isspace",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "istitle",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isupper",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "join",
+     "kind": "function"
+    },
+    {
+     "numpy": "less",
+     "kind": "function"
+    },
+    {
+     "numpy": "less_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "ljust",
+     "kind": "function"
+    },
+    {
+     "numpy": "lower",
+     "kind": "function"
+    },
+    {
+     "numpy": "lstrip",
+     "kind": "function"
+    },
+    {
+     "numpy": "mod",
+     "kind": "function"
+    },
+    {
+     "numpy": "multiply",
+     "kind": "function"
+    },
+    {
+     "numpy": "not_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "partition",
+     "kind": "function"
+    },
+    {
+     "numpy": "replace",
+     "kind": "function"
+    },
+    {
+     "numpy": "rfind",
+     "kind": "function"
+    },
+    {
+     "numpy": "rindex",
+     "kind": "function"
+    },
+    {
+     "numpy": "rjust",
+     "kind": "function"
+    },
+    {
+     "numpy": "rpartition",
+     "kind": "function"
+    },
+    {
+     "numpy": "rsplit",
+     "kind": "function"
+    },
+    {
+     "numpy": "rstrip",
+     "kind": "function"
+    },
+    {
+     "numpy": "slice",
+     "kind": "function"
+    },
+    {
+     "numpy": "split",
+     "kind": "function"
+    },
+    {
+     "numpy": "splitlines",
+     "kind": "function"
+    },
+    {
+     "numpy": "startswith",
+     "kind": "function"
+    },
+    {
+     "numpy": "str_len",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "strip",
+     "kind": "function"
+    },
+    {
+     "numpy": "swapcase",
+     "kind": "function"
+    },
+    {
+     "numpy": "title",
+     "kind": "function"
+    },
+    {
+     "numpy": "translate",
+     "kind": "function"
+    },
+    {
+     "numpy": "upper",
+     "kind": "function"
+    },
+    {
+     "numpy": "zfill",
+     "kind": "function"
+    }
+   ]
+  },
+  "emath": {
+   "implemented": [],
+   "missing": [
+    {
+     "numpy": "arccos",
+     "kind": "function"
+    },
+    {
+     "numpy": "arcsin",
+     "kind": "function"
+    },
+    {
+     "numpy": "arctanh",
+     "kind": "function"
+    },
+    {
+     "numpy": "log",
+     "kind": "function"
+    },
+    {
+     "numpy": "log10",
+     "kind": "function"
+    },
+    {
+     "numpy": "log2",
+     "kind": "function"
+    },
+    {
+     "numpy": "logn",
+     "kind": "function"
+    },
+    {
+     "numpy": "power",
+     "kind": "function"
+    },
+    {
+     "numpy": "sqrt",
+     "kind": "function"
+    }
+   ]
+  },
+  "fft": {
+   "implemented": [
+    {
+     "numpy": "fft",
+     "js": "fft",
+     "kind": "function",
+     "sig": [
+      "np.fft.fft(a: ArrayLike, n?: number | FftOptions | null | undefined, axis?: number | undefined, norm?: FftNorm | null | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "fft2",
+     "js": "fft2",
+     "kind": "function",
+     "sig": [
+      "np.fft.fft2(a: ArrayLike, s?: number[] | FftNOptions | null | undefined, axes?: number[] | null | undefined, norm?: FftNorm | null | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "fftfreq",
+     "js": "fftfreq",
+     "kind": "function",
+     "sig": [
+      "np.fft.fftfreq(n: number, d?: number | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "fftn",
+     "js": "fftn",
+     "kind": "function",
+     "sig": [
+      "np.fft.fftn(a: ArrayLike, s?: number[] | FftNOptions | null | undefined, axes?: number[] | null | undefined, norm?: FftNorm | null | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "ifft",
+     "js": "ifft",
+     "kind": "function",
+     "sig": [
+      "np.fft.ifft(a: ArrayLike, n?: number | FftOptions | null | undefined, axis?: number | undefined, norm?: FftNorm | null | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "ifft2",
+     "js": "ifft2",
+     "kind": "function",
+     "sig": [
+      "np.fft.ifft2(a: ArrayLike, s?: number[] | FftNOptions | null | undefined, axes?: number[] | null | undefined, norm?: FftNorm | null | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "ifftn",
+     "js": "ifftn",
+     "kind": "function",
+     "sig": [
+      "np.fft.ifftn(a: ArrayLike, s?: number[] | FftNOptions | null | undefined, axes?: number[] | null | undefined, norm?: FftNorm | null | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "irfft",
+     "js": "irfft",
+     "kind": "function",
+     "sig": [
+      "np.fft.irfft(a: ArrayLike, n?: number | FftOptions | null | undefined, axis?: number | undefined, norm?: FftNorm | null | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "rfft",
+     "js": "rfft",
+     "kind": "function",
+     "sig": [
+      "np.fft.rfft(a: ArrayLike, n?: number | FftOptions | null | undefined, axis?: number | undefined, norm?: FftNorm | null | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "rfftfreq",
+     "js": "rfftfreq",
+     "kind": "function",
+     "sig": [
+      "np.fft.rfftfreq(n: number, d?: number | undefined): NDArray"
+     ]
+    }
+   ],
+   "missing": [
+    {
+     "numpy": "fftshift",
+     "kind": "function"
+    },
+    {
+     "numpy": "hfft",
+     "kind": "function"
+    },
+    {
+     "numpy": "ifftshift",
+     "kind": "function"
+    },
+    {
+     "numpy": "ihfft",
+     "kind": "function"
+    },
+    {
+     "numpy": "irfft2",
+     "kind": "function"
+    },
+    {
+     "numpy": "irfftn",
+     "kind": "function"
+    },
+    {
+     "numpy": "rfft2",
+     "kind": "function"
+    },
+    {
+     "numpy": "rfftn",
+     "kind": "function"
+    }
+   ]
+  },
+  "linalg": {
+   "implemented": [
+    {
+     "numpy": "LinAlgError",
+     "js": "LinAlgError",
+     "kind": "class",
+     "sig": [
+      "new np.linalg.LinAlgError(message: string, code?: string | undefined)"
+     ]
+    },
+    {
+     "numpy": "det",
+     "js": "det",
+     "kind": "function",
+     "sig": [
+      "np.linalg.det(a: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "eig",
+     "js": "eig",
+     "kind": "function",
+     "sig": [
+      "np.linalg.eig(a: ArrayLike): EigResult"
+     ]
+    },
+    {
+     "numpy": "eigh",
+     "js": "eigh",
+     "kind": "function",
+     "sig": [
+      "np.linalg.eigh(a: ArrayLike): EigResult"
+     ]
+    },
+    {
+     "numpy": "eigvals",
+     "js": "eigvals",
+     "kind": "function",
+     "sig": [
+      "np.linalg.eigvals(a: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "eigvalsh",
+     "js": "eigvalsh",
+     "kind": "function",
+     "sig": [
+      "np.linalg.eigvalsh(a: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "inv",
+     "js": "inv",
+     "kind": "function",
+     "sig": [
+      "np.linalg.inv(a: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "lstsq",
+     "js": "lstsq",
+     "kind": "function",
+     "sig": [
+      "np.linalg.lstsq(a: ArrayLike, b: ArrayLike, rcond?: number | null | undefined): LstsqResult"
+     ]
+    },
+    {
+     "numpy": "matmul",
+     "js": "matmul",
+     "kind": "function",
+     "sig": [
+      "np.linalg.matmul(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "norm",
+     "js": "norm",
+     "kind": "function",
+     "sig": [
+      "np.linalg.norm(a: ArrayLike, opts?: NormOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "qr",
+     "js": "qr",
+     "kind": "function",
+     "sig": [
+      "np.linalg.qr(a: ArrayLike, mode?: QrMode | undefined): QrResult"
+     ]
+    },
+    {
+     "numpy": "solve",
+     "js": "solve",
+     "kind": "function",
+     "sig": [
+      "np.linalg.solve(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "svd",
+     "js": "svd",
+     "kind": "function",
+     "sig": [
+      "np.linalg.svd(a: ArrayLike, opts?: SvdOptions | undefined): SvdResult"
+     ]
+    }
+   ],
+   "missing": [
+    {
+     "numpy": "cholesky",
+     "kind": "function"
+    },
+    {
+     "numpy": "cond",
+     "kind": "function"
+    },
+    {
+     "numpy": "cross",
+     "kind": "function"
+    },
+    {
+     "numpy": "diagonal",
+     "kind": "function"
+    },
+    {
+     "numpy": "matrix_norm",
+     "kind": "function"
+    },
+    {
+     "numpy": "matrix_power",
+     "kind": "function"
+    },
+    {
+     "numpy": "matrix_rank",
+     "kind": "function"
+    },
+    {
+     "numpy": "matrix_transpose",
+     "kind": "function"
+    },
+    {
+     "numpy": "multi_dot",
+     "kind": "function"
+    },
+    {
+     "numpy": "outer",
+     "kind": "function"
+    },
+    {
+     "numpy": "pinv",
+     "kind": "function"
+    },
+    {
+     "numpy": "slogdet",
+     "kind": "function"
+    },
+    {
+     "numpy": "svdvals",
+     "kind": "function"
+    },
+    {
+     "numpy": "tensordot",
+     "kind": "function"
+    },
+    {
+     "numpy": "tensorinv",
+     "kind": "function"
+    },
+    {
+     "numpy": "tensorsolve",
+     "kind": "function"
+    },
+    {
+     "numpy": "trace",
+     "kind": "function"
+    },
+    {
+     "numpy": "vecdot",
+     "kind": "function"
+    },
+    {
+     "numpy": "vector_norm",
+     "kind": "function"
+    }
+   ]
+  },
+  "ma": {
+   "implemented": [],
+   "missing": [
+    {
+     "numpy": "MAError",
+     "kind": "class"
+    },
+    {
+     "numpy": "MaskError",
+     "kind": "class"
+    },
+    {
+     "numpy": "MaskType",
+     "kind": "class"
+    },
+    {
+     "numpy": "MaskedArray",
+     "kind": "class"
+    },
+    {
+     "numpy": "abs",
+     "kind": "function"
+    },
+    {
+     "numpy": "absolute",
+     "kind": "function"
+    },
+    {
+     "numpy": "add",
+     "kind": "function"
+    },
+    {
+     "numpy": "all",
+     "kind": "function"
+    },
+    {
+     "numpy": "allclose",
+     "kind": "function"
+    },
+    {
+     "numpy": "allequal",
+     "kind": "function"
+    },
+    {
+     "numpy": "alltrue",
+     "kind": "function"
+    },
+    {
+     "numpy": "amax",
+     "kind": "function"
+    },
+    {
+     "numpy": "amin",
+     "kind": "function"
+    },
+    {
+     "numpy": "angle",
+     "kind": "function"
+    },
+    {
+     "numpy": "anom",
+     "kind": "function"
+    },
+    {
+     "numpy": "anomalies",
+     "kind": "function"
+    },
+    {
+     "numpy": "any",
+     "kind": "function"
+    },
+    {
+     "numpy": "append",
+     "kind": "function"
+    },
+    {
+     "numpy": "apply_along_axis",
+     "kind": "function"
+    },
+    {
+     "numpy": "apply_over_axes",
+     "kind": "function"
+    },
+    {
+     "numpy": "arange",
+     "kind": "function"
+    },
+    {
+     "numpy": "arccos",
+     "kind": "function"
+    },
+    {
+     "numpy": "arccosh",
+     "kind": "function"
+    },
+    {
+     "numpy": "arcsin",
+     "kind": "function"
+    },
+    {
+     "numpy": "arcsinh",
+     "kind": "function"
+    },
+    {
+     "numpy": "arctan",
+     "kind": "function"
+    },
+    {
+     "numpy": "arctan2",
+     "kind": "function"
+    },
+    {
+     "numpy": "arctanh",
+     "kind": "function"
+    },
+    {
+     "numpy": "argmax",
+     "kind": "function"
+    },
+    {
+     "numpy": "argmin",
+     "kind": "function"
+    },
+    {
+     "numpy": "argsort",
+     "kind": "function"
+    },
+    {
+     "numpy": "around",
+     "kind": "function"
+    },
+    {
+     "numpy": "array",
+     "kind": "function"
+    },
+    {
+     "numpy": "asanyarray",
+     "kind": "function"
+    },
+    {
+     "numpy": "asarray",
+     "kind": "function"
+    },
+    {
+     "numpy": "atleast_1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "atleast_2d",
+     "kind": "function"
+    },
+    {
+     "numpy": "atleast_3d",
+     "kind": "function"
+    },
+    {
+     "numpy": "average",
+     "kind": "function"
+    },
+    {
+     "numpy": "bitwise_and",
+     "kind": "function"
+    },
+    {
+     "numpy": "bitwise_or",
+     "kind": "function"
+    },
+    {
+     "numpy": "bitwise_xor",
+     "kind": "function"
+    },
+    {
+     "numpy": "bool_",
+     "kind": "class"
+    },
+    {
+     "numpy": "ceil",
+     "kind": "function"
+    },
+    {
+     "numpy": "choose",
+     "kind": "function"
+    },
+    {
+     "numpy": "clip",
+     "kind": "function"
+    },
+    {
+     "numpy": "clump_masked",
+     "kind": "function"
+    },
+    {
+     "numpy": "clump_unmasked",
+     "kind": "function"
+    },
+    {
+     "numpy": "column_stack",
+     "kind": "function"
+    },
+    {
+     "numpy": "common_fill_value",
+     "kind": "function"
+    },
+    {
+     "numpy": "compress",
+     "kind": "function"
+    },
+    {
+     "numpy": "compress_cols",
+     "kind": "function"
+    },
+    {
+     "numpy": "compress_nd",
+     "kind": "function"
+    },
+    {
+     "numpy": "compress_rowcols",
+     "kind": "function"
+    },
+    {
+     "numpy": "compress_rows",
+     "kind": "function"
+    },
+    {
+     "numpy": "compressed",
+     "kind": "function"
+    },
+    {
+     "numpy": "concatenate",
+     "kind": "function"
+    },
+    {
+     "numpy": "conjugate",
+     "kind": "function"
+    },
+    {
+     "numpy": "convolve",
+     "kind": "function"
+    },
+    {
+     "numpy": "copy",
+     "kind": "function"
+    },
+    {
+     "numpy": "corrcoef",
+     "kind": "function"
+    },
+    {
+     "numpy": "correlate",
+     "kind": "function"
+    },
+    {
+     "numpy": "cos",
+     "kind": "function"
+    },
+    {
+     "numpy": "cosh",
+     "kind": "function"
+    },
+    {
+     "numpy": "count",
+     "kind": "function"
+    },
+    {
+     "numpy": "count_masked",
+     "kind": "function"
+    },
+    {
+     "numpy": "cov",
+     "kind": "function"
+    },
+    {
+     "numpy": "cumprod",
+     "kind": "function"
+    },
+    {
+     "numpy": "cumsum",
+     "kind": "function"
+    },
+    {
+     "numpy": "default_fill_value",
+     "kind": "function"
+    },
+    {
+     "numpy": "diag",
+     "kind": "function"
+    },
+    {
+     "numpy": "diagflat",
+     "kind": "function"
+    },
+    {
+     "numpy": "diagonal",
+     "kind": "function"
+    },
+    {
+     "numpy": "diff",
+     "kind": "function"
+    },
+    {
+     "numpy": "divide",
+     "kind": "function"
+    },
+    {
+     "numpy": "dot",
+     "kind": "function"
+    },
+    {
+     "numpy": "dstack",
+     "kind": "function"
+    },
+    {
+     "numpy": "ediff1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "empty",
+     "kind": "function"
+    },
+    {
+     "numpy": "empty_like",
+     "kind": "function"
+    },
+    {
+     "numpy": "equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "exp",
+     "kind": "function"
+    },
+    {
+     "numpy": "expand_dims",
+     "kind": "function"
+    },
+    {
+     "numpy": "fabs",
+     "kind": "function"
+    },
+    {
+     "numpy": "filled",
+     "kind": "function"
+    },
+    {
+     "numpy": "fix_invalid",
+     "kind": "function"
+    },
+    {
+     "numpy": "flatnotmasked_contiguous",
+     "kind": "function"
+    },
+    {
+     "numpy": "flatnotmasked_edges",
+     "kind": "function"
+    },
+    {
+     "numpy": "flatten_mask",
+     "kind": "function"
+    },
+    {
+     "numpy": "flatten_structured_array",
+     "kind": "function"
+    },
+    {
+     "numpy": "floor",
+     "kind": "function"
+    },
+    {
+     "numpy": "floor_divide",
+     "kind": "function"
+    },
+    {
+     "numpy": "fmod",
+     "kind": "function"
+    },
+    {
+     "numpy": "frombuffer",
+     "kind": "function"
+    },
+    {
+     "numpy": "fromflex",
+     "kind": "function"
+    },
+    {
+     "numpy": "fromfunction",
+     "kind": "function"
+    },
+    {
+     "numpy": "getdata",
+     "kind": "function"
+    },
+    {
+     "numpy": "getmask",
+     "kind": "function"
+    },
+    {
+     "numpy": "getmaskarray",
+     "kind": "function"
+    },
+    {
+     "numpy": "greater",
+     "kind": "function"
+    },
+    {
+     "numpy": "greater_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "harden_mask",
+     "kind": "function"
+    },
+    {
+     "numpy": "hsplit",
+     "kind": "function"
+    },
+    {
+     "numpy": "hstack",
+     "kind": "function"
+    },
+    {
+     "numpy": "hypot",
+     "kind": "function"
+    },
+    {
+     "numpy": "identity",
+     "kind": "function"
+    },
+    {
+     "numpy": "ids",
+     "kind": "function"
+    },
+    {
+     "numpy": "in1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "indices",
+     "kind": "function"
+    },
+    {
+     "numpy": "inner",
+     "kind": "function"
+    },
+    {
+     "numpy": "innerproduct",
+     "kind": "function"
+    },
+    {
+     "numpy": "intersect1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "isMA",
+     "kind": "function"
+    },
+    {
+     "numpy": "isMaskedArray",
+     "kind": "function"
+    },
+    {
+     "numpy": "is_mask",
+     "kind": "function"
+    },
+    {
+     "numpy": "is_masked",
+     "kind": "function"
+    },
+    {
+     "numpy": "isarray",
+     "kind": "function"
+    },
+    {
+     "numpy": "isin",
+     "kind": "function"
+    },
+    {
+     "numpy": "left_shift",
+     "kind": "function"
+    },
+    {
+     "numpy": "less",
+     "kind": "function"
+    },
+    {
+     "numpy": "less_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "log",
+     "kind": "function"
+    },
+    {
+     "numpy": "log10",
+     "kind": "function"
+    },
+    {
+     "numpy": "log2",
+     "kind": "function"
+    },
+    {
+     "numpy": "logical_and",
+     "kind": "function"
+    },
+    {
+     "numpy": "logical_not",
+     "kind": "function"
+    },
+    {
+     "numpy": "logical_or",
+     "kind": "function"
+    },
+    {
+     "numpy": "logical_xor",
+     "kind": "function"
+    },
+    {
+     "numpy": "make_mask",
+     "kind": "function"
+    },
+    {
+     "numpy": "make_mask_descr",
+     "kind": "function"
+    },
+    {
+     "numpy": "make_mask_none",
+     "kind": "function"
+    },
+    {
+     "numpy": "mask_cols",
+     "kind": "function"
+    },
+    {
+     "numpy": "mask_or",
+     "kind": "function"
+    },
+    {
+     "numpy": "mask_rowcols",
+     "kind": "function"
+    },
+    {
+     "numpy": "mask_rows",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked",
+     "kind": "constant"
+    },
+    {
+     "numpy": "masked_all",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_all_like",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_array",
+     "kind": "class"
+    },
+    {
+     "numpy": "masked_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_greater",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_greater_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_inside",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_invalid",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_less",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_less_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_not_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_object",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_outside",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_print_option",
+     "kind": "constant"
+    },
+    {
+     "numpy": "masked_singleton",
+     "kind": "constant"
+    },
+    {
+     "numpy": "masked_values",
+     "kind": "function"
+    },
+    {
+     "numpy": "masked_where",
+     "kind": "function"
+    },
+    {
+     "numpy": "max",
+     "kind": "function"
+    },
+    {
+     "numpy": "maximum",
+     "kind": "function"
+    },
+    {
+     "numpy": "maximum_fill_value",
+     "kind": "function"
+    },
+    {
+     "numpy": "mean",
+     "kind": "function"
+    },
+    {
+     "numpy": "median",
+     "kind": "function"
+    },
+    {
+     "numpy": "min",
+     "kind": "function"
+    },
+    {
+     "numpy": "minimum",
+     "kind": "function"
+    },
+    {
+     "numpy": "minimum_fill_value",
+     "kind": "function"
+    },
+    {
+     "numpy": "mod",
+     "kind": "function"
+    },
+    {
+     "numpy": "mr_",
+     "kind": "constant"
+    },
+    {
+     "numpy": "multiply",
+     "kind": "function"
+    },
+    {
+     "numpy": "mvoid",
+     "kind": "class"
+    },
+    {
+     "numpy": "ndenumerate",
+     "kind": "function"
+    },
+    {
+     "numpy": "ndim",
+     "kind": "function"
+    },
+    {
+     "numpy": "negative",
+     "kind": "function"
+    },
+    {
+     "numpy": "nomask",
+     "kind": "constant"
+    },
+    {
+     "numpy": "nonzero",
+     "kind": "function"
+    },
+    {
+     "numpy": "not_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "notmasked_contiguous",
+     "kind": "function"
+    },
+    {
+     "numpy": "notmasked_edges",
+     "kind": "function"
+    },
+    {
+     "numpy": "ones",
+     "kind": "function"
+    },
+    {
+     "numpy": "ones_like",
+     "kind": "function"
+    },
+    {
+     "numpy": "outer",
+     "kind": "function"
+    },
+    {
+     "numpy": "outerproduct",
+     "kind": "function"
+    },
+    {
+     "numpy": "polyfit",
+     "kind": "function"
+    },
+    {
+     "numpy": "power",
+     "kind": "function"
+    },
+    {
+     "numpy": "prod",
+     "kind": "function"
+    },
+    {
+     "numpy": "product",
+     "kind": "function"
+    },
+    {
+     "numpy": "ptp",
+     "kind": "function"
+    },
+    {
+     "numpy": "put",
+     "kind": "function"
+    },
+    {
+     "numpy": "putmask",
+     "kind": "function"
+    },
+    {
+     "numpy": "ravel",
+     "kind": "function"
+    },
+    {
+     "numpy": "remainder",
+     "kind": "function"
+    },
+    {
+     "numpy": "repeat",
+     "kind": "function"
+    },
+    {
+     "numpy": "reshape",
+     "kind": "function"
+    },
+    {
+     "numpy": "resize",
+     "kind": "function"
+    },
+    {
+     "numpy": "right_shift",
+     "kind": "function"
+    },
+    {
+     "numpy": "round",
+     "kind": "function"
+    },
+    {
+     "numpy": "round_",
+     "kind": "function"
+    },
+    {
+     "numpy": "row_stack",
+     "kind": "function"
+    },
+    {
+     "numpy": "set_fill_value",
+     "kind": "function"
+    },
+    {
+     "numpy": "setdiff1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "setxor1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "shape",
+     "kind": "function"
+    },
+    {
+     "numpy": "sin",
+     "kind": "function"
+    },
+    {
+     "numpy": "sinh",
+     "kind": "function"
+    },
+    {
+     "numpy": "size",
+     "kind": "function"
+    },
+    {
+     "numpy": "soften_mask",
+     "kind": "function"
+    },
+    {
+     "numpy": "sometrue",
+     "kind": "function"
+    },
+    {
+     "numpy": "sort",
+     "kind": "function"
+    },
+    {
+     "numpy": "sqrt",
+     "kind": "function"
+    },
+    {
+     "numpy": "squeeze",
+     "kind": "function"
+    },
+    {
+     "numpy": "stack",
+     "kind": "function"
+    },
+    {
+     "numpy": "std",
+     "kind": "function"
+    },
+    {
+     "numpy": "subtract",
+     "kind": "function"
+    },
+    {
+     "numpy": "sum",
+     "kind": "function"
+    },
+    {
+     "numpy": "swapaxes",
+     "kind": "function"
+    },
+    {
+     "numpy": "take",
+     "kind": "function"
+    },
+    {
+     "numpy": "tan",
+     "kind": "function"
+    },
+    {
+     "numpy": "tanh",
+     "kind": "function"
+    },
+    {
+     "numpy": "trace",
+     "kind": "function"
+    },
+    {
+     "numpy": "transpose",
+     "kind": "function"
+    },
+    {
+     "numpy": "true_divide",
+     "kind": "function"
+    },
+    {
+     "numpy": "union1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "unique",
+     "kind": "function"
+    },
+    {
+     "numpy": "vander",
+     "kind": "function"
+    },
+    {
+     "numpy": "var",
+     "kind": "function"
+    },
+    {
+     "numpy": "vstack",
+     "kind": "function"
+    },
+    {
+     "numpy": "where",
+     "kind": "function"
+    },
+    {
+     "numpy": "zeros",
+     "kind": "function"
+    },
+    {
+     "numpy": "zeros_like",
+     "kind": "function"
+    }
+   ]
+  },
+  "ndarray": {
+   "implemented": [
+    {
+     "numpy": "T",
+     "js": "T",
+     "kind": "attribute",
+     "sig": [
+      "a.T: NDArray"
+     ]
+    },
+    {
+     "numpy": "argmax",
+     "js": "argmax",
+     "kind": "method",
+     "sig": [
+      "a.argmax(opts?: { axis?: number | null | undefined; keepdims?: boolean | undefined; } | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "argmin",
+     "js": "argmin",
+     "kind": "method",
+     "sig": [
+      "a.argmin(opts?: { axis?: number | null | undefined; keepdims?: boolean | undefined; } | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "astype",
+     "js": "astype",
+     "kind": "method",
+     "sig": [
+      "a.astype(dt: DTypeLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "copy",
+     "js": "copy",
+     "kind": "method",
+     "sig": [
+      "a.copy(): NDArray"
+     ]
+    },
+    {
+     "numpy": "dtype",
+     "js": "dtype",
+     "kind": "attribute",
+     "sig": [
+      "a.dtype: DType"
+     ]
+    },
+    {
+     "numpy": "flags",
+     "js": "flags",
+     "kind": "attribute",
+     "sig": [
+      "a.flags: ArrayFlags"
+     ]
+    },
+    {
+     "numpy": "flatten",
+     "js": "flatten",
+     "kind": "method",
+     "sig": [
+      "a.flatten(): NDArray"
+     ]
+    },
+    {
+     "numpy": "item",
+     "js": "item",
+     "kind": "method",
+     "sig": [
+      "a.item(...index: number[]): number | boolean"
+     ]
+    },
+    {
+     "numpy": "itemsize",
+     "js": "itemSize",
+     "kind": "attribute",
+     "sig": [
+      "a.itemSize: number"
+     ]
+    },
+    {
+     "numpy": "max",
+     "js": "max",
+     "kind": "method",
+     "sig": [
+      "a.max(opts?: Omit<MethodReduceOptions, \"dtype\" | \"ddof\"> | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "mean",
+     "js": "mean",
+     "kind": "method",
+     "sig": [
+      "a.mean(opts?: Omit<MethodReduceOptions, \"initial\" | \"ddof\"> | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "min",
+     "js": "min",
+     "kind": "method",
+     "sig": [
+      "a.min(opts?: Omit<MethodReduceOptions, \"dtype\" | \"ddof\"> | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "nbytes",
+     "js": "nbytes",
+     "kind": "attribute",
+     "sig": [
+      "a.nbytes: number"
+     ]
+    },
+    {
+     "numpy": "ndim",
+     "js": "ndim",
+     "kind": "attribute",
+     "sig": [
+      "a.ndim: number"
+     ]
+    },
+    {
+     "numpy": "prod",
+     "js": "prod",
+     "kind": "method",
+     "sig": [
+      "a.prod(opts?: MethodReduceOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "ravel",
+     "js": "ravel",
+     "kind": "method",
+     "sig": [
+      "a.ravel(): NDArray"
+     ]
+    },
+    {
+     "numpy": "reshape",
+     "js": "reshape",
+     "kind": "method",
+     "sig": [
+      "a.reshape(shape: number | Shape, ...rest: number[]): NDArray"
+     ]
+    },
+    {
+     "numpy": "shape",
+     "js": "shape",
+     "kind": "attribute",
+     "sig": [
+      "a.shape: number[]"
+     ]
+    },
+    {
+     "numpy": "size",
+     "js": "size",
+     "kind": "attribute",
+     "sig": [
+      "a.size: number"
+     ]
+    },
+    {
+     "numpy": "squeeze",
+     "js": "squeeze",
+     "kind": "method",
+     "sig": [
+      "a.squeeze(axis?: number | readonly number[] | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "std",
+     "js": "std",
+     "kind": "method",
+     "sig": [
+      "a.std(opts?: Omit<MethodReduceOptions, \"initial\"> | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "strides",
+     "js": "strides",
+     "kind": "attribute",
+     "sig": [
+      "a.strides: number[]"
+     ]
+    },
+    {
+     "numpy": "sum",
+     "js": "sum",
+     "kind": "method",
+     "sig": [
+      "a.sum(opts?: MethodReduceOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "swapaxes",
+     "js": "swapAxes",
+     "kind": "method",
+     "sig": [
+      "a.swapAxes(axis1: number, axis2: number): NDArray"
+     ]
+    },
+    {
+     "numpy": "transpose",
+     "js": "transpose",
+     "kind": "method",
+     "sig": [
+      "a.transpose(...axes: number[] | [readonly number[]]): NDArray"
+     ]
+    },
+    {
+     "numpy": "var",
+     "js": "var",
+     "kind": "method",
+     "sig": [
+      "a.var(opts?: Omit<MethodReduceOptions, \"initial\"> | undefined): NDArray"
+     ]
+    }
+   ],
+   "missing": [
+    {
+     "numpy": "all",
+     "kind": "method"
+    },
+    {
+     "numpy": "any",
+     "kind": "method"
+    },
+    {
+     "numpy": "argpartition",
+     "kind": "method"
+    },
+    {
+     "numpy": "argsort",
+     "kind": "method"
+    },
+    {
+     "numpy": "base",
+     "kind": "attribute"
+    },
+    {
+     "numpy": "byteswap",
+     "kind": "method"
+    },
+    {
+     "numpy": "choose",
+     "kind": "method"
+    },
+    {
+     "numpy": "clip",
+     "kind": "method"
+    },
+    {
+     "numpy": "compress",
+     "kind": "method"
+    },
+    {
+     "numpy": "conj",
+     "kind": "method"
+    },
+    {
+     "numpy": "conjugate",
+     "kind": "method"
+    },
+    {
+     "numpy": "cumprod",
+     "kind": "method"
+    },
+    {
+     "numpy": "cumsum",
+     "kind": "method"
+    },
+    {
+     "numpy": "diagonal",
+     "kind": "method"
+    },
+    {
+     "numpy": "dot",
+     "kind": "method"
+    },
+    {
+     "numpy": "fill",
+     "kind": "method"
+    },
+    {
+     "numpy": "flat",
+     "kind": "attribute"
+    },
+    {
+     "numpy": "imag",
+     "kind": "attribute"
+    },
+    {
+     "numpy": "mT",
+     "kind": "attribute"
+    },
+    {
+     "numpy": "nonzero",
+     "kind": "method"
+    },
+    {
+     "numpy": "partition",
+     "kind": "method"
+    },
+    {
+     "numpy": "put",
+     "kind": "method"
+    },
+    {
+     "numpy": "real",
+     "kind": "attribute"
+    },
+    {
+     "numpy": "repeat",
+     "kind": "method"
+    },
+    {
+     "numpy": "resize",
+     "kind": "method"
+    },
+    {
+     "numpy": "round",
+     "kind": "method"
+    },
+    {
+     "numpy": "searchsorted",
+     "kind": "method"
+    },
+    {
+     "numpy": "setflags",
+     "kind": "method"
+    },
+    {
+     "numpy": "sort",
+     "kind": "method"
+    },
+    {
+     "numpy": "take",
+     "kind": "method"
+    },
+    {
+     "numpy": "tobytes",
+     "kind": "method"
+    },
+    {
+     "numpy": "tofile",
+     "kind": "method"
+    },
+    {
+     "numpy": "tolist",
+     "kind": "method"
+    },
+    {
+     "numpy": "trace",
+     "kind": "method"
+    },
+    {
+     "numpy": "view",
+     "kind": "method"
+    }
+   ]
+  },
+  "np": {
+   "implemented": [
+    {
+     "numpy": "abs",
+     "js": "abs",
+     "kind": "ufunc",
+     "sig": [
+      "np.abs(a: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "add",
+     "js": "add",
+     "kind": "ufunc",
+     "sig": [
+      "np.add(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "amax",
+     "js": "amax",
+     "kind": "function",
+     "sig": [
+      "np.amax(a: ArrayLike, opts?: Omit<ReduceOptions, \"dtype\"> | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "amin",
+     "js": "amin",
+     "kind": "function",
+     "sig": [
+      "np.amin(a: ArrayLike, opts?: Omit<ReduceOptions, \"dtype\"> | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "arange",
+     "js": "arange",
+     "kind": "function",
+     "sig": [
+      "np.arange(startOrStop: number, stop?: number | undefined, step?: number | undefined, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "argmax",
+     "js": "argmax",
+     "kind": "function",
+     "sig": [
+      "np.argmax(a: ArrayLike, opts?: ArgReduceOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "argmin",
+     "js": "argmin",
+     "kind": "function",
+     "sig": [
+      "np.argmin(a: ArrayLike, opts?: ArgReduceOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "array",
+     "js": "array",
+     "kind": "function",
+     "sig": [
+      "np.array(data: NDArray | NestedArray, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "asarray",
+     "js": "asarray",
+     "kind": "function",
+     "sig": [
+      "np.asarray(data: NDArray | NestedArray, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "bool",
+     "js": "bool",
+     "kind": "class",
+     "sig": [
+      "np.bool: DType"
+     ]
+    },
+    {
+     "numpy": "bool_",
+     "js": "bool",
+     "kind": "class",
+     "sig": [
+      "np.bool: DType"
+     ]
+    },
+    {
+     "numpy": "broadcast_shapes",
+     "js": "broadcastShapes",
+     "kind": "function",
+     "sig": [
+      "np.broadcastShapes(...shapes: (number | Shape)[]): number[]"
+     ]
+    },
+    {
+     "numpy": "broadcast_to",
+     "js": "broadcastTo",
+     "kind": "function",
+     "sig": [
+      "np.broadcastTo(a: ArrayLike, shape: number | Shape): NDArray"
+     ]
+    },
+    {
+     "numpy": "complex128",
+     "js": "complex128",
+     "kind": "class",
+     "sig": [
+      "np.complex128: DType"
+     ]
+    },
+    {
+     "numpy": "complex64",
+     "js": "complex64",
+     "kind": "class",
+     "sig": [
+      "np.complex64: DType"
+     ]
+    },
+    {
+     "numpy": "divide",
+     "js": "divide",
+     "kind": "ufunc",
+     "sig": [
+      "np.divide(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "dot",
+     "js": "dot",
+     "kind": "function",
+     "sig": [
+      "np.dot(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "dtype",
+     "js": "dtype",
+     "kind": "class",
+     "sig": [
+      "np.dtype(like: DTypeLike): DType"
+     ]
+    },
+    {
+     "numpy": "empty",
+     "js": "empty",
+     "kind": "function",
+     "sig": [
+      "np.empty(shape: number | Shape, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "empty_like",
+     "js": "emptyLike",
+     "kind": "function",
+     "sig": [
+      "np.emptyLike(a: NDArray, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "exp",
+     "js": "exp",
+     "kind": "ufunc",
+     "sig": [
+      "np.exp(a: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "expand_dims",
+     "js": "expandDims",
+     "kind": "function",
+     "sig": [
+      "np.expandDims(a: NDArray, axis: number | readonly number[]): NDArray"
+     ]
+    },
+    {
+     "numpy": "eye",
+     "js": "eye",
+     "kind": "function",
+     "sig": [
+      "np.eye(n: number, m?: number | undefined, options?: EyeOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "float16",
+     "js": "float16",
+     "kind": "class",
+     "sig": [
+      "np.float16: DType"
+     ]
+    },
+    {
+     "numpy": "float32",
+     "js": "float32",
+     "kind": "class",
+     "sig": [
+      "np.float32: DType"
+     ]
+    },
+    {
+     "numpy": "float64",
+     "js": "float64",
+     "kind": "class",
+     "sig": [
+      "np.float64: DType"
+     ]
+    },
+    {
+     "numpy": "floor_divide",
+     "js": "floorDivide",
+     "kind": "ufunc",
+     "sig": [
+      "np.floorDivide(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "full",
+     "js": "full",
+     "kind": "function",
+     "sig": [
+      "np.full(shape: number | Shape, fillValue: number | bigint | boolean, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "full_like",
+     "js": "fullLike",
+     "kind": "function",
+     "sig": [
+      "np.fullLike(a: NDArray, fillValue: number | bigint | boolean, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "identity",
+     "js": "identity",
+     "kind": "function",
+     "sig": [
+      "np.identity(n: number, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "inner",
+     "js": "inner",
+     "kind": "function",
+     "sig": [
+      "np.inner(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "int16",
+     "js": "int16",
+     "kind": "class",
+     "sig": [
+      "np.int16: DType"
+     ]
+    },
+    {
+     "numpy": "int32",
+     "js": "int32",
+     "kind": "class",
+     "sig": [
+      "np.int32: DType"
+     ]
+    },
+    {
+     "numpy": "int64",
+     "js": "int64",
+     "kind": "class",
+     "sig": [
+      "np.int64: DType"
+     ]
+    },
+    {
+     "numpy": "int8",
+     "js": "int8",
+     "kind": "class",
+     "sig": [
+      "np.int8: DType"
+     ]
+    },
+    {
+     "numpy": "linspace",
+     "js": "linspace",
+     "kind": "function",
+     "sig": [
+      "np.linspace(start: number, stop: number, num?: number | undefined, options?: LinspaceOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "log",
+     "js": "log",
+     "kind": "ufunc",
+     "sig": [
+      "np.log(a: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "matmul",
+     "js": "matmul",
+     "kind": "ufunc",
+     "sig": [
+      "np.matmul(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "max",
+     "js": "max",
+     "kind": "function",
+     "sig": [
+      "np.max(a: ArrayLike, opts?: Omit<ReduceOptions, \"dtype\"> | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "may_share_memory",
+     "js": "mayShareMemory",
+     "kind": "function",
+     "sig": [
+      "np.mayShareMemory(a: NDArray, b: NDArray): boolean"
+     ]
+    },
+    {
+     "numpy": "mean",
+     "js": "mean",
+     "kind": "function",
+     "sig": [
+      "np.mean(a: ArrayLike, opts?: Omit<ReduceOptions, \"initial\"> | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "min",
+     "js": "min",
+     "kind": "function",
+     "sig": [
+      "np.min(a: ArrayLike, opts?: Omit<ReduceOptions, \"dtype\"> | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "mod",
+     "js": "mod",
+     "kind": "ufunc",
+     "sig": [
+      "np.mod(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "moveaxis",
+     "js": "moveAxis",
+     "kind": "function",
+     "sig": [
+      "np.moveAxis(a: NDArray, source: number | readonly number[], destination: number | readonly number[]): NDArray"
+     ]
+    },
+    {
+     "numpy": "multiply",
+     "js": "multiply",
+     "kind": "ufunc",
+     "sig": [
+      "np.multiply(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "ndarray",
+     "js": "NDArray",
+     "kind": "class",
+     "sig": [
+      "new np.NDArray(token: typeof internal, handle: NativeNDArray)"
+     ]
+    },
+    {
+     "numpy": "negative",
+     "js": "negative",
+     "kind": "ufunc",
+     "sig": [
+      "np.negative(a: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "newaxis",
+     "js": "newaxis",
+     "kind": "constant",
+     "sig": [
+      "np.newaxis: \"newaxis\""
+     ]
+    },
+    {
+     "numpy": "nonzero",
+     "js": "nonzero",
+     "kind": "function",
+     "sig": [
+      "np.nonzero(a: NDArray | NestedArray): NDArray[]"
+     ]
+    },
+    {
+     "numpy": "ones",
+     "js": "ones",
+     "kind": "function",
+     "sig": [
+      "np.ones(shape: number | Shape, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "ones_like",
+     "js": "onesLike",
+     "kind": "function",
+     "sig": [
+      "np.onesLike(a: NDArray, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "outer",
+     "js": "outer",
+     "kind": "function",
+     "sig": [
+      "np.outer(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "power",
+     "js": "power",
+     "kind": "ufunc",
+     "sig": [
+      "np.power(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "prod",
+     "js": "prod",
+     "kind": "function",
+     "sig": [
+      "np.prod(a: ArrayLike, opts?: ReduceOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "promote_types",
+     "js": "promoteTypes",
+     "kind": "function",
+     "sig": [
+      "np.promoteTypes(a: DTypeLike, b: DTypeLike): DType"
+     ]
+    },
+    {
+     "numpy": "ravel",
+     "js": "ravel",
+     "kind": "function",
+     "sig": [
+      "np.ravel(a: NDArray): NDArray"
+     ]
+    },
+    {
+     "numpy": "reshape",
+     "js": "reshape",
+     "kind": "function",
+     "sig": [
+      "np.reshape(a: NDArray, shape: number | Shape): NDArray"
+     ]
+    },
+    {
+     "numpy": "sqrt",
+     "js": "sqrt",
+     "kind": "ufunc",
+     "sig": [
+      "np.sqrt(a: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "squeeze",
+     "js": "squeeze",
+     "kind": "function",
+     "sig": [
+      "np.squeeze(a: NDArray, axis?: number | readonly number[] | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "std",
+     "js": "std",
+     "kind": "function",
+     "sig": [
+      "np.std(a: ArrayLike, opts?: VarOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "subtract",
+     "js": "subtract",
+     "kind": "ufunc",
+     "sig": [
+      "np.subtract(a: ArrayLike, b: ArrayLike): NDArray"
+     ]
+    },
+    {
+     "numpy": "sum",
+     "js": "sum",
+     "kind": "function",
+     "sig": [
+      "np.sum(a: ArrayLike, opts?: ReduceOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "swapaxes",
+     "js": "swapAxes",
+     "kind": "function",
+     "sig": [
+      "np.swapAxes(a: NDArray, axis1: number, axis2: number): NDArray"
+     ]
+    },
+    {
+     "numpy": "take",
+     "js": "take",
+     "kind": "function",
+     "sig": [
+      "np.take(a: NDArray | NestedArray, indices: NDArray | NestedArray, axis?: number | null | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "transpose",
+     "js": "transpose",
+     "kind": "function",
+     "sig": [
+      "np.transpose(a: NDArray, axes?: readonly number[] | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "uint16",
+     "js": "uint16",
+     "kind": "class",
+     "sig": [
+      "np.uint16: DType"
+     ]
+    },
+    {
+     "numpy": "uint32",
+     "js": "uint32",
+     "kind": "class",
+     "sig": [
+      "np.uint32: DType"
+     ]
+    },
+    {
+     "numpy": "uint64",
+     "js": "uint64",
+     "kind": "class",
+     "sig": [
+      "np.uint64: DType"
+     ]
+    },
+    {
+     "numpy": "uint8",
+     "js": "uint8",
+     "kind": "class",
+     "sig": [
+      "np.uint8: DType"
+     ]
+    },
+    {
+     "numpy": "var",
+     "js": "var",
+     "kind": "function",
+     "sig": [
+      "np.var(a: ArrayLike, opts?: VarOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "where",
+     "js": "where",
+     "kind": "function",
+     "sig": [
+      "np.where(condition: NDArray | NestedArray): NDArray[]",
+      "np.where(condition: NDArray | NestedArray, x: NDArray | NestedArray, y: NDArray | NestedArray): NDArray"
+     ]
+    },
+    {
+     "numpy": "zeros",
+     "js": "zeros",
+     "kind": "function",
+     "sig": [
+      "np.zeros(shape: number | Shape, options?: ArrayOptions | undefined): NDArray"
+     ]
+    },
+    {
+     "numpy": "zeros_like",
+     "js": "zerosLike",
+     "kind": "function",
+     "sig": [
+      "np.zerosLike(a: NDArray, options?: ArrayOptions | undefined): NDArray"
+     ]
+    }
+   ],
+   "missing": [
+    {
+     "numpy": "False_",
+     "kind": "constant"
+    },
+    {
+     "numpy": "True_",
+     "kind": "constant"
+    },
+    {
+     "numpy": "absolute",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "acos",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "acosh",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "all",
+     "kind": "function"
+    },
+    {
+     "numpy": "allclose",
+     "kind": "function"
+    },
+    {
+     "numpy": "angle",
+     "kind": "function"
+    },
+    {
+     "numpy": "any",
+     "kind": "function"
+    },
+    {
+     "numpy": "append",
+     "kind": "function"
+    },
+    {
+     "numpy": "apply_along_axis",
+     "kind": "function"
+    },
+    {
+     "numpy": "apply_over_axes",
+     "kind": "function"
+    },
+    {
+     "numpy": "arccos",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "arccosh",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "arcsin",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "arcsinh",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "arctan",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "arctan2",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "arctanh",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "argpartition",
+     "kind": "function"
+    },
+    {
+     "numpy": "argsort",
+     "kind": "function"
+    },
+    {
+     "numpy": "argwhere",
+     "kind": "function"
+    },
+    {
+     "numpy": "around",
+     "kind": "function"
+    },
+    {
+     "numpy": "array2string",
+     "kind": "function"
+    },
+    {
+     "numpy": "array_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "array_equiv",
+     "kind": "function"
+    },
+    {
+     "numpy": "array_repr",
+     "kind": "function"
+    },
+    {
+     "numpy": "array_split",
+     "kind": "function"
+    },
+    {
+     "numpy": "array_str",
+     "kind": "function"
+    },
+    {
+     "numpy": "asanyarray",
+     "kind": "function"
+    },
+    {
+     "numpy": "asarray_chkfinite",
+     "kind": "function"
+    },
+    {
+     "numpy": "ascontiguousarray",
+     "kind": "function"
+    },
+    {
+     "numpy": "asfortranarray",
+     "kind": "function"
+    },
+    {
+     "numpy": "asin",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "asinh",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "astype",
+     "kind": "function"
+    },
+    {
+     "numpy": "atan",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "atan2",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "atanh",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "atleast_1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "atleast_2d",
+     "kind": "function"
+    },
+    {
+     "numpy": "atleast_3d",
+     "kind": "function"
+    },
+    {
+     "numpy": "average",
+     "kind": "function"
+    },
+    {
+     "numpy": "bartlett",
+     "kind": "function"
+    },
+    {
+     "numpy": "base_repr",
+     "kind": "function"
+    },
+    {
+     "numpy": "binary_repr",
+     "kind": "function"
+    },
+    {
+     "numpy": "bincount",
+     "kind": "function"
+    },
+    {
+     "numpy": "bitwise_and",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "bitwise_count",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "bitwise_invert",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "bitwise_left_shift",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "bitwise_not",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "bitwise_or",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "bitwise_right_shift",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "bitwise_xor",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "blackman",
+     "kind": "function"
+    },
+    {
+     "numpy": "block",
+     "kind": "function"
+    },
+    {
+     "numpy": "broadcast_arrays",
+     "kind": "function"
+    },
+    {
+     "numpy": "busday_count",
+     "kind": "function"
+    },
+    {
+     "numpy": "busday_offset",
+     "kind": "function"
+    },
+    {
+     "numpy": "byte",
+     "kind": "class"
+    },
+    {
+     "numpy": "bytes_",
+     "kind": "class"
+    },
+    {
+     "numpy": "c_",
+     "kind": "constant"
+    },
+    {
+     "numpy": "can_cast",
+     "kind": "function"
+    },
+    {
+     "numpy": "cbrt",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "cdouble",
+     "kind": "class"
+    },
+    {
+     "numpy": "ceil",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "choose",
+     "kind": "function"
+    },
+    {
+     "numpy": "clip",
+     "kind": "function"
+    },
+    {
+     "numpy": "column_stack",
+     "kind": "function"
+    },
+    {
+     "numpy": "common_type",
+     "kind": "function"
+    },
+    {
+     "numpy": "compress",
+     "kind": "function"
+    },
+    {
+     "numpy": "concat",
+     "kind": "function"
+    },
+    {
+     "numpy": "concatenate",
+     "kind": "function"
+    },
+    {
+     "numpy": "conj",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "conjugate",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "convolve",
+     "kind": "function"
+    },
+    {
+     "numpy": "copy",
+     "kind": "function"
+    },
+    {
+     "numpy": "copysign",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "copyto",
+     "kind": "function"
+    },
+    {
+     "numpy": "corrcoef",
+     "kind": "function"
+    },
+    {
+     "numpy": "correlate",
+     "kind": "function"
+    },
+    {
+     "numpy": "cos",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "cosh",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "count_nonzero",
+     "kind": "function"
+    },
+    {
+     "numpy": "cov",
+     "kind": "function"
+    },
+    {
+     "numpy": "cross",
+     "kind": "function"
+    },
+    {
+     "numpy": "csingle",
+     "kind": "class"
+    },
+    {
+     "numpy": "cumprod",
+     "kind": "function"
+    },
+    {
+     "numpy": "cumsum",
+     "kind": "function"
+    },
+    {
+     "numpy": "cumulative_prod",
+     "kind": "function"
+    },
+    {
+     "numpy": "cumulative_sum",
+     "kind": "function"
+    },
+    {
+     "numpy": "datetime64",
+     "kind": "class"
+    },
+    {
+     "numpy": "datetime_as_string",
+     "kind": "function"
+    },
+    {
+     "numpy": "deg2rad",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "degrees",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "delete",
+     "kind": "function"
+    },
+    {
+     "numpy": "diag",
+     "kind": "function"
+    },
+    {
+     "numpy": "diag_indices",
+     "kind": "function"
+    },
+    {
+     "numpy": "diag_indices_from",
+     "kind": "function"
+    },
+    {
+     "numpy": "diagflat",
+     "kind": "function"
+    },
+    {
+     "numpy": "diagonal",
+     "kind": "function"
+    },
+    {
+     "numpy": "diff",
+     "kind": "function"
+    },
+    {
+     "numpy": "digitize",
+     "kind": "function"
+    },
+    {
+     "numpy": "divmod",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "double",
+     "kind": "class"
+    },
+    {
+     "numpy": "dsplit",
+     "kind": "function"
+    },
+    {
+     "numpy": "dstack",
+     "kind": "function"
+    },
+    {
+     "numpy": "e",
+     "kind": "constant"
+    },
+    {
+     "numpy": "ediff1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "einsum",
+     "kind": "function"
+    },
+    {
+     "numpy": "einsum_path",
+     "kind": "function"
+    },
+    {
+     "numpy": "equal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "errstate",
+     "kind": "class"
+    },
+    {
+     "numpy": "euler_gamma",
+     "kind": "constant"
+    },
+    {
+     "numpy": "exp2",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "expm1",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "extract",
+     "kind": "function"
+    },
+    {
+     "numpy": "fabs",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "fill_diagonal",
+     "kind": "function"
+    },
+    {
+     "numpy": "finfo",
+     "kind": "class"
+    },
+    {
+     "numpy": "fix",
+     "kind": "function"
+    },
+    {
+     "numpy": "flatnonzero",
+     "kind": "function"
+    },
+    {
+     "numpy": "flip",
+     "kind": "function"
+    },
+    {
+     "numpy": "fliplr",
+     "kind": "function"
+    },
+    {
+     "numpy": "flipud",
+     "kind": "function"
+    },
+    {
+     "numpy": "float_power",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "floor",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "fmax",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "fmin",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "fmod",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "format_float_positional",
+     "kind": "function"
+    },
+    {
+     "numpy": "format_float_scientific",
+     "kind": "function"
+    },
+    {
+     "numpy": "frexp",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "frombuffer",
+     "kind": "function"
+    },
+    {
+     "numpy": "fromfile",
+     "kind": "function"
+    },
+    {
+     "numpy": "fromfunction",
+     "kind": "function"
+    },
+    {
+     "numpy": "fromiter",
+     "kind": "function"
+    },
+    {
+     "numpy": "fromregex",
+     "kind": "function"
+    },
+    {
+     "numpy": "fromstring",
+     "kind": "function"
+    },
+    {
+     "numpy": "gcd",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "genfromtxt",
+     "kind": "function"
+    },
+    {
+     "numpy": "geomspace",
+     "kind": "function"
+    },
+    {
+     "numpy": "get_printoptions",
+     "kind": "function"
+    },
+    {
+     "numpy": "geterr",
+     "kind": "function"
+    },
+    {
+     "numpy": "gradient",
+     "kind": "function"
+    },
+    {
+     "numpy": "greater",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "greater_equal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "half",
+     "kind": "class"
+    },
+    {
+     "numpy": "hamming",
+     "kind": "function"
+    },
+    {
+     "numpy": "hanning",
+     "kind": "function"
+    },
+    {
+     "numpy": "heaviside",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "histogram",
+     "kind": "function"
+    },
+    {
+     "numpy": "histogram2d",
+     "kind": "function"
+    },
+    {
+     "numpy": "histogram_bin_edges",
+     "kind": "function"
+    },
+    {
+     "numpy": "histogramdd",
+     "kind": "function"
+    },
+    {
+     "numpy": "hsplit",
+     "kind": "function"
+    },
+    {
+     "numpy": "hstack",
+     "kind": "function"
+    },
+    {
+     "numpy": "hypot",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "i0",
+     "kind": "function"
+    },
+    {
+     "numpy": "iinfo",
+     "kind": "class"
+    },
+    {
+     "numpy": "imag",
+     "kind": "function"
+    },
+    {
+     "numpy": "index_exp",
+     "kind": "constant"
+    },
+    {
+     "numpy": "indices",
+     "kind": "function"
+    },
+    {
+     "numpy": "inf",
+     "kind": "constant"
+    },
+    {
+     "numpy": "insert",
+     "kind": "function"
+    },
+    {
+     "numpy": "int_",
+     "kind": "class"
+    },
+    {
+     "numpy": "intc",
+     "kind": "class"
+    },
+    {
+     "numpy": "interp",
+     "kind": "function"
+    },
+    {
+     "numpy": "intersect1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "intp",
+     "kind": "class"
+    },
+    {
+     "numpy": "invert",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "is_busday",
+     "kind": "function"
+    },
+    {
+     "numpy": "isclose",
+     "kind": "function"
+    },
+    {
+     "numpy": "iscomplex",
+     "kind": "function"
+    },
+    {
+     "numpy": "iscomplexobj",
+     "kind": "function"
+    },
+    {
+     "numpy": "isdtype",
+     "kind": "function"
+    },
+    {
+     "numpy": "isfinite",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isfortran",
+     "kind": "function"
+    },
+    {
+     "numpy": "isin",
+     "kind": "function"
+    },
+    {
+     "numpy": "isinf",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isnan",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isnat",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isneginf",
+     "kind": "function"
+    },
+    {
+     "numpy": "isposinf",
+     "kind": "function"
+    },
+    {
+     "numpy": "isreal",
+     "kind": "function"
+    },
+    {
+     "numpy": "isrealobj",
+     "kind": "function"
+    },
+    {
+     "numpy": "isscalar",
+     "kind": "function"
+    },
+    {
+     "numpy": "issubdtype",
+     "kind": "function"
+    },
+    {
+     "numpy": "ix_",
+     "kind": "function"
+    },
+    {
+     "numpy": "kaiser",
+     "kind": "function"
+    },
+    {
+     "numpy": "kron",
+     "kind": "function"
+    },
+    {
+     "numpy": "lcm",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "ldexp",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "left_shift",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "less",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "less_equal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "lexsort",
+     "kind": "function"
+    },
+    {
+     "numpy": "load",
+     "kind": "function"
+    },
+    {
+     "numpy": "loadtxt",
+     "kind": "function"
+    },
+    {
+     "numpy": "log10",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "log1p",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "log2",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "logaddexp",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "logaddexp2",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "logical_and",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "logical_not",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "logical_or",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "logical_xor",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "logspace",
+     "kind": "function"
+    },
+    {
+     "numpy": "long",
+     "kind": "class"
+    },
+    {
+     "numpy": "mask_indices",
+     "kind": "function"
+    },
+    {
+     "numpy": "matrix_transpose",
+     "kind": "function"
+    },
+    {
+     "numpy": "matvec",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "maximum",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "median",
+     "kind": "function"
+    },
+    {
+     "numpy": "meshgrid",
+     "kind": "function"
+    },
+    {
+     "numpy": "mgrid",
+     "kind": "constant"
+    },
+    {
+     "numpy": "min_scalar_type",
+     "kind": "function"
+    },
+    {
+     "numpy": "minimum",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "mintypecode",
+     "kind": "function"
+    },
+    {
+     "numpy": "modf",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "nan",
+     "kind": "constant"
+    },
+    {
+     "numpy": "nan_to_num",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanargmax",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanargmin",
+     "kind": "function"
+    },
+    {
+     "numpy": "nancumprod",
+     "kind": "function"
+    },
+    {
+     "numpy": "nancumsum",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanmax",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanmean",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanmedian",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanmin",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanpercentile",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanprod",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanquantile",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanstd",
+     "kind": "function"
+    },
+    {
+     "numpy": "nansum",
+     "kind": "function"
+    },
+    {
+     "numpy": "nanvar",
+     "kind": "function"
+    },
+    {
+     "numpy": "ndenumerate",
+     "kind": "class"
+    },
+    {
+     "numpy": "ndim",
+     "kind": "function"
+    },
+    {
+     "numpy": "ndindex",
+     "kind": "class"
+    },
+    {
+     "numpy": "nextafter",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "not_equal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "ogrid",
+     "kind": "constant"
+    },
+    {
+     "numpy": "packbits",
+     "kind": "function"
+    },
+    {
+     "numpy": "pad",
+     "kind": "function"
+    },
+    {
+     "numpy": "partition",
+     "kind": "function"
+    },
+    {
+     "numpy": "percentile",
+     "kind": "function"
+    },
+    {
+     "numpy": "permute_dims",
+     "kind": "function"
+    },
+    {
+     "numpy": "pi",
+     "kind": "constant"
+    },
+    {
+     "numpy": "piecewise",
+     "kind": "function"
+    },
+    {
+     "numpy": "place",
+     "kind": "function"
+    },
+    {
+     "numpy": "poly",
+     "kind": "function"
+    },
+    {
+     "numpy": "poly1d",
+     "kind": "class"
+    },
+    {
+     "numpy": "polyadd",
+     "kind": "function"
+    },
+    {
+     "numpy": "polyder",
+     "kind": "function"
+    },
+    {
+     "numpy": "polydiv",
+     "kind": "function"
+    },
+    {
+     "numpy": "polyfit",
+     "kind": "function"
+    },
+    {
+     "numpy": "polyint",
+     "kind": "function"
+    },
+    {
+     "numpy": "polymul",
+     "kind": "function"
+    },
+    {
+     "numpy": "polysub",
+     "kind": "function"
+    },
+    {
+     "numpy": "polyval",
+     "kind": "function"
+    },
+    {
+     "numpy": "positive",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "pow",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "printoptions",
+     "kind": "function"
+    },
+    {
+     "numpy": "put",
+     "kind": "function"
+    },
+    {
+     "numpy": "put_along_axis",
+     "kind": "function"
+    },
+    {
+     "numpy": "putmask",
+     "kind": "function"
+    },
+    {
+     "numpy": "quantile",
+     "kind": "function"
+    },
+    {
+     "numpy": "r_",
+     "kind": "constant"
+    },
+    {
+     "numpy": "rad2deg",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "radians",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "ravel_multi_index",
+     "kind": "function"
+    },
+    {
+     "numpy": "real",
+     "kind": "function"
+    },
+    {
+     "numpy": "real_if_close",
+     "kind": "function"
+    },
+    {
+     "numpy": "recarray",
+     "kind": "class"
+    },
+    {
+     "numpy": "reciprocal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "remainder",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "repeat",
+     "kind": "function"
+    },
+    {
+     "numpy": "require",
+     "kind": "function"
+    },
+    {
+     "numpy": "resize",
+     "kind": "function"
+    },
+    {
+     "numpy": "result_type",
+     "kind": "function"
+    },
+    {
+     "numpy": "right_shift",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "rint",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "roll",
+     "kind": "function"
+    },
+    {
+     "numpy": "rollaxis",
+     "kind": "function"
+    },
+    {
+     "numpy": "roots",
+     "kind": "function"
+    },
+    {
+     "numpy": "rot90",
+     "kind": "function"
+    },
+    {
+     "numpy": "round",
+     "kind": "function"
+    },
+    {
+     "numpy": "s_",
+     "kind": "constant"
+    },
+    {
+     "numpy": "save",
+     "kind": "function"
+    },
+    {
+     "numpy": "savetxt",
+     "kind": "function"
+    },
+    {
+     "numpy": "savez",
+     "kind": "function"
+    },
+    {
+     "numpy": "savez_compressed",
+     "kind": "function"
+    },
+    {
+     "numpy": "searchsorted",
+     "kind": "function"
+    },
+    {
+     "numpy": "select",
+     "kind": "function"
+    },
+    {
+     "numpy": "set_printoptions",
+     "kind": "function"
+    },
+    {
+     "numpy": "setdiff1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "seterr",
+     "kind": "function"
+    },
+    {
+     "numpy": "setxor1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "shape",
+     "kind": "function"
+    },
+    {
+     "numpy": "shares_memory",
+     "kind": "function"
+    },
+    {
+     "numpy": "short",
+     "kind": "class"
+    },
+    {
+     "numpy": "sign",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "signbit",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "sin",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "sinc",
+     "kind": "function"
+    },
+    {
+     "numpy": "single",
+     "kind": "class"
+    },
+    {
+     "numpy": "sinh",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "size",
+     "kind": "function"
+    },
+    {
+     "numpy": "sort",
+     "kind": "function"
+    },
+    {
+     "numpy": "sort_complex",
+     "kind": "function"
+    },
+    {
+     "numpy": "spacing",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "split",
+     "kind": "function"
+    },
+    {
+     "numpy": "square",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "stack",
+     "kind": "function"
+    },
+    {
+     "numpy": "str_",
+     "kind": "class"
+    },
+    {
+     "numpy": "take_along_axis",
+     "kind": "function"
+    },
+    {
+     "numpy": "tan",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "tanh",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "tensordot",
+     "kind": "function"
+    },
+    {
+     "numpy": "tile",
+     "kind": "function"
+    },
+    {
+     "numpy": "timedelta64",
+     "kind": "class"
+    },
+    {
+     "numpy": "trace",
+     "kind": "function"
+    },
+    {
+     "numpy": "trapezoid",
+     "kind": "function"
+    },
+    {
+     "numpy": "tri",
+     "kind": "function"
+    },
+    {
+     "numpy": "tril",
+     "kind": "function"
+    },
+    {
+     "numpy": "tril_indices",
+     "kind": "function"
+    },
+    {
+     "numpy": "tril_indices_from",
+     "kind": "function"
+    },
+    {
+     "numpy": "trim_zeros",
+     "kind": "function"
+    },
+    {
+     "numpy": "triu",
+     "kind": "function"
+    },
+    {
+     "numpy": "triu_indices",
+     "kind": "function"
+    },
+    {
+     "numpy": "triu_indices_from",
+     "kind": "function"
+    },
+    {
+     "numpy": "true_divide",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "trunc",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "ubyte",
+     "kind": "class"
+    },
+    {
+     "numpy": "uint",
+     "kind": "class"
+    },
+    {
+     "numpy": "uintc",
+     "kind": "class"
+    },
+    {
+     "numpy": "uintp",
+     "kind": "class"
+    },
+    {
+     "numpy": "ulong",
+     "kind": "class"
+    },
+    {
+     "numpy": "union1d",
+     "kind": "function"
+    },
+    {
+     "numpy": "unique",
+     "kind": "function"
+    },
+    {
+     "numpy": "unique_all",
+     "kind": "function"
+    },
+    {
+     "numpy": "unique_counts",
+     "kind": "function"
+    },
+    {
+     "numpy": "unique_inverse",
+     "kind": "function"
+    },
+    {
+     "numpy": "unique_values",
+     "kind": "function"
+    },
+    {
+     "numpy": "unpackbits",
+     "kind": "function"
+    },
+    {
+     "numpy": "unravel_index",
+     "kind": "function"
+    },
+    {
+     "numpy": "unstack",
+     "kind": "function"
+    },
+    {
+     "numpy": "unwrap",
+     "kind": "function"
+    },
+    {
+     "numpy": "ushort",
+     "kind": "class"
+    },
+    {
+     "numpy": "vander",
+     "kind": "function"
+    },
+    {
+     "numpy": "vdot",
+     "kind": "function"
+    },
+    {
+     "numpy": "vecdot",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "vecmat",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "vectorize",
+     "kind": "class"
+    },
+    {
+     "numpy": "vsplit",
+     "kind": "function"
+    },
+    {
+     "numpy": "vstack",
+     "kind": "function"
+    }
+   ],
+   "extras": [
+    "BroadcastError",
+    "DType",
+    "DTypeError",
+    "IndexError",
+    "LinAlgError",
+    "MemoryError",
+    "NativpyError",
+    "NotImplementedError",
+    "ShapeError",
+    "ValueError",
+    "ellipsis",
+    "fromTypedArray",
+    "lib",
+    "memoryStats"
+   ]
+  },
+  "polynomial": {
+   "implemented": [],
+   "missing": [
+    {
+     "numpy": "Chebyshev",
+     "kind": "class"
+    },
+    {
+     "numpy": "Hermite",
+     "kind": "class"
+    },
+    {
+     "numpy": "HermiteE",
+     "kind": "class"
+    },
+    {
+     "numpy": "Laguerre",
+     "kind": "class"
+    },
+    {
+     "numpy": "Legendre",
+     "kind": "class"
+    },
+    {
+     "numpy": "Polynomial",
+     "kind": "class"
+    }
+   ]
+  },
+  "random": {
+   "implemented": [
+    {
+     "numpy": "Generator",
+     "js": "Generator",
+     "kind": "class",
+     "sig": [
+      "new np.random.Generator(bg: NativeBitGenerator)"
+     ]
+    },
+    {
+     "numpy": "RandomState",
+     "js": "RandomState",
+     "kind": "class",
+     "sig": [
+      "new np.random.RandomState(seed?: Seed | null | undefined)"
+     ]
+    },
+    {
+     "numpy": "choice",
+     "js": "choice",
+     "kind": "function",
+     "sig": [
+      "np.random.choice(a: NDArray | NestedArray, size?: Size | { size?: Size | undefined; replace?: boolean | undefined; p?: unknown; } | null | undefined, replace?: boolean | undefined, p?: unknown): number | boolean | NDArray"
+     ]
+    },
+    {
+     "numpy": "default_rng",
+     "js": "defaultRng",
+     "kind": "function",
+     "sig": [
+      "np.random.defaultRng(seed?: Seed | Generator | null | undefined): Generator"
+     ]
+    },
+    {
+     "numpy": "normal",
+     "js": "normal",
+     "kind": "function",
+     "sig": [
+      "np.random.normal(loc?: number | { loc?: number | undefined; scale?: number | undefined; size?: Size | undefined; } | undefined, scale?: number | undefined, size?: Size | undefined): number | boolean | NDArray"
+     ]
+    },
+    {
+     "numpy": "permutation",
+     "js": "permutation",
+     "kind": "function",
+     "sig": [
+      "np.random.permutation(x: NDArray | NestedArray): NDArray"
+     ]
+    },
+    {
+     "numpy": "rand",
+     "js": "rand",
+     "kind": "function",
+     "sig": [
+      "np.random.rand(...dims: number[]): number | boolean | NDArray"
+     ]
+    },
+    {
+     "numpy": "randint",
+     "js": "randint",
+     "kind": "function",
+     "sig": [
+      "np.random.randint(low: number | bigint | { low: number | bigint; high?: number | bigint | null | undefined; size?: Size | undefined; dtype?: DTypeLike | undefined; }, high?: number | bigint | null | undefined, size?: Size | undefined, dt?: DTypeLike | undefined): number | boolean | NDArray"
+     ]
+    },
+    {
+     "numpy": "randn",
+     "js": "randn",
+     "kind": "function",
+     "sig": [
+      "np.random.randn(...dims: number[]): number | boolean | NDArray"
+     ]
+    },
+    {
+     "numpy": "random",
+     "js": "random",
+     "kind": "function",
+     "sig": [
+      "np.random.random(size?: Size | null | undefined): number | boolean | NDArray"
+     ]
+    },
+    {
+     "numpy": "random_sample",
+     "js": "randomSample",
+     "kind": "function",
+     "sig": [
+      "np.random.randomSample(size?: Size | null | undefined): number | boolean | NDArray"
+     ]
+    },
+    {
+     "numpy": "seed",
+     "js": "seed",
+     "kind": "function",
+     "sig": [
+      "np.random.seed(seed?: Seed | null | undefined): void"
+     ]
+    },
+    {
+     "numpy": "shuffle",
+     "js": "shuffle",
+     "kind": "function",
+     "sig": [
+      "np.random.shuffle(x: NDArray): void"
+     ]
+    },
+    {
+     "numpy": "standard_normal",
+     "js": "standardNormal",
+     "kind": "function",
+     "sig": [
+      "np.random.standardNormal(size?: Size | null | undefined): number | boolean | NDArray"
+     ]
+    },
+    {
+     "numpy": "uniform",
+     "js": "uniform",
+     "kind": "function",
+     "sig": [
+      "np.random.uniform(low?: number | { low?: number | undefined; high?: number | undefined; size?: Size | undefined; } | undefined, high?: number | undefined, size?: Size | undefined): number | boolean | NDArray"
+     ]
+    }
+   ],
+   "missing": [
+    {
+     "numpy": "BitGenerator",
+     "kind": "class"
+    },
+    {
+     "numpy": "MT19937",
+     "kind": "class"
+    },
+    {
+     "numpy": "PCG64",
+     "kind": "class"
+    },
+    {
+     "numpy": "PCG64DXSM",
+     "kind": "class"
+    },
+    {
+     "numpy": "Philox",
+     "kind": "class"
+    },
+    {
+     "numpy": "SFC64",
+     "kind": "class"
+    },
+    {
+     "numpy": "SeedSequence",
+     "kind": "class"
+    },
+    {
+     "numpy": "beta",
+     "kind": "function"
+    },
+    {
+     "numpy": "binomial",
+     "kind": "function"
+    },
+    {
+     "numpy": "bytes",
+     "kind": "function"
+    },
+    {
+     "numpy": "chisquare",
+     "kind": "function"
+    },
+    {
+     "numpy": "dirichlet",
+     "kind": "function"
+    },
+    {
+     "numpy": "exponential",
+     "kind": "function"
+    },
+    {
+     "numpy": "f",
+     "kind": "function"
+    },
+    {
+     "numpy": "gamma",
+     "kind": "function"
+    },
+    {
+     "numpy": "geometric",
+     "kind": "function"
+    },
+    {
+     "numpy": "get_state",
+     "kind": "function"
+    },
+    {
+     "numpy": "gumbel",
+     "kind": "function"
+    },
+    {
+     "numpy": "hypergeometric",
+     "kind": "function"
+    },
+    {
+     "numpy": "laplace",
+     "kind": "function"
+    },
+    {
+     "numpy": "logistic",
+     "kind": "function"
+    },
+    {
+     "numpy": "lognormal",
+     "kind": "function"
+    },
+    {
+     "numpy": "logseries",
+     "kind": "function"
+    },
+    {
+     "numpy": "multinomial",
+     "kind": "function"
+    },
+    {
+     "numpy": "multivariate_normal",
+     "kind": "function"
+    },
+    {
+     "numpy": "negative_binomial",
+     "kind": "function"
+    },
+    {
+     "numpy": "noncentral_chisquare",
+     "kind": "function"
+    },
+    {
+     "numpy": "noncentral_f",
+     "kind": "function"
+    },
+    {
+     "numpy": "pareto",
+     "kind": "function"
+    },
+    {
+     "numpy": "poisson",
+     "kind": "function"
+    },
+    {
+     "numpy": "power",
+     "kind": "function"
+    },
+    {
+     "numpy": "random_integers",
+     "kind": "function"
+    },
+    {
+     "numpy": "ranf",
+     "kind": "function"
+    },
+    {
+     "numpy": "rayleigh",
+     "kind": "function"
+    },
+    {
+     "numpy": "sample",
+     "kind": "function"
+    },
+    {
+     "numpy": "set_state",
+     "kind": "function"
+    },
+    {
+     "numpy": "standard_cauchy",
+     "kind": "function"
+    },
+    {
+     "numpy": "standard_exponential",
+     "kind": "function"
+    },
+    {
+     "numpy": "standard_gamma",
+     "kind": "function"
+    },
+    {
+     "numpy": "standard_t",
+     "kind": "function"
+    },
+    {
+     "numpy": "triangular",
+     "kind": "function"
+    },
+    {
+     "numpy": "vonmises",
+     "kind": "function"
+    },
+    {
+     "numpy": "wald",
+     "kind": "function"
+    },
+    {
+     "numpy": "weibull",
+     "kind": "function"
+    },
+    {
+     "numpy": "zipf",
+     "kind": "function"
+    }
+   ]
+  },
+  "rec": {
+   "implemented": [],
+   "missing": [
+    {
+     "numpy": "array",
+     "kind": "function"
+    },
+    {
+     "numpy": "find_duplicate",
+     "kind": "function"
+    },
+    {
+     "numpy": "format_parser",
+     "kind": "class"
+    },
+    {
+     "numpy": "fromarrays",
+     "kind": "function"
+    },
+    {
+     "numpy": "fromrecords",
+     "kind": "function"
+    },
+    {
+     "numpy": "recarray",
+     "kind": "class"
+    },
+    {
+     "numpy": "record",
+     "kind": "class"
+    }
+   ]
+  },
+  "strings": {
+   "implemented": [],
+   "missing": [
+    {
+     "numpy": "add",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "capitalize",
+     "kind": "function"
+    },
+    {
+     "numpy": "center",
+     "kind": "function"
+    },
+    {
+     "numpy": "count",
+     "kind": "function"
+    },
+    {
+     "numpy": "decode",
+     "kind": "function"
+    },
+    {
+     "numpy": "encode",
+     "kind": "function"
+    },
+    {
+     "numpy": "endswith",
+     "kind": "function"
+    },
+    {
+     "numpy": "equal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "expandtabs",
+     "kind": "function"
+    },
+    {
+     "numpy": "find",
+     "kind": "function"
+    },
+    {
+     "numpy": "greater",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "greater_equal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "index",
+     "kind": "function"
+    },
+    {
+     "numpy": "isalnum",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isalpha",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isdecimal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isdigit",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "islower",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isnumeric",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isspace",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "istitle",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "isupper",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "less",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "less_equal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "ljust",
+     "kind": "function"
+    },
+    {
+     "numpy": "lower",
+     "kind": "function"
+    },
+    {
+     "numpy": "lstrip",
+     "kind": "function"
+    },
+    {
+     "numpy": "mod",
+     "kind": "function"
+    },
+    {
+     "numpy": "multiply",
+     "kind": "function"
+    },
+    {
+     "numpy": "not_equal",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "partition",
+     "kind": "function"
+    },
+    {
+     "numpy": "replace",
+     "kind": "function"
+    },
+    {
+     "numpy": "rfind",
+     "kind": "function"
+    },
+    {
+     "numpy": "rindex",
+     "kind": "function"
+    },
+    {
+     "numpy": "rjust",
+     "kind": "function"
+    },
+    {
+     "numpy": "rpartition",
+     "kind": "function"
+    },
+    {
+     "numpy": "rstrip",
+     "kind": "function"
+    },
+    {
+     "numpy": "slice",
+     "kind": "function"
+    },
+    {
+     "numpy": "startswith",
+     "kind": "function"
+    },
+    {
+     "numpy": "str_len",
+     "kind": "ufunc"
+    },
+    {
+     "numpy": "strip",
+     "kind": "function"
+    },
+    {
+     "numpy": "swapcase",
+     "kind": "function"
+    },
+    {
+     "numpy": "title",
+     "kind": "function"
+    },
+    {
+     "numpy": "translate",
+     "kind": "function"
+    },
+    {
+     "numpy": "upper",
+     "kind": "function"
+    },
+    {
+     "numpy": "zfill",
+     "kind": "function"
+    }
+   ]
+  },
+  "testing": {
+   "implemented": [],
+   "missing": [
+    {
+     "numpy": "assert_",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_allclose",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_almost_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_approx_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_array_almost_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_array_almost_equal_nulp",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_array_compare",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_array_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_array_less",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_array_max_ulp",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_equal",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_raises",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_raises_regex",
+     "kind": "function"
+    },
+    {
+     "numpy": "assert_string_equal",
+     "kind": "function"
+    }
+   ]
+  }
+ }
+}

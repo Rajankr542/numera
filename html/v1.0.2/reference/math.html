@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.2" data-path="reference/math.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Math (ufuncs) · numera v1.0.2</title>
+<meta name="description" content="Element-wise functions with NumPy broadcasting and type promotion. Operands can be NDArrays, nested arrays or scalars. JS scalars are &quot;weak&quot;, so int32 array + 1 stays int32. Pass { out } to write into an existing array (NumPy out=): the result is cast to out.dtype under same_kind, and out itself is returned.">
+<meta property="og:title" content="Math (ufuncs) · numera">
+<meta property="og:description" content="Element-wise functions with NumPy broadcasting and type promotion. Operands can be NDArrays, nested arrays or scalars. JS scalars are &quot;weak&quot;, so int32 array + 1 stays int32. Pass { out } to write into an existing array (NumPy out=): the result is cast to out.dtype under same_kind, and out itself is returned.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.2" selected>v1.0.2 (latest)</option><option value="1.0.1">v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html">Guides</a><a href="../reference/index.html" aria-current="page">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Reference</p><ul><li><a href="../reference/index.html">Overview</a></li><li><a href="../reference/numpy-index.html">NumPy name index</a></li></ul></div><div class="side-group"><p class="side-title">Array objects</p><ul><li><a href="../reference/ndarray.html">NDArray<span class="badge">20</span></a></li><li><a href="../reference/dtype.html">Data types<span class="badge">43</span></a></li></ul></div><div class="side-group"><p class="side-title">Universal functions</p><ul><li><a href="../reference/ufuncs.html">ufunc overview<span class="badge">106</span></a></li><li><a href="../reference/math.html" aria-current="page">Math (ufuncs)<span class="badge">31</span></a></li><li><a href="../reference/logic.html">Comparison, logic and bitwise<span class="badge">13</span></a></li></ul></div><div class="side-group"><p class="side-title">Routines</p><ul><li><a href="../reference/creation.html">Array creation<span class="badge">25</span></a></li><li><a href="../reference/shape.html">Shape manipulation<span class="badge">41</span></a></li><li><a href="../reference/indexing.html">Indexing<span class="badge">20</span></a></li><li><a href="../reference/grids.html">Grids and index helpers<span class="badge">9</span></a></li><li><a href="../reference/tri-indices.html">Triangle and diagonal indices<span class="badge">8</span></a></li><li><a href="../reference/reduce.html">Reductions<span class="badge">5</span></a></li><li><a href="../reference/reduce-where.html">Reductions with where= / out=<span class="badge">5</span></a></li><li><a href="../reference/sorting.html">Sorting, searching and sets<span class="badge">15</span></a></li><li><a href="../reference/statistics.html">Statistics<span class="badge">19</span></a></li><li><a href="../reference/polynomials.html">Polynomials<span class="badge">11</span></a></li><li><a href="../reference/windows.html">Window functions<span class="badge">5</span></a></li><li><a href="../reference/io.html">Input and output<span class="badge">11</span></a></li><li><a href="../reference/utilities.html">Utilities<span class="badge">40</span></a></li><li><a href="../reference/errors.html">Errors<span class="badge">3</span></a></li></ul></div><div class="side-group"><p class="side-title">Modules</p><ul><li><a href="../reference/linalg.html">np.linalg<span class="badge">35</span></a></li><li><a href="../reference/fft.html">np.fft<span class="badge">8</span></a></li><li><a href="../reference/random.html">np.random<span class="badge">6</span></a></li><li><a href="../reference/random-bitgen.html">Random — bit generators<span class="badge">7</span></a></li><li><a href="../reference/random-discrete.html">Random — discrete distributions (Generator)<span class="badge">6</span></a></li><li><a href="../reference/random-continuous.html">Random — continuous distributions (Generator)<span class="badge">22</span></a></li><li><a href="../reference/random-multivariate.html">Random — multivariate distributions (Generator)<span class="badge">4</span></a></li><li><a href="../reference/random-state.html">Random state<span class="badge">5</span></a></li><li><a href="../reference/emath.html">np.emath (complex-valued math)<span class="badge">4</span></a></li><li><a href="../reference/testing.html">np.testing (assertions)<span class="badge">8</span></a></li><li><a href="../reference/polynomial.html">np.polynomial (series classes)<span class="badge">4</span></a></li><li><a href="../reference/ma.html">Masked arrays (np.ma)<span class="badge">1</span></a></li><li><a href="../reference/strings.html">String operations (np.strings / np.char)<span class="badge">8</span></a></li><li><a href="../reference/rec.html">Record arrays (np.rec)<span class="badge">5</span></a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose ref">
+<p class="eyebrow">API reference</p>
+<h1>Math (ufuncs)</h1>
+<p class="lede">Element-wise functions with NumPy broadcasting and type promotion. Operands can be <code>NDArray</code>s, nested arrays or scalars. JS scalars are &quot;weak&quot;, so <code>int32 array + 1</code> stays <code>int32</code>. Pass <code>{ out }</code> to write into an existing array (NumPy <code>out=</code>): the result is cast to <code>out.dtype</code> under <code>same_kind</code>, and <code>out</code> itself is returned.</p>
+<div class="summary-table table"><table><thead><tr><th>Name</th><th>Summary</th></tr></thead><tbody><tr><td><a href="#add"><code>np.add</code></a></td><td>Element-wise <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>.</td></tr><tr><td><a href="#floorDivide"><code>np.floorDivide</code></a></td><td>Python-style floor division and modulo: the result of <code>mod</code> takes the sign of the divisor.</td></tr><tr><td><a href="#power"><code>np.power</code></a></td><td>Element-wise <code>a ** b</code>.</td></tr><tr><td><a href="#abs"><code>np.abs</code></a></td><td>Absolute value and negation.</td></tr><tr><td><a href="#real"><code>np.real</code></a></td><td>Complex helpers.</td></tr><tr><td><a href="#sqrt"><code>np.sqrt</code></a></td><td>Square root, <code>e^x</code> and the natural log.</td></tr><tr><td><a href="#matmul"><code>np.matmul</code></a></td><td>Matrix product (<code>@</code>), with batched broadcasting over leading axes.</td></tr><tr><td><a href="#outer"><code>np.outer</code></a></td><td>Outer product of two vectors (flattened), and the inner product over the last axes.</td></tr><tr><td><a href="#sin"><code>np.sin</code></a></td><td>Element-wise trigonometric functions and their inverses, in radians.</td></tr><tr><td><a href="#sinh"><code>np.sinh</code></a></td><td>Element-wise hyperbolic functions and their inverses, with complex loops.</td></tr><tr><td><a href="#arctan2"><code>np.arctan2</code></a></td><td><code>arctan2</code> is the quadrant-aware angle of the point <code>(x, y)</code>; <code>hypot</code> is <code>sqrt(a² + b²)</code> without intermediate overflow.</td></tr><tr><td><a href="#deg2rad"><code>np.deg2rad</code></a></td><td>Angle conversion.</td></tr><tr><td><a href="#exp2"><code>np.exp2</code></a></td><td><code>2**x</code>, <code>exp(x) - 1</code>, base-2 / base-10 logarithms and <code>log(1 + x)</code>.</td></tr><tr><td><a href="#logaddexp"><code>np.logaddexp</code></a></td><td><code>log(exp(a) + exp(b))</code> and <code>log2(2**a + 2**b)</code> without overflow.</td></tr><tr><td><a href="#cbrt"><code>np.cbrt</code></a></td><td>Cube root (real only); <code>x*x</code> and <code>1/x</code>, which keep integer dtypes (integer <code>reciprocal</code> truncates, <code>bool</code> uses <code>int8</code>).</td></tr><tr><td><a href="#floor"><code>np.floor</code></a></td><td>Round down, up, toward zero (<code>fix</code> is the same as <code>trunc</code>) and to the nearest even integer.</td></tr><tr><td><a href="#round"><code>np.round</code></a></td><td>Round half to even to <code>decimals</code> places; negative <code>decimals</code> round to tens, hundreds, ….</td></tr><tr><td><a href="#positive"><code>np.positive</code></a></td><td>Element-wise <code>+x</code> (a copy).</td></tr><tr><td><a href="#fmod"><code>np.fmod</code></a></td><td><code>fmod</code> is the C remainder: the result takes the sign of the dividend (unlike <code>mod</code>/<code>remainder</code>, which follow the divisor).</td></tr><tr><td><a href="#floatPower"><code>np.floatPower</code></a></td><td>Element-wise <code>a ** b</code> computed in <code>float64</code> (or <code>complex128</code>), so integer inputs can take negative exponents.</td></tr><tr><td><a href="#sign"><code>np.sign</code></a></td><td><code>sign</code> gives -1, 0 or 1 (NaN stays NaN; complex <code>z/|z|</code>).</td></tr><tr><td><a href="#maximum"><code>np.maximum</code></a></td><td>Element-wise maximum/minimum.</td></tr><tr><td><a href="#clip"><code>np.clip</code></a></td><td>Limit values to <code>[min, max]</code>; <code>null</code> skips a side.</td></tr><tr><td><a href="#copysign"><code>np.copysign</code></a></td><td>Floating-point bit helpers: magnitude of <code>a</code> with the sign of <code>b</code>; the next representable value after <code>a</code> toward <code>b</code>; the gap to the next value away from zero; whether the sign bit is set (<code>bool</code> result, true for <code>-0</code>).</td></tr><tr><td><a href="#ldexp"><code>np.ldexp</code></a></td><td><code>x * 2**n</code> for an integer exponent array <code>n</code> (non-integer or <code>uint64</code> exponents raise <code>DTypeError</code>, as in NumPy).</td></tr><tr><td><a href="#gcd"><code>np.gcd</code></a></td><td>Greatest common divisor and least common multiple of integers (results are non-negative).</td></tr><tr><td><a href="#divmod"><code>np.divmod</code></a></td><td>Two-output ufuncs returning <code>[NDArray, NDArray]</code>.</td></tr><tr><td><a href="#i0"><code>np.i0</code></a></td><td><code>i0</code> is the modified Bessel function of the first kind, order 0 (real input; float16/float32 kept, otherwise float64).</td></tr><tr><td><a href="#nanToNum"><code>np.nanToNum</code></a></td><td>Replace NaN with <code>nan</code> (default 0) and ±Infinity with <code>posinf</code>/<code>neginf</code> (default: the dtype's largest finite values).</td></tr><tr><td><a href="#realIfClose"><code>np.realIfClose</code></a></td><td>Return the real part when every imaginary part is below <code>tol</code> (counted in machine epsilons when <code>tol &gt; 1</code>); otherwise return <code>x</code> unchanged.</td></tr><tr><td><a href="#unwrap"><code>np.unwrap</code></a></td><td>Remove jumps between neighbours larger than <code>discont</code> (default <code>period / 2</code>) by adding multiples of <code>period</code>.</td></tr></tbody></table></div>
+<article class="api" id="add">
+<header class="api-head"><h3><code>np.add</code></h3><a class="anchor" href="#add" aria-label="Link to add">#</a></header>
+<pre class="sig"><code>np.add(a, b, { out? }) · np.subtract · np.multiply · np.divide</code></pre>
+<p>Element-wise <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>. <code>divide</code> is true division, so integer inputs give <code>float64</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.add.html#numpy.add" rel="noopener" target="_blank" title="Add arguments element-wise.">numpy.add</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.subtract.html#numpy.subtract" rel="noopener" target="_blank" title="Subtract arguments, element-wise.">numpy.subtract</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.multiply.html#numpy.multiply" rel="noopener" target="_blank" title="Multiply arguments element-wise.">numpy.multiply</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.divide.html#numpy.divide" rel="noopener" target="_blank" title="Divide arguments element-wise.">numpy.divide</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">add</span>([[<span class="t-num">1</span>], [<span class="t-num">2</span>]], [<span class="t-num">10</span>, <span class="t-num">20</span>]); <span class="t-res">// =&gt; [[11, 21], [12, 22]]</span>
+np.<span class="t-fn">subtract</span>([<span class="t-num">5</span>, <span class="t-num">7</span>], <span class="t-num">2</span>);       <span class="t-res">// =&gt; [3, 5]</span>
+np.<span class="t-fn">multiply</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>], <span class="t-num">2</span>);    <span class="t-res">// =&gt; [2, 4, 6]</span>
+np.<span class="t-fn">divide</span>([<span class="t-num">1</span>, <span class="t-num">3</span>], <span class="t-num">2</span>);         <span class="t-res">// =&gt; [0.5, 1.5]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">add</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">subtract</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">multiply</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">divide</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="floorDivide">
+<header class="api-head"><h3><code>np.floorDivide</code></h3><a class="anchor" href="#floorDivide" aria-label="Link to floorDivide">#</a></header>
+<pre class="sig"><code>np.floorDivide(a, b, { out? }) · np.mod(a, b, { out? })</code></pre>
+<p>Python-style floor division and modulo: the result of <code>mod</code> takes the sign of the divisor.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.floor_divide.html#numpy.floor_divide" rel="noopener" target="_blank" title="Return the largest integer smaller or equal to the division of the inputs. It is equivalent to the Python ``//`` operator and pairs with the Python ``%`` (`remainder`), function so that ``a = a % b + b * (a // b)`` up to roundoff.">numpy.floor_divide</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.mod.html#numpy.mod" rel="noopener" target="_blank" title="Returns the element-wise remainder of division.">numpy.mod</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">floorDivide</span>([<span class="t-num">7</span>, -<span class="t-num">7</span>], <span class="t-num">2</span>); <span class="t-res">// =&gt; [3, -4]</span>
+np.<span class="t-fn">mod</span>([<span class="t-num">7</span>, -<span class="t-num">7</span>], <span class="t-num">3</span>);         <span class="t-res">// =&gt; [1, 2]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">floorDivide</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">mod</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="power">
+<header class="api-head"><h3><code>np.power</code></h3><a class="anchor" href="#power" aria-label="Link to power">#</a></header>
+<pre class="sig"><code>np.power(a, b, { out? })</code></pre>
+<p>Element-wise <code>a ** b</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.power.html#numpy.power" rel="noopener" target="_blank" title="First array elements raised to powers from second array, element-wise.">numpy.power</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">power</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>], <span class="t-num">2</span>);  <span class="t-res">// =&gt; [1, 4, 9]</span>
+np.<span class="t-fn">power</span>(<span class="t-num">2</span>, [<span class="t-num">0.5</span>, -<span class="t-num">1</span>]).<span class="t-fn">toArray</span>()[<span class="t-num">1</span>]; <span class="t-res">// =&gt; 0.5</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">power</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="abs">
+<header class="api-head"><h3><code>np.abs</code></h3><a class="anchor" href="#abs" aria-label="Link to abs">#</a></header>
+<pre class="sig"><code>np.abs(a, { out? }) · np.negative(a, { out? })</code></pre>
+<p>Absolute value and negation. For complex input <code>abs</code> returns the magnitude in the matching real dtype (<code>complex128</code> → <code>float64</code>).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.absolute.html#numpy.absolute" rel="noopener" target="_blank" title="Calculate the absolute value element-wise.">numpy.abs</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.negative.html#numpy.negative" rel="noopener" target="_blank" title="Numerical negation, element-wise.">numpy.negative</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">abs</span>([-<span class="t-num">1</span>, <span class="t-num">2</span>, -<span class="t-num">3</span>]);  <span class="t-res">// =&gt; [1, 2, 3]</span>
+np.<span class="t-fn">negative</span>([<span class="t-num">1</span>, -<span class="t-num">2</span>]); <span class="t-res">// =&gt; [-1, 2]</span>
+np.<span class="t-fn">abs</span>([np.<span class="t-fn">complex</span>(<span class="t-num">3</span>, <span class="t-num">4</span>)]); <span class="t-res">// =&gt; [5]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">abs</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">negative</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="real">
+<header class="api-head"><h3><code>np.real</code></h3><a class="anchor" href="#real" aria-label="Link to real">#</a></header>
+<pre class="sig"><code>np.real(a) · np.imag(a) · np.conj(a) · np.conjugate(a) · np.angle(z, deg?) · np.iscomplex(a) · np.isreal(a) · np.iscomplexobj(a) · np.isrealobj(a)</code></pre>
+<p>Complex helpers. <code>real</code> and <code>imag</code> return views of the components (also available as <code>a.real</code> and <code>a.imag</code>), so writing to them changes <code>a</code>. For real input, <code>real</code> is <code>a</code> itself and <code>imag</code> is read-only zeros. <code>conj</code> negates the imaginary part. <code>angle</code> is <code>atan2(im, re)</code>, in degrees if <code>deg</code> is true. <code>iscomplex</code> and <code>isreal</code> test <code>imag != 0</code> element by element. <code>iscomplexobj</code> and <code>isrealobj</code> test the dtype.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.real.html#numpy.real" rel="noopener" target="_blank" title="Return the real part of the complex argument.">numpy.real</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.imag.html#numpy.imag" rel="noopener" target="_blank" title="Return the imaginary part of the complex argument.">numpy.imag</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.conj.html#numpy.conj" rel="noopener" target="_blank" title="Return the complex conjugate, element-wise.">numpy.conj</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.conjugate.html#numpy.conjugate" rel="noopener" target="_blank" title="Return the complex conjugate, element-wise.">numpy.conjugate</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.angle.html#numpy.angle" rel="noopener" target="_blank" title="Return the angle of the complex argument.">numpy.angle</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.iscomplex.html#numpy.iscomplex" rel="noopener" target="_blank" title="Returns a bool array, where True if input element is complex.">numpy.iscomplex</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[deg]</code><span class="ty">boolean</span></dt><dd><code>angle</code> only: return degrees. Default <code>false</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray (boolean for iscomplexobj / isrealobj)</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> z = np.<span class="t-fn">array</span>([np.<span class="t-fn">complex</span>(<span class="t-num">1</span>, <span class="t-num">2</span>), np.<span class="t-fn">complex</span>(<span class="t-num">3</span>, -<span class="t-num">4</span>)]);
+np.<span class="t-fn">real</span>(z);     <span class="t-res">// =&gt; [1, 3]</span>
+np.<span class="t-fn">imag</span>(z);     <span class="t-res">// =&gt; [2, -4]</span>
+np.<span class="t-fn">imag</span>(np.<span class="t-fn">conj</span>(z)); <span class="t-res">// =&gt; [-2, 4]</span>
+np.<span class="t-fn">angle</span>([np.<span class="t-fn">complex</span>(<span class="t-num">0</span>, <span class="t-num">1</span>)], <span class="t-kw">true</span>); <span class="t-res">// =&gt; [90]</span>
+np.<span class="t-fn">iscomplex</span>([np.<span class="t-fn">complex</span>(<span class="t-num">1</span>, <span class="t-num">0</span>), np.<span class="t-fn">complex</span>(<span class="t-num">1</span>, <span class="t-num">1</span>)]); <span class="t-res">// =&gt; [false, true]</span>
+np.<span class="t-fn">isreal</span>([<span class="t-num">1</span>, <span class="t-num">2</span>]);     <span class="t-res">// =&gt; [true, true]</span>
+np.<span class="t-fn">iscomplexobj</span>(z);    <span class="t-res">// =&gt; true</span>
+np.<span class="t-fn">isrealobj</span>([<span class="t-num">1</span>, <span class="t-num">2</span>]);  <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">real</span>(a: ArrayLike): NDArray
+np.<span class="t-fn">imag</span>(a: ArrayLike): NDArray
+np.<span class="t-fn">conj</span>(a: ArrayLike): NDArray
+np.<span class="t-fn">conjugate</span>(a: ArrayLike): NDArray
+np.<span class="t-fn">angle</span>(z: ArrayLike, deg?: boolean | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">iscomplex</span>(a: ArrayLike): NDArray
+np.<span class="t-fn">isreal</span>(a: ArrayLike): NDArray
+np.<span class="t-fn">iscomplexobj</span>(a: ArrayLike): boolean
+np.<span class="t-fn">isrealobj</span>(a: ArrayLike): boolean</code></pre></details>
+</article>
+<article class="api" id="sqrt">
+<header class="api-head"><h3><code>np.sqrt</code></h3><a class="anchor" href="#sqrt" aria-label="Link to sqrt">#</a></header>
+<pre class="sig"><code>np.sqrt(a, { out? }) · np.exp(a, { out? }) · np.log(a, { out? })</code></pre>
+<p>Square root, <code>e^x</code> and the natural log. Integer inputs are promoted to <code>float64</code>; out-of-domain inputs give <code>NaN</code>, as in NumPy.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.sqrt.html#numpy.sqrt" rel="noopener" target="_blank" title="Return the non-negative square-root of an array, element-wise.">numpy.sqrt</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.exp.html#numpy.exp" rel="noopener" target="_blank" title="Calculate the exponential of all elements in the input array.">numpy.exp</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.log.html#numpy.log" rel="noopener" target="_blank" title="Natural logarithm, element-wise.">numpy.log</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">sqrt</span>([<span class="t-num">4</span>, <span class="t-num">9</span>]);    <span class="t-res">// =&gt; [2, 3]</span>
+np.<span class="t-fn">exp</span>([<span class="t-num">0</span>]);        <span class="t-res">// =&gt; [1]</span>
+np.<span class="t-fn">log</span>([<span class="t-num">1</span>]);        <span class="t-res">// =&gt; [0]</span>
+Number.<span class="t-fn">isNaN</span>(np.<span class="t-fn">sqrt</span>(-<span class="t-num">1</span>).<span class="t-fn">item</span>()); <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">sqrt</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">exp</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">log</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="matmul">
+<header class="api-head"><h3><code>np.matmul</code></h3><a class="anchor" href="#matmul" aria-label="Link to matmul">#</a></header>
+<pre class="sig"><code>np.matmul(a, b) · np.dot(a, b)</code></pre>
+<p>Matrix product (<code>@</code>), with batched broadcasting over leading axes. <code>dot</code> follows NumPy's <code>dot</code> rules, including scalars and 1-D inputs. Backed by BLAS.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.matmul.html#numpy.matmul" rel="noopener" target="_blank" title="Matrix product of two arrays.">numpy.matmul</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.dot.html#numpy.dot" rel="noopener" target="_blank" title="Dot product of two arrays. Specifically,">numpy.dot</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">matmul</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]], [[<span class="t-num">5</span>], [<span class="t-num">6</span>]]); <span class="t-res">// =&gt; [[17], [39]]</span>
+np.<span class="t-fn">dot</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>], [<span class="t-num">4</span>, <span class="t-num">5</span>, <span class="t-num">6</span>]).<span class="t-fn">item</span>();      <span class="t-res">// =&gt; 32</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">matmul</span>(a: ArrayLike, b: ArrayLike): NDArray
+np.<span class="t-fn">dot</span>(a: ArrayLike, b: ArrayLike): NDArray</code></pre></details>
+</article>
+<article class="api" id="outer">
+<header class="api-head"><h3><code>np.outer</code></h3><a class="anchor" href="#outer" aria-label="Link to outer">#</a></header>
+<pre class="sig"><code>np.outer(a, b) · np.inner(a, b)</code></pre>
+<p>Outer product of two vectors (flattened), and the inner product over the last axes.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.outer.html#numpy.outer" rel="noopener" target="_blank" title="Compute the outer product of two vectors.">numpy.outer</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.inner.html#numpy.inner" rel="noopener" target="_blank" title="Inner product of two arrays.">numpy.inner</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">outer</span>([<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]);        <span class="t-res">// =&gt; [[3, 4], [6, 8]]</span>
+np.<span class="t-fn">inner</span>([<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]).<span class="t-fn">item</span>(); <span class="t-res">// =&gt; 11</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">outer</span>(a: ArrayLike, b: ArrayLike): NDArray
+np.<span class="t-fn">inner</span>(a: ArrayLike, b: ArrayLike): NDArray</code></pre></details>
+</article>
+<article class="api" id="sin">
+<header class="api-head"><h3><code>np.sin</code></h3><a class="anchor" href="#sin" aria-label="Link to sin">#</a></header>
+<pre class="sig"><code>np.sin(x, opts?) · np.cos · np.tan · np.arcsin · np.arccos · np.arctan (aliases np.asin · np.acos · np.atan)</code></pre>
+<p>Element-wise trigonometric functions and their inverses, in radians. Integer inputs give the smallest float that holds them (<code>int8</code> → <code>float16</code>, <code>int16</code> → <code>float32</code>, wider → <code>float64</code>). Complex inputs use complex loops.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.sin.html#numpy.sin" rel="noopener" target="_blank" title="Trigonometric sine, element-wise.">numpy.sin</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.cos.html#numpy.cos" rel="noopener" target="_blank" title="Cosine element-wise.">numpy.cos</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.tan.html#numpy.tan" rel="noopener" target="_blank" title="Compute tangent element-wise.">numpy.tan</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.arcsin.html#numpy.arcsin" rel="noopener" target="_blank" title="Inverse sine, element-wise.">numpy.arcsin</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.arccos.html#numpy.arccos" rel="noopener" target="_blank" title="Trigonometric inverse cosine, element-wise.">numpy.arccos</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.arctan.html#numpy.arctan" rel="noopener" target="_blank" title="Trigonometric inverse tangent, element-wise.">numpy.arctan</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">sin</span>([<span class="t-num">0</span>, Math.PI / <span class="t-num">2</span>]);  <span class="t-res">// =&gt; [0, 1]</span>
+np.<span class="t-fn">cos</span>([<span class="t-num">0</span>]);               <span class="t-res">// =&gt; [1]</span>
+np.<span class="t-fn">arctan</span>([<span class="t-num">1</span>]);            <span class="t-res">// =&gt; [0.7853981633974483]</span>
+np.asin === np.arcsin;     <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">sin</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">cos</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">tan</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">arcsin</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">arccos</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">arctan</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">asin</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">acos</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">atan</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="sinh">
+<header class="api-head"><h3><code>np.sinh</code></h3><a class="anchor" href="#sinh" aria-label="Link to sinh">#</a></header>
+<pre class="sig"><code>np.sinh(x, opts?) · np.cosh · np.tanh · np.arcsinh · np.arccosh · np.arctanh (aliases np.asinh · np.acosh · np.atanh)</code></pre>
+<p>Element-wise hyperbolic functions and their inverses, with complex loops.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.sinh.html#numpy.sinh" rel="noopener" target="_blank" title="Hyperbolic sine, element-wise.">numpy.sinh</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.cosh.html#numpy.cosh" rel="noopener" target="_blank" title="Hyperbolic cosine, element-wise.">numpy.cosh</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.tanh.html#numpy.tanh" rel="noopener" target="_blank" title="Hyperbolic tangent, element-wise.">numpy.tanh</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.arcsinh.html#numpy.arcsinh" rel="noopener" target="_blank" title="Inverse hyperbolic sine, element-wise.">numpy.arcsinh</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.arccosh.html#numpy.arccosh" rel="noopener" target="_blank" title="Inverse hyperbolic cosine, element-wise.">numpy.arccosh</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.arctanh.html#numpy.arctanh" rel="noopener" target="_blank" title="Inverse hyperbolic tangent, element-wise.">numpy.arctanh</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">sinh</span>([<span class="t-num">0</span>]);         <span class="t-res">// =&gt; [0]</span>
+np.<span class="t-fn">cosh</span>([<span class="t-num">0</span>]);         <span class="t-res">// =&gt; [1]</span>
+np.<span class="t-fn">tanh</span>([Infinity]);  <span class="t-res">// =&gt; [1]</span>
+np.<span class="t-fn">arccosh</span>([<span class="t-num">1</span>]);      <span class="t-res">// =&gt; [0]</span>
+np.atanh === np.arctanh; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">sinh</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">cosh</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">tanh</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">arcsinh</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">arccosh</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">arctanh</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">asinh</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">acosh</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">atanh</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="arctan2">
+<header class="api-head"><h3><code>np.arctan2</code></h3><a class="anchor" href="#arctan2" aria-label="Link to arctan2">#</a></header>
+<pre class="sig"><code>np.arctan2(y, x, opts?) (alias np.atan2) · np.hypot(a, b, opts?)</code></pre>
+<p><code>arctan2</code> is the quadrant-aware angle of the point <code>(x, y)</code>; <code>hypot</code> is <code>sqrt(a² + b²)</code> without intermediate overflow. Real (float) loops only.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.arctan2.html#numpy.arctan2" rel="noopener" target="_blank" title="Element-wise arc tangent of ``x1/x2`` choosing the quadrant correctly.">numpy.arctan2</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.atan2.html#numpy.atan2" rel="noopener" target="_blank" title="Element-wise arc tangent of ``x1/x2`` choosing the quadrant correctly.">numpy.atan2</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.hypot.html#numpy.hypot" rel="noopener" target="_blank" title="Given the &quot;legs&quot; of a right triangle, return its hypotenuse.">numpy.hypot</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>y</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">arctan2</span>([<span class="t-num">1</span>, -<span class="t-num">1</span>], [<span class="t-num">1</span>, -<span class="t-num">1</span>]); <span class="t-res">// =&gt; [0.7853981633974483, -2.356194490192345]</span>
+np.<span class="t-fn">hypot</span>([<span class="t-num">3</span>, <span class="t-num">5</span>], [<span class="t-num">4</span>, <span class="t-num">12</span>]);    <span class="t-res">// =&gt; [5, 13]</span>
+np.atan2 === np.arctan2;      <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">arctan2</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">atan2</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">hypot</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="deg2rad">
+<header class="api-head"><h3><code>np.deg2rad</code></h3><a class="anchor" href="#deg2rad" aria-label="Link to deg2rad">#</a></header>
+<pre class="sig"><code>np.deg2rad(x, opts?) · np.radians · np.rad2deg · np.degrees</code></pre>
+<p>Angle conversion. <code>radians</code>/<code>degrees</code> are the same operations as <code>deg2rad</code>/<code>rad2deg</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.deg2rad.html#numpy.deg2rad" rel="noopener" target="_blank" title="Convert angles from degrees to radians.">numpy.deg2rad</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.radians.html#numpy.radians" rel="noopener" target="_blank" title="Convert angles from degrees to radians.">numpy.radians</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.rad2deg.html#numpy.rad2deg" rel="noopener" target="_blank" title="Convert angles from radians to degrees.">numpy.rad2deg</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.degrees.html#numpy.degrees" rel="noopener" target="_blank" title="Convert angles from radians to degrees.">numpy.degrees</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">deg2rad</span>([<span class="t-num">180</span>]);       <span class="t-res">// =&gt; [3.141592653589793]</span>
+np.<span class="t-fn">radians</span>([<span class="t-num">90</span>]);        <span class="t-res">// =&gt; [1.5707963267948966]</span>
+np.<span class="t-fn">rad2deg</span>([Math.PI]);   <span class="t-res">// =&gt; [180]</span>
+np.<span class="t-fn">degrees</span>([Math.PI / <span class="t-num">2</span>]); <span class="t-res">// =&gt; [90]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">deg2rad</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">radians</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">rad2deg</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">degrees</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="exp2">
+<header class="api-head"><h3><code>np.exp2</code></h3><a class="anchor" href="#exp2" aria-label="Link to exp2">#</a></header>
+<pre class="sig"><code>np.exp2(x, opts?) · np.expm1 · np.log2 · np.log10 · np.log1p</code></pre>
+<p><code>2**x</code>, <code>exp(x) - 1</code>, base-2 / base-10 logarithms and <code>log(1 + x)</code>. <code>expm1</code>/<code>log1p</code> stay accurate for tiny <code>x</code>. Complex loops are available.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.exp2.html#numpy.exp2" rel="noopener" target="_blank" title="Calculate `2**p` for all `p` in the input array.">numpy.exp2</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.expm1.html#numpy.expm1" rel="noopener" target="_blank" title="Calculate ``exp(x) - 1`` for all elements in the array.">numpy.expm1</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.log2.html#numpy.log2" rel="noopener" target="_blank" title="Base-2 logarithm of `x`.">numpy.log2</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.log10.html#numpy.log10" rel="noopener" target="_blank" title="Return the base 10 logarithm of the input array, element-wise.">numpy.log10</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.log1p.html#numpy.log1p" rel="noopener" target="_blank" title="Return the natural logarithm of one plus the input array, element-wise.">numpy.log1p</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">exp2</span>([<span class="t-num">3</span>, -<span class="t-num">1</span>]);   <span class="t-res">// =&gt; [8, 0.5]</span>
+np.<span class="t-fn">log2</span>([<span class="t-num">8</span>]);       <span class="t-res">// =&gt; [3]</span>
+np.<span class="t-fn">log10</span>([<span class="t-num">1000</span>]);   <span class="t-res">// =&gt; [3]</span>
+np.<span class="t-fn">expm1</span>([<span class="t-num">0</span>]);      <span class="t-res">// =&gt; [0]</span>
+np.<span class="t-fn">log1p</span>([<span class="t-num">0</span>]);      <span class="t-res">// =&gt; [0]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">exp2</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">expm1</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">log2</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">log10</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">log1p</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="logaddexp">
+<header class="api-head"><h3><code>np.logaddexp</code></h3><a class="anchor" href="#logaddexp" aria-label="Link to logaddexp">#</a></header>
+<pre class="sig"><code>np.logaddexp(a, b, opts?) · np.logaddexp2(a, b, opts?)</code></pre>
+<p><code>log(exp(a) + exp(b))</code> and <code>log2(2**a + 2**b)</code> without overflow. Identity <code>-Infinity</code>, so <code>.reduce</code> works on empty input.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.logaddexp.html#numpy.logaddexp" rel="noopener" target="_blank" title="Logarithm of the sum of exponentiations of the inputs.">numpy.logaddexp</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.logaddexp2.html#numpy.logaddexp2" rel="noopener" target="_blank" title="Logarithm of the sum of exponentiations of the inputs in base-2.">numpy.logaddexp2</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">logaddexp</span>(<span class="t-num">0</span>, <span class="t-num">0</span>).<span class="t-fn">toArray</span>();         <span class="t-res">// =&gt; 0.6931471805599453</span>
+np.<span class="t-fn">logaddexp2</span>(<span class="t-num">1</span>, <span class="t-num">1</span>).<span class="t-fn">toArray</span>();        <span class="t-res">// =&gt; 2</span>
+np.logaddexp2.<span class="t-fn">reduce</span>([<span class="t-num">1</span>, <span class="t-num">1</span>, <span class="t-num">2</span>]).<span class="t-fn">toArray</span>(); <span class="t-res">// =&gt; 3</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">logaddexp</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">logaddexp2</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="cbrt">
+<header class="api-head"><h3><code>np.cbrt</code></h3><a class="anchor" href="#cbrt" aria-label="Link to cbrt">#</a></header>
+<pre class="sig"><code>np.cbrt(x, opts?) · np.square(x, opts?) · np.reciprocal(x, opts?)</code></pre>
+<p>Cube root (real only); <code>x*x</code> and <code>1/x</code>, which keep integer dtypes (integer <code>reciprocal</code> truncates, <code>bool</code> uses <code>int8</code>).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.cbrt.html#numpy.cbrt" rel="noopener" target="_blank" title="Return the cube-root of an array, element-wise.">numpy.cbrt</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.square.html#numpy.square" rel="noopener" target="_blank" title="Return the element-wise square of the input.">numpy.square</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.reciprocal.html#numpy.reciprocal" rel="noopener" target="_blank" title="Return the reciprocal of the argument, element-wise.">numpy.reciprocal</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">cbrt</span>([-<span class="t-num">8</span>, <span class="t-num">27</span>]);       <span class="t-res">// =&gt; [-2, 3]</span>
+np.<span class="t-fn">square</span>([<span class="t-num">2</span>, -<span class="t-num">3</span>]);      <span class="t-res">// =&gt; [4, 9]</span>
+np.<span class="t-fn">reciprocal</span>([<span class="t-num">4</span>, <span class="t-num">0.5</span>]); <span class="t-res">// =&gt; [0.25, 2]</span>
+np.<span class="t-fn">reciprocal</span>([<span class="t-num">2</span>, <span class="t-num">1</span>]);   <span class="t-res">// =&gt; [0, 1]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">cbrt</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">square</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">reciprocal</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="floor">
+<header class="api-head"><h3><code>np.floor</code></h3><a class="anchor" href="#floor" aria-label="Link to floor">#</a></header>
+<pre class="sig"><code>np.floor(x, opts?) · np.ceil · np.trunc · np.fix · np.rint</code></pre>
+<p>Round down, up, toward zero (<code>fix</code> is the same as <code>trunc</code>) and to the nearest even integer. <code>floor</code>/<code>ceil</code>/<code>trunc</code> keep integer and bool dtypes; <code>rint</code> gives floats and also rounds complex parts.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.floor.html#numpy.floor" rel="noopener" target="_blank" title="Return the floor of the input, element-wise.">numpy.floor</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.ceil.html#numpy.ceil" rel="noopener" target="_blank" title="Return the ceiling of the input, element-wise.">numpy.ceil</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.trunc.html#numpy.trunc" rel="noopener" target="_blank" title="Return the truncated value of the input, element-wise.">numpy.trunc</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.fix.html#numpy.fix" rel="noopener" target="_blank" title="Round to nearest integer towards zero.">numpy.fix</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.rint.html#numpy.rint" rel="noopener" target="_blank" title="Round elements of the array to the nearest integer.">numpy.rint</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">floor</span>([-<span class="t-num">1.5</span>, <span class="t-num">1.5</span>]);  <span class="t-res">// =&gt; [-2, 1]</span>
+np.<span class="t-fn">ceil</span>([-<span class="t-num">1.5</span>, <span class="t-num">1.5</span>]);   <span class="t-res">// =&gt; [-1, 2]</span>
+np.<span class="t-fn">trunc</span>([-<span class="t-num">1.7</span>, <span class="t-num">1.7</span>]);  <span class="t-res">// =&gt; [-1, 1]</span>
+np.<span class="t-fn">fix</span>([-<span class="t-num">1.7</span>, <span class="t-num">1.7</span>]);    <span class="t-res">// =&gt; [-1, 1]</span>
+np.<span class="t-fn">rint</span>([<span class="t-num">0.5</span>, <span class="t-num">1.5</span>]);    <span class="t-res">// =&gt; [0, 2]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">floor</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">ceil</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">trunc</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">fix</span>(x: ArrayLike, opts?: RoundOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">rint</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="round">
+<header class="api-head"><h3><code>np.round</code></h3><a class="anchor" href="#round" aria-label="Link to round">#</a></header>
+<pre class="sig"><code>np.round(a, decimals = 0, { out? }) · np.around · a.round(decimals?)</code></pre>
+<p>Round half to even to <code>decimals</code> places; negative <code>decimals</code> round to tens, hundreds, …. Floats compute <code>rint(a * 10**d) / 10**d</code> like NumPy. Integer inputs keep their dtype.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.round.html#numpy.round" rel="noopener" target="_blank" title="Evenly round to the given number of decimals.">numpy.round</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.around.html#numpy.around" rel="noopener" target="_blank" title="Round an array to the given number of decimals.">numpy.around</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.ndarray.round.html#numpy.ndarray.round" rel="noopener" target="_blank" title="Return `a` with each element rounded to the given number of decimals.">numpy.ndarray.round</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[decimals]</code><span class="ty">number</span></dt><dd>Number of decimal places (integer, default 0).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">round</span>([<span class="t-num">0.5</span>, <span class="t-num">1.5</span>, <span class="t-num">2.5</span>]);   <span class="t-res">// =&gt; [0, 2, 2]</span>
+np.<span class="t-fn">round</span>([<span class="t-num">1.25</span>, <span class="t-num">2.567</span>], <span class="t-num">2</span>);  <span class="t-res">// =&gt; [1.25, 2.57]</span>
+np.<span class="t-fn">around</span>([<span class="t-num">15</span>, <span class="t-num">25</span>], -<span class="t-num">1</span>);     <span class="t-res">// =&gt; [20, 20]</span>
+np.<span class="t-fn">array</span>([<span class="t-num">3.14159</span>]).<span class="t-fn">round</span>(<span class="t-num">3</span>); <span class="t-res">// =&gt; [3.142]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">round</span>(a: ArrayLike, decimals?: number | <span class="t-kw">undefined</span>, opts?: RoundOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">around</span>(a: ArrayLike, decimals?: number | <span class="t-kw">undefined</span>, opts?: RoundOptions | <span class="t-kw">undefined</span>): NDArray
+a.<span class="t-fn">round</span>(decimals?: number | <span class="t-kw">undefined</span>, opts?: RoundOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="positive">
+<header class="api-head"><h3><code>np.positive</code></h3><a class="anchor" href="#positive" aria-label="Link to positive">#</a></header>
+<pre class="sig"><code>np.positive(x, opts?)</code></pre>
+<p>Element-wise <code>+x</code> (a copy). No <code>bool</code> loop, as in NumPy.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.positive.html#numpy.positive" rel="noopener" target="_blank" title="Numerical positive, element-wise.">numpy.positive</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">positive</span>([-<span class="t-num">3</span>, <span class="t-num">2</span>]); <span class="t-res">// =&gt; [-3, 2]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">positive</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="fmod">
+<header class="api-head"><h3><code>np.fmod</code></h3><a class="anchor" href="#fmod" aria-label="Link to fmod">#</a></header>
+<pre class="sig"><code>np.fmod(a, b, opts?) · np.remainder (alias of np.mod) · np.trueDivide (alias of np.divide) · np.pow (alias of np.power) · np.absolute (alias of np.abs)</code></pre>
+<p><code>fmod</code> is the C remainder: the result takes the sign of the dividend (unlike <code>mod</code>/<code>remainder</code>, which follow the divisor). Integer <code>x % 0</code> is 0. The aliases are the same objects as the original ufuncs.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.fmod.html#numpy.fmod" rel="noopener" target="_blank" title="Returns the element-wise remainder of division.">numpy.fmod</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.remainder.html#numpy.remainder" rel="noopener" target="_blank" title="Returns the element-wise remainder of division.">numpy.remainder</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.mod.html#numpy.mod" rel="noopener" target="_blank" title="Returns the element-wise remainder of division.">numpy.mod</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.true_divide.html#numpy.true_divide" rel="noopener" target="_blank" title="Divide arguments element-wise.">numpy.true_divide</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.divide.html#numpy.divide" rel="noopener" target="_blank" title="Divide arguments element-wise.">numpy.divide</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.pow.html#numpy.pow" rel="noopener" target="_blank" title="First array elements raised to powers from second array, element-wise.">numpy.pow</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">fmod</span>([-<span class="t-num">7</span>, <span class="t-num">7</span>], <span class="t-num">3</span>);       <span class="t-res">// =&gt; [-1, 1]</span>
+np.<span class="t-fn">remainder</span>([-<span class="t-num">7</span>, <span class="t-num">7</span>], <span class="t-num">3</span>);  <span class="t-res">// =&gt; [2, 1]</span>
+np.pow === np.power;       <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">fmod</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">remainder</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">mod</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">trueDivide</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">divide</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">pow</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">power</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">absolute</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">abs</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="floatPower">
+<header class="api-head"><h3><code>np.floatPower</code></h3><a class="anchor" href="#floatPower" aria-label="Link to floatPower">#</a></header>
+<pre class="sig"><code>np.floatPower(a, b, opts?)</code></pre>
+<p>Element-wise <code>a ** b</code> computed in <code>float64</code> (or <code>complex128</code>), so integer inputs can take negative exponents.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.float_power.html#numpy.float_power" rel="noopener" target="_blank" title="First array elements raised to powers from second array, element-wise.">numpy.float_power</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">floatPower</span>([<span class="t-num">2</span>, <span class="t-num">3</span>], <span class="t-num">2</span>);  <span class="t-res">// =&gt; [4, 9]</span>
+np.<span class="t-fn">floatPower</span>([<span class="t-num">2</span>], -<span class="t-num">1</span>);    <span class="t-res">// =&gt; [0.5]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">floatPower</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="sign">
+<header class="api-head"><h3><code>np.sign</code></h3><a class="anchor" href="#sign" aria-label="Link to sign">#</a></header>
+<pre class="sig"><code>np.sign(x, opts?) · np.heaviside(x, h0, opts?) · np.fabs(x, opts?)</code></pre>
+<p><code>sign</code> gives -1, 0 or 1 (NaN stays NaN; complex <code>z/|z|</code>). <code>heaviside</code> is 0 for <code>x &lt; 0</code>, <code>h0</code> at 0 and 1 for <code>x &gt; 0</code>. <code>fabs</code> is the float-only absolute value.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.sign.html#numpy.sign" rel="noopener" target="_blank" title="Returns an element-wise indication of the sign of a number.">numpy.sign</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.heaviside.html#numpy.heaviside" rel="noopener" target="_blank" title="Compute the Heaviside step function.">numpy.heaviside</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.fabs.html#numpy.fabs" rel="noopener" target="_blank" title="Compute the absolute values element-wise.">numpy.fabs</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">sign</span>([-<span class="t-num">2</span>, <span class="t-num">0</span>, <span class="t-num">3</span>]);            <span class="t-res">// =&gt; [-1, 0, 1]</span>
+np.<span class="t-fn">heaviside</span>([-<span class="t-num">1</span>, <span class="t-num">0</span>, <span class="t-num">2</span>], <span class="t-num">0.5</span>);  <span class="t-res">// =&gt; [0, 0.5, 1]</span>
+np.<span class="t-fn">fabs</span>([-<span class="t-num">1.5</span>]);                <span class="t-res">// =&gt; [1.5]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">sign</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">heaviside</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">fabs</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="maximum">
+<header class="api-head"><h3><code>np.maximum</code></h3><a class="anchor" href="#maximum" aria-label="Link to maximum">#</a></header>
+<pre class="sig"><code>np.maximum(a, b, opts?) · np.minimum · np.fmax · np.fmin</code></pre>
+<p>Element-wise maximum/minimum. <code>maximum</code>/<code>minimum</code> propagate NaN; <code>fmax</code>/<code>fmin</code> return the non-NaN operand. Use <code>.reduce</code> for an axis-wise max without an identity.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.maximum.html#numpy.maximum" rel="noopener" target="_blank" title="Element-wise maximum of array elements.">numpy.maximum</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.minimum.html#numpy.minimum" rel="noopener" target="_blank" title="Element-wise minimum of array elements.">numpy.minimum</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.fmax.html#numpy.fmax" rel="noopener" target="_blank" title="Element-wise maximum of array elements.">numpy.fmax</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.fmin.html#numpy.fmin" rel="noopener" target="_blank" title="Element-wise minimum of array elements.">numpy.fmin</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">maximum</span>([<span class="t-num">1</span>, <span class="t-num">5</span>], [<span class="t-num">3</span>, <span class="t-num">2</span>]);      <span class="t-res">// =&gt; [3, 5]</span>
+np.<span class="t-fn">minimum</span>([NaN, <span class="t-num">1</span>], [<span class="t-num">0</span>, <span class="t-num">0</span>]).<span class="t-fn">toArray</span>()[<span class="t-num">1</span>]; <span class="t-res">// =&gt; 0</span>
+np.<span class="t-fn">fmax</span>([NaN, <span class="t-num">1</span>], [<span class="t-num">0</span>, <span class="t-num">0</span>]);       <span class="t-res">// =&gt; [0, 1]</span>
+np.<span class="t-fn">fmin</span>([NaN, <span class="t-num">1</span>], [<span class="t-num">0</span>, <span class="t-num">0</span>]);       <span class="t-res">// =&gt; [0, 0]</span>
+np.maximum.<span class="t-fn">reduce</span>([<span class="t-num">3</span>, <span class="t-num">9</span>, <span class="t-num">2</span>]).<span class="t-fn">toArray</span>(); <span class="t-res">// =&gt; 9</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">maximum</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">minimum</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">fmax</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">fmin</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="clip">
+<header class="api-head"><h3><code>np.clip</code></h3><a class="anchor" href="#clip" aria-label="Link to clip">#</a></header>
+<pre class="sig"><code>np.clip(a, min?, max?, { out? }) · a.clip(min?, max?)</code></pre>
+<p>Limit values to <code>[min, max]</code>; <code>null</code> skips a side. Computed as <code>minimum(maximum(a, min), max)</code> like NumPy, so NaN propagates and <code>min &gt; max</code> gives <code>max</code>. Also adds <code>a.conjugate()</code> (complex conjugate).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.clip.html#numpy.clip" rel="noopener" target="_blank" title="Clip (limit) the values in an array.">numpy.clip</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.ndarray.clip.html#numpy.ndarray.clip" rel="noopener" target="_blank" title="Return an array whose values are limited to ``[min, max]``. One of max or min must be given.">numpy.ndarray.clip</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>min</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>max</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">clip</span>([<span class="t-num">1</span>, <span class="t-num">5</span>, <span class="t-num">9</span>], <span class="t-num">2</span>, <span class="t-num">6</span>);        <span class="t-res">// =&gt; [2, 5, 6]</span>
+np.<span class="t-fn">clip</span>([<span class="t-num">1</span>, <span class="t-num">5</span>, <span class="t-num">9</span>], <span class="t-kw">null</span>, <span class="t-num">4</span>);     <span class="t-res">// =&gt; [1, 4, 4]</span>
+np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">5</span>, <span class="t-num">9</span>]).<span class="t-fn">clip</span>(<span class="t-num">4</span>);     <span class="t-res">// =&gt; [4, 5, 9]</span>
+np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>]).<span class="t-fn">conjugate</span>();    <span class="t-res">// =&gt; [1, 2]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">clip</span>(a: ArrayLike, min?: Bound, max?: Bound, opts?: ClipOptions | <span class="t-kw">undefined</span>): NDArray
+a.<span class="t-fn">clip</span>(min?: Operand | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>, max?: Operand | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>, opts?: ClipOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="copysign">
+<header class="api-head"><h3><code>np.copysign</code></h3><a class="anchor" href="#copysign" aria-label="Link to copysign">#</a></header>
+<pre class="sig"><code>np.copysign(a, b, opts?) · np.nextafter(a, b, opts?) · np.spacing(x, opts?) · np.signbit(x, opts?)</code></pre>
+<p>Floating-point bit helpers: magnitude of <code>a</code> with the sign of <code>b</code>; the next representable value after <code>a</code> toward <code>b</code>; the gap to the next value away from zero; whether the sign bit is set (<code>bool</code> result, true for <code>-0</code>). Float loops only.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.copysign.html#numpy.copysign" rel="noopener" target="_blank" title="Change the sign of x1 to that of x2, element-wise.">numpy.copysign</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.nextafter.html#numpy.nextafter" rel="noopener" target="_blank" title="Return the next floating-point value after x1 towards x2, element-wise.">numpy.nextafter</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.spacing.html#numpy.spacing" rel="noopener" target="_blank" title="Return the distance between x and the nearest adjacent number.">numpy.spacing</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.signbit.html#numpy.signbit" rel="noopener" target="_blank" title="Returns element-wise True where signbit is set (less than zero).">numpy.signbit</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">copysign</span>([<span class="t-num">3</span>, <span class="t-num">2</span>], [-<span class="t-num">1</span>, <span class="t-num">1</span>]);  <span class="t-res">// =&gt; [-3, 2]</span>
+np.<span class="t-fn">nextafter</span>([<span class="t-num">0</span>], [-<span class="t-num">1</span>]);       <span class="t-res">// =&gt; [-5e-324]</span>
+np.<span class="t-fn">spacing</span>([<span class="t-num">1</span>]);               <span class="t-res">// =&gt; [2.220446049250313e-16]</span>
+np.<span class="t-fn">signbit</span>([-<span class="t-num">0.0</span>, <span class="t-num">1</span>]);         <span class="t-res">// =&gt; [true, false]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">copysign</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">nextafter</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">spacing</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">signbit</span>(a: ArrayLike, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="ldexp">
+<header class="api-head"><h3><code>np.ldexp</code></h3><a class="anchor" href="#ldexp" aria-label="Link to ldexp">#</a></header>
+<pre class="sig"><code>np.ldexp(x, n, opts?)</code></pre>
+<p><code>x * 2**n</code> for an integer exponent array <code>n</code> (non-integer or <code>uint64</code> exponents raise <code>DTypeError</code>, as in NumPy).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.ldexp.html#numpy.ldexp" rel="noopener" target="_blank" title="Returns x1 * 2**x2, element-wise.">numpy.ldexp</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>n</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">ldexp</span>([<span class="t-num">1.5</span>, <span class="t-num">1.5</span>], [<span class="t-num">3</span>, -<span class="t-num">1</span>]); <span class="t-res">// =&gt; [12, 0.75]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">ldexp</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="gcd">
+<header class="api-head"><h3><code>np.gcd</code></h3><a class="anchor" href="#gcd" aria-label="Link to gcd">#</a></header>
+<pre class="sig"><code>np.gcd(a, b, opts?) · np.lcm(a, b, opts?)</code></pre>
+<p>Greatest common divisor and least common multiple of integers (results are non-negative). <code>gcd</code> has identity 0.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.gcd.html#numpy.gcd" rel="noopener" target="_blank" title="Returns the greatest common divisor of ``|x1|`` and ``|x2|``">numpy.gcd</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.lcm.html#numpy.lcm" rel="noopener" target="_blank" title="Returns the lowest common multiple of ``|x1|`` and ``|x2|``">numpy.lcm</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UfuncOptions</span></dt><dd><code>out</code>, <code>where</code>, <code>dtype</code>, <code>casting</code>, <code>order</code> (NumPy ufunc keywords).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">gcd</span>([<span class="t-num">12</span>, -<span class="t-num">12</span>, <span class="t-num">7</span>], [<span class="t-num">18</span>, <span class="t-num">18</span>, <span class="t-num">0</span>]); <span class="t-res">// =&gt; [6, 6, 7]</span>
+np.<span class="t-fn">lcm</span>([<span class="t-num">4</span>, -<span class="t-num">3</span>], [<span class="t-num">6</span>, <span class="t-num">7</span>]);           <span class="t-res">// =&gt; [12, 21]</span>
+np.gcd.<span class="t-fn">reduce</span>([<span class="t-num">12</span>, <span class="t-num">18</span>, <span class="t-num">27</span>]).<span class="t-fn">toArray</span>(); <span class="t-res">// =&gt; 3</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">gcd</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">lcm</span>(a: Operand, b: Operand, opts?: UfuncOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="divmod">
+<header class="api-head"><h3><code>np.divmod</code></h3><a class="anchor" href="#divmod" aria-label="Link to divmod">#</a></header>
+<pre class="sig"><code>np.divmod(a, b, { out?, dtype?, casting? }) · np.modf(x, opts?) · np.frexp(x, opts?)</code></pre>
+<p>Two-output ufuncs returning <code>[NDArray, NDArray]</code>. <code>divmod</code> gives <code>[floorDivide(a, b), mod(a, b)]</code>; <code>modf</code> gives <code>[fractional, integral]</code> parts; <code>frexp</code> gives <code>[mantissa, exponent]</code> with <code>x = m * 2**e</code> and an <code>int32</code> exponent. <code>out</code> is a pair (entries may be <code>null</code>).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.divmod.html#numpy.divmod" rel="noopener" target="_blank" title="Return element-wise quotient and remainder simultaneously.">numpy.divmod</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.modf.html#numpy.modf" rel="noopener" target="_blank" title="Return the fractional and integral parts of an array, element-wise.">numpy.modf</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.frexp.html#numpy.frexp" rel="noopener" target="_blank" title="Decompose the elements of x into mantissa and twos exponent.">numpy.frexp</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">MultiUfuncOptions</span></dt><dd><code>out: [o1, o2]</code>, <code>dtype</code>, <code>casting</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>[NDArray, NDArray]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">divmod</span>([<span class="t-num">7</span>, -<span class="t-num">7</span>], <span class="t-num">2</span>).<span class="t-fn">map</span>((x) =&gt; x.<span class="t-fn">toArray</span>()); <span class="t-res">// =&gt; [[3, -4], [1, 1]]</span>
+np.<span class="t-fn">modf</span>([-<span class="t-num">2.5</span>]).<span class="t-fn">map</span>((x) =&gt; x.<span class="t-fn">toArray</span>());       <span class="t-res">// =&gt; [[-0.5], [-2]]</span>
+np.<span class="t-fn">frexp</span>([<span class="t-num">8</span>]).<span class="t-fn">map</span>((x) =&gt; x.<span class="t-fn">toArray</span>());         <span class="t-res">// =&gt; [[0.5], [4]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">divmod</span>(a: Operand, b: Operand, opts?: MultiUfuncOptions | <span class="t-kw">undefined</span>): [NDArray, NDArray]
+np.<span class="t-fn">modf</span>(x: ArrayLike, opts?: MultiUfuncOptions | <span class="t-kw">undefined</span>): [NDArray, NDArray]
+np.<span class="t-fn">frexp</span>(x: ArrayLike, opts?: MultiUfuncOptions | <span class="t-kw">undefined</span>): [NDArray, NDArray]</code></pre></details>
+</article>
+<article class="api" id="i0">
+<header class="api-head"><h3><code>np.i0</code></h3><a class="anchor" href="#i0" aria-label="Link to i0">#</a></header>
+<pre class="sig"><code>np.i0(x) · np.sinc(x)</code></pre>
+<p><code>i0</code> is the modified Bessel function of the first kind, order 0 (real input; float16/float32 kept, otherwise float64). <code>sinc</code> is the normalized <code>sin(pi x) / (pi x)</code>, 1 at 0, with complex support. Not ufunc objects (as in NumPy).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.i0.html#numpy.i0" rel="noopener" target="_blank" title="Modified Bessel function of the first kind, order 0.">numpy.i0</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.sinc.html#numpy.sinc" rel="noopener" target="_blank" title="Return the normalized sinc function.">numpy.sinc</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">i0</span>([<span class="t-num">0</span>]);         <span class="t-res">// =&gt; [1]</span>
+np.<span class="t-fn">sinc</span>([<span class="t-num">0</span>, <span class="t-num">0.5</span>]);  <span class="t-res">// =&gt; [1, 0.6366197723675814]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">i0</span>(x: ArrayLike): NDArray
+np.<span class="t-fn">sinc</span>(x: ArrayLike): NDArray</code></pre></details>
+</article>
+<article class="api" id="nanToNum">
+<header class="api-head"><h3><code>np.nanToNum</code></h3><a class="anchor" href="#nanToNum" aria-label="Link to nanToNum">#</a></header>
+<pre class="sig"><code>np.nanToNum(x, { copy?, nan?, posinf?, neginf? })</code></pre>
+<p>Replace NaN with <code>nan</code> (default 0) and ±Infinity with <code>posinf</code>/<code>neginf</code> (default: the dtype's largest finite values). Complex values are fixed part by part; non-float input is returned unchanged.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.nan_to_num.html#numpy.nan_to_num" rel="noopener" target="_blank" title="Replace NaN with zero and infinity with large finite numbers (default behaviour) or with the numbers defined by the user using the `nan`, `posinf` and/or `neginf` keywords.">numpy.nan_to_num</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">NanToNumOptions</span></dt><dd><code>copy</code> (default true), scalar <code>nan</code>, <code>posinf</code>, <code>neginf</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">nanToNum</span>([NaN, <span class="t-num">1</span>]);                     <span class="t-res">// =&gt; [0, 1]</span>
+np.<span class="t-fn">nanToNum</span>([NaN, Infinity], { posinf: <span class="t-num">9</span> }); <span class="t-res">// =&gt; [0, 9]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">nanToNum</span>(x: ArrayLike, opts?: NanToNumOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="realIfClose">
+<header class="api-head"><h3><code>np.realIfClose</code></h3><a class="anchor" href="#realIfClose" aria-label="Link to realIfClose">#</a></header>
+<pre class="sig"><code>np.realIfClose(x, tol = 100)</code></pre>
+<p>Return the real part when every imaginary part is below <code>tol</code> (counted in machine epsilons when <code>tol &gt; 1</code>); otherwise return <code>x</code> unchanged.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.real_if_close.html#numpy.real_if_close" rel="noopener" target="_blank" title="If input is complex with all imaginary parts close to zero, return real parts.">numpy.real_if_close</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[tol]</code><span class="ty">number</span></dt><dd>Tolerance (default 100 epsilons).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">realIfClose</span>([{ re: <span class="t-num">2</span>, im: <span class="t-num">1e-15</span> }]); <span class="t-res">// =&gt; [2]</span>
+np.<span class="t-fn">realIfClose</span>([{ re: <span class="t-num">2</span>, im: <span class="t-num">0.5</span> }]).dtype.name; <span class="t-res">// =&gt; &quot;complex128&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">realIfClose</span>(x: ArrayLike, tol?: number | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="unwrap">
+<header class="api-head"><h3><code>np.unwrap</code></h3><a class="anchor" href="#unwrap" aria-label="Link to unwrap">#</a></header>
+<pre class="sig"><code>np.unwrap(p, { discont?, axis? = -1, period? = 2π })</code></pre>
+<p>Remove jumps between neighbours larger than <code>discont</code> (default <code>period / 2</code>) by adding multiples of <code>period</code>. Integer input with an integer period keeps its dtype.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.unwrap.html#numpy.unwrap" rel="noopener" target="_blank" title="Unwrap by taking the complement of large deltas with respect to the period.">numpy.unwrap</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>p</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[opts]</code><span class="ty">UnwrapOptions</span></dt><dd><code>discont</code>, <code>axis</code>, <code>period</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">unwrap</span>([<span class="t-num">0</span>, <span class="t-num">7</span>, <span class="t-num">14</span>], { period: <span class="t-num">10</span> }); <span class="t-res">// =&gt; [0, -3, -6]</span>
+np.<span class="t-fn">unwrap</span>([<span class="t-num">0</span>, <span class="t-num">1</span>, <span class="t-num">2</span>]);                  <span class="t-res">// =&gt; [0, 1, 2]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">unwrap</span>(p: ArrayLike, opts?: UnwrapOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+</article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../reference/ufuncs.html"><small>Previous</small><span>Universal functions (ufunc)</span></a><a class="pg next" href="../reference/logic.html"><small>Next</small><span>Comparison, logic and bitwise</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l3"><a href="#add">np.add</a></li><li class="l3"><a href="#floorDivide">np.floorDivide</a></li><li class="l3"><a href="#power">np.power</a></li><li class="l3"><a href="#abs">np.abs</a></li><li class="l3"><a href="#real">np.real</a></li><li class="l3"><a href="#sqrt">np.sqrt</a></li><li class="l3"><a href="#matmul">np.matmul</a></li><li class="l3"><a href="#outer">np.outer</a></li><li class="l3"><a href="#sin">np.sin</a></li><li class="l3"><a href="#sinh">np.sinh</a></li><li class="l3"><a href="#arctan2">np.arctan2</a></li><li class="l3"><a href="#deg2rad">np.deg2rad</a></li><li class="l3"><a href="#exp2">np.exp2</a></li><li class="l3"><a href="#logaddexp">np.logaddexp</a></li><li class="l3"><a href="#cbrt">np.cbrt</a></li><li class="l3"><a href="#floor">np.floor</a></li><li class="l3"><a href="#round">np.round</a></li><li class="l3"><a href="#positive">np.positive</a></li><li class="l3"><a href="#fmod">np.fmod</a></li><li class="l3"><a href="#floatPower">np.floatPower</a></li><li class="l3"><a href="#sign">np.sign</a></li><li class="l3"><a href="#maximum">np.maximum</a></li><li class="l3"><a href="#clip">np.clip</a></li><li class="l3"><a href="#copysign">np.copysign</a></li><li class="l3"><a href="#ldexp">np.ldexp</a></li><li class="l3"><a href="#gcd">np.gcd</a></li><li class="l3"><a href="#divmod">np.divmod</a></li><li class="l3"><a href="#i0">np.i0</a></li><li class="l3"><a href="#nanToNum">np.nanToNum</a></li><li class="l3"><a href="#realIfClose">np.realIfClose</a></li><li class="l3"><a href="#unwrap">np.unwrap</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.2</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.2","versions":["1.0.2","1.0.1"],"pages":{"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>

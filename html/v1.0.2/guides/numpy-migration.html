@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.2" data-path="guides/numpy-migration.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coming from NumPy · numera v1.0.2</title>
+<meta name="description" content="How NumPy code translates to numera: naming, keyword arguments, indexing and return values.">
+<meta property="og:title" content="Coming from NumPy · numera">
+<meta property="og:description" content="How NumPy code translates to numera: naming, keyword arguments, indexing and return values.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.2" selected>v1.0.2 (latest)</option><option value="1.0.1">v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html" aria-current="page">Guides</a><a href="../reference/index.html">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Getting started</p><ul><li><a href="../index.html">Introduction</a></li><li><a href="../guides/installation.html">Installation</a></li><li><a href="../guides/quickstart.html">Quickstart</a></li><li><a href="../guides/numpy-migration.html" aria-current="page">Coming from NumPy</a></li></ul></div><div class="side-group"><p class="side-title">Core concepts</p><ul><li><a href="../guides/array-basics.html">Array basics</a></li><li><a href="../guides/dtypes.html">Data types</a></li><li><a href="../guides/broadcasting.html">Broadcasting</a></li><li><a href="../guides/indexing.html">Indexing and slicing</a></li><li><a href="../guides/reductions.html">Reductions and statistics</a></li></ul></div><div class="side-group"><p class="side-title">Topics</p><ul><li><a href="../guides/random.html">Random numbers</a></li><li><a href="../guides/linalg-fft.html">Linear algebra and FFT</a></li><li><a href="../guides/errors.html">Errors and floating-point</a></li><li><a href="../guides/typescript.html">TypeScript</a></li><li><a href="../guides/performance.html">Performance and memory</a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose"><p class="eyebrow">Getting started</p><h1>Coming from NumPy</h1><p>numera keeps NumPy's names, semantics and results. Most of the differences come from JavaScript itself: it has no keyword arguments, no operator overloading and no slice syntax. This page lists the translation rules. The <a href="../compatibility.html">compatibility page</a> lists every behavioural difference.</p>
+<h2 id="translation-table">Translation table<a class="anchor" href="#translation-table" aria-label="Link to this section">#</a></h2>
+<div class="table"><table><thead><tr><th>NumPy (Python)</th><th>numera (JavaScript / TypeScript)</th></tr></thead><tbody><tr><td><code>import numpy as np</code></td><td><code>import np from &quot;@cyfora/numera&quot;</code></td></tr><tr><td><code>np.zeros((2, 3))</code></td><td><code>np.zeros([2, 3])</code></td></tr><tr><td><code>np.array([1, 2], dtype=np.float32)</code></td><td><code>np.array([1, 2], { dtype: &quot;float32&quot; })</code> or <code>{ dtype: np.float32 }</code></td></tr><tr><td><code>np.expand_dims(a, 0)</code></td><td><code>np.expandDims(a, 0)</code></td></tr><tr><td><code>np.linalg.matrix_rank(a)</code></td><td><code>np.linalg.matrixRank(a)</code></td></tr><tr><td><code>np.random.default_rng(42)</code></td><td><code>np.random.defaultRng(42)</code></td></tr><tr><td><code>a.sum(axis=0, keepdims=True)</code></td><td><code>a.sum({ axis: 0, keepdims: true })</code></td></tr><tr><td><code>a + b</code>, <code>a * 2</code>, <code>a ** 2</code></td><td><code>np.add(a, b)</code>, <code>np.multiply(a, 2)</code>, <code>np.power(a, 2)</code></td></tr><tr><td><code>a @ b</code></td><td><code>np.matmul(a, b)</code> or <code>a.dot(b)</code></td></tr><tr><td><code>a &gt; 0</code></td><td><code>np.greater(a, 0)</code></td></tr><tr><td><code>a &amp; b</code>, <code>~a</code></td><td><code>np.logicalAnd(a, b)</code> / <code>np.bitwiseAnd(a, b)</code>, <code>np.logicalNot(a)</code> / <code>np.invert(a)</code></td></tr><tr><td><code>a[1, 2]</code></td><td><code>a.get(1, 2)</code>, or <code>a.item(1, 2)</code> for a JS number</td></tr><tr><td><code>a[0:2, ::2]</code></td><td><code>a.slice([[0, 2], [null, null, 2]])</code></td></tr><tr><td><code>a[..., 0]</code>, <code>a[None]</code></td><td><code>a.get(np.ellipsis, 0)</code>, <code>a.get(np.newaxis)</code></td></tr><tr><td><code>a[mask]</code></td><td><code>a.get(mask)</code></td></tr><tr><td><code>a[0:2] = 5</code></td><td><code>a.set([[0, 2]], 5)</code></td></tr><tr><td><code>a.shape</code>, <code>a.dtype</code>, <code>a.T</code></td><td><code>a.shape</code>, <code>a.dtype</code>, <code>a.T</code> (the same)</td></tr><tr><td><code>a.tolist()</code></td><td><code>a.toArray()</code> (or <code>a.tolist()</code>)</td></tr><tr><td><code>None</code></td><td><code>null</code></td></tr><tr><td><code>np.nan</code>, <code>np.inf</code></td><td><code>NaN</code>, <code>Infinity</code> (or <code>np.nan</code>, <code>np.inf</code>)</td></tr><tr><td><code>1 + 2j</code></td><td><code>np.complex(1, 2)</code></td></tr><tr><td><code>with np.errstate(divide=&quot;ignore&quot;):</code></td><td><code>np.errstate({ divide: &quot;ignore&quot; }, () =&gt; { ... })</code></td></tr></tbody></table></div>
+<h2 id="naming">Naming<a class="anchor" href="#naming" aria-label="Link to this section">#</a></h2>
+<p>Function and method names use camelCase: <code>expand_dims</code> becomes <code>expandDims</code>, and <code>nan_to_num</code> becomes <code>nanToNum</code>. Option keys are camelCase as well (<code>fullMatrices</code>, <code>returnCounts</code>). Names that are already a single word are unchanged, for example <code>sum</code>, <code>matmul</code>, <code>linalg.svd</code> and <code>fft.rfft</code>. The <a href="../reference/numpy-index.html">NumPy name index</a> lists the numera name of every NumPy function. Search for the Python name there or press &lt;kbd&gt;/&lt;/kbd&gt;.</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">expandDims</span>(np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>]), <span class="t-num">0</span>).shape;        <span class="t-res">// =&gt; [1, 2]</span>
+np.<span class="t-fn">nanToNum</span>([NaN, <span class="t-num">1</span>]);                 <span class="t-res">// =&gt; [0, 1]</span>
+np.linalg.<span class="t-fn">matrixRank</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">2</span>, <span class="t-num">4</span>]]).<span class="t-fn">item</span>(); <span class="t-res">// =&gt; 1</span></code></pre></div>
+<h2 id="keyword-arguments">Keyword arguments<a class="anchor" href="#keyword-arguments" aria-label="Link to this section">#</a></h2>
+<p>Positional arguments stay positional. Keyword arguments go into an options object, which is always the last argument:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">array</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]]);
+np.<span class="t-fn">sum</span>(a, { axis: <span class="t-num">0</span> });                       <span class="t-res">// =&gt; [4, 6]</span>
+np.<span class="t-fn">sum</span>(a, { axis: <span class="t-num">1</span>, keepdims: <span class="t-kw">true</span> });       <span class="t-res">// =&gt; [[3], [7]]</span>
+np.<span class="t-fn">std</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>, <span class="t-num">4</span>], { ddof: <span class="t-num">1</span> }).<span class="t-fn">item</span>();     <span class="t-res">// =&gt; 1.2909944487358056</span>
+np.<span class="t-fn">concatenate</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>]]);                <span class="t-res">// =&gt; [1, 2, 3]</span></code></pre></div>
+<p>Some functions also accept a common option positionally, as NumPy does. For example, <code>np.concatenate(arrays, 1)</code> and <code>np.sort(a, 0)</code> both take the axis. The signature in the API reference shows which forms each function accepts.</p>
+<h2 id="operators">Operators<a class="anchor" href="#operators" aria-label="Link to this section">#</a></h2>
+<p>JavaScript cannot overload <code>+</code>, <code>*</code>, <code>&gt;</code> or <code>@</code>, so every operator is a function call. These are NumPy's own ufuncs, so <code>np.add(a, b)</code> behaves exactly like <code>a + b</code> in NumPy:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> x = np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]);
+np.<span class="t-fn">add</span>(x, <span class="t-num">1</span>);                   <span class="t-res">// =&gt; [2, 3, 4]</span>
+np.<span class="t-fn">subtract</span>(<span class="t-num">10</span>, x);             <span class="t-res">// =&gt; [9, 8, 7]</span>
+np.<span class="t-fn">multiply</span>(x, x);              <span class="t-res">// =&gt; [1, 4, 9]</span>
+np.<span class="t-fn">divide</span>(x, <span class="t-num">2</span>);                <span class="t-res">// =&gt; [0.5, 1, 1.5]</span>
+np.<span class="t-fn">floorDivide</span>(x, <span class="t-num">2</span>);           <span class="t-res">// =&gt; [0, 1, 1]</span>
+np.<span class="t-fn">mod</span>(x, <span class="t-num">2</span>);                   <span class="t-res">// =&gt; [1, 0, 1]</span>
+np.<span class="t-fn">power</span>(x, <span class="t-num">2</span>);                 <span class="t-res">// =&gt; [1, 4, 9]</span>
+np.<span class="t-fn">equal</span>(x, <span class="t-num">2</span>);                 <span class="t-res">// =&gt; [false, true, false]</span>
+np.<span class="t-fn">matmul</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]], [[<span class="t-num">1</span>], [<span class="t-num">1</span>]]); <span class="t-res">// =&gt; [[3], [7]]</span></code></pre></div>
+<p>Every ufunc accepts NumPy's <code>out</code>, <code>where</code>, <code>dtype</code> and <code>casting</code> options. Binary ufuncs also have the <code>reduce</code>, <code>accumulate</code>, <code>reduceat</code>, <code>outer</code> and <code>at</code> methods. See <a href="../reference/ufuncs.html">Universal functions</a>.</p>
+<h2 id="return-values">Return values<a class="anchor" href="#return-values" aria-label="Link to this section">#</a></h2>
+<ul><li><strong>Array results are <code>NDArray</code>s.</strong> Use <code>toArray()</code> for nested JS arrays, <code>toTypedArray()</code> for a flat typed array, or <code>item()</code> for a single element.</li><li><strong>Scalar results are 0-d arrays.</strong> In NumPy, <code>np.sum(a)</code> returns a NumPy scalar. In numera it returns a 0-d <code>NDArray</code>, so call <code>.item()</code> to get a JS number. A full integer index such as <code>a.get(1, 2)</code> also gives a 0-d array.</li><li><strong>Several results become an object or an array.</strong> NumPy's named tuples become objects with the same field names, for example <code>np.linalg.eigh(a).eigenvalues</code> and <code>np.linalg.svd(a).S</code>. Plain tuples become JS arrays, for example <code>np.nonzero(a)</code>.</li></ul>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">sum</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]).<span class="t-fn">item</span>();                                  <span class="t-res">// =&gt; 6</span>
+np.<span class="t-fn">array</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]]).<span class="t-fn">get</span>(<span class="t-num">1</span>, <span class="t-num">0</span>).<span class="t-fn">item</span>();              <span class="t-res">// =&gt; 3</span>
+np.linalg.<span class="t-fn">svd</span>([[<span class="t-num">3</span>, <span class="t-num">0</span>], [<span class="t-num">0</span>, <span class="t-num">4</span>]]).S;                         <span class="t-res">// =&gt; [4, 3]</span>
+np.<span class="t-fn">nonzero</span>([<span class="t-num">0</span>, <span class="t-num">1</span>, <span class="t-num">0</span>, <span class="t-num">2</span>]).<span class="t-fn">map</span>((i) =&gt; i.<span class="t-fn">toArray</span>());          <span class="t-res">// =&gt; [[1, 3]]</span></code></pre></div>
+<h2 id="inputs">Inputs<a class="anchor" href="#inputs" aria-label="Link to this section">#</a></h2>
+<p>Most functions that take an <code>array_like</code> in NumPy accept an <code>NDArray</code>, a nested JS array of numbers, booleans or bigints, or a scalar.</p>
+<aside class="callout note"><strong>Note</strong><p>In this release, a few shape functions accept only an <code>NDArray</code>: <code>reshape</code>, <code>transpose</code>, <code>squeeze</code>, <code>ravel</code>, <code>swapAxes</code>, <code>moveAxis</code>, <code>expandDims</code> and the <code>*Like</code> creators (<code>zerosLike</code>, <code>onesLike</code>, …). Wrap plain arrays with <code>np.array(...)</code> first, or use the method form, e.g. <code>np.array(data).reshape(2, 3)</code>.</p></aside>
+<p>JS numbers are <em>weak</em> scalars, like Python numbers under NEP 50: they don't widen the dtype of an array.</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">add</span>(np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>], { dtype: <span class="t-str">&quot;int8&quot;</span> }), <span class="t-num">1</span>).dtype.name;   <span class="t-res">// =&gt; &quot;int8&quot;</span>
+np.<span class="t-fn">add</span>(np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>], { dtype: <span class="t-str">&quot;int8&quot;</span> }), <span class="t-num">1.5</span>).dtype.name; <span class="t-res">// =&gt; &quot;float64&quot;</span></code></pre></div>
+<h2 id="things-that-differ">Things that differ<a class="anchor" href="#things-that-differ" aria-label="Link to this section">#</a></h2>
+<p>The main differences are listed below. Each one is caused by JavaScript, and the <a href="../compatibility.html">compatibility page</a> has the full list.</p>
+<ul><li>A JS number that is an integer but too large for an exact float (such as <code>2**60</code>) is inferred as <code>float64</code>, not <code>int64</code>. Use a <code>bigint</code> or <code>{ dtype: &quot;int64&quot; }</code>.</li><li><code>int64</code> and <code>uint64</code> values come back from <code>toArray()</code> as JS numbers, which are exact only up to 2^53. Use <code>toTypedArray()</code> (a <code>BigInt64Array</code>) or <code>tolist()</code> when you need full precision. See <a href="../guides/dtypes.html">Data types</a>.</li><li>Out-of-range integers raise <code>ValueError</code>, where NumPy raises <code>OverflowError</code>.</li><li>Floating-point warnings are Node <code>RuntimeWarning</code>s, emitted with <code>process.emitWarning</code>.</li></ul></article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../guides/quickstart.html"><small>Previous</small><span>Quickstart</span></a><a class="pg next" href="../guides/array-basics.html"><small>Next</small><span>Array basics</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l2"><a href="#translation-table">Translation table</a></li><li class="l2"><a href="#naming">Naming</a></li><li class="l2"><a href="#keyword-arguments">Keyword arguments</a></li><li class="l2"><a href="#operators">Operators</a></li><li class="l2"><a href="#return-values">Return values</a></li><li class="l2"><a href="#inputs">Inputs</a></li><li class="l2"><a href="#things-that-differ">Things that differ</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.2</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.2","versions":["1.0.2","1.0.1"],"pages":{"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>

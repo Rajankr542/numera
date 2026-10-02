@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.2" data-path="reference/polynomial.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>np.polynomial (series classes) · numera v1.0.2</title>
+<meta name="description" content="Power, Chebyshev, Legendre, Laguerre, Hermite and HermiteE series: classes with domain/window mapping, plus the per-basis module functions.">
+<meta property="og:title" content="np.polynomial (series classes) · numera">
+<meta property="og:description" content="Power, Chebyshev, Legendre, Laguerre, Hermite and HermiteE series: classes with domain/window mapping, plus the per-basis module functions.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.2" selected>v1.0.2 (latest)</option><option value="1.0.1">v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html">Guides</a><a href="../reference/index.html" aria-current="page">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Reference</p><ul><li><a href="../reference/index.html">Overview</a></li><li><a href="../reference/numpy-index.html">NumPy name index</a></li></ul></div><div class="side-group"><p class="side-title">Array objects</p><ul><li><a href="../reference/ndarray.html">NDArray<span class="badge">20</span></a></li><li><a href="../reference/dtype.html">Data types<span class="badge">43</span></a></li></ul></div><div class="side-group"><p class="side-title">Universal functions</p><ul><li><a href="../reference/ufuncs.html">ufunc overview<span class="badge">106</span></a></li><li><a href="../reference/math.html">Math (ufuncs)<span class="badge">31</span></a></li><li><a href="../reference/logic.html">Comparison, logic and bitwise<span class="badge">13</span></a></li></ul></div><div class="side-group"><p class="side-title">Routines</p><ul><li><a href="../reference/creation.html">Array creation<span class="badge">25</span></a></li><li><a href="../reference/shape.html">Shape manipulation<span class="badge">41</span></a></li><li><a href="../reference/indexing.html">Indexing<span class="badge">20</span></a></li><li><a href="../reference/grids.html">Grids and index helpers<span class="badge">9</span></a></li><li><a href="../reference/tri-indices.html">Triangle and diagonal indices<span class="badge">8</span></a></li><li><a href="../reference/reduce.html">Reductions<span class="badge">5</span></a></li><li><a href="../reference/reduce-where.html">Reductions with where= / out=<span class="badge">5</span></a></li><li><a href="../reference/sorting.html">Sorting, searching and sets<span class="badge">15</span></a></li><li><a href="../reference/statistics.html">Statistics<span class="badge">19</span></a></li><li><a href="../reference/polynomials.html">Polynomials<span class="badge">11</span></a></li><li><a href="../reference/windows.html">Window functions<span class="badge">5</span></a></li><li><a href="../reference/io.html">Input and output<span class="badge">11</span></a></li><li><a href="../reference/utilities.html">Utilities<span class="badge">40</span></a></li><li><a href="../reference/errors.html">Errors<span class="badge">3</span></a></li></ul></div><div class="side-group"><p class="side-title">Modules</p><ul><li><a href="../reference/linalg.html">np.linalg<span class="badge">35</span></a></li><li><a href="../reference/fft.html">np.fft<span class="badge">8</span></a></li><li><a href="../reference/random.html">np.random<span class="badge">6</span></a></li><li><a href="../reference/random-bitgen.html">Random — bit generators<span class="badge">7</span></a></li><li><a href="../reference/random-discrete.html">Random — discrete distributions (Generator)<span class="badge">6</span></a></li><li><a href="../reference/random-continuous.html">Random — continuous distributions (Generator)<span class="badge">22</span></a></li><li><a href="../reference/random-multivariate.html">Random — multivariate distributions (Generator)<span class="badge">4</span></a></li><li><a href="../reference/random-state.html">Random state<span class="badge">5</span></a></li><li><a href="../reference/emath.html">np.emath (complex-valued math)<span class="badge">4</span></a></li><li><a href="../reference/testing.html">np.testing (assertions)<span class="badge">8</span></a></li><li><a href="../reference/polynomial.html" aria-current="page">np.polynomial (series classes)<span class="badge">4</span></a></li><li><a href="../reference/ma.html">Masked arrays (np.ma)<span class="badge">1</span></a></li><li><a href="../reference/strings.html">String operations (np.strings / np.char)<span class="badge">8</span></a></li><li><a href="../reference/rec.html">Record arrays (np.rec)<span class="badge">5</span></a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose ref">
+<p class="eyebrow">API reference</p>
+<h1>np.polynomial (series classes)</h1>
+<p class="lede">Power, Chebyshev, Legendre, Laguerre, Hermite and HermiteE series: classes with domain/window mapping, plus the per-basis module functions.</p>
+<div class="summary-table table"><table><thead><tr><th>Name</th><th>Summary</th></tr></thead><tbody><tr><td><a href="#polynomial-Polynomial"><code>np.polynomial.Polynomial</code></a></td><td>Series classes of <code>numpy.polynomial</code>.</td></tr><tr><td><a href="#polynomial-Polynomial-fit"><code>np.polynomial.Polynomial.fit</code></a></td><td>Class factories.</td></tr><tr><td><a href="#polynomial-chebyshev"><code>np.polynomial.chebyshev</code></a></td><td>Module functions on raw coefficient arrays.</td></tr><tr><td><a href="#polynomial-setDefaultPrintstyle"><code>np.polynomial.setDefaultPrintstyle</code></a></td><td>Switches <code>toString()</code> of all series between unicode and ascii output.</td></tr></tbody></table></div>
+<article class="api" id="polynomial-Polynomial">
+<header class="api-head"><h3><code>np.polynomial.Polynomial</code></h3><a class="anchor" href="#polynomial-Polynomial" aria-label="Link to polynomial.Polynomial">#</a></header>
+<pre class="sig"><code>new np.polynomial.Polynomial(coef, domain?, window?, symbol = &quot;x&quot;) · Chebyshev · Legendre · Laguerre · Hermite · HermiteE</code></pre>
+<p>Series classes of <code>numpy.polynomial</code>. Coefficients run from lowest degree to highest and are stored as float64 (or complex128). <code>domain</code> is mapped linearly onto <code>window</code> before the series is evaluated. Python operators become methods: <code>add</code>, <code>sub</code>, <code>rsub</code>, <code>mul</code>, <code>truediv</code>, <code>floordiv</code>, <code>mod</code>, <code>divmod</code>, <code>pow</code>, <code>neg</code>, <code>equals</code>. <code>toString()</code> is Python's <code>str()</code> and <code>repr()</code> is <code>repr()</code>.</p>
+
+<h4>Parameters</h4><dl class="params"><div><dt><code>coef</code><span class="ty">ArrayLike</span></dt><dd>Series coefficients, lowest degree first.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>series instance</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> p = <span class="t-kw">new</span> np.polynomial.<span class="t-fn">Polynomial</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]);
+p.<span class="t-fn">call</span>([<span class="t-num">0</span>, <span class="t-num">1</span>, <span class="t-num">2</span>]);                         <span class="t-res">// =&gt; [1, 6, 17]</span>
+<span class="t-fn">String</span>(p);                                 <span class="t-res">// =&gt; &quot;1.0 + 2.0·x + 3.0·x²&quot;</span>
+p.<span class="t-fn">mul</span>([<span class="t-num">1</span>, <span class="t-num">1</span>]).coef;                        <span class="t-res">// =&gt; [1, 3, 5, 3]</span>
+p.<span class="t-fn">pow</span>(<span class="t-num">2</span>).coef;                             <span class="t-res">// =&gt; [1, 4, 10, 12, 9]</span>
+p.<span class="t-fn">divmod</span>([<span class="t-num">1</span>, <span class="t-num">1</span>]).<span class="t-fn">map</span>((q) =&gt; q.coef.<span class="t-fn">toArray</span>()); <span class="t-res">// =&gt; [[-1, 3], [2]]</span>
+p.<span class="t-fn">deriv</span>().coef;                            <span class="t-res">// =&gt; [2, 6]</span>
+p.<span class="t-fn">integ</span>().coef;                            <span class="t-res">// =&gt; [0, 1, 1, 1]</span>
+<span class="t-kw">new</span> np.polynomial.<span class="t-fn">Chebyshev</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]).<span class="t-fn">convert</span>(<span class="t-kw">null</span>, np.polynomial.Polynomial).coef; <span class="t-res">// =&gt; [-2, 2, 6]</span>
+<span class="t-kw">new</span> np.polynomial.<span class="t-fn">Polynomial</span>([<span class="t-num">1</span>, <span class="t-num">2</span>]).<span class="t-fn">repr</span>(); <span class="t-res">// =&gt; &quot;Polynomial([1., 2.], domain=[-1.,  1.], window=[-1.,  1.], symbol='x')&quot;</span></code></pre></div>
+
+</article>
+<article class="api" id="polynomial-Polynomial-fit">
+<header class="api-head"><h3><code>np.polynomial.Polynomial.fit</code></h3><a class="anchor" href="#polynomial-Polynomial-fit" aria-label="Link to polynomial.Polynomial.fit">#</a></header>
+<pre class="sig"><code>Cls.fit(x, y, deg, { domain, window, rcond, w, symbol }) · Cls.fitFull(...) · Cls.fromroots(roots, opts) · Cls.identity(domain?, window?) · Cls.basis(deg, opts) · Cls.cast(series)</code></pre>
+<p>Class factories. <code>fit</code> computes a least-squares fit, with the domain defaulting to the range of <code>x</code>; <code>.convert()</code> maps the result back to the default domain. <code>p.roots()</code> returns the eigenvalues of the companion matrix, mapped into the domain.</p>
+
+<h4>Parameters</h4><dl class="params"><div><dt><code>x</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>y</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>deg</code><span class="ty">number | number[]</span></dt><dd>Degree, or the list of degrees to include.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>series instance</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> f = np.polynomial.Polynomial.<span class="t-fn">fit</span>([<span class="t-num">0</span>, <span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>], [<span class="t-num">1</span>, <span class="t-num">3</span>, <span class="t-num">5</span>, <span class="t-num">7</span>], <span class="t-num">1</span>);
+f.domain;                                   <span class="t-res">// =&gt; [0, 3]</span>
+f.<span class="t-fn">convert</span>().coef;                           <span class="t-res">// =&gt; [1, 2]</span>
+np.polynomial.Polynomial.<span class="t-fn">fromroots</span>([<span class="t-num">1</span>, <span class="t-num">2</span>]).coef; <span class="t-res">// =&gt; [2, -3, 1]</span>
+np.polynomial.Polynomial.<span class="t-fn">fromroots</span>([<span class="t-num">1</span>, <span class="t-num">2</span>]).<span class="t-fn">roots</span>(); <span class="t-res">// =&gt; [1, 2]</span>
+np.polynomial.Laguerre.<span class="t-fn">basis</span>(<span class="t-num">2</span>).coef;       <span class="t-res">// =&gt; [0, 0, 1]</span></code></pre></div>
+
+</article>
+<article class="api" id="polynomial-chebyshev">
+<header class="api-head"><h3><code>np.polynomial.chebyshev</code></h3><a class="anchor" href="#polynomial-chebyshev" aria-label="Link to polynomial.chebyshev">#</a></header>
+<pre class="sig"><code>np.polynomial.{polynomial, chebyshev, legendre, laguerre, hermite, hermite_e}.&lt;prefix&gt;{add, sub, mul, mulx, div, pow, val, der, int, vander, companion, fromroots, roots, fit, trim, line, domain, zero, one, x} · cheb2poly / poly2cheb ...</code></pre>
+<p>Module functions on raw coefficient arrays. They keep NumPy's prefixed names (<code>poly</code>, <code>cheb</code>, <code>leg</code>, <code>lag</code>, <code>herm</code>, <code>herme</code>). Only 1-D coefficients are supported. <code>&lt;prefix&gt;int</code> takes <code>{ m, k, lbnd, scl }</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.polynomial.chebyshev.Chebyshev.html#numpy.polynomial.chebyshev.Chebyshev" rel="noopener" target="_blank" title="A Chebyshev series class.">numpy.polynomial.Chebyshev</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>c</code><span class="ty">ArrayLike</span></dt><dd>1-D coefficient array.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.polynomial.chebyshev.<span class="t-fn">chebval</span>(<span class="t-num">0.5</span>, [<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]); <span class="t-res">// =&gt; 0.5</span>
+np.polynomial.polynomial.<span class="t-fn">polydiv</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>, <span class="t-num">4</span>], [<span class="t-num">1</span>, <span class="t-num">2</span>]).<span class="t-fn">map</span>((a) =&gt; a.<span class="t-fn">toArray</span>()); <span class="t-res">// =&gt; [[0.75, 0.5, 2], [0.25]]</span>
+np.polynomial.legendre.<span class="t-fn">leg2poly</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]);  <span class="t-res">// =&gt; [-0.5, 2, 4.5]</span>
+np.polynomial.hermite.<span class="t-fn">hermvander</span>([<span class="t-num">0</span>, <span class="t-num">1</span>], <span class="t-num">2</span>); <span class="t-res">// =&gt; [[1, 0, -2], [1, 2, 2]]</span>
+np.polynomial.polynomial.<span class="t-fn">polyroots</span>([<span class="t-num">2</span>, -<span class="t-num">3</span>, <span class="t-num">1</span>]); <span class="t-res">// =&gt; [1, 2]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.polynomial.chebyshev: Record&lt;string, unknown&gt;</code></pre></details>
+</article>
+<article class="api" id="polynomial-setDefaultPrintstyle">
+<header class="api-head"><h3><code>np.polynomial.setDefaultPrintstyle</code></h3><a class="anchor" href="#polynomial-setDefaultPrintstyle" aria-label="Link to polynomial.setDefaultPrintstyle">#</a></header>
+<pre class="sig"><code>np.polynomial.setDefaultPrintstyle(&quot;unicode&quot; | &quot;ascii&quot;)</code></pre>
+<p>Switches <code>toString()</code> of all series between unicode and ascii output. <code>p.format(&quot;ascii&quot;)</code> picks the style for one call.</p>
+
+<h4>Parameters</h4><dl class="params"><div><dt><code>style</code><span class="ty">string</span></dt><dd><code>&quot;unicode&quot;</code> (default) or <code>&quot;ascii&quot;</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>void</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">new</span> np.polynomial.<span class="t-fn">Chebyshev</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]).<span class="t-fn">format</span>(<span class="t-str">&quot;ascii&quot;</span>); <span class="t-res">// =&gt; &quot;1.0 + 2.0 T_1(x) + 3.0 T_2(x)&quot;</span></code></pre></div>
+
+</article>
+</article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../reference/testing.html"><small>Previous</small><span>np.testing (assertions)</span></a><a class="pg next" href="../reference/ma.html"><small>Next</small><span>Masked arrays (np.ma)</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l3"><a href="#polynomial-Polynomial">np.polynomial.Polynomial</a></li><li class="l3"><a href="#polynomial-Polynomial-fit">np.polynomial.Polynomial.fit</a></li><li class="l3"><a href="#polynomial-chebyshev">np.polynomial.chebyshev</a></li><li class="l3"><a href="#polynomial-setDefaultPrintstyle">np.polynomial.setDefaultPrintstyle</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.2</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.2","versions":["1.0.2","1.0.1"],"pages":{"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>

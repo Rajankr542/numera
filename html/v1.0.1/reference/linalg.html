@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.1" data-path="reference/linalg.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>np.linalg · numera v1.0.1</title>
+<meta name="description" content="Dense linear algebra on LAPACK: Apple Accelerate on macOS, and a portable built-in backend elsewhere. The functions take the last two axes as the matrix, and inputs with extra leading axes are processed as batches, as in NumPy. Singular or non-convergent inputs throw LinAlgError. Float results are shown rounded; they are exact up to rounding.">
+<meta property="og:title" content="np.linalg · numera">
+<meta property="og:description" content="Dense linear algebra on LAPACK: Apple Accelerate on macOS, and a portable built-in backend elsewhere. The functions take the last two axes as the matrix, and inputs with extra leading axes are processed as batches, as in NumPy. Singular or non-convergent inputs throw LinAlgError. Float results are shown rounded; they are exact up to rounding.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.2">v1.0.2 (latest)</option><option value="1.0.1" selected>v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html">Guides</a><a href="../reference/index.html" aria-current="page">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+<div class="banner">You are reading the docs for <strong>v1.0.1</strong>. The latest release is <a href="../../v1.0.2/index.html" data-switch="1.0.2">v1.0.2</a>.</div>
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Reference</p><ul><li><a href="../reference/index.html">Overview</a></li><li><a href="../reference/numpy-index.html">NumPy name index</a></li></ul></div><div class="side-group"><p class="side-title">Array objects</p><ul><li><a href="../reference/ndarray.html">NDArray<span class="badge">9</span></a></li><li><a href="../reference/dtype.html">Data types<span class="badge">2</span></a></li></ul></div><div class="side-group"><p class="side-title">Universal functions</p><ul><li><a href="../reference/ufuncs.html">ufunc overview<span class="badge">13</span></a></li><li><a href="../reference/math.html">Math (ufuncs)<span class="badge">7</span></a></li></ul></div><div class="side-group"><p class="side-title">Routines</p><ul><li><a href="../reference/creation.html">Array creation<span class="badge">12</span></a></li><li><a href="../reference/shape.html">Shape manipulation<span class="badge">9</span></a></li><li><a href="../reference/indexing.html">Indexing<span class="badge">6</span></a></li><li><a href="../reference/reduce.html">Reductions<span class="badge">5</span></a></li><li><a href="../reference/utilities.html">Utilities<span class="badge">3</span></a></li><li><a href="../reference/errors.html">Errors<span class="badge">2</span></a></li></ul></div><div class="side-group"><p class="side-title">Modules</p><ul><li><a href="../reference/linalg.html" aria-current="page">np.linalg<span class="badge">10</span></a></li><li><a href="../reference/fft.html">np.fft<span class="badge">4</span></a></li><li><a href="../reference/random.html">np.random<span class="badge">6</span></a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose ref">
+<p class="eyebrow">API reference</p>
+<h1>np.linalg</h1>
+<p class="lede">Dense linear algebra on LAPACK: Apple Accelerate on macOS, and a portable built-in backend elsewhere. The functions take the last two axes as the matrix, and inputs with extra leading axes are processed as batches, as in NumPy. Singular or non-convergent inputs throw <code>LinAlgError</code>. Float results are shown rounded; they are exact up to rounding.</p>
+<div class="summary-table table"><table><thead><tr><th>Name</th><th>Summary</th></tr></thead><tbody><tr><td><a href="#linalg-det"><code>np.linalg.det</code></a></td><td>Determinant of a square matrix, or of each matrix in a batch.</td></tr><tr><td><a href="#linalg-inv"><code>np.linalg.inv</code></a></td><td>Matrix inverse.</td></tr><tr><td><a href="#linalg-solve"><code>np.linalg.solve</code></a></td><td>Solves <code>a @ x = b</code> for <code>x</code>.</td></tr><tr><td><a href="#linalg-eig"><code>np.linalg.eig</code></a></td><td>Eigen-decomposition of a general square matrix.</td></tr><tr><td><a href="#linalg-eigh"><code>np.linalg.eigh</code></a></td><td>Eigen-decomposition of a symmetric/Hermitian matrix, using the lower triangle.</td></tr><tr><td><a href="#linalg-svd"><code>np.linalg.svd</code></a></td><td>Singular value decomposition <code>a = U @ diag(S) @ Vh</code>.</td></tr><tr><td><a href="#linalg-qr"><code>np.linalg.qr</code></a></td><td>QR factorization <code>a = Q @ R</code>.</td></tr><tr><td><a href="#linalg-lstsq"><code>np.linalg.lstsq</code></a></td><td>Least-squares solution of <code>a @ x ≈ b</code>, computed with SVD.</td></tr><tr><td><a href="#linalg-norm"><code>np.linalg.norm</code></a></td><td>Vector or matrix norm.</td></tr><tr><td><a href="#linalg-backend"><code>np.linalg.backend</code></a></td><td>Name of the active native LAPACK backend: <code>&quot;accelerate&quot;</code> (macOS) or <code>&quot;fallback&quot;</code>.</td></tr></tbody></table></div>
+<article class="api" id="linalg-det">
+<header class="api-head"><h3><code>np.linalg.det</code></h3><a class="anchor" href="#linalg-det" aria-label="Link to linalg.det">#</a></header>
+<pre class="sig"><code>np.linalg.det(a)</code></pre>
+<p>Determinant of a square matrix, or of each matrix in a batch.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.det.html#numpy.linalg.det" rel="noopener" target="_blank" title="Compute the determinant of an array.">numpy.linalg.det</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.linalg.<span class="t-fn">det</span>([[<span class="t-num">3</span>, <span class="t-num">1</span>], [<span class="t-num">1</span>, <span class="t-num">2</span>]]).<span class="t-fn">item</span>(); <span class="t-res">// =&gt; 5</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.linalg.<span class="t-fn">det</span>(a: ArrayLike): NDArray</code></pre></details>
+</article>
+<article class="api" id="linalg-inv">
+<header class="api-head"><h3><code>np.linalg.inv</code></h3><a class="anchor" href="#linalg-inv" aria-label="Link to linalg.inv">#</a></header>
+<pre class="sig"><code>np.linalg.inv(a)</code></pre>
+<p>Matrix inverse. Throws <code>LinAlgError</code> for singular matrices.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.inv.html#numpy.linalg.inv" rel="noopener" target="_blank" title="Compute the inverse of a matrix.">numpy.linalg.inv</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.linalg.<span class="t-fn">inv</span>([[<span class="t-num">4</span>, <span class="t-num">7</span>], [<span class="t-num">2</span>, <span class="t-num">6</span>]]); <span class="t-res">// =&gt; [[0.6, -0.7], [-0.2, 0.4]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.linalg.<span class="t-fn">inv</span>(a: ArrayLike): NDArray</code></pre></details>
+</article>
+<article class="api" id="linalg-solve">
+<header class="api-head"><h3><code>np.linalg.solve</code></h3><a class="anchor" href="#linalg-solve" aria-label="Link to linalg.solve">#</a></header>
+<pre class="sig"><code>np.linalg.solve(a, b)</code></pre>
+<p>Solves <code>a @ x = b</code> for <code>x</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.solve.html#numpy.linalg.solve" rel="noopener" target="_blank" title="Solve a linear matrix equation, or system of linear scalar equations.">numpy.linalg.solve</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.linalg.<span class="t-fn">solve</span>([[<span class="t-num">3</span>, <span class="t-num">1</span>], [<span class="t-num">1</span>, <span class="t-num">2</span>]], [<span class="t-num">9</span>, <span class="t-num">8</span>]); <span class="t-res">// =&gt; [2, 3]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.linalg.<span class="t-fn">solve</span>(a: ArrayLike, b: ArrayLike): NDArray</code></pre></details>
+</article>
+<article class="api" id="linalg-eig">
+<header class="api-head"><h3><code>np.linalg.eig</code></h3><a class="anchor" href="#linalg-eig" aria-label="Link to linalg.eig">#</a></header>
+<pre class="sig"><code>np.linalg.eig(a) · np.linalg.eigvals(a)</code></pre>
+<p>Eigen-decomposition of a general square matrix. Results are always <code>complex128</code>. <code>eigvals</code> returns only the eigenvalues.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.eig.html#numpy.linalg.eig" rel="noopener" target="_blank" title="Compute the eigenvalues and right eigenvectors of a square array.">numpy.linalg.eig</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.eigvals.html#numpy.linalg.eigvals" rel="noopener" target="_blank" title="Compute the eigenvalues of a general matrix.">numpy.linalg.eigvals</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>{ eigenvalues: NDArray, eigenvectors: NDArray }</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> { eigenvalues } = np.linalg.<span class="t-fn">eig</span>([[<span class="t-num">2</span>, <span class="t-num">0</span>], [<span class="t-num">0</span>, <span class="t-num">3</span>]]);
+eigenvalues.dtype.name; <span class="t-res">// =&gt; &quot;complex128&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.linalg.<span class="t-fn">eig</span>(a: ArrayLike): EigResult
+np.linalg.<span class="t-fn">eigvals</span>(a: ArrayLike): NDArray</code></pre></details>
+</article>
+<article class="api" id="linalg-eigh">
+<header class="api-head"><h3><code>np.linalg.eigh</code></h3><a class="anchor" href="#linalg-eigh" aria-label="Link to linalg.eigh">#</a></header>
+<pre class="sig"><code>np.linalg.eigh(a) · np.linalg.eigvalsh(a)</code></pre>
+<p>Eigen-decomposition of a symmetric/Hermitian matrix, using the lower triangle. Eigenvalues are real and sorted in ascending order.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.eigh.html#numpy.linalg.eigh" rel="noopener" target="_blank" title="Return the eigenvalues and eigenvectors of a complex Hermitian (conjugate symmetric) or a real symmetric matrix.">numpy.linalg.eigh</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.eigvalsh.html#numpy.linalg.eigvalsh" rel="noopener" target="_blank" title="Compute the eigenvalues of a complex Hermitian or real symmetric matrix.">numpy.linalg.eigvalsh</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>{ eigenvalues: NDArray, eigenvectors: NDArray }</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.linalg.<span class="t-fn">eigh</span>([[<span class="t-num">2</span>, <span class="t-num">1</span>], [<span class="t-num">1</span>, <span class="t-num">2</span>]]).eigenvalues; <span class="t-res">// =&gt; [1, 3]</span>
+np.linalg.<span class="t-fn">eigvalsh</span>([[<span class="t-num">2</span>, <span class="t-num">1</span>], [<span class="t-num">1</span>, <span class="t-num">2</span>]]);         <span class="t-res">// =&gt; [1, 3]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.linalg.<span class="t-fn">eigh</span>(a: ArrayLike): EigResult
+np.linalg.<span class="t-fn">eigvalsh</span>(a: ArrayLike): NDArray</code></pre></details>
+</article>
+<article class="api" id="linalg-svd">
+<header class="api-head"><h3><code>np.linalg.svd</code></h3><a class="anchor" href="#linalg-svd" aria-label="Link to linalg.svd">#</a></header>
+<pre class="sig"><code>np.linalg.svd(a, [options])</code></pre>
+<p>Singular value decomposition <code>a = U @ diag(S) @ Vh</code>. <code>S</code> is in descending order.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.svd.html#numpy.linalg.svd" rel="noopener" target="_blank" title="Singular Value Decomposition.">numpy.linalg.svd</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[options.fullMatrices]</code><span class="ty">boolean</span></dt><dd>Return square <code>U</code>/<code>Vh</code>. Default <code>true</code>.</dd></div><div><dt><code>[options.computeUV]</code><span class="ty">boolean</span></dt><dd>If <code>false</code>, <code>U</code> and <code>Vh</code> are <code>null</code>. Default <code>true</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>{ U: NDArray | null, S: NDArray, Vh: NDArray | null }</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.linalg.<span class="t-fn">svd</span>([[<span class="t-num">3</span>, <span class="t-num">0</span>], [<span class="t-num">0</span>, <span class="t-num">4</span>]]).S; <span class="t-res">// =&gt; [4, 3]</span>
+np.linalg.<span class="t-fn">svd</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>], [<span class="t-num">5</span>, <span class="t-num">6</span>]], { fullMatrices: <span class="t-kw">false</span> }).U.shape; <span class="t-res">// =&gt; [3, 2]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.linalg.<span class="t-fn">svd</span>(a: ArrayLike, opts?: SvdOptions | <span class="t-kw">undefined</span>): SvdResult</code></pre></details>
+</article>
+<article class="api" id="linalg-qr">
+<header class="api-head"><h3><code>np.linalg.qr</code></h3><a class="anchor" href="#linalg-qr" aria-label="Link to linalg.qr">#</a></header>
+<pre class="sig"><code>np.linalg.qr(a, [mode=&quot;reduced&quot;])</code></pre>
+<p>QR factorization <code>a = Q @ R</code>. <code>mode</code> is <code>&quot;reduced&quot;</code>, <code>&quot;complete&quot;</code> or <code>&quot;r&quot;</code>; with <code>&quot;r&quot;</code>, <code>Q</code> is <code>null</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.qr.html#numpy.linalg.qr" rel="noopener" target="_blank" title="Compute the qr factorization of a matrix.">numpy.linalg.qr</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[mode]</code><span class="ty">&quot;reduced&quot; | &quot;complete&quot; | &quot;r&quot;</span></dt><dd>Output shapes. Default <code>&quot;reduced&quot;</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>{ Q: NDArray | null, R: NDArray }</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.linalg.<span class="t-fn">qr</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>], [<span class="t-num">5</span>, <span class="t-num">6</span>]]).R.shape; <span class="t-res">// =&gt; [2, 2]</span>
+np.linalg.<span class="t-fn">qr</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]], <span class="t-str">&quot;r&quot;</span>).Q;          <span class="t-res">// =&gt; null</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.linalg.<span class="t-fn">qr</span>(a: ArrayLike, mode?: QrMode | <span class="t-kw">undefined</span>): QrResult</code></pre></details>
+</article>
+<article class="api" id="linalg-lstsq">
+<header class="api-head"><h3><code>np.linalg.lstsq</code></h3><a class="anchor" href="#linalg-lstsq" aria-label="Link to linalg.lstsq">#</a></header>
+<pre class="sig"><code>np.linalg.lstsq(a, b, [rcond])</code></pre>
+<p>Least-squares solution of <code>a @ x ≈ b</code>, computed with SVD.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.lstsq.html#numpy.linalg.lstsq" rel="noopener" target="_blank" title="Return the least-squares solution to a linear matrix equation.">numpy.linalg.lstsq</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>b</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[rcond]</code><span class="ty">number | null</span></dt><dd>Cut-off for small singular values. Default <code>eps * max(M, N)</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>{ x: NDArray, residuals: NDArray, rank: number, s: NDArray }</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-com">// fit y = m*x + c</span>
+<span class="t-kw">const</span> r = np.linalg.<span class="t-fn">lstsq</span>([[<span class="t-num">0</span>, <span class="t-num">1</span>], [<span class="t-num">1</span>, <span class="t-num">1</span>], [<span class="t-num">2</span>, <span class="t-num">1</span>], [<span class="t-num">3</span>, <span class="t-num">1</span>]], [-<span class="t-num">1</span>, <span class="t-num">0.2</span>, <span class="t-num">0.9</span>, <span class="t-num">2.1</span>]);
+r.x;    <span class="t-res">// =&gt; [1, -0.95]</span>
+r.rank; <span class="t-res">// =&gt; 2</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.linalg.<span class="t-fn">lstsq</span>(a: ArrayLike, b: ArrayLike, rcond?: number | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): LstsqResult</code></pre></details>
+</article>
+<article class="api" id="linalg-norm">
+<header class="api-head"><h3><code>np.linalg.norm</code></h3><a class="anchor" href="#linalg-norm" aria-label="Link to linalg.norm">#</a></header>
+<pre class="sig"><code>np.linalg.norm(a, [options])</code></pre>
+<p>Vector or matrix norm. The default is the 2-norm of the flattened input.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.linalg.norm.html#numpy.linalg.norm" rel="noopener" target="_blank" title="Matrix or vector norm.">numpy.linalg.norm</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>[options.ord]</code><span class="ty">number | &quot;fro&quot; | &quot;nuc&quot; | null</span></dt><dd>Norm order (<code>Infinity</code>, <code>1</code>, <code>2</code>, <code>&quot;fro&quot;</code>, ...).</dd></div><div><dt><code>[options.axis]</code><span class="ty">number | [number, number] | null</span></dt><dd>Vector axis or matrix axes.</dd></div><div><dt><code>[options.keepdims]</code><span class="ty">boolean</span></dt><dd>Keep reduced axes.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.linalg.<span class="t-fn">norm</span>([<span class="t-num">3</span>, <span class="t-num">4</span>]).<span class="t-fn">item</span>();                     <span class="t-res">// =&gt; 5</span>
+np.linalg.<span class="t-fn">norm</span>([[<span class="t-num">1</span>, -<span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]], { ord: <span class="t-num">1</span> }).<span class="t-fn">item</span>(); <span class="t-res">// =&gt; 6</span>
+np.linalg.<span class="t-fn">norm</span>([[<span class="t-num">3</span>, <span class="t-num">4</span>], [<span class="t-num">6</span>, <span class="t-num">8</span>]], { axis: <span class="t-num">1</span> });       <span class="t-res">// =&gt; [5, 10]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.linalg.<span class="t-fn">norm</span>(a: ArrayLike, opts?: NormOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="linalg-backend">
+<header class="api-head"><h3><code>np.linalg.backend</code></h3><a class="anchor" href="#linalg-backend" aria-label="Link to linalg.backend">#</a></header>
+<pre class="sig"><code>np.linalg.backend()</code></pre>
+<p>Name of the active native LAPACK backend: <code>&quot;accelerate&quot;</code> (macOS) or <code>&quot;fallback&quot;</code>.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>string</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">typeof</span> np.linalg.<span class="t-fn">backend</span>(); <span class="t-res">// =&gt; &quot;string&quot;</span></code></pre></div>
+
+</article>
+</article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../reference/errors.html"><small>Previous</small><span>Errors</span></a><a class="pg next" href="../reference/fft.html"><small>Next</small><span>np.fft</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l3"><a href="#linalg-det">np.linalg.det</a></li><li class="l3"><a href="#linalg-inv">np.linalg.inv</a></li><li class="l3"><a href="#linalg-solve">np.linalg.solve</a></li><li class="l3"><a href="#linalg-eig">np.linalg.eig</a></li><li class="l3"><a href="#linalg-eigh">np.linalg.eigh</a></li><li class="l3"><a href="#linalg-svd">np.linalg.svd</a></li><li class="l3"><a href="#linalg-qr">np.linalg.qr</a></li><li class="l3"><a href="#linalg-lstsq">np.linalg.lstsq</a></li><li class="l3"><a href="#linalg-norm">np.linalg.norm</a></li><li class="l3"><a href="#linalg-backend">np.linalg.backend</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.2"/><rect x="9" y="2" width="6" height="6" rx="1.2"/><rect x="16" y="2" width="6" height="6" rx="1.2" class="hot"/><rect x="2" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2" class="hot"/><rect x="16" y="9" width="6" height="6" rx="1.2"/><rect x="2" y="16" width="6" height="6" rx="1.2" class="hot"/><rect x="9" y="16" width="6" height="6" rx="1.2"/><rect x="16" y="16" width="6" height="6" rx="1.2"/></svg><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.1</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.2","versions":["1.0.2","1.0.1"],"pages":{"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>
