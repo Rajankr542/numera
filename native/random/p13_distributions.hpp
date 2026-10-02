@@ -8,9 +8,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <numeric>
 
 #include "bitgen.hpp"
 #include "distributions.hpp"
+#include "ndarray.hpp"
 
 namespace nativpy::random::p13 {
 
@@ -73,6 +76,119 @@ void mvhg_count(BitGen& g, std::int64_t total, std::size_t num_colors, const std
 void mvhg_marginals(BitGen& g, std::int64_t total, std::size_t num_colors,
                     const std::int64_t* colors, std::int64_t nsample, std::size_t num_variates,
                     std::int64_t* variates);
+
+// ---- Array-filling helpers (P13-2, D-161): fill float64/int64 NDArrays ----
+// Each `arr_*` function calls the corresponding scalar kernel for every element.
+
+namespace detail {
+inline NDArray fill_f64(const Shape& shape, const std::function<double()>& fn) {
+  const std::size_t n = static_cast<std::size_t>(
+      std::accumulate(shape.begin(), shape.end(), std::int64_t{1},
+                      std::multiplies<std::int64_t>{}));
+  NDArray out = NDArray::zeros(shape, DType::Float64);
+  auto* d = reinterpret_cast<double*>(out.data());
+  for (std::size_t i = 0; i < n; ++i) d[i] = fn();
+  return out;
+}
+inline NDArray fill_i64(const Shape& shape, const std::function<std::int64_t()>& fn) {
+  const std::size_t n = static_cast<std::size_t>(
+      std::accumulate(shape.begin(), shape.end(), std::int64_t{1},
+                      std::multiplies<std::int64_t>{}));
+  NDArray out = NDArray::zeros(shape, DType::Int64);
+  auto* d = reinterpret_cast<std::int64_t*>(out.data());
+  for (std::size_t i = 0; i < n; ++i) d[i] = fn();
+  return out;
+}
+}  // namespace detail
+
+inline NDArray arr_standard_exponential(BitGen& g, const Shape& s) {
+  return detail::fill_f64(s, [&] { return standard_exponential(g); });
+}
+inline NDArray arr_standard_gamma(BitGen& g, double sh, const Shape& s) {
+  return detail::fill_f64(s, [&] { return standard_gamma(g, sh); });
+}
+inline NDArray arr_gamma(BitGen& g, double sh, double sc, const Shape& s) {
+  return detail::fill_f64(s, [&] { return gamma(g, sh, sc); });
+}
+inline NDArray arr_beta(BitGen& g, double a, double b, const Shape& s) {
+  return detail::fill_f64(s, [&] { return beta(g, a, b); });
+}
+inline NDArray arr_chisquare(BitGen& g, double df, const Shape& s) {
+  return detail::fill_f64(s, [&] { return chisquare(g, df); });
+}
+inline NDArray arr_f(BitGen& g, double dfn, double dfd, const Shape& s) {
+  return detail::fill_f64(s, [&] { return f(g, dfn, dfd); });
+}
+inline NDArray arr_standard_cauchy(BitGen& g, const Shape& s) {
+  return detail::fill_f64(s, [&] { return standard_cauchy(g); });
+}
+inline NDArray arr_pareto(BitGen& g, double a, const Shape& s) {
+  return detail::fill_f64(s, [&] { return pareto(g, a); });
+}
+inline NDArray arr_weibull(BitGen& g, double a, const Shape& s) {
+  return detail::fill_f64(s, [&] { return weibull(g, a); });
+}
+inline NDArray arr_power(BitGen& g, double a, const Shape& s) {
+  return detail::fill_f64(s, [&] { return power(g, a); });
+}
+inline NDArray arr_laplace(BitGen& g, double loc, double sc, const Shape& s) {
+  return detail::fill_f64(s, [&] { return laplace(g, loc, sc); });
+}
+inline NDArray arr_gumbel(BitGen& g, double loc, double sc, const Shape& s) {
+  return detail::fill_f64(s, [&] { return gumbel(g, loc, sc); });
+}
+inline NDArray arr_logistic(BitGen& g, double loc, double sc, const Shape& s) {
+  return detail::fill_f64(s, [&] { return logistic(g, loc, sc); });
+}
+inline NDArray arr_lognormal(BitGen& g, double mean, double sigma, const Shape& s) {
+  return detail::fill_f64(s, [&] { return lognormal(g, mean, sigma); });
+}
+inline NDArray arr_rayleigh(BitGen& g, double mode, const Shape& s) {
+  return detail::fill_f64(s, [&] { return rayleigh(g, mode); });
+}
+inline NDArray arr_standard_t(BitGen& g, double df, const Shape& s) {
+  return detail::fill_f64(s, [&] { return standard_t(g, df); });
+}
+inline NDArray arr_noncentral_chisquare(BitGen& g, double df, double nonc, const Shape& s) {
+  return detail::fill_f64(s, [&] { return noncentral_chisquare(g, df, nonc); });
+}
+inline NDArray arr_noncentral_f(BitGen& g, double dfn, double dfd, double nonc, const Shape& s) {
+  return detail::fill_f64(s, [&] { return noncentral_f(g, dfn, dfd, nonc); });
+}
+inline NDArray arr_wald(BitGen& g, double mean, double sc, const Shape& s) {
+  return detail::fill_f64(s, [&] { return wald(g, mean, sc); });
+}
+inline NDArray arr_vonmises(BitGen& g, double mu, double kappa, const Shape& s) {
+  return detail::fill_f64(s, [&] { return vonmises(g, mu, kappa); });
+}
+inline NDArray arr_triangular(BitGen& g, double l, double mode, double r, const Shape& s) {
+  return detail::fill_f64(s, [&] { return triangular(g, l, mode, r); });
+}
+inline NDArray arr_exponential(BitGen& g, double sc, const Shape& s) {
+  return detail::fill_f64(s, [&] { return exponential(g, sc); });
+}
+inline NDArray arr_poisson(BitGen& g, double lam, const Shape& s) {
+  return detail::fill_i64(s, [&] { return poisson(g, lam); });
+}
+inline NDArray arr_negative_binomial(BitGen& g, double n, double p, const Shape& s) {
+  return detail::fill_i64(s, [&] { return negative_binomial(g, n, p); });
+}
+inline NDArray arr_binomial(BitGen& g, double p, std::int64_t n, Binomial& b, const Shape& s) {
+  return detail::fill_i64(s, [&] { return binomial(g, p, n, b); });
+}
+inline NDArray arr_logseries(BitGen& g, double p, const Shape& s) {
+  return detail::fill_i64(s, [&] { return logseries(g, p); });
+}
+inline NDArray arr_geometric(BitGen& g, double p, const Shape& s) {
+  return detail::fill_i64(s, [&] { return geometric(g, p); });
+}
+inline NDArray arr_zipf(BitGen& g, double a, const Shape& s) {
+  return detail::fill_i64(s, [&] { return zipf(g, a); });
+}
+inline NDArray arr_hypergeometric(BitGen& g, std::int64_t good, std::int64_t bad,
+                                  std::int64_t sample, const Shape& s) {
+  return detail::fill_i64(s, [&] { return hypergeometric(g, good, bad, sample); });
+}
 
 // ---- RandomState (numpy/random/src/legacy/legacy-distributions.c) ----
 namespace legacy {

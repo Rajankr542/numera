@@ -166,6 +166,73 @@ export interface NativeBitGenerator {
   ): N;
   shuffle(a: N): void;
   choiceIndices(popSize: number, size: number[], replace: boolean, shuffle: boolean): N;
+  // P13-3 (D-161): Generator discrete distributions
+  binomial(n: number, p: number, size: number[]): N;
+  negativeBinomial(n: number, p: number, size: number[]): N;
+  poisson(lam: number, size: number[]): N;
+  zipf(a: number, size: number[]): N;
+  geometric(p: number, size: number[]): N;
+  hypergeometric(good: number, bad: number, sample: number, size: number[]): N;
+  logseries(p: number, size: number[]): N;
+  // P13-2 (D-161): Generator continuous distributions
+  standardExponential(size: number[]): N;
+  exponential(scale: number, size: number[]): N;
+  standardGamma(shape: number, size: number[]): N;
+  gamma(shape: number, scale: number, size: number[]): N;
+  beta(a: number, b: number, size: number[]): N;
+  chisquare(df: number, size: number[]): N;
+  f(dfnum: number, dfden: number, size: number[]): N;
+  standardCauchy(size: number[]): N;
+  pareto(a: number, size: number[]): N;
+  weibull(a: number, size: number[]): N;
+  power(a: number, size: number[]): N;
+  laplace(loc: number, scale: number, size: number[]): N;
+  gumbel(loc: number, scale: number, size: number[]): N;
+  logistic(loc: number, scale: number, size: number[]): N;
+  lognormal(mean: number, sigma: number, size: number[]): N;
+  rayleigh(scale: number, size: number[]): N;
+  standardT(df: number, size: number[]): N;
+  noncentralChisquare(df: number, nonc: number, size: number[]): N;
+  noncentralF(dfnum: number, dfden: number, nonc: number, size: number[]): N;
+  wald(mean: number, scale: number, size: number[]): N;
+  vonmises(mu: number, kappa: number, size: number[]): N;
+  triangular(left: number, mode: number, right: number, size: number[]): N;
+  // P13-4 (D-162): multivariate distributions
+  multinomial(n: number, pvals: number[], size: number[]): N;
+  dirichlet(alpha: number[], size: number[]): N;
+  mvhgCount(colors: number[], nsample: number, size: number[]): N;
+  mvhgMarginals(colors: number[], nsample: number, size: number[]): N;
+  choiceP(popSize: number, size: number[], cdf: number[]): N;
+  permuted(x: N, axis: number): N;
+  // P13-5 (D-163): RandomState / legacy distributions
+  getState(): bigint[];
+  setState(words: bigint[]): void;
+  bytes(length: number): Uint8Array;
+  legacyStandardExponential(size: number[]): N;
+  legacyExponential(scale: number, size: number[]): N;
+  legacyStandardGamma(shape: number, size: number[]): N;
+  legacyGamma(shape: number, scale: number, size: number[]): N;
+  legacyBeta(a: number, b: number, size: number[]): N;
+  legacyChisquare(df: number, size: number[]): N;
+  legacyF(dfnum: number, dfden: number, size: number[]): N;
+  legacyNoncentralChisquare(df: number, nonc: number, size: number[]): N;
+  legacyNoncentralF(dfnum: number, dfden: number, nonc: number, size: number[]): N;
+  legacyStandardCauchy(size: number[]): N;
+  legacyStandardT(df: number, size: number[]): N;
+  legacyPareto(a: number, size: number[]): N;
+  legacyWeibull(a: number, size: number[]): N;
+  legacyPower(a: number, size: number[]): N;
+  legacyLognormal(mean: number, sigma: number, size: number[]): N;
+  legacyRayleigh(mode: number, size: number[]): N;
+  legacyWald(mean: number, scale: number, size: number[]): N;
+  legacyVonmises(mu: number, kappa: number, size: number[]): N;
+  legacyNegativeBinomial(n: number, p: number, size: number[]): N;
+  legacyBinomial(n: number, p: number, size: number[]): N;
+  legacyHypergeometric(good: number, bad: number, sample: number, size: number[]): N;
+  legacyZipf(a: number, size: number[]): N;
+  legacyGeometric(p: number, size: number[]): N;
+  legacyLogseries(p: number, size: number[]): N;
+  legacyChoiceP(cdf: N, size: number[]): N;
 }
 export type NativeBitGeneratorCtor = new (
   kind: "pcg64" | "mt19937",

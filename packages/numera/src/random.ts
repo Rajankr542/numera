@@ -9,6 +9,7 @@ import { take } from "./indexing.js";
 import { NDArray } from "./ndarray.js";
 import type { NestedArray } from "./ndarray.js";
 import type { Complex } from "./complex.js";
+import { BitGenerator, MT19937, PCG64, PCG64DXSM, Philox, SFC64, SeedSequence } from "./p13_bitgen.js";
 
 /**
  * Random sampling (PLAN M9, DECISIONS D-019). Bit-exact with NumPy for the
@@ -126,8 +127,98 @@ export class Generator {
   /** @internal */
   readonly _bg: NativeBitGenerator;
 
-  /** @internal Use `defaultRng()`. */
-  constructor(bg: NativeBitGenerator) {
+  /**
+   * @internal Use `defaultRng()`.
+   * Accepts either a legacy `NativeBitGenerator` or a P13 `BitGenerator` instance (D-160).
+   * Full distribution delegation for P13 bit generators is wired in P13-2.
+   */
+  constructor(bg: NativeBitGenerator | BitGenerator) {
+    if (bg instanceof BitGenerator) {
+      // P13-1 shim: expose only scalar .random(); all other methods throw.
+      // The full distribution delegation is implemented via the legacy BitGenerator
+      // wrapper (addon.random.BitGenerator), not via P13 BitGenerator instances directly.
+      const p13bg = bg;
+      const _ni = (name: string) => () => { throw new NotImplementedError(`Generator with P13 bit generator: ${name} not supported via P13 BitGenerator constructor — use np.random.defaultRng() instead`); };
+      this._bg = {
+        reseed: _ni("reseed"),
+        random(size: number[], dtype: string) {
+          if (size.length > 0) throw new NotImplementedError("Generator with P13 bit generator: array random not supported — use np.random.defaultRng()");
+          void dtype;
+          const val = p13bg.random();
+          return addon.fromFloat64(new Float64Array([val]), [], "float64") as ReturnType<NativeBitGenerator["random"]>;
+        },
+        uniform: _ni("uniform"),
+        normal: _ni("normal"),
+        legacyNormal: _ni("legacyNormal"),
+        integers: _ni("integers"),
+        shuffle: _ni("shuffle"),
+        choiceIndices: _ni("choiceIndices"),
+        binomial: _ni("binomial"),
+        negativeBinomial: _ni("negativeBinomial"),
+        poisson: _ni("poisson"),
+        zipf: _ni("zipf"),
+        geometric: _ni("geometric"),
+        hypergeometric: _ni("hypergeometric"),
+        logseries: _ni("logseries"),
+        standardExponential: _ni("standardExponential"),
+        exponential: _ni("exponential"),
+        standardGamma: _ni("standardGamma"),
+        gamma: _ni("gamma"),
+        beta: _ni("beta"),
+        chisquare: _ni("chisquare"),
+        f: _ni("f"),
+        standardCauchy: _ni("standardCauchy"),
+        pareto: _ni("pareto"),
+        weibull: _ni("weibull"),
+        power: _ni("power"),
+        laplace: _ni("laplace"),
+        gumbel: _ni("gumbel"),
+        logistic: _ni("logistic"),
+        lognormal: _ni("lognormal"),
+        rayleigh: _ni("rayleigh"),
+        standardT: _ni("standardT"),
+        noncentralChisquare: _ni("noncentralChisquare"),
+        noncentralF: _ni("noncentralF"),
+        wald: _ni("wald"),
+        vonmises: _ni("vonmises"),
+        triangular: _ni("triangular"),
+        multinomial: _ni("multinomial"),
+        dirichlet: _ni("dirichlet"),
+        mvhgCount: _ni("mvhgCount"),
+        mvhgMarginals: _ni("mvhgMarginals"),
+        choiceP: _ni("choiceP"),
+        permuted: _ni("permuted"),
+        getState: _ni("getState"),
+        setState: _ni("setState"),
+        bytes: _ni("bytes"),
+        legacyStandardExponential: _ni("legacyStandardExponential"),
+        legacyExponential: _ni("legacyExponential"),
+        legacyStandardGamma: _ni("legacyStandardGamma"),
+        legacyGamma: _ni("legacyGamma"),
+        legacyBeta: _ni("legacyBeta"),
+        legacyChisquare: _ni("legacyChisquare"),
+        legacyF: _ni("legacyF"),
+        legacyNoncentralChisquare: _ni("legacyNoncentralChisquare"),
+        legacyNoncentralF: _ni("legacyNoncentralF"),
+        legacyStandardCauchy: _ni("legacyStandardCauchy"),
+        legacyStandardT: _ni("legacyStandardT"),
+        legacyPareto: _ni("legacyPareto"),
+        legacyWeibull: _ni("legacyWeibull"),
+        legacyPower: _ni("legacyPower"),
+        legacyLognormal: _ni("legacyLognormal"),
+        legacyRayleigh: _ni("legacyRayleigh"),
+        legacyWald: _ni("legacyWald"),
+        legacyVonmises: _ni("legacyVonmises"),
+        legacyNegativeBinomial: _ni("legacyNegativeBinomial"),
+        legacyBinomial: _ni("legacyBinomial"),
+        legacyHypergeometric: _ni("legacyHypergeometric"),
+        legacyZipf: _ni("legacyZipf"),
+        legacyGeometric: _ni("legacyGeometric"),
+        legacyLogseries: _ni("legacyLogseries"),
+        legacyChoiceP: _ni("legacyChoiceP"),
+      } satisfies NativeBitGenerator;
+      return;
+    }
     this._bg = bg;
   }
 
@@ -427,6 +518,13 @@ export const random = {
   defaultRng,
   Generator,
   RandomState,
+  BitGenerator,
+  MT19937,
+  PCG64,
+  PCG64DXSM,
+  Philox,
+  SFC64,
+  SeedSequence,
   seed: (seed?: Seed | null): void => g().seed(seed),
   rand: (...dims: number[]): Out => g().rand(...dims),
   randn: (...dims: number[]): Out => g().randn(...dims),
