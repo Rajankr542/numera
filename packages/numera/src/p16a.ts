@@ -98,6 +98,10 @@ export const csingle = complex64;
 export const longdouble = float64;
 /** np.clongdouble: alias for complex128 (no 80-bit complex in JS). */
 export const clongdouble = complex128;
+/** np.bytes_: byte-string dtype sentinel (alias for "bytes", D-191). */
+export const bytes_ = "bytes" as const;
+/** np.str_: unicode-string dtype sentinel (alias for "str", D-191). */
+export const str_ = "str" as const;
 
 // ---- np.vectorize (D-191) ----
 
@@ -391,6 +395,8 @@ export const p16a = {
   csingle,
   longdouble,
   clongdouble,
+  bytes_,
+  str_,
   // Functions
   vectorize,
   shares_memory,

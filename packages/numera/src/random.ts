@@ -357,6 +357,26 @@ export class Generator {
     this.shuffle(out, axis);
     return out;
   }
+
+  /** `np.random.Generator.bit_generator`: the underlying bit generator (PCG64). */
+  get bit_generator(): string {
+    return "PCG64";
+  }
+
+  /** `np.random.Generator.bytes(length)`: return `length` random bytes as Uint8Array. */
+  bytes(length: number): Uint8Array {
+    return wrapNative(() => this._bg.bytes(length));
+  }
+
+  /** `np.random.Generator.spawn(n)`: create `n` independent Generator children. */
+  spawn(n: number): Generator[] {
+    const result: Generator[] = [];
+    for (let i = 0; i < n; i++) {
+      const words = osEntropy(4);
+      result.push(wrapNative(() => new Generator(new addon.random.BitGenerator("pcg64", "seedseq", words))));
+    }
+    return result;
+  }
 }
 
 /** `np.random.defaultRng(seed?)`: Generator(PCG64(SeedSequence(seed))). */

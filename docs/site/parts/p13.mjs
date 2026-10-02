@@ -33,6 +33,25 @@ c.spawnKey;    // => [0]`,
 typeof bg.random(); // => "number"`,
       },
       {
+        name: "bit_generator",
+        sig: "rng.bit_generator",
+        desc: "The name of the underlying bit generator type (read-only property). Always `\"PCG64\"` for generators created by `defaultRng`. Equivalent to `numpy.random.Generator.bit_generator`.",
+        args: [],
+        returns: "string",
+        example: `const rng = np.random.defaultRng(42);
+rng.bit_generator; // => "PCG64"`,
+      },
+      {
+        name: "spawn",
+        sig: "rng.spawn(n)",
+        desc: "Return `n` independent Generator children seeded from OS entropy. Each child is an independent PCG64-backed Generator. Equivalent to `numpy.random.Generator.spawn`.",
+        args: [{ name: "n", type: "number", desc: "Number of child generators to create." }],
+        returns: "Generator[]",
+        example: `const rng = np.random.defaultRng(42);
+const children = rng.spawn(3);
+children.length; // => 3`,
+      },
+      {
         name: "PCG64DXSM",
         sig: "new np.random.PCG64DXSM(seedSequence)",
         desc: "PCG64-DXSM bit generator — a variant of PCG64 with the DXSM output function. Preferred over PCG64 for new code in NumPy >= 1.17.",

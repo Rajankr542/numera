@@ -1,7 +1,9 @@
 [
+  "bytes_ [nativpy] [numpy]",
   "ndarray.cumprod [nativpy] [numpy]",
   "ndarray.cumsum [nativpy] [numpy]",
   "np.cumprod [nativpy] [numpy]",
   "np.cumsum [nativpy] [numpy]",
-  "np.shares_memory [nativpy] [numpy]"
+  "np.shares_memory [nativpy] [numpy]",
+  "str_ [nativpy] [numpy]"
 ]
