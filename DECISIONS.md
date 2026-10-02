@@ -1598,3 +1598,20 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   Loops: divmod uses NumPy's floor_divide/remainder kernels (bool → int8);
   modf/frexp are float-only (ints → `float_for`); the frexp exponent is int32
   (0 for inf/nan).
+
+## D-074 — P4 special functions i0, sinc, unwrap, nanToNum, realIfClose — Accepted — 2026-10-02
+- NumPy implements these in Python, not as ufuncs; numera exposes them as
+  plain functions (no `out`/`where`/ufunc methods) with the numerics in
+  `native/core/p04_special.cpp` (`addon.p04`).
+- `i0` uses NumPy's Cephes Chebyshev coefficients; `sinc` uses NumPy's
+  `where(x, x, eps)` substitution for zeros (1e-20 for complex). Both use
+  NumPy's output dtypes (`i0`: float16/float32 kept, other real inputs
+  float64, complex raises `DTypeError`; `sinc`: ints → float64).
+- `unwrap` follows NumPy's algorithm including the integer path (integer
+  input and integer period keep the dtype) and bool `diff` = `not_equal`.
+  float16 input is computed in float32 and cast back (NumPy computes in
+  float16, so the last bit may differ). Complex input raises `DTypeError`.
+- `nanToNum` accepts scalar `nan`/`posinf`/`neginf` only (NumPy also allows
+  arrays); `copy: false` needs an NDArray and modifies it in place.
+- `realIfClose(x, tol = 100)` returns the `real` view (NumPy also returns
+  `a.real`).

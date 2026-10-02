@@ -7,12 +7,14 @@ import * as explog from "./p04_explog.js";
 import * as rounding from "./p04_rounding.js";
 import * as arith from "./p04_arith.js";
 import * as bits from "./p04_bits.js";
+import * as special from "./p04_special.js";
 
 export * from "./p04_trig.js";
 export * from "./p04_explog.js";
 export * from "./p04_rounding.js";
 export * from "./p04_arith.js";
 export * from "./p04_bits.js";
+export * from "./p04_special.js";
 
 export const p04 = {
   ...trig,
@@ -20,4 +22,5 @@ export const p04 = {
   ...rounding,
   ...arith,
   ...bits,
+  ...special,
 } as const;

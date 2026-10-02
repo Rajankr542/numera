@@ -207,6 +207,42 @@ np.gcd.reduce([12, 18, 27]).toArray(); // => 3`,
 np.modf([-2.5]).map((x) => x.toArray());       // => [[-0.5], [-2]]
 np.frexp([8]).map((x) => x.toArray());         // => [[0.5], [4]]`,
       },
+      {
+        name: "i0",
+        sig: "np.i0(x) · np.sinc(x)",
+        desc: "`i0` is the modified Bessel function of the first kind, order 0 (real input; float16/float32 kept, otherwise float64). `sinc` is the normalized `sin(pi x) / (pi x)`, 1 at 0, with complex support. Not ufunc objects (as in NumPy).",
+        args: [arrayArg("x")],
+        returns: "NDArray",
+        example: `np.i0([0]);         // => [1]
+np.sinc([0, 0.5]);  // => [1, 0.6366197723675814]`,
+      },
+      {
+        name: "nanToNum",
+        sig: "np.nanToNum(x, { copy?, nan?, posinf?, neginf? })",
+        desc: "Replace NaN with `nan` (default 0) and ±Infinity with `posinf`/`neginf` (default: the dtype's largest finite values). Complex values are fixed part by part; non-float input is returned unchanged.",
+        args: [arrayArg("x"), { name: "[opts]", type: "NanToNumOptions", desc: "`copy` (default true), scalar `nan`, `posinf`, `neginf`." }],
+        returns: "NDArray",
+        example: `np.nanToNum([NaN, 1]);                     // => [0, 1]
+np.nanToNum([NaN, Infinity], { posinf: 9 }); // => [0, 9]`,
+      },
+      {
+        name: "realIfClose",
+        sig: "np.realIfClose(x, tol = 100)",
+        desc: "Return the real part when every imaginary part is below `tol` (counted in machine epsilons when `tol > 1`); otherwise return `x` unchanged.",
+        args: [arrayArg("x"), { name: "[tol]", type: "number", desc: "Tolerance (default 100 epsilons)." }],
+        returns: "NDArray",
+        example: `np.realIfClose([{ re: 2, im: 1e-15 }]); // => [2]
+np.realIfClose([{ re: 2, im: 0.5 }]).dtype.name; // => "complex128"`,
+      },
+      {
+        name: "unwrap",
+        sig: "np.unwrap(p, { discont?, axis? = -1, period? = 2π })",
+        desc: "Remove jumps between neighbours larger than `discont` (default `period / 2`) by adding multiples of `period`. Integer input with an integer period keeps its dtype.",
+        args: [arrayArg("p"), { name: "[opts]", type: "UnwrapOptions", desc: "`discont`, `axis`, `period`." }],
+        returns: "NDArray",
+        example: `np.unwrap([0, 7, 14], { period: 10 }); // => [0, -3, -6]
+np.unwrap([0, 1, 2]);                  // => [0, 1, 2]`,
+      },
     ],
   },
 ];

@@ -8,6 +8,7 @@
 
 #include "error.hpp"
 #include "p04_multi.hpp"
+#include "p04_special.hpp"
 #include "test_harness.hpp"
 #include "ufunc_registry.hpp"
 
@@ -314,4 +315,28 @@ TEST_CASE("p04 multi-output: divmod modf frexp") {
   MultiParams q;
   q.out0 = &io;
   CHECK_THROWS_KIND(multi_ufunc(MultiOp::Modf, vec_d({1.5, 2.5}), nullptr, q), ErrorKind::DType);
+}
+
+TEST_CASE("p04 special: i0 sinc nan_to_num unwrap") {
+  const NDArray i = p04_i0(vec_d({0.0, 1.0, -2.5, 30.0}));
+  CHECK(near(i.get_double(0), 1.0));
+  CHECK(near(i.get_double(1), 1.2660658777520082));
+  CHECK(near(i.get_double(2), 3.2898391440501231));
+  CHECK(near(i.get_double(3), 781672297823.9775, 1e-13));
+  CHECK(p04_i0(vec_i({1}, DType::Int8)).dtype() == DType::Float64);
+  CHECK_THROWS_KIND(p04_i0(NDArray::empty({1}, DType::Complex128)), ErrorKind::DType);
+  const NDArray s = p04_sinc(vec_d({0.0, 0.5}));
+  CHECK(near(s.get_double(0), 1.0));
+  CHECK(near(s.get_double(1), 0.6366197723675814));
+  const double inf = std::numeric_limits<double>::infinity();
+  const NDArray n = p04_nan_to_num(vec_d({std::nan(""), inf, -inf}), true, 0.0, std::nullopt, -1.0);
+  CHECK_EQ(n.get_double(0), 0.0);
+  CHECK_EQ(n.get_double(1), std::numeric_limits<double>::max());
+  CHECK_EQ(n.get_double(2), -1.0);
+  const NDArray u = p04_unwrap(vec_i({0, 7, 14}, DType::Int64), 10, std::nullopt, -1, true, DType::Int64);
+  CHECK_EQ(u.get_int64(1), std::int64_t{-3});
+  CHECK_EQ(u.get_int64(2), std::int64_t{-6});
+  const NDArray uf = p04_unwrap(vec_d({0.0, 3.0, 6.5}), 2 * std::numbers::pi, std::nullopt, 0, false, DType::Float64);
+  CHECK(near(uf.get_double(2), 6.5 - 2 * std::numbers::pi));
+  CHECK_THROWS_KIND(p04_unwrap(vec_d({1.0}), 1, std::nullopt, 1, false, DType::Float64), ErrorKind::Index);
 }
