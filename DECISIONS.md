@@ -1798,3 +1798,99 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `ediff1d(a, {toEnd, toBegin})`: flattens; the result has the input dtype; bool
   input raises DTypeError; toBegin/toEnd must be castable to it with
   `same_kind` casting, otherwise DTypeError with NumPy's message.
+## D-090 — P6 array manipulation: API shape and layouts (P6) — Accepted — 2026-10-02
+- Kernels live in `native/core/p06_manip.{hpp,cpp}` (`addon.p06`); TS in
+  `packages/numera/src/p06*.ts`. Build-first: NumPy differential and bench cases
+  come in the V phase.
+- Keyword arguments become a trailing options object; the most common keyword
+  may also be passed positionally: `concatenate(arrays, axis | {axis, dtype,
+  casting, out})` (`axis: null` flattens), `stack(arrays, axis | {...})`,
+  `split(a, sectionsOrIndices, axis?)`, `repeat(a, repeats, axis?)`,
+  `roll(a, shift, axis?)`, `flip(a, axis?)`.
+- `concatenate`/`stack` result layout follows NumPy's multi-sorted stride
+  permutation over the inputs (F inputs give an F result); `casting` defaults to
+  "same_kind" and is checked for every input (`DTypeError`, NumPy `TypeError`);
+  `out` and `dtype` together raise `DTypeError`.
+- Functions that return a tuple in NumPy (`split` family, `unstack`,
+  `broadcastArrays`, `atleast*d` with several inputs) return a JS array of
+  NDArrays. `atleast1d/2d/3d(x)` with one argument returns one NDArray.
+- `block` takes nested JS arrays whose leaves are NDArrays or scalars, and is
+  implemented as NumPy's `_block_concatenate` (TS recursion over the native
+  concatenate kernel), with NumPy's depth-mismatch and empty-list errors.
+- Split pieces, `unstack`, `flip`, `rot90`, `rollaxis`, `permuteDims`,
+  `matrixTranspose`, `atleast*d`, `trimZeros` return views; everything else
+  returns new arrays.
+- `delete` is a JS reserved word: it is exported as `np.delete` and as the
+  named export `delete` (implemented as `del`).
+
+## D-091 — P6 tile / repeat (P6) — Accepted — 2026-10-02
+- `tile(a, reps)` and `repeat(a, repeats, axis?)` are native copy kernels;
+  results are always new C-contiguous arrays (`tile` with all-ones reps still
+  copies, like NumPy).
+- `repeats` is an integer or an integer list (length 1 broadcasts); non-integer
+  repeats raise `DTypeError` (NumPy `TypeError` under "safe" casting), negative
+  values and length mismatches raise `ValueError` with NumPy's messages.
+- `NDArray.prototype.repeat(repeats, axis?)` is added by declaration merging in
+  `p06_tile.ts`.
+
+## D-092 — P6 pad (P6) — Accepted — 2026-10-02
+- `pad(a, padWidth, mode?, options?)` follows NumPy `_arraypad_impl`: the
+  result has `a`'s dtype, layout F if `a` is F- and not C-contiguous (else C),
+  and axes are padded in order, each over the region already padded on earlier
+  axes. The native kernel processes every 1-d lane along the current axis with
+  NumPy's per-mode rules (iterative reflect/symmetric/wrap, `stat_length`
+  clipping, integer stats rounded half-to-even, `reflect_type: "odd"`).
+- Options use camelCase keys: `constantValues`, `endValues`, `statLength`,
+  `reflectType`; `padWidth`/values accept NumPy's scalar, pair, per-axis-pairs
+  and `{axis: width}` forms. Unsupported keys for a mode and unknown modes raise
+  `ValueError`; a non-integer `padWidth` raises `DTypeError`.
+- Divergences (build-first, checked in the V phase): `linear_ramp` and `mean` /
+  `median` are computed in float64 (complex128) and cast once, while NumPy may
+  compute in the array's float dtype; `mode: "empty"` fills with zeros instead
+  of leaving memory uninitialised.
+- A JS function as `mode` is called NumPy-style as `fn(vector, [before, after],
+  axis, options)` on writable 1-d views of a zero-padded result.
+
+## D-093 — P6 append / insert / delete / resize / trimZeros (P6) — Accepted — 2026-10-02
+- `insert(arr, obj, values, axis?)` and `delete(arr, obj, axis?)` follow NumPy
+  `_function_base_impl`: `axis` omitted/null flattens; `obj` is an integer, an
+  integer or boolean list/array, or a slice written `{start, stop, step}` (JS
+  has no slice syntax; a plain array is always a list of indices). TS
+  normalises `obj` to result positions / a keep mask; the native kernels
+  `insert_along` / `delete_along` move the data. Results are new arrays, F
+  order if `arr` is F- and not C-contiguous, else C (also for array `obj` to
+  `delete`, where NumPy's advanced-indexing layout may differ). `values` are
+  cast unsafely to `arr.dtype`, as in NumPy's item assignment.
+- `append(arr, values, axis?)` is `concatenate` (flattening both when `axis`
+  is omitted), so it promotes dtypes.
+- `np.resize(a, shape)` cycles the flattened data (zeros if `a` is empty).
+  `NDArray.prototype.resize(shape, {refcheck})` resizes in place like
+  `ndarray.resize`: the array must own C/F-contiguous, writeable data; the data
+  is truncated or zero-extended in memory order and the wrapper switches to the
+  new buffer (the method returns `undefined`). With `refcheck` (default true)
+  it raises `ValueError` while another live NDArray (e.g. a view not yet
+  garbage-collected) shares the buffer; with `refcheck: false` existing views
+  keep the old data instead of dangling.
+- `trimZeros(filt, trim="fb", axis?)` trims every selected axis to the bounding
+  box of nonzero elements (NumPy 2.2+ N-d behaviour) and returns a view.
+
+## D-094 — P6 conversions and metadata helpers (P6) — Accepted — 2026-10-02
+- `copyto(dst, src, {casting = "same_kind", where})` casts every element under
+  `casting` (`DTypeError` otherwise; NumPy `TypeError`), broadcasts `src` and
+  `where` to `dst` (`BroadcastError` / `ValueError`) and checks writeability.
+  JS scalars follow NEP 50 weak-scalar rules: a JS number is weak int64 if it
+  is a safe integer, else weak float64; booleans are bool; a weak integer must
+  fit `dst`'s integer dtype (`ValueError`, NumPy `OverflowError`) and may not
+  go into bool except under "unsafe". A non-bool `where` array raises
+  `DTypeError`; nested JS lists for `where` are converted to bool first.
+- `asanyarray` is `asarray` (no subclasses). `asarrayChkfinite` raises
+  `ValueError("array must not contain infs or NaNs")` using a native scan.
+- `require(a, dtype?, requirements?)` accepts NumPy's flag letters/names
+  (C/C_CONTIGUOUS/CONTIGUOUS, F/F_CONTIGUOUS/FORTRAN, A/ALIGNED, W/WRITEABLE,
+  O/OWNDATA, E/ENSUREARRAY) as a string of letters or a list; unknown flags
+  raise `ValueError` (NumPy `KeyError`). Returns the input unchanged when it
+  already satisfies them.
+- `broadcastArrays(...arrays)` returns writeable broadcast views (NumPy marks
+  them writeable with a FutureWarning; writes through zero strides alias).
+  The read-only flag is not set, matching current NumPy results.
+- `shape`, `size(a, axis?)`, `ndim`, `isfortran` accept any array-like.
