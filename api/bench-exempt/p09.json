@@ -1,1 +1,25 @@
-[]
+[
+ "ndarray.argpartition [nativpy] [numpy]",
+ "ndarray.argsort [nativpy] [numpy]",
+ "ndarray.partition [nativpy] [numpy]",
+ "ndarray.searchsorted [nativpy] [numpy]",
+ "ndarray.sort [nativpy] [numpy]",
+ "np.argpartition [nativpy] [numpy]",
+ "np.argsort [nativpy] [numpy]",
+ "np.ediff1d [nativpy] [numpy]",
+ "np.intersect1d [nativpy] [numpy]",
+ "np.isin [nativpy] [numpy]",
+ "np.lexsort [nativpy] [numpy]",
+ "np.partition [nativpy] [numpy]",
+ "np.searchsorted [nativpy] [numpy]",
+ "np.setdiff1d [nativpy] [numpy]",
+ "np.setxor1d [nativpy] [numpy]",
+ "np.sort [nativpy]",
+ "np.sort_complex [nativpy] [numpy]",
+ "np.union1d [nativpy] [numpy]",
+ "np.unique [nativpy] [numpy]",
+ "np.unique_all [nativpy] [numpy]",
+ "np.unique_counts [nativpy] [numpy]",
+ "np.unique_inverse [nativpy] [numpy]",
+ "np.unique_values [nativpy] [numpy]"
+]
