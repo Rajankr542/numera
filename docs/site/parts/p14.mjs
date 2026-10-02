@@ -250,4 +250,107 @@ np.kaiser(4, 5); // => [0.036710892271286676, 0.7753221044454067, 0.775322104445
       },
     ],
   },
+  {
+    id: "polynomials",
+    title: "Polynomials",
+    intro: "NumPy's legacy polynomial API (`np.poly1d` and the `np.poly*` functions). Coefficients are listed highest power first.",
+    entries: [
+      {
+        name: "poly",
+        sig: "np.poly(seqOfZeros)",
+        desc: "Coefficients of the monic polynomial with the given roots, or the characteristic polynomial of a square matrix. Returns `1` when there are no roots. Conjugate-pair roots give real coefficients.",
+        args: [{ name: "seqOfZeros", type: "ArrayLike", desc: "Roots (1-D) or a square matrix." }],
+        returns: "NDArray | number",
+        example: `np.poly([1, 2]); // => [1, -3, 2]
+np.poly([]); // => 1`,
+      },
+      {
+        name: "roots",
+        sig: "np.roots(p)",
+        desc: "Roots of a polynomial, computed as the eigenvalues of its companion matrix. Real when every root is real, otherwise complex.",
+        args: [{ name: "p", type: "ArrayLike | poly1d", desc: "Coefficients, highest power first." }],
+        returns: "NDArray",
+        example: `np.roots([1, -3, 2]); // => [2, 1]
+np.roots([1, 0, 0]); // => [0, 0]`,
+      },
+      {
+        name: "polyval",
+        sig: "np.polyval(p, x)",
+        desc: "Evaluates a polynomial at `x` with Horner's scheme. With a `poly1d` as `x`, the result is the composed polynomial.",
+        args: [{ name: "p", type: "ArrayLike | poly1d", desc: "Coefficients, highest power first." }, { name: "x", type: "ArrayLike | poly1d", desc: "Points to evaluate at." }],
+        returns: "NDArray | poly1d",
+        example: `np.polyval([1, 2, 3], [0, 1, 2]); // => [3, 6, 11]`,
+      },
+      {
+        name: "polyadd",
+        sig: "np.polyadd(a1, a2)",
+        desc: "Sum of two polynomials. The result is a `poly1d` if either input is one.",
+        args: [{ name: "a1", type: "ArrayLike | poly1d", desc: "First polynomial." }, { name: "a2", type: "ArrayLike | poly1d", desc: "Second polynomial." }],
+        returns: "NDArray | poly1d",
+        example: `np.polyadd([1, 2], [3, 4, 5]); // => [3, 5, 7]`,
+      },
+      {
+        name: "polysub",
+        sig: "np.polysub(a1, a2)",
+        desc: "Difference `a1 - a2` of two polynomials.",
+        args: [{ name: "a1", type: "ArrayLike | poly1d", desc: "Minuend." }, { name: "a2", type: "ArrayLike | poly1d", desc: "Subtrahend." }],
+        returns: "NDArray | poly1d",
+        example: `np.polysub([2, 2], [1]); // => [2, 1]`,
+      },
+      {
+        name: "polymul",
+        sig: "np.polymul(a1, a2)",
+        desc: "Product of two polynomials (a full convolution, computed natively).",
+        args: [{ name: "a1", type: "ArrayLike | poly1d", desc: "First factor." }, { name: "a2", type: "ArrayLike | poly1d", desc: "Second factor." }],
+        returns: "NDArray | poly1d",
+        example: `np.polymul([1, 2], [3, 4]); // => [3, 10, 8]`,
+      },
+      {
+        name: "polydiv",
+        sig: "np.polydiv(u, v)",
+        desc: "Polynomial long division. Returns `[quotient, remainder]` in floating point; leading near-zero remainder terms are dropped.",
+        args: [{ name: "u", type: "ArrayLike | poly1d", desc: "Dividend." }, { name: "v", type: "ArrayLike | poly1d", desc: "Divisor." }],
+        returns: "[NDArray, NDArray] | [poly1d, poly1d]",
+        example: `const [q, r] = np.polydiv([1, -3, 2], [1, -1]);
+q; // => [1, -2]
+r; // => [0]`,
+      },
+      {
+        name: "polyder",
+        sig: "np.polyder(p, [m])",
+        desc: "The `m`-th derivative (default 1).",
+        args: [{ name: "p", type: "ArrayLike | poly1d", desc: "Coefficients, highest power first." }, { name: "[m]", type: "number", desc: "Order of the derivative." }],
+        returns: "NDArray | poly1d",
+        example: `np.polyder([1, 2, 3]); // => [2, 2]`,
+      },
+      {
+        name: "polyint",
+        sig: "np.polyint(p, [m], [k])",
+        desc: "The `m`-th antiderivative (default 1). `k` gives the integration constants: one value for all, or one per integration.",
+        args: [{ name: "p", type: "ArrayLike | poly1d", desc: "Coefficients, highest power first." }, { name: "[m]", type: "number", desc: "Order of the integral." }, { name: "[k]", type: "number | number[]", desc: "Integration constants (default 0)." }],
+        returns: "NDArray | poly1d",
+        example: `np.polyint([3, 2], 1, 5); // => [1.5, 2, 5]`,
+      },
+      {
+        name: "polyfit",
+        sig: "np.polyfit(x, y, deg, [options])",
+        desc: "Least-squares polynomial fit of degree `deg`, coefficients highest power first. `y` may be 2-D (one fit per column). With `full`, returns `[c, residuals, rank, singularValues, rcond]`; with `cov`, returns `[c, covariance]`. A rank-deficient fit emits a `RankWarning`.",
+        args: [{ name: "x", type: "ArrayLike", desc: "Sample points (1-D)." }, { name: "y", type: "ArrayLike", desc: "Values, 1-D or 2-D." }, { name: "deg", type: "number", desc: "Degree of the fit." }, { name: "[options.rcond]", type: "number", desc: "Singular value cutoff (default `len(x) * eps`)." }, { name: "[options.full]", type: "boolean", desc: "Return diagnostic values too." }, { name: "[options.w]", type: "ArrayLike", desc: "Weights." }, { name: "[options.cov]", type: "boolean | \"unscaled\"", desc: "Return the covariance matrix too." }],
+        returns: "NDArray | Array",
+        example: `np.allclose(np.polyfit([0, 1, 2], [1, 3, 5], 1), [2, 1]); // => true`,
+      },
+      {
+        name: "poly1d",
+        sig: "new np.poly1d(c, [options])",
+        desc: "A polynomial object. Leading zeros are trimmed. Python operators are methods: `call(x)`, `add`, `sub`, `mul`, `div` (a scalar, or a polynomial giving `[q, r]`), `pow`, `neg`, `equals`. `get(k)` and `set(k, v)` read and write the coefficient of x**k. Also available: `coeffs`, `order`, `length`, `roots`, `variable`, `integ(m, k)`, `deriv(m)`, iteration over the coefficients, and `toString()`, which matches NumPy's `str(p)`.",
+        args: [{ name: "c", type: "ArrayLike | poly1d", desc: "Coefficients, highest power first (or roots with `r: true`)." }, { name: "[options.r]", type: "boolean", desc: "Treat `c` as roots." }, { name: "[options.variable]", type: "string", desc: "Variable name for printing (default `\"x\"`)." }],
+        returns: "poly1d",
+        example: `const p = new np.poly1d([1, -2, 3]);
+p.call(2); // => 3
+p.mul(p).coeffs; // => [1, -4, 10, -12, 9]
+p.deriv().coeffs; // => [2, -2]
+String(p); // => "   2\\n1 x - 2 x + 3"`,
+      },
+    ],
+  },
 ];

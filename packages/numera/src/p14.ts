@@ -6,10 +6,13 @@ export { load, NpzFile, save, savez, savezCompressed } from "./p14_npy.js";
 import { loadtxt, savetxt } from "./p14_text.js";
 import { fromregex, genfromtxt } from "./p14_genfromtxt.js";
 import { fromfile } from "./p14_file.js";
+import { poly, poly1d, polyadd, polyder, polydiv, polyfit, polyint, polymul, polysub, polyval, roots } from "./p14_poly.js";
 import { bartlett, baseRepr, binaryRepr, blackman, hamming, hanning, kaiser } from "./p14_misc.js";
 
 export { loadtxt, savetxt } from "./p14_text.js";
 export { fromfile } from "./p14_file.js";
+export { poly, poly1d, polyadd, polyder, polydiv, polyfit, polyint, polymul, polysub, polyval, roots } from "./p14_poly.js";
+export type { Poly1dOptions, PolyfitOptions, PolyLike } from "./p14_poly.js";
 export { bartlett, baseRepr, binaryRepr, blackman, hamming, hanning, kaiser } from "./p14_misc.js";
 export type { BinaryReprOptions, IntegerLike } from "./p14_misc.js";
 export type { FromfileOptions, TofileOptions } from "./p14_file.js";
@@ -36,4 +39,15 @@ export const p14 = {
   hamming,
   hanning,
   kaiser,
+  poly,
+  poly1d,
+  polyadd,
+  polyder,
+  polydiv,
+  polyfit,
+  polyint,
+  polymul,
+  polysub,
+  polyval,
+  roots,
 } as const;

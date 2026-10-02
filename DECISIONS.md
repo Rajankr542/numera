@@ -1980,3 +1980,27 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   `M` may be any real number, results are float64. `kaiser` uses NumPy's
   Chebyshev `i0` coefficients, so the results match NumPy to the last bit
   except where libm `cos`/`exp` differ by an ulp.
+
+## D-173 — P14 legacy polynomials: poly, poly1d, polyadd ... roots (P14) — Accepted — 2026-10-02
+- The `np.poly*` functions follow NumPy's `numpy/lib/_polynomial_impl.py`
+  step by step, composed from existing native ops (ufuncs, `vander`,
+  `linalg.lstsq`, `linalg.eigvals`, `linalg.inv`). Two loops are new native
+  kernels in `native/core/p14_poly.cpp`: full 1-D convolution (`polymul`,
+  `poly`; result dtype `promote_types`, integer products wrap, bool is
+  or-of-ands) and long division (`polydiv`, computed in the inexact dtype
+  of `u[0] + v[0]`; float16 is computed in float32 and rounded back; the
+  remainder is trimmed while `|r[0]| <= 1e-8`, NumPy's `allclose(r[0], 0)`).
+- `roots` builds NumPy's companion matrix and returns real values when the
+  input is real and every imaginary part is 0 (NumPy's
+  `_to_real_if_imag_zero`), otherwise complex.
+- `polyfit(x, y, deg, {rcond, full, w, cov})` returns the coefficients, or
+  NumPy's tuples as JS arrays: `full` gives `[c, residuals, rank, s, rcond]`,
+  `cov` gives `[c, V]`. The rank warning is a Node `RankWarning` warning.
+- `poly1d` is a class. Python operators become methods: `call(x)` (`p(x)`),
+  `add sub mul div pow neg equals`; `get(power)`/`set(power, v)` are
+  `p[k]`/`p[k] = v`; `length` is `len(p)` (the order); `coeffs`, `c`,
+  `coef`, `coefficients`, `order`, `o`, `roots`, `r`, `variable`;
+  `integ(m, k)`, `deriv(m)`; iteration over the coefficients; `toString()`
+  is NumPy's `str(p)` (with the superscript line). `div` by a polynomial
+  returns `[q, r]`. Every `np.poly*` function returns a `poly1d` when any
+  input is one, as NumPy does.

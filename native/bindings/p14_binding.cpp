@@ -5,6 +5,7 @@
 #include "dtype_binding.hpp"
 #include "layout.hpp"
 #include "p14_npy.hpp"
+#include "p14_poly.hpp"
 #include "p14_text.hpp"
 #include "p14_window.hpp"
 
@@ -94,6 +95,13 @@ void init_p14_binding(Napi::Env env, Napi::Object exports) {
         }));
   m.Set("kaiser", fn(env, "kaiser", [](Info i, Napi::Env e) {
           return wrap(e, p14::kaiser(arg_double(i[0], "M"), arg_double(i[1], "beta")));
+        }));
+  m.Set("convolveFull", fn(env, "convolveFull", [](Info i, Napi::Env e) {
+          return wrap(e, p14::convolve_full(arr(i, 0), arr(i, 1)));
+        }));
+  m.Set("polydiv", fn(env, "polydiv", [](Info i, Napi::Env e) {
+          auto [q, r] = p14::polydiv(arr(i, 0), arr(i, 1));
+          return wrap_all(e, {q, r});
         }));
   m.Set("floatStr", fn(env, "floatStr", [](Info i, Napi::Env e) {
           return Napi::String::New(e, p14::float_str(arg_double(i[0], "x"), parse_dtype(i[1])));
