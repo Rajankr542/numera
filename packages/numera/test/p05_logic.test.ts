@@ -190,3 +190,71 @@ describe("P5 classification and isscalar (D-081)", () => {
     for (const v of [np.array(1), [1], null, undefined, {}, np.zeros(2)]) expect(np.isscalar(v)).toBe(false);
   });
 });
+
+describe("P5 bitwise (D-082)", () => {
+  const INTS = ["int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"] as const;
+  it("and/or/xor/invert on every integer dtype and bool", () => {
+    for (const dt of INTS) {
+      const a = np.array([12, 10], { dtype: dt });
+      const b = np.array([10, 6], { dtype: dt });
+      expect(np.bitwiseAnd(a, b).dtype.name).toBe(dt);
+      expect(np.bitwiseAnd(a, b).toArray()).toEqual([8, 2]);
+      expect(np.bitwiseOr(a, 1).toArray()).toEqual([13, 11]);
+      expect(np.bitwiseXor(a, b).toArray()).toEqual([6, 12]);
+    }
+    expect(np.invert(np.array([5], { dtype: "int8" })).toArray()).toEqual([-6]);
+    expect(np.invert(np.array([1], { dtype: "uint8" })).toArray()).toEqual([254]);
+    expect(np.invert([true, false]).toArray()).toEqual([false, true]);
+    expect(np.bitwiseNot).toBe(np.invert);
+    expect(np.bitwiseInvert).toBe(np.invert);
+    expect(np.bitwiseAnd(true, false).toArray()).toBe(false);
+    expect(np.bitwiseAnd(np.array([true]), 3).toArray()).toEqual([1]);
+    expect(np.bitwiseAnd(np.array(6), 3).shape).toEqual([]);
+    expect(np.bitwiseAnd(np.zeros([0], { dtype: "int32" }), 1).shape).toEqual([0]);
+  });
+
+  it("rejects floats, complex and uint64/int64 mixes", () => {
+    expect(() => np.bitwiseAnd([1.5], 1)).toThrow(DTypeError);
+    expect(() => np.bitwiseOr(np.array([1], { dtype: "float32" }), 1)).toThrow(DTypeError);
+    expect(() => np.invert([1.5])).toThrow(DTypeError);
+    expect(() => np.bitwiseXor(np.array([np.complex(1, 0)]), 1)).toThrow(DTypeError);
+    expect(() => np.leftShift(np.array([1], { dtype: "uint64" }), np.array([1]))).toThrow(DTypeError);
+    expect(() => np.bitwiseCount([1.5])).toThrow(DTypeError);
+    expect(() => np.bitwiseAnd(np.array([1], { dtype: "uint8" }), -1)).toThrow(ValueError);
+    expect(() => np.leftShift([1], [2], { dtype: "bool" })).toThrow(DTypeError);
+  });
+
+  it("reduce identities", () => {
+    expect(np.bitwiseAnd.reduce(np.array([], { dtype: "uint8" })).toArray()).toBe(255);
+    expect([...(np.bitwiseAnd.reduce(np.array([], { dtype: "uint64" })).toTypedArray() as BigUint64Array)]).toEqual([2n ** 64n - 1n]);
+    expect(np.bitwiseAnd.reduce(np.array([], { dtype: "int8" })).toArray()).toBe(-1);
+    expect(np.bitwiseAnd.reduce(np.array([], { dtype: "bool" })).toArray()).toBe(true);
+    expect(np.bitwiseAnd.reduce([[1, 3], [3, 7]], { axis: [0, 1] }).toArray()).toBe(1);
+    expect(np.bitwiseXor.reduce([[1, 2], [3, 4]], { axis: null }).toArray()).toBe(4);
+    expect(np.bitwiseOr.accumulate([1, 2, 4]).toArray()).toEqual([1, 3, 7]);
+    expect(np.leftShift.reduce([1, 2, 3]).toArray()).toBe(32);
+  });
+
+  it("shifts", () => {
+    const i8 = (v: number[]) => np.array(v, { dtype: "int8" });
+    expect(np.leftShift(i8([1, 1, 1, 1]), i8([3, 7, 9, -1])).toArray()).toEqual([8, -128, 0, 0]);
+    expect(np.rightShift(i8([-128, -5, 5, -8]), i8([10, -1, -1, 1])).toArray()).toEqual([-1, -1, 0, -4]);
+    expect(np.leftShift(np.array([1n], { dtype: "int64" }), 64).toArray()).toEqual([0]);
+    expect(np.leftShift(true, true).dtype).toBe(np.int8);
+    expect(np.leftShift(np.array([1], { dtype: "uint8" }), np.array([1], { dtype: "int8" })).dtype).toBe(np.int16);
+    expect(np.leftShift(np.array([1], { dtype: "uint64" }), 1).dtype).toBe(np.uint64);
+    expect(np.leftShift([1], [2], { dtype: "int8" }).toArray()).toEqual([4]);
+    expect(np.bitwiseLeftShift).toBe(np.leftShift);
+    expect(np.bitwiseRightShift).toBe(np.rightShift);
+  });
+
+  it("bitwiseCount", () => {
+    const r = np.bitwiseCount(np.array([-1, -128, 7, 0], { dtype: "int8" }));
+    expect(r.dtype).toBe(np.uint8);
+    expect(r.toArray()).toEqual([1, 1, 3, 0]);
+    expect(np.bitwiseCount([true, false]).toArray()).toEqual([1, 0]);
+    expect(np.bitwiseCount(np.array([2n ** 64n - 1n], { dtype: "uint64" })).toArray()).toEqual([64]);
+    expect(np.bitwiseCount([3], { dtype: "uint8" }).toArray()).toEqual([2]);
+    expect(() => np.bitwiseCount([3], { dtype: "int64" })).toThrow(DTypeError);
+  });
+});

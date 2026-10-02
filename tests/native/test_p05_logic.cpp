@@ -5,6 +5,7 @@
 #include <limits>
 #include <vector>
 
+#include "cast.hpp"
 #include "error.hpp"
 #include "fp_errors.hpp"
 #include "test_harness.hpp"
@@ -199,4 +200,72 @@ TEST_CASE("p05 isnan/isinf/isfinite/isposinf/isneginf") {
   CHECK_THROWS_KIND(unary(U("isnan"), vec_d({1}), nullptr, p), ErrorKind::DType);
   p.dtype = DType::Bool;
   CHECK(ints(unary(U("isnan"), vec_d({kNaN}), nullptr, p)) == IV({1}));
+}
+
+TEST_CASE("p05 bitwise and/or/xor/invert") {
+  for (DType dt : {DType::Int8, DType::UInt8, DType::Int16, DType::UInt16, DType::Int32, DType::UInt32,
+                   DType::Int64, DType::UInt64}) {
+    const NDArray a = vec_i({12, 10}, dt);
+    const NDArray b = vec_i({10, 6}, dt);
+    CHECK(bin("bitwiseAnd", a, b).dtype() == dt);
+    CHECK(ints(bin("bitwiseAnd", a, b)) == IV({8, 2}));
+    CHECK(ints(bin("bitwiseOr", a, b)) == IV({14, 14}));
+    CHECK(ints(bin("bitwiseXor", a, b)) == IV({6, 12}));
+  }
+  CHECK(ints(unary(U("invert"), vec_i({5}, DType::Int8), nullptr, {})) == IV({-6}));
+  CHECK(ints(unary(U("invert"), vec_i({1}, DType::UInt8), nullptr, {})) == IV({254}));
+  const NDArray bl = vec_i({1, 0}, DType::Bool);
+  CHECK(unary(U("invert"), bl, nullptr, {}).dtype() == DType::Bool);
+  CHECK(ints(unary(U("invert"), bl, nullptr, {})) == IV({0, 1}));
+  CHECK(ints(bin("bitwiseXor", bl, vec_i({1, 1}, DType::Bool))) == IV({0, 1}));
+  CHECK_THROWS_KIND(bin("bitwiseAnd", vec_d({1}), vec_i({1})), ErrorKind::DType);
+  CHECK_THROWS_KIND(bin("bitwiseAnd", vec_i({1}, DType::UInt64), vec_i({1})), ErrorKind::DType);
+  CHECK_THROWS_KIND(unary(U("invert"), vec_d({1}), nullptr, {}), ErrorKind::DType);
+}
+
+TEST_CASE("p05 bitwise reduce identities") {
+  const NDArray e8 = NDArray::empty({0}, DType::UInt8);
+  CHECK_EQ(ufunc_reduce(U("bitwiseAnd"), e8, nullptr, {}).get_int64(0), 255);
+  const NDArray e64 = NDArray::empty({0}, DType::UInt64);
+  const NDArray r = ufunc_reduce(U("bitwiseAnd"), e64, nullptr, {});
+  CHECK(load<std::uint64_t>(r.data()) == ~std::uint64_t{0});
+  CHECK_EQ(ufunc_reduce(U("bitwiseAnd"), NDArray::empty({0}, DType::Int8), nullptr, {}).get_int64(0), -1);
+  CHECK_EQ(ufunc_reduce(U("bitwiseAnd"), NDArray::empty({0}, DType::Bool), nullptr, {}).get_int64(0), 1);
+  CHECK_EQ(ufunc_reduce(U("bitwiseOr"), vec_i({1, 2, 4}), nullptr, {}).get_int64(0), 7);
+  CHECK_EQ(ufunc_reduce(U("bitwiseXor"), vec_i({1, 3}), nullptr, {}).get_int64(0), 2);
+  CHECK_EQ(ufunc_reduce(U("leftShift"), vec_i({1, 2, 3}), nullptr, {}).get_int64(0), 32);
+}
+
+TEST_CASE("p05 shifts follow npy_lshift/npy_rshift") {
+  const auto sh = [](const char* op, std::int64_t a, std::int64_t b, DType dt) {
+    return bin(op, vec_i({a}, dt), vec_i({b}, dt)).get_int64(0);
+  };
+  CHECK_EQ(sh("leftShift", 1, 3, DType::Int8), 8);
+  CHECK_EQ(sh("leftShift", 1, 7, DType::Int8), -128);
+  CHECK_EQ(sh("leftShift", 1, 9, DType::Int8), 0);
+  CHECK_EQ(sh("leftShift", 1, -1, DType::Int8), 0);
+  CHECK_EQ(sh("leftShift", 1, 64, DType::Int64), 0);
+  CHECK_EQ(sh("rightShift", -128, 10, DType::Int8), -1);
+  CHECK_EQ(sh("rightShift", -5, -1, DType::Int8), -1);
+  CHECK_EQ(sh("rightShift", 5, -1, DType::Int8), 0);
+  CHECK_EQ(sh("rightShift", 200, 10, DType::UInt8), 0);
+  CHECK_EQ(sh("rightShift", -8, 1, DType::Int32), -4);
+  const NDArray t = vec_i({1}, DType::Bool);
+  const NDArray r = bin("leftShift", t, t);
+  CHECK(r.dtype() == DType::Int8);
+  CHECK_EQ(r.get_int64(0), 2);
+  CHECK(bin("leftShift", vec_i({1}, DType::UInt8), vec_i({1}, DType::Int8)).dtype() == DType::Int16);
+}
+
+TEST_CASE("p05 bitwiseCount") {
+  const NDArray r = unary(U("bitwiseCount"), vec_i({-1, -128, 7, 0}, DType::Int8), nullptr, {});
+  CHECK(r.dtype() == DType::UInt8);
+  CHECK(ints(r) == IV({1, 1, 3, 0}));
+  CHECK(ints(unary(U("bitwiseCount"), vec_i({255}, DType::UInt8), nullptr, {})) == IV({8}));
+  CHECK(ints(unary(U("bitwiseCount"), vec_i({1}, DType::Bool), nullptr, {})) == IV({1}));
+  NDArray big = NDArray::empty({1}, DType::UInt64);
+  store<std::uint64_t>(big.data(), ~std::uint64_t{0});
+  CHECK(ints(unary(U("bitwiseCount"), big, nullptr, {})) == IV({64}));
+  CHECK(ints(unary(U("bitwiseCount"), vec_i({std::numeric_limits<std::int64_t>::min()}), nullptr, {})) == IV({1}));
+  CHECK_THROWS_KIND(unary(U("bitwiseCount"), vec_d({1}), nullptr, {}), ErrorKind::DType);
 }

@@ -89,6 +89,38 @@ np.isneginf([-Infinity, Infinity, 1]); // => [true, false, false]`,
 np.isscalar(np.array(3.5)); // => false
 np.isscalar([1]);           // => false`,
       },
+      {
+        name: "bitwiseAnd",
+        sig: "np.bitwiseAnd(a, b, options?) · np.bitwiseOr · np.bitwiseXor · np.invert(a, options?)",
+        desc: "Element-wise `&`, `|`, `^` and `~` on integer and bool arrays (float input raises `DTypeError`). `invert` of bool is logical NOT. `np.bitwiseNot` and `np.bitwiseInvert` are the same ufunc as `np.invert`. `bitwiseAnd.reduce` of an empty array gives all ones.",
+        args: [arrayArg("a"), arrayArg("b"), { name: "[options]", type: "UfuncOptions", desc: "`out`, `where`, `dtype`, `casting`, `order`." }],
+        returns: "NDArray",
+        example: `np.bitwiseAnd([12, 10], [10, 6]); // => [8, 2]
+np.bitwiseOr([12, 10], 1);        // => [13, 11]
+np.bitwiseXor([12, 10], [10, 6]); // => [6, 12]
+np.invert(np.array([5], { dtype: "uint8" })); // => [250]
+np.bitwiseNot([true, false]);     // => [false, true]
+np.bitwiseInvert([0]);            // => [-1]`,
+      },
+      {
+        name: "leftShift",
+        sig: "np.leftShift(a, b, options?) · np.rightShift · np.bitwiseLeftShift · np.bitwiseRightShift",
+        desc: "Element-wise `a << b` and arithmetic `a >> b` on integers. A shift count that is negative or at least the bit width gives 0 (`-1` when right-shifting a negative value). `bitwiseLeftShift`/`bitwiseRightShift` are the same ufuncs.",
+        args: [arrayArg("a"), arrayArg("b"), { name: "[options]", type: "UfuncOptions", desc: "`out`, `where`, `dtype`, `casting`, `order`." }],
+        returns: "NDArray",
+        example: `np.leftShift(1, [1, 2, 3]);    // => [2, 4, 8]
+np.rightShift([-8, 8], 1);      // => [-4, 4]
+np.bitwiseLeftShift(np.array([1], { dtype: "int8" }), 9); // => [0]
+np.bitwiseRightShift([16], 2);  // => [4]`,
+      },
+      {
+        name: "bitwiseCount",
+        sig: "np.bitwiseCount(a, options?)",
+        desc: "Number of 1 bits in the absolute value of each integer (or bool), as `uint8`.",
+        args: [arrayArg("a"), { name: "[options]", type: "UfuncOptions", desc: "`out`, `where`, `dtype` (`uint8` only), `casting`, `order`." }],
+        returns: "NDArray (uint8)",
+        example: `np.bitwiseCount([0, 7, -1, 255]); // => [0, 3, 1, 8]`,
+      },
     ],
   },
 ];

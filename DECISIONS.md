@@ -1582,3 +1582,19 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   scalars (`Complex` / `{re, im}`); false for `NDArray` (including 0-d), arrays,
   `null`/`undefined` and other objects. Matches NumPy for the Python analogues;
   numera has no NumPy scalar types (D-005).
+
+## D-082 — Bitwise ufuncs (P5-4) — Accepted — 2026-10-02
+- Rows in `ufunc_logic.cpp`: `bitwiseAnd bitwiseOr bitwiseXor` (bool and integer
+  loops; identities -1 → all ones / True, 0, 0), `invert` (bool: logical not),
+  `leftShift rightShift` (integer loops; bool promotes to int8, like NumPy's
+  `??`-less loop table), `bitwiseCount` (integer/bool input, `uint8` output,
+  popcount of `|x|` as NumPy).
+- Shift semantics follow NumPy's `npy_lshift`/`npy_rshift`: a shift count that is
+  `>=` the bit width or negative gives 0 (`rightShift` of a negative signed value
+  gives -1), so there is no C++ undefined behaviour.
+- Float/complex inputs (or a promotion to float, e.g. uint64 with int64) raise
+  `DTypeError: ufunc '<name>' not supported for the input types, ...` (NumPy
+  `TypeError`). `dtype=` must be bool or an integer dtype (integers only for
+  shifts; `uint8` only for `bitwiseCount`).
+- JS aliases mirror NumPy's identical objects: `bitwiseNot = bitwiseInvert = invert`,
+  `bitwiseLeftShift = leftShift`, `bitwiseRightShift = rightShift`.

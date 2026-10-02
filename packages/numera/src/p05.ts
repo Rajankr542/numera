@@ -33,6 +33,33 @@ export {
 import { isfinite, isinf, isnan, isnat, isneginf, isposinf, isscalar } from "./p05_classify.js";
 
 export { isfinite, isinf, isnan, isnat, isneginf, isposinf, isscalar } from "./p05_classify.js";
+import {
+  bitwiseAnd,
+  bitwiseCount,
+  bitwiseInvert,
+  bitwiseLeftShift,
+  bitwiseNot,
+  bitwiseOr,
+  bitwiseRightShift,
+  bitwiseXor,
+  invert,
+  leftShift,
+  rightShift,
+} from "./p05_bitwise.js";
+
+export {
+  bitwiseAnd,
+  bitwiseCount,
+  bitwiseInvert,
+  bitwiseLeftShift,
+  bitwiseNot,
+  bitwiseOr,
+  bitwiseRightShift,
+  bitwiseXor,
+  invert,
+  leftShift,
+  rightShift,
+} from "./p05_bitwise.js";
 export type { AllAnyOptions } from "./p05_compare.js";
 
 export const p05 = {
@@ -55,4 +82,15 @@ export const p05 = {
   isposinf,
   isneginf,
   isscalar,
+  bitwiseAnd,
+  bitwiseOr,
+  bitwiseXor,
+  invert,
+  bitwiseNot,
+  bitwiseInvert,
+  leftShift,
+  rightShift,
+  bitwiseLeftShift,
+  bitwiseRightShift,
+  bitwiseCount,
 } as const;

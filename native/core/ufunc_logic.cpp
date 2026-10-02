@@ -1,3 +1,4 @@
+#include <bit>
 #include <cfenv>
 #include <cmath>
 #include <complex>
@@ -168,6 +169,84 @@ struct CIsFiniteF {
   }
 };
 
+// ---- bitwise kernels (D-082) ----
+
+struct BAndF { template <typename T> T operator()(T a, T b) const noexcept { return static_cast<T>(a & b); } };
+struct BOrF { template <typename T> T operator()(T a, T b) const noexcept { return static_cast<T>(a | b); } };
+struct BXorF { template <typename T> T operator()(T a, T b) const noexcept { return static_cast<T>(a ^ b); } };
+struct InvertF {
+  template <typename T> T operator()(T a) const noexcept {
+    if constexpr (std::is_same_v<T, bool>) return !a; else return static_cast<T>(~a);
+  }
+};
+// NumPy npy_lshift / npy_rshift: counts outside [0, bits) give 0 (or -1 for a
+// negative value shifted right).
+struct LShiftF {
+  template <typename T> T operator()(T a, T b) const noexcept {
+    using U = std::make_unsigned_t<T>;
+    if (static_cast<U>(b) >= sizeof(T) * 8) return T{0};
+    return static_cast<T>(static_cast<U>(static_cast<U>(a) << static_cast<U>(b)));
+  }
+};
+struct RShiftF {
+  template <typename T> T operator()(T a, T b) const noexcept {
+    using U = std::make_unsigned_t<T>;
+    if (static_cast<U>(b) >= sizeof(T) * 8) {
+      if constexpr (std::is_signed_v<T>) return a < 0 ? T{-1} : T{0}; else return T{0};
+    }
+    return static_cast<T>(a >> static_cast<U>(b));
+  }
+};
+struct PopCountF {
+  template <typename T> std::uint8_t operator()(T a) const noexcept {
+    if constexpr (std::is_same_v<T, bool>) {
+      return a ? 1 : 0;
+    } else {
+      using U = std::make_unsigned_t<T>;
+      U u = static_cast<U>(a);
+      if constexpr (std::is_signed_v<T>) {
+        if (a < 0) u = static_cast<U>(U{0} - u);
+      }
+      return static_cast<std::uint8_t>(std::popcount(u));
+    }
+  }
+};
+
+// Integer (and optionally bool) loop tables for the bitwise kernels.
+template <typename F, bool WithBool>
+constexpr std::array<BinaryLoopFn, kNumDTypes> int_binary_table() {
+  std::array<BinaryLoopFn, kNumDTypes> t{};
+  [&]<int... I>(std::integer_sequence<int, I...>) {
+    ((t[I] = [] {
+       using S = dtype_t<static_cast<DType>(I)>;
+       if constexpr (std::is_same_v<S, bool>) {
+         if constexpr (WithBool) return BinaryLoopFn{&bloop<S, F>};
+         else return BinaryLoopFn{nullptr};
+       } else if constexpr (std::is_integral_v<S>) {
+         return BinaryLoopFn{&bloop<S, F>};
+       } else {
+         return BinaryLoopFn{nullptr};
+       }
+     }()),
+     ...);
+  }(std::make_integer_sequence<int, kNumDTypes>{});
+  return t;
+}
+template <typename F, typename Out>
+constexpr std::array<UnaryLoopFn, kNumDTypes> int_unary_table() {
+  std::array<UnaryLoopFn, kNumDTypes> t{};
+  [&]<int... I>(std::integer_sequence<int, I...>) {
+    ((t[I] = [] {
+       using S = dtype_t<static_cast<DType>(I)>;
+       using O = std::conditional_t<std::is_void_v<Out>, S, Out>;
+       if constexpr (std::is_integral_v<S>) return UnaryLoopFn{&uloop<S, O, F>};
+       else return UnaryLoopFn{nullptr};
+     }()),
+     ...);
+  }(std::make_integer_sequence<int, kNumDTypes>{});
+  return t;
+}
+
 // ---- type resolution ----
 
 // Comparisons / logical ops: loop in the promoted dtype, bool output.
@@ -210,6 +289,52 @@ LoopTypes d_bool_no_complex(DType a, DType d) {
   throw_error(ErrorKind::DType, "ufunc 'isnat' is only defined for np.datetime64 and np.timedelta64.");
 }
 
+[[noreturn]] void not_supported(const char* name) {
+  throw_error(ErrorKind::DType, std::string("ufunc '") + name +
+                                    "' not supported for the input types, and the inputs could not be "
+                                    "safely coerced to any supported types according to the casting rule "
+                                    "''safe''");
+}
+bool int_or_bool(DType d) noexcept { return d == DType::Bool || is_integer(d); }
+
+template <const char* Name>
+LoopTypes r_bitwise(DType a, DType b) {
+  const DType p = promote_types(a, b);
+  if (!int_or_bool(p)) not_supported(Name);
+  return same(p);
+}
+template <const char* Name>
+LoopTypes d_bitwise(DType, DType d) {
+  if (!int_or_bool(d)) no_loop(Name);
+  return same(d);
+}
+template <const char* Name>
+LoopTypes r_shift(DType a, DType b) {
+  const DType p = promote_types(a, b);
+  if (!int_or_bool(p)) not_supported(Name);
+  return same(p == DType::Bool ? DType::Int8 : p);
+}
+template <const char* Name>
+LoopTypes d_shift(DType, DType d) {
+  if (!is_integer(d)) no_loop(Name);
+  return same(d);
+}
+template <const char* Name>
+LoopTypes r_invert(DType a, DType) {
+  if (!int_or_bool(a)) not_supported(Name);
+  return same(a);
+}
+template <const char* Name>
+LoopTypes r_popcount(DType a, DType) {
+  if (!int_or_bool(a)) not_supported(Name);
+  return {a == DType::Bool ? DType::UInt8 : a, DType::UInt8};
+}
+template <const char* Name>
+LoopTypes d_popcount(DType a, DType d) {
+  if (d != DType::UInt8) no_loop(Name);
+  return r_popcount<Name>(a, a);
+}
+
 constexpr char kEqual[] = "equal";
 constexpr char kNotEqual[] = "notEqual";
 constexpr char kLess[] = "less";
@@ -225,8 +350,15 @@ constexpr char kIsInf[] = "isinf";
 constexpr char kIsFinite[] = "isfinite";
 constexpr char kIsPosInf[] = "isposinf";
 constexpr char kIsNegInf[] = "isneginf";
+constexpr char kBitwiseAnd[] = "bitwiseAnd";
+constexpr char kBitwiseOr[] = "bitwiseOr";
+constexpr char kBitwiseXor[] = "bitwiseXor";
+constexpr char kInvert[] = "invert";
+constexpr char kLeftShift[] = "leftShift";
+constexpr char kRightShift[] = "rightShift";
+constexpr char kBitwiseCount[] = "bitwiseCount";
 
-constexpr std::array<Ufunc, 16> kTable{{
+constexpr std::array<Ufunc, 23> kTable{{
     {kEqual, 2, std::nullopt, r_to_bool, d_bool_binary<kEqual>, nullptr,
      bool_binary_table<EqF, Avail::All, EqF>(), {}},
     {kNotEqual, 2, std::nullopt, r_to_bool, d_bool_binary<kNotEqual>, nullptr,
@@ -258,6 +390,20 @@ constexpr std::array<Ufunc, 16> kTable{{
      bool_unary_table<IsPosInfF, Avail::All, void>()},
     {kIsNegInf, 1, std::nullopt, r_bool_no_complex, d_bool_no_complex<kIsNegInf>, nullptr, {},
      bool_unary_table<IsNegInfF, Avail::All, void>()},
+    {kBitwiseAnd, 2, -1.0, r_bitwise<kBitwiseAnd>, d_bitwise<kBitwiseAnd>, nullptr,
+     int_binary_table<BAndF, true>(), {}},
+    {kBitwiseOr, 2, 0.0, r_bitwise<kBitwiseOr>, d_bitwise<kBitwiseOr>, nullptr,
+     int_binary_table<BOrF, true>(), {}},
+    {kBitwiseXor, 2, 0.0, r_bitwise<kBitwiseXor>, d_bitwise<kBitwiseXor>, nullptr,
+     int_binary_table<BXorF, true>(), {}},
+    {kInvert, 1, std::nullopt, r_invert<kInvert>, d_bitwise<kInvert>, nullptr, {},
+     int_unary_table<InvertF, void>()},
+    {kLeftShift, 2, std::nullopt, r_shift<kLeftShift>, d_shift<kLeftShift>, nullptr,
+     int_binary_table<LShiftF, false>(), {}},
+    {kRightShift, 2, std::nullopt, r_shift<kRightShift>, d_shift<kRightShift>, nullptr,
+     int_binary_table<RShiftF, false>(), {}},
+    {kBitwiseCount, 1, std::nullopt, r_popcount<kBitwiseCount>, d_popcount<kBitwiseCount>, nullptr, {},
+     int_unary_table<PopCountF, std::uint8_t>()},
 }};
 
 }  // namespace
