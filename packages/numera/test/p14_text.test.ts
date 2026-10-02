@@ -102,3 +102,66 @@ describe("P14-3 savetxt (D-171)", () => {
     expect(() => np.savetxt(null, [[1, 2]], { fmt: "%r" })).toThrow(ValueError);
   });
 });
+
+describe("P14-4 genfromtxt (D-171)", () => {
+  const g = np.genfromtxt;
+  it("fills invalid cells with dtype defaults (loose)", () => {
+    expect(L(g(["1.5 2", "3 x"], { dtype: "int32" }))).toEqual([[1, 2], [3, -1]]);
+    expect(L(g(["1.5 2", "3 x"], { dtype: "int64" }))).toEqual([[-1, 2], [3, -1]]);
+    expect(L(g(["1 2", "3 "], { delimiter: "," }))).toEqual([NaN, 3]);
+    expect(L(g(["true FALSE 1 yes"], { dtype: "bool" }))).toEqual([true, false, false, false]);
+    expect(L(g(["1 1_0 inf 0x10 -nan"]))).toEqual([1, 10, Infinity, NaN, NaN]);
+    const c = g(["1+2j (3j) x 1"], { dtype: "complex128" });
+    expect(c.get(1).item()).toEqual(expect.objectContaining({ re: 0, im: 3 }));
+    expect(Number.isNaN((c.get(2).item() as { re: number }).re)).toBe(true);
+    expect(np.save(null, g(["123456789012345678"], { dtype: "int64", ndmin: 1 }))!.readBigInt64LE(128)).toBe(
+      123456789012345678n,
+    );
+  });
+  it("missingValues / fillingValues (scalar, list, map, usecols remap)", () => {
+    expect(L(g(["N/A,2", ",4", "5,-"], { delimiter: ",", missingValues: "N/A,-", fillingValues: 0, loose: false })))
+      .toEqual([[0, 2], [0, 4], [5, 0]]);
+    expect(L(g(["N/A,2", ",4"], { delimiter: ",", missingValues: { 0: "N/A" }, fillingValues: { 1: 9, 0: 8 } })))
+      .toEqual([[8, 2], [8, 4]]);
+    expect(L(g(["N/A,2", ",4"], { delimiter: ",", fillingValues: [7, 8] }))).toEqual([[7, 2], [7, 4]]);
+    expect(L(g(["1,", "2,3"], { delimiter: ",", fillingValues: { 1: 5 }, usecols: [1] }))).toEqual([5, 3]);
+    expect(L(g(["1 2", "3 4"], { missingValues: new Map([[null, "3"]]), loose: false, fillingValues: -5 })))
+      .toEqual([[1, 2], [3, 4]]);
+    fails(() => g(["1 x"], { dtype: "int16", loose: false }), ValueError, "Cannot convert string 'x'");
+  });
+  it("skipHeader, skipFooter, usecols, maxRows, widths, ndmin, unpack", () => {
+    expect(L(g(["1 2", "3 4", "5", "f"], { skipFooter: 2 }))).toEqual([[1, 2], [3, 4]]);
+    expect(L(g(["h", "# c", "1 2", "3 4"], { skipHeader: 1, unpack: true }))).toEqual([[1, 3], [2, 4]]);
+    expect(L(g(["1 2", "3 4"], { usecols: -1 }))).toEqual([2, 4]);
+    expect(L(g(["1 2 # x", " 3 4"], { maxRows: 1 }))).toEqual([1, 2]);
+    expect(L(g(["12345678"], { delimiter: [2, 3, 3], dtype: "int64" }))).toEqual([12, 345, 678]);
+    expect(L(g(["12345678"], { delimiter: 3, dtype: "int64" }))).toEqual([123, 456, 78]);
+    expect(g(["1,2"], { delimiter: ",", dtype: "float32", ndmin: 2 }).shape).toEqual([1, 2]);
+    expect(L(g(["1 2 3", "1"], { usecols: [1], invalidRaise: false }))).toEqual(2);
+  });
+  it("errors", () => {
+    fails(() => g(["# c", "", "1 2", "3", "4 5 6", "7 8"]), ValueError,
+      "Some errors were detected !\n    Line #2 (got 1 columns instead of 2)\n    Line #3 (got 3 columns instead of 2)");
+    fails(() => g(["1"], { maxRows: 0 }), ValueError, "'max_rows' must be at least 1.");
+    fails(() => g(["1"], { maxRows: 1, skipFooter: 1 }), ValueError,
+      "The keywords 'skip_footer' and 'max_rows' can not be specified at the same time.");
+    expect(() => g(["-1 300"], { dtype: "uint8" })).toThrow(ValueError);
+  });
+});
+
+describe("P14-4 fromregex (D-171)", () => {
+  it("one array per field", () => {
+    const r = np.fromregex(["a1 b22 c3"], /([a-z])(\d+)/, [["c", "bool"], ["n", "int64"]]);
+    expect(Object.keys(r)).toEqual(["c", "n"]);
+    expect(L(r.n)).toEqual([1, 22, 3]);
+    expect(L(r.c)).toEqual([true, true, true]);
+    expect(L(np.fromregex(Buffer.from("x=1.5;x=2"), String.raw`x=([\d.]+)`, [["x", "float32"]]).x)).toEqual([1.5, 2]);
+    expect(L(np.fromregex(["a1 b22"], /\d+/, [["n", "int8"]]).n)).toEqual([1, 22]);
+    expect(np.fromregex(["xx"], /(\d)/, [["n", "int64"]]).n.shape).toEqual([0]);
+  });
+  it("errors", () => {
+    fails(() => np.fromregex(["a1"], /([a-z])(\d)/, [["n", "int64"]]), ValueError,
+      "could not assign tuple of length 2 to structure with 1 fields.");
+    expect(() => np.fromregex(["a1"], /(\d)/, "int64" as never)).toThrow(TypeError);
+  });
+});

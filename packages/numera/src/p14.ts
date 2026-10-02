@@ -4,8 +4,11 @@ import { load, NpzFile, save, savez, savezCompressed } from "./p14_npy.js";
 
 export { load, NpzFile, save, savez, savezCompressed } from "./p14_npy.js";
 import { loadtxt, savetxt } from "./p14_text.js";
+import { fromregex, genfromtxt } from "./p14_genfromtxt.js";
 
 export { loadtxt, savetxt } from "./p14_text.js";
+export { fromregex, genfromtxt } from "./p14_genfromtxt.js";
+export type { FieldList, GenfromtxtOptions, PerColumn } from "./p14_genfromtxt.js";
 export type { LoadtxtOptions, SavetxtOptions, TextSource } from "./p14_text.js";
 export type { BytesLike, FileLike, LoadOptions, NamedArrays } from "./p14_npy.js";
 
@@ -17,4 +20,6 @@ export const p14 = {
   NpzFile,
   loadtxt,
   savetxt,
+  genfromtxt,
+  fromregex,
 } as const;

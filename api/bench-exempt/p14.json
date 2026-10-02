@@ -1,4 +1,6 @@
 [
+ "np.fromregex [nativpy] [numpy]",
+ "np.genfromtxt [nativpy] [numpy]",
  "np.load [nativpy] [numpy]",
  "np.loadtxt [nativpy] [numpy]",
  "np.save [nativpy] [numpy]",

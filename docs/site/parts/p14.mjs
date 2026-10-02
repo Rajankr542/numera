@@ -97,6 +97,45 @@ np.loadtxt(["1 2 3"], { ndmin: 2 }).shape; // => [1, 3]`,
         example: `np.savetxt(null, [[1, 2], [3, 4]], { fmt: "%d", delimiter: "," }); // => "1,2\\n3,4\\n"
 np.savetxt(null, [0.5, 1e16], { fmt: "%s", header: "v" }); // => "# v\\n0.5\\n1e+16\\n"`,
       },
+      {
+        name: "genfromtxt",
+        sig: "np.genfromtxt(fname, [options])",
+        desc: "Reads a table and fills missing or invalid cells. Cells that do not convert become filling values: NaN for floats, -1 for integers, false for bool, unless `loose` is false (then only `missingValues` are filled). Bool cells are `true`/`false` in any case. A numeric dtype is required (no type inference, names, converters or masks).",
+        args: [
+          { name: "fname", type: "string | URL | Uint8Array | string[]", desc: "Path, contents as bytes, or a list of lines." },
+          { name: "[options.dtype]", type: "DTypeLike", desc: "Default `float64`." },
+          { name: "[options.delimiter]", type: "string | number | number[]", desc: "Separator, a field width, or field widths. Default: whitespace." },
+          { name: "[options.comments]", type: "string | null", desc: "Comment marker (default `\"#\"`)." },
+          { name: "[options.skipHeader]", type: "number", desc: "Lines to skip at the start." },
+          { name: "[options.skipFooter]", type: "number", desc: "Lines to drop at the end." },
+          { name: "[options.missingValues]", type: "string | string[] | {col: value} | Map", desc: "Strings that mean missing (a string is split at `,`)." },
+          { name: "[options.fillingValues]", type: "value | value[] | {col: value} | Map", desc: "Replacement for missing or invalid cells." },
+          { name: "[options.usecols]", type: "number | number[]", desc: "Columns to read." },
+          { name: "[options.invalidRaise]", type: "boolean", desc: "Raise on rows with a wrong column count (default true), or drop them with a warning." },
+          { name: "[options.loose]", type: "boolean", desc: "Fill unconvertible cells (default true)." },
+          { name: "[options.autostrip]", type: "boolean", desc: "Strip spaces around fields." },
+          { name: "[options.maxRows]", type: "number", desc: "Read at most this many rows." },
+          { name: "[options.unpack]", type: "boolean", desc: "Transpose the result." },
+          { name: "[options.ndmin]", type: "0 | 1 | 2", desc: "Minimum number of dimensions." },
+        ],
+        returns: "NDArray",
+        example: `np.isnan(np.genfromtxt(["1,2", "3,"], { delimiter: "," })); // => [[false, false], [false, true]]
+np.genfromtxt(["1 x", "3 4"], { dtype: "int32", fillingValues: 0 }); // => [[1, 0], [3, 4]]
+np.genfromtxt(["12345"], { delimiter: [2, 3], dtype: "int32" }); // => [12, 345]`,
+      },
+      {
+        name: "fromregex",
+        sig: "np.fromregex(file, regexp, dtype)",
+        desc: "Every match of `regexp` in the text is a record, and its capture groups fill the fields of `dtype`. Structured arrays are not available, so the result is an object with one 1-D array per field.",
+        args: [
+          { name: "file", type: "string | URL | Uint8Array | string[]", desc: "Path, contents as bytes, or a list of lines." },
+          { name: "regexp", type: "RegExp | string", desc: "Pattern; the `g` flag is added." },
+          { name: "dtype", type: "[name, DTypeLike][]", desc: "Field names and dtypes, one per capture group." },
+        ],
+        returns: "Record<string, NDArray>",
+        example: `const r = np.fromregex(["a=1 b=22"], /(\\w)=(\\d+)/, [["key", "bool"], ["n", "int32"]]);
+r.n; // => [1, 22]`,
+      },
     ],
   },
 ];
