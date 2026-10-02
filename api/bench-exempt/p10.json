@@ -28,5 +28,7 @@
  "np.percentile [nativpy] [numpy]",
  "np.ptp [nativpy] [numpy]",
  "np.quantile [nativpy] [numpy]",
- "np.trapezoid [nativpy] [numpy]"
+ "np.trapezoid [nativpy] [numpy]",
+ "np.correlate [nativpy] [numpy]",
+ "np.convolve [nativpy] [numpy]"
 ]

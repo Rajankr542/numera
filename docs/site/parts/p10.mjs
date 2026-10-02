@@ -134,6 +134,83 @@ np.gradient([1, 2, 4, 7, 11], { edgeOrder: 2 });   // => [0.5, 1.5, 2.5, 3.5, 4.
         example: `np.trapezoid([1, 2, 3]);                    // => 4
 np.trapezoid([1, 2, 3], { x: [0, 1, 3] });  // => 6.5`,
       },
+      {
+        name: "correlate",
+        sig: "np.correlate(a, v, mode?)",
+        desc: "1-D cross-correlation: `c[k] = Σ_j a[j+k]·conj(v[j])`. Default mode is `'valid'`. When `mode='valid'` and `len(v) > len(a)`, returns the NumPy-compatible reversed result. Output dtype is `promote_types(a, v)`.",
+        args: [arr("a"), arr("v"), { name: "[mode]", type: "'full' | 'same' | 'valid'", desc: "Default 'valid'." }],
+        returns: "NDArray",
+        example: `np.correlate([1, 2, 3], [0, 1, 0.5]);             // => [3.5]
+np.correlate([1, 2, 3], [0, 1, 0.5], 'full');     // => [0.5, 2, 3.5, 3, 0]
+np.correlate([1, 2, 3], [0, 1, 0.5], 'same');     // => [2, 3.5, 3]`,
+      },
+      {
+        name: "convolve",
+        sig: "np.convolve(a, v, mode?)",
+        desc: "Discrete linear convolution: `c[k] = Σ_j a[j]·v[k-j]`. Equivalent to correlating `a` with the reversed (un-conjugated) `v`. Default mode is `'full'`. Output dtype is `promote_types(a, v)`.",
+        args: [arr("a"), arr("v"), { name: "[mode]", type: "'full' | 'same' | 'valid'", desc: "Default 'full'." }],
+        returns: "NDArray",
+        example: `np.convolve([1, 2, 3], [0, 1, 0.5]);             // => [0, 1, 2.5, 4, 1.5]
+np.convolve([1, 2, 3], [0, 1, 0.5], 'same');     // => [1, 2.5, 4]
+np.convolve([1, 2, 3], [0, 1, 0.5], 'valid');    // => [2.5]`,
+      },
+      {
+        name: "histogram",
+        sig: "np.histogram(a, bins?, { range?, density?, weights? }) · np.histogramBinEdges(a, bins?, ...)",
+        desc: "`histogram` counts sample values into `bins` (integer count, estimator name, or explicit edges) and returns `{ hist, edges }` where `edges.length === hist.length + 1`. The rightmost bin is closed on both sides (NumPy behaviour). `density: true` normalises so that the integral over the histogram equals 1. `histogramBinEdges` returns only the edges.",
+        args: [arr(), { name: "[bins]", type: "number | BinsArg", desc: "Default 10. Estimators: 'auto', 'fd', 'sturges', 'scott', 'rice', 'doane', 'sqrt'." }, { name: "[options.range]", type: "[number, number]", desc: "Data range [min, max]." }, { name: "[options.density]", type: "boolean", desc: "Normalise to density." }, { name: "[options.weights]", type: "ArrayLike", desc: "Per-sample weights." }],
+        returns: "{ hist: NDArray; edges: NDArray }",
+        example: `const { hist, edges } = np.histogram([1, 2, 1, 3], 3);
+hist.toArray();   // => [2, 1, 1]
+edges.toArray();  // => [1, 1.6666666666666667, 2.333333333333333, 3]
+np.histogramBinEdges([1, 2, 3, 4], 2).toArray(); // => [1, 2.5, 4]`,
+      },
+      {
+        name: "histogram2d",
+        sig: "np.histogram2d(x, y, bins?, { range?, density?, weights? })",
+        desc: "2-D histogram of two 1-D samples. Returns `{ hist, xedges, yedges }` where `hist.shape === [xbins, ybins]`. `bins` may be a scalar (applied to both axes) or `[xbins, ybins]`.",
+        args: [arr("x"), arr("y"), { name: "[bins]", type: "number | [BinsArg, BinsArg]", desc: "Default 10." }],
+        returns: "{ hist: NDArray; xedges: NDArray; yedges: NDArray }",
+        example: `const { hist, xedges, yedges } = np.histogram2d([0,1,2],[0,1,2], 3);
+hist.shape;         // => [3, 3]
+xedges.size;        // => 4`,
+      },
+      {
+        name: "histogramdd",
+        sig: "np.histogramdd(sample, bins?, { density?, weights? })",
+        desc: "Multi-dimensional histogram. `sample` is an `(N, D)` array or a 1-D array (treated as 1 column). Returns `{ hist, edges }` where `edges` is an array of D edge arrays.",
+        args: [arr("sample"), { name: "[bins]", type: "number | BinsArg[]", desc: "Per-axis bins (scalar broadcast to all axes)." }],
+        returns: "{ hist: NDArray; edges: NDArray[] }",
+        example: `const { hist, edges } = np.histogramdd([[0,0],[1,1],[2,2]], 2);
+hist.shape;       // => [2, 2]
+edges.length;     // => 2`,
+      },
+      {
+        name: "bincount",
+        sig: "np.bincount(x, { weights?, minlength? })",
+        desc: "Count occurrences of each non-negative integer in `x`. Returns a 1-D array of length `max(x) + 1` or `minlength`, whichever is larger. With `weights`, sums weights instead of counting.",
+        args: [arr(), { name: "[options.weights]", type: "ArrayLike", desc: "Per-element weights." }, { name: "[options.minlength]", type: "number", desc: "Minimum output length." }],
+        returns: "NDArray",
+        example: `np.bincount([1, 0, 2, 0, 1]).toArray();           // => [2, 2, 1]
+np.bincount([0, 1], { minlength: 5 }).toArray();   // => [1, 1, 0, 0, 0]`,
+      },
+      {
+        name: "digitize",
+        sig: "np.digitize(x, bins, right?)",
+        desc: "Return indices such that `bins[i-1] <= x < bins[i]` (`right=false`, default) or `bins[i-1] < x <= bins[i]` (`right=true`). `bins` must be monotonic. Output shape matches `x`.",
+        args: [arr(), { name: "bins", type: "ArrayLike", desc: "Monotonic bin edges." }, { name: "[right]", type: "boolean", desc: "Default false." }],
+        returns: "NDArray",
+        example: `np.digitize([0.2, 6.4, 3.0, 1.6], [0, 1, 2.5, 4, 10]).toArray(); // => [1, 4, 3, 2]`,
+      },
+      {
+        name: "interp",
+        sig: "np.interp(x, xp, fp, { left?, right?, period? })",
+        desc: "1-D piecewise-linear interpolation. `xp` must be increasing (or decreasing when `period` is given). Values outside the range clamp to `fp[0]` / `fp[-1]` unless `left` / `right` are given. Complex `fp` is supported.",
+        args: [arr(), { name: "xp", type: "ArrayLike", desc: "Sorted x-coordinates of the data." }, { name: "fp", type: "ArrayLike", desc: "y-coordinates (may be complex)." }, { name: "[options.left]", type: "number", desc: "Fill below xp[0]." }, { name: "[options.right]", type: "number", desc: "Fill above xp[-1]." }, { name: "[options.period]", type: "number", desc: "Wrap-around period." }],
+        returns: "NDArray",
+        example: `np.interp([0, 1, 1.5, 2, 2.5, 3], [1, 2, 3], [3, 2, 0]).toArray(); // => [3, 3, 2.5, 2, 1, 0]
+np.interp([-1, 5], [0, 1, 2], [0, 1, 2], { left: -99, right: 99 }).toArray(); // => [-99, 99]`,
+      },
     ],
   },
 ];

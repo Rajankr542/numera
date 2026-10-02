@@ -1041,3 +1041,12 @@ Known gaps: see COMPATIBILITY.md. CI workflow is written but has not run yet
   `pnpm test:asan` (ASan+UBSan clean), `pnpm typecheck` and `pnpm api:check` pass;
   API coverage 16.7% → 19.0% (201/1060). Benchmarks and NumPy differential cases
   are deferred to the V phase (bench-exempt in `api/bench-exempt/p08.json`).
+- P10-6 (`correlate`, `convolve`, D-135): 1-D cross-correlation and discrete
+  linear convolution with `full`/`same`/`valid` modes. Native
+  `native/core/p10_conv.{hpp,cpp}`, binding in `p10_binding.cpp`, TS wrappers
+  in `p10.ts`. Handles real and complex dtypes; valid-mode K>M swap with reverse
+  matches NumPy exactly. Checks: `pnpm build` clean, `pnpm test` (all 20
+  p10_conv TS tests pass), `pnpm test:native` (172/172 including 16 p10_conv
+  C++ cases). Also fixed pre-existing `ErrorKind::ValueError` → `ErrorKind::Value`
+  in `p10_reduce.cpp` (P10-7) and `Histogram2dOptions extends Omit<…,"range">`
+  type error in `p10.ts` (P10-5).

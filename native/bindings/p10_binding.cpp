@@ -1,8 +1,11 @@
 #include "binding_utils.hpp"
 #include "milestone_bindings.hpp"
+#include "p10_conv.hpp"
 #include "p10_cumdiff.hpp"
+#include "p10_hist.hpp"
 #include "p10_nan.hpp"
 #include "p10_quantile.hpp"
+#include "p10_reduce.hpp"
 #include "p10_stats.hpp"
 
 namespace nativpy::bindings {
@@ -149,6 +152,147 @@ void init_p10_binding(Napi::Env env, Napi::Object exports) {
   m.Set("trapezoid", fn(env, "trapezoid", [](Info i, Napi::Env e) {
           return wrap(e, p10::trapezoid(arr(i, 0), opt_arr(i[1]), arg_double(i[2], "dx"), arg_int(i[3], "axis")));
         }));
+
+  // reduceWhere(name, a, {axis, keepdims, dtype, initial, ddof, where, out})
+  // where= and out= for np.sum/prod/min/max/mean/var/std (D-136, P10-7).
+  m.Set("reduceWhere", fn(env, "reduceWhere", [](Info i, Napi::Env e) {
+          const std::string name = arg_string(i[0], "op");
+          p10::ReduceWhereOptions opts;
+          opts.axis     = opt_ints(prop(i[2], "axis"), "axis");
+          opts.keepdims = opt_bool(i[2], "keepdims");
+          opts.dtype    = opt_dtype(prop(i[2], "dtype"));
+          const Napi::Value init = prop(i[2], "initial");
+          if (!is_nullish(init)) opts.initial = arg_double(init, "initial");
+          const Napi::Value ddofv = prop(i[2], "ddof");
+          if (!is_nullish(ddofv)) opts.ddof = arg_int(ddofv, "ddof");
+          const Napi::Value wherev = prop(i[2], "where");
+          if (!is_nullish(wherev)) opts.where = NDArrayWrap::unwrap(wherev);
+          const Napi::Value outv = prop(i[2], "out");
+          if (!is_nullish(outv)) opts.out = NDArrayWrap::unwrap(outv);
+          ReduceOp op;
+          if      (name == "sum")  op = ReduceOp::Sum;
+          else if (name == "prod") op = ReduceOp::Prod;
+          else if (name == "min")  op = ReduceOp::Min;
+          else if (name == "max")  op = ReduceOp::Max;
+          else if (name == "mean") op = ReduceOp::Mean;
+          else if (name == "var")  op = ReduceOp::Var;
+          else if (name == "std")  op = ReduceOp::Std;
+          else throw_error(ErrorKind::Value, "unknown reduction '" + name + "'");
+          return wrap(e, p10::reduce_where(op, arr(i, 1), opts));
+        }));
+
+  // correlate(a, v, mode) -> NDArray
+  m.Set("correlate", fn(env, "correlate", [](Info i, Napi::Env e) {
+          return wrap(e, p10::correlate(arr(i, 0), arr(i, 1), arg_string(i[2], "mode")));
+        }));
+  // convolve(a, v, mode) -> NDArray
+  m.Set("convolve", fn(env, "convolve", [](Info i, Napi::Env e) {
+          return wrap(e, p10::convolve(arr(i, 0), arr(i, 1), arg_string(i[2], "mode")));
+        }));
+
+  // ---- histogram / histogramdd / bincount / digitize / interp (D-134, D-138) ----
+
+  // decode_bins_spec: number | string | NDArray -> HistBins
+  auto decode_bins = [](const Napi::Value& v) -> p10::HistBins {
+    p10::HistBins b;
+    if (v.IsNumber()) { b.count = static_cast<std::int64_t>(v.As<Napi::Number>().DoubleValue()); }
+    else if (v.IsString()) { b.estimator = v.As<Napi::String>().Utf8Value(); }
+    else { b.edges = NDArrayWrap::unwrap(v); }
+    return b;
+  };
+
+  // histogram(a, bins: number|string|NDArray, range: [number,number]|null, density, weights|null, edgesOnly)
+  //   -> {hist: NDArray, edges: NDArray, warnings: string[]}
+  m.Set("histogram", fn(env, "histogram", [decode_bins](Info i, Napi::Env e) {
+          const p10::HistBins bins = decode_bins(i[1]);
+          p10::Range range;
+          if (!is_nullish(i[2])) {
+            const Napi::Array r = i[2].As<Napi::Array>();
+            range = std::make_pair(arg_double(r.Get(0u), "range[0]"), arg_double(r.Get(1u), "range[1]"));
+          }
+          std::vector<std::string> warnings;
+          auto res = p10::histogram(arr(i, 0), bins, range, arg_bool(i[3]), opt_arr(i[4]), arg_bool(i[5]),
+                                    warnings);
+          Napi::Object out = Napi::Object::New(e);
+          out.Set("hist", wrap(e, std::move(res.hist)));
+          out.Set("edges", wrap(e, std::move(res.edges)));
+          Napi::Array wa = Napi::Array::New(e, warnings.size());
+          for (std::size_t k = 0; k < warnings.size(); ++k)
+            wa.Set(static_cast<uint32_t>(k), Napi::String::New(e, warnings[k]));
+          out.Set("warnings", wa);
+          return out;
+        }));
+
+  // histogramdd(cols: NDArray[], bins: spec | spec[], range: ([number,number]|null)[], density, weights|null)
+  //   -> {hist: NDArray, edges: NDArray[]}
+  m.Set("histogramdd", fn(env, "histogramdd", [decode_bins](Info i, Napi::Env e) {
+          // cols
+          std::vector<NDArray> cols;
+          const Napi::Array jcols = i[0].As<Napi::Array>();
+          for (std::uint32_t k = 0; k < jcols.Length(); ++k)
+            cols.push_back(NDArrayWrap::unwrap(jcols.Get(k)));
+          // bins: single spec or array of specs
+          std::vector<p10::HistBins> bins_vec;
+          if (i[1].IsArray()) {
+            const Napi::Array jb = i[1].As<Napi::Array>();
+            for (std::uint32_t k = 0; k < jb.Length(); ++k)
+              bins_vec.push_back(decode_bins(jb.Get(k)));
+          } else {
+            // broadcast single spec to all dims
+            const p10::HistBins single = decode_bins(i[1]);
+            bins_vec.assign(cols.size(), single);
+          }
+          // range
+          std::vector<p10::Range> range_vec;
+          if (!is_nullish(i[2])) {
+            const Napi::Array jr = i[2].As<Napi::Array>();
+            for (std::uint32_t k = 0; k < jr.Length(); ++k) {
+              const Napi::Value rv = jr.Get(k);
+              if (is_nullish(rv)) { range_vec.push_back(std::nullopt); }
+              else {
+                const Napi::Array r2 = rv.As<Napi::Array>();
+                range_vec.push_back(std::make_pair(arg_double(r2.Get(0u), "range[0]"),
+                                                   arg_double(r2.Get(1u), "range[1]")));
+              }
+            }
+          }
+          if (range_vec.size() < cols.size()) range_vec.resize(cols.size());
+          auto res = p10::histogramdd(cols, bins_vec, range_vec, arg_bool(i[3]), opt_arr(i[4]));
+          Napi::Object out = Napi::Object::New(e);
+          out.Set("hist", wrap(e, std::move(res.hist)));
+          Napi::Array ea = Napi::Array::New(e, res.edges.size());
+          for (std::size_t k = 0; k < res.edges.size(); ++k)
+            ea.Set(static_cast<uint32_t>(k), wrap(e, std::move(res.edges[k])));
+          out.Set("edges", ea);
+          return out;
+        }));
+
+  // bincount(x, weights|null, minlength, fromList) -> NDArray
+  m.Set("bincount", fn(env, "bincount", [](Info i, Napi::Env e) {
+          return wrap(e, p10::bincount(arr(i, 0), opt_arr(i[1]), arg_int(i[2], "minlength"), arg_bool(i[3])));
+        }));
+
+  // digitize(x, bins, right) -> NDArray
+  m.Set("digitize", fn(env, "digitize", [](Info i, Napi::Env e) {
+          return wrap(e, p10::digitize(arr(i, 0), arr(i, 1), arg_bool(i[2])));
+        }));
+
+  // interp(x, xp, fp, left: {re,im}|null, right: {re,im}|null, period: number|null) -> NDArray
+  m.Set("interp", fn(env, "interp", [](Info i, Napi::Env e) {
+          auto opt_complex = [](const Napi::Value& v) -> std::optional<std::complex<double>> {
+            if (is_nullish(v)) return std::nullopt;
+            if (v.IsObject()) {
+              const Napi::Object o = v.As<Napi::Object>();
+              return std::complex<double>(arg_double(o.Get("re"), "re"), arg_double(o.Get("im"), "im"));
+            }
+            return std::complex<double>(arg_double(v, "left/right"), 0.0);
+          };
+          std::optional<double> period;
+          if (!is_nullish(i[5])) period = arg_double(i[5], "period");
+          return wrap(e, p10::interp(arr(i, 0), arr(i, 1), arr(i, 2), opt_complex(i[3]), opt_complex(i[4]),
+                                     period));
+        }));
+
   exports.Set("p10", m);
 }
 
