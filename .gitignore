@@ -19,3 +19,6 @@ packages/numera/COMPATIBILITY.md
 packages/numera/docs/
 # D-056 parallel milestone worktrees
 .worktrees/
+
+# Compound Engineering local config
+.compound-engineering/
