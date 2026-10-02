@@ -1,1 +1,10 @@
-[]
+[
+  "fft.fftshift [nativpy] [numpy]",
+  "fft.hfft [nativpy] [numpy]",
+  "fft.ifftshift [nativpy] [numpy]",
+  "fft.ihfft [nativpy] [numpy]",
+  "fft.irfft2 [nativpy] [numpy]",
+  "fft.irfftn [nativpy] [numpy]",
+  "fft.rfft2 [nativpy] [numpy]",
+  "fft.rfftn [nativpy] [numpy]"
+]

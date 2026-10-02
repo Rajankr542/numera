@@ -185,3 +185,20 @@ cases come in the V phase.
 | `require` unknown flag | `KeyError` | `ValueError` | D-094 |
 | `broadcast_arrays` writeable views | writeable with `FutureWarning` | writeable, no warning | D-094 |
 | `asanyarray` | keeps subclasses | same as `asarray` (no subclasses) | D-094 |
+
+## P12 — FFT completion (build-first, not yet differential-verified)
+New: `np.fft.hfft ihfft rfftn irfftn rfft2 irfft2 fftshift ifftshift`, and `out`
+for every transform. The compute precision now follows NumPy's ufunc loop
+selection (for example, float32 real input to `fft` runs the float64 loop). Ad-hoc
+checks against NumPy 2.5.3 were bit-exact; the committed differential cases are
+still to be written.
+
+| Behaviour | NumPy | nativpy | Decision |
+|-----------|-------|---------|----------|
+| FFT `out=` cast not `same_kind` | `UFuncTypeError` | `DTypeError` | D-150 |
+| FFT `out=` other dims not broadcastable | `ValueError` | `BroadcastError` | D-150 |
+| `out=` given as a non-array | `TypeError` | `DTypeError` | D-150 |
+| `rfftn`/`irfftn` with `axes=[]` | `IndexError` (list index out of range) | `IndexError` | D-151 |
+| `ihfft`/`rfftn` on complex input | `TypeError` | `DTypeError` | D-151 |
+| `fftshift`/`ifftshift` of a 0-d array | `ValueError` from `np.roll` | `ValueError` | D-152 |
+| `s` without `axes` (`rfftn`, `irfftn`) | `DeprecationWarning` | accepted, no warning | D-151 |

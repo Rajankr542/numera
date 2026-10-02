@@ -1894,3 +1894,70 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   them writeable with a FutureWarning; writes through zero strides alias).
   The read-only flag is not set, matching current NumPy results.
 - `shape`, `size(a, axis?)`, `ndim`, `isfortran` accept any array-like.
+
+## D-150 — `out=` for every `np.fft` transform (P12-1) — Accepted — 2026-10-02
+- Every transform (`fft ifft rfft irfft hfft ihfft fft2 ifft2 fftn ifftn rfft2
+  irfft2 rfftn irfftn`) accepts `out` as a positional parameter after `norm`
+  or in the trailing options object (`{ n|s, axis|axes, norm, out }`). With
+  `out` the function writes into it and returns that same `NDArray` object.
+- Compute precision (supersedes the D-020 "float16/float32/complex64 compute in
+  float32" rule for every transform, with or without `out`): numera now picks the
+  pocketfft loop the way NumPy's ufunc type resolution does (checked with
+  `_pocketfft_umath.*.resolve_dtypes`). The factor `fct` is 1 (a Python int) when
+  the effective norm is "backward" (after the inverse swap), otherwise it is
+  rounded to `result_type(a.real.dtype, 1.0)` (float16 / float32 / float64).
+  The float32 loop runs only when the input already has the loop's single dtype
+  (complex64 for `fft`/`ifft`/`irfft`, float32 for `rfft`) **and** `fct` is a
+  float32 scalar; everything else (float16, float32 real input to `fft`, `norm`
+  giving `fct = 1`, integers, bool) runs the float64 loop with the rounded `fct`.
+  The loop result is then cast to the result dtype (unchanged from D-020:
+  complex64/complex128; `irfft` float16/float32/float64) or to `out`.
+- Each 1-D step follows NumPy's `_raw_fft`, and with `out` writes into it:
+  - `out.ndim` must equal the input's and `out.shape[axis]` the output length,
+    otherwise `ValueError` "output array has wrong shape.".
+  - The result dtype must cast to `out.dtype` under `same_kind`, otherwise
+    `DTypeError` "Cannot cast ufunc 'fft' output from complex128 to float64 with
+    casting rule 'same_kind'" (NumPy: `UFuncTypeError`).
+  - A read-only `out` raises `ValueError` "output array is read-only".
+  - The other dimensions broadcast from the result to `out` (NumPy broadcasts the
+    input loop dimensions); a mismatch raises `BroadcastError` (NumPy: `ValueError`).
+  - `out` may alias the input (`fft(c, { out: c })`).
+- Multi-axis transforms pass `out` to every 1-D step, as NumPy does
+  (`fftn`/`fft2`/`rfftn`/`rfft2`: each step writes into `out` and the next step
+  reads from it, so intermediate results are rounded to `out.dtype`, and an `s`
+  that changes a non-final shape makes `out` fail the shape check, as in NumPy).
+  `irfftn`/`irfft2` pass `out` only to the final `irfft` step. `fftn(a, {axes: []})`
+  returns `a` and leaves `out` untouched.
+- `s[i] = -1` resolves to the *original* input length along `axes[i]` (NumPy);
+  the M10 `fftn` used the current length, which differed for repeated axes.
+- Implementation: `native/fft/p12_fft.{hpp,cpp}` has its own pocketfft lane
+  kernels (ported from M10 with an explicit loop type), exposed as `addon.p12`.
+  `fft.ts` routes every transform through it; the M10 `addon.fft` transform
+  bindings stay in place but are no longer called from TS.
+
+## D-151 — hfft/ihfft and real N-D transforms (P12-2) — Accepted — 2026-10-02
+- `hfft(a, n?, axis=-1, norm?, out?)` = `irfft(conj(a), n, axis, swap(norm))`, default
+  `n = 2 * (m - 1)`; `ihfft(a, n?, axis=-1, norm?, out?)` = `conj(rfft(a, n, axis,
+  swap(norm)))` (conjugated in place in `out`), default `n = m`. `swap` exchanges
+  "backward" and "forward". dtypes follow `irfft`/`rfft` (hfft float16 → float16,
+  complex64 → float32; ihfft float16/float32 → complex64; complex input to
+  `ihfft` raises `DTypeError` as `rfft` does).
+- `rfftn(a, s?, axes?, norm?, out?)`: `rfft` over the last axis in `axes`, then
+  `fft` over the others from last to first. `irfftn`: `ifft` over all axes but
+  the last (from first to last), then `irfft` over the last. `rfft2`/`irfft2`
+  are the same with `axes` default `[-2, -1]`.
+- `s`/`axes` follow `_cook_nd_args`: no `s` and no `axes` = all axes; `s`
+  without `axes` = the last `len(s)` axes (no deprecation warning, D-020);
+  `s[i] = -1` = the input length; for `irfftn` without `s` the last length is
+  `2 * (m - 1)`. An empty `axes` raises `IndexError` (NumPy: `IndexError` "list
+  index out of range"); 0-d input raises `IndexError`.
+
+## D-152 — fftshift / ifftshift (P12-3) — Accepted — 2026-10-02
+- `fftshift(x, axes?)` / `ifftshift(x, axes?)`: `axes` is `null`/omitted (all
+  axes), a number, or a number array (repeated axes add up, as `np.roll`). The
+  shift is `shape[ax] // 2` (`ifftshift`: its negative). Any dtype; the result
+  is a new C-contiguous array of the input dtype, computed by a native roll
+  (`addon.p12.roll`).
+- An empty `axes` list returns a copy. 0-d input with default or empty axes raises
+  `ValueError` (NumPy fails in `np.roll` with "not enough values to unpack").
+  Out-of-range axes raise `IndexError` (D-012).

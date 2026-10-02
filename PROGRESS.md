@@ -1098,3 +1098,15 @@ Done:
 - Tests: `tests/native/test_p06_manip.cpp` and `packages/numera/test/p06_*.test.ts`. Every example in the docs entries (`docs/site/parts/p06.mjs`) runs as part of the tests.
 - Verified: `pnpm build`, `test` (352), `test:native`, `test:asan`, `typecheck` and `api:check` pass. All P6 np/ndarray names count in `api:coverage`.
 - Not yet done (V phase): NumPy differential groups and benchmarks; P6 names are listed in `api/bench-exempt/p06.json`. No NumPy-compatibility or performance claims are made for P6.
+
+## P12 — FFT completion (D-150..D-152) — 2026-10-02
+- `np.fft.hfft ihfft rfftn irfftn rfft2 irfft2 fftshift ifftshift` (`axes` as
+  number/list/null), and `out=` (positional or options) for all 14 transforms.
+  Native: `native/fft/p12_fft.{hpp,cpp}` (pocketfft lane kernels, NumPy loop
+  precision, `out` checks, roll), `addon.p12`; TS in `fft.ts` (`fftModule`).
+- Shared file touched (minimal): `packages/numera/test/fft.test.ts` (expected key list).
+- Checks (macOS arm64, NumPy 2.5.3): `pnpm build`, `pnpm test` (424), `pnpm test:native`,
+  `pnpm test:asan`, `pnpm test:diff` (10420), `pnpm typecheck`, `pnpm api:check`
+  all pass. An ad-hoc NumPy comparison (1530 cases) was bit-exact.
+- Not done: committed NumPy differential cases and benchmarks for the new names
+  (listed in `api/bench-exempt/p12.json`).
