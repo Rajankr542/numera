@@ -1323,3 +1323,9 @@ Done (P13-2, P13-4, P13-5, P13-6, P13-7 — D-161..D-163):
 - `pnpm release -- --push` creates a GitHub Release via `gh`.
 - Verified: `pnpm typecheck`, `pnpm test` (58 files, 1336 tests),
   `stage-package.mjs` + `npm pack --dry-run` (no `docs/`, links present).
+
+## 2026-10-02 — README refresh, CONTRIBUTING.md, better npm README (D-241)
+- Root README restructured as a landing page (hero, badges, features, quick
+  start, feature tour); development and release docs moved to CONTRIBUTING.md.
+- `scripts/stage-package.mjs` cuts the package README at `## Contributing`
+  and rewrites image links to raw GitHub URLs.

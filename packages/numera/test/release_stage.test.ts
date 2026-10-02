@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error -- plain ESM release script without type declarations
-import { DOCS_URL, REPO_URL, assertSelfContained, packageCompatibility, packageReadme, stripInternalRefs } from "../../../scripts/stage-package.mjs";
+import { DOCS_URL, RAW_URL, REPO_URL, assertSelfContained, packageCompatibility, packageReadme, stripInternalRefs } from "../../../scripts/stage-package.mjs";
 // @ts-expect-error -- plain ESM docs script without type declarations
 import { renderPage } from "../../../scripts/build-docs.mjs";
 
@@ -26,8 +26,13 @@ describe("release: self-contained package docs (D-029)", () => {
     expect(() => assertSelfContained([["README.md", readme], ["COMPATIBILITY.md", compat]])).not.toThrow();
     expect(readme).toContain("npm install @cyfora/numera");
     expect(readme).not.toContain("## Development");
+    expect(readme).not.toContain("Publishing a release");
+    expect(readme).toContain(`${REPO_URL}/blob/main/CONTRIBUTING.md`);
+    // Badges and the hero image are the only links that leave the repo/docs (D-241).
+    const allowed = [REPO_URL, DOCS_URL, RAW_URL, "https://img.shields.io/", "https://www.npmjs.com/package/@cyfora/numera"];
     const links = [...readme.matchAll(/\]\(([^)]+)\)/g)].map((m) => m[1]);
-    for (const l of links) expect(l.startsWith(`${REPO_URL}`) || l.startsWith(DOCS_URL)).toBe(true);
+    for (const l of links) expect(allowed.some((a) => l.startsWith(a)), l).toBe(true);
+    for (const m of readme.matchAll(/(?:srcset|src)="([^"]+)"/g)) expect(m[1].startsWith(`${RAW_URL}/docs/images/`)).toBe(true);
     expect(links).toContain(DOCS_URL);
     expect(links).toContain(`${REPO_URL}/blob/main/COMPATIBILITY.md`);
     expect(readme).toContain(`- Source code: ${REPO_URL}`);

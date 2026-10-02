@@ -15,6 +15,8 @@ const pkgDir = join(root, "packages/numera");
 
 /** Public source repository (D-240). */
 export const REPO_URL = "https://github.com/Rajankr542/numera";
+/** Raw file host for images in the npm README (D-241). */
+export const RAW_URL = "https://raw.githubusercontent.com/Rajankr542/numera/main";
 /** Hosted API reference and npm homepage (D-240). */
 export const DOCS_URL = "https://numera.cyfora.in";
 
@@ -62,17 +64,25 @@ function dropDecisionColumn(md) {
     .join("\n");
 }
 
+/**
+ * The npm README is the root README up to "## Contributing" (D-241), with
+ * relative links made absolute and short Contributing/Links/License sections.
+ */
 export function packageReadme(readme) {
-  let md = readme.slice(0, readme.indexOf("\n## Development"));
-  md = md.replace(
-    /The addon is found automatically, in this order:\n`NATIVPY_ADDON_PATH`, then the prebuild bundled in the package\n\(`prebuilds\/<platform>-<arch>\/nativpy\.node`\), then a local source build in\n`build\/Release\/` \([^)]*\)\. Published prebuilds use the stable Node-API,\nso one binary works on every Node ≥ 18\. Source builds use experimental\nNode-API, which frees memory sooner \([^)]*\)\./,
-    "The addon for your platform ships in the package\n(`prebuilds/<platform>-<arch>/nativpy.node`) and is loaded automatically; set\n`NATIVPY_ADDON_PATH` to load a different build. The prebuilds use the stable\nNode-API, so one binary works on every Node ≥ 18.",
-  );
+  const cut = readme.indexOf("\n## Contributing");
+  if (cut < 0) throw new Error('README.md has no "## Contributing" section to cut the package README at');
+  let md = readme.slice(0, cut);
   // npm does not resolve relative links reliably; point them at the public repo.
+  md = md.replace(/(\]\(|srcset="|src=")\.\/(docs\/images\/[^)"]+)/g, `$1${RAW_URL}/$2`);
   md = md.replace(/\]\(\.\/([^)]+)\)/g, `](${REPO_URL}/blob/main/$1)`);
-  md = md.replace(/\]\(#development\)/g, `](${REPO_URL}#development)`);
   md = stripInternalRefs(md);
   return `${md.trimEnd()}
+
+## Contributing
+
+Issues and pull requests are welcome. See the
+[contributing guide](${REPO_URL}/blob/main/CONTRIBUTING.md) for the development
+setup and test suites.
 
 ## Links
 
