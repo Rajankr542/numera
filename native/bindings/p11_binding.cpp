@@ -55,6 +55,19 @@ void init_p11_binding(Napi::Env env, Napi::Object exports) {
   m.Set("cond", fn(env, "cond", [](Info i, Napi::Env e) {
           return wrap(e, linalg::cond(arr(i, 0), norm_ord(i[1])));
         }));
+  // einsum(operands, terms: string[], steps: [positions: number[], result: string][])
+  m.Set("einsum", fn(env, "einsum", [](Info i, Napi::Env e) {
+          std::vector<std::string> terms;
+          const auto t = i[1].As<Napi::Array>();
+          for (std::uint32_t k = 0; k < t.Length(); ++k) terms.push_back(arg_string(t.Get(k), "subscripts"));
+          std::vector<linalg::EinsumStep> steps;
+          const auto s = i[2].As<Napi::Array>();
+          for (std::uint32_t k = 0; k < s.Length(); ++k) {
+            const auto st = s.Get(k).As<Napi::Array>();
+            steps.push_back({arg_ints(st.Get(0u), "path"), arg_string(st.Get(1u), "subscripts")});
+          }
+          return wrap(e, linalg::einsum(arg_arrays(i[0], "operands"), terms, steps));
+        }));
   exports.Set("p11", m);
 }
 

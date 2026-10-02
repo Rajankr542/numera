@@ -17,6 +17,7 @@ export interface P11Native {
     hermitian: boolean,
   ): NativeNDArray;
   cond(a: NativeNDArray, p: number | string | null): NativeNDArray;
+  einsum(operands: NativeNDArray[], terms: string[], steps: [number[], string][]): NativeNDArray;
 }
 
 /** @internal */

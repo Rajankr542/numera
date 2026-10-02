@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "linalg.hpp"
@@ -40,5 +41,23 @@ NDArray matrix_rank(const NDArray& a, const std::optional<NDArray>& tol,
 
 // Condition number; `p` uses the norm orders of `norm` (default = 2 via SVD).
 NDArray cond(const NDArray& a, const NormOrd& p);
+
+}  // namespace nativpy::linalg
+
+namespace nativpy::linalg {
+
+// One pairwise (or n-ary) step of an einsum path (D-141): the operands at
+// `positions` (descending; popped from the working list) are contracted to
+// the labels `result`, which is appended to the working list.
+struct EinsumStep {
+  std::vector<std::int64_t> positions;
+  std::string result;
+};
+
+// einsum core (D-141). `terms[i]` are the (ellipsis-expanded) labels of
+// operands[i]; repeated labels take diagonals, size-1 dims broadcast. All
+// operands are cast to their promoted dtype; the result is a new array.
+NDArray einsum(const std::vector<NDArray>& operands, const std::vector<std::string>& terms,
+               const std::vector<EinsumStep>& steps);
 
 }  // namespace nativpy::linalg

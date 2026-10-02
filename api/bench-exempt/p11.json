@@ -20,6 +20,8 @@
  "linalg.vector_norm [nativpy] [numpy]",
  "ndarray.dot [nativpy] [numpy]",
  "np.cross [nativpy] [numpy]",
+ "np.einsum [nativpy] [numpy]",
+ "np.einsum_path [nativpy] [numpy]",
  "np.kron [nativpy] [numpy]",
  "np.matvec [nativpy] [numpy]",
  "np.tensordot [nativpy] [numpy]",

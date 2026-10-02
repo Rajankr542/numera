@@ -2,6 +2,7 @@
 #include "p11_linalg.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <functional>
 #include <utility>
@@ -17,6 +18,7 @@
 #include "creation.hpp"
 #include "error.hpp"
 #include "shape.hpp"
+#include "shape_ops.hpp"
 
 #if defined(NATIVPY_HAVE_ACCELERATE)
 #include <Accelerate/Accelerate.h>
@@ -459,6 +461,183 @@ NDArray cond(const NDArray& a, const NormOrd& p) {
     if (!has_nan) r.set_double(t, std::numeric_limits<double>::infinity());
   }
   return real_t == DType::Float64 ? r : r.astype(real_t);
+}
+
+}  // namespace nativpy::linalg
+
+namespace nativpy::linalg {
+
+namespace {
+
+using Labels = std::string;
+
+struct Term {
+  NDArray a;
+  Labels labels;
+};
+
+// Repeated labels -> strided diagonal view (unique labels, first-seen order).
+Term take_diagonals(const NDArray& a, const Labels& lab, std::size_t op) {
+  Labels out;
+  Shape shape;
+  Strides strides;
+  for (std::size_t d = 0; d < lab.size(); ++d) {
+    const auto pos = out.find(lab[d]);
+    if (pos == Labels::npos) {
+      out.push_back(lab[d]);
+      shape.push_back(a.shape()[d]);
+      strides.push_back(a.strides()[d]);
+    } else {
+      if (shape[pos] != a.shape()[d]) {
+        throw_error(ErrorKind::Value, "dimensions in operand " + std::to_string(op) +
+                                          " for collapsing index '" + std::string(1, lab[d]) +
+                                          "' don't match (" + std::to_string(shape[pos]) + " != " +
+                                          std::to_string(a.shape()[d]) + ")");
+      }
+      strides[pos] += a.strides()[d];
+    }
+  }
+  if (out.size() == lab.size()) return {a, lab};
+  return {a.view(shape, strides, a.offset()), out};
+}
+
+std::vector<std::int64_t> perm_for(const Labels& from, const Labels& to) {
+  std::vector<std::int64_t> p;
+  for (const char c : to) p.push_back(static_cast<std::int64_t>(from.find(c)));
+  return p;
+}
+
+// Sums out every label of `t` not in `keep` (product with a ones vector, so
+// the dtype is kept: integers wrap, bool is OR-of-AND).
+Term sum_out(const Term& t, const Labels& keep) {
+  Labels kept;
+  Labels gone;
+  for (const char c : t.labels) (keep.find(c) != Labels::npos ? kept : gone).push_back(c);
+  if (gone.empty()) return t;
+  Shape ks;
+  idx q = 1;
+  for (const char c : kept) ks.push_back(t.a.shape()[t.labels.find(c)]);
+  for (const char c : gone) q *= t.a.shape()[t.labels.find(c)];
+  const idx p = shape_size(ks);
+  const NDArray x = transpose(t.a, perm_for(t.labels, kept + gone)).reshape({p, q});
+  const NDArray r = matmul(x, ones({q}, t.a.dtype()));
+  return {r.reshape(ks), kept};
+}
+
+// Pairwise contraction to the labels both share or `keep` lists, via matmul
+// on (batch, M, K) @ (batch, K, N). Size-1 dimensions broadcast to `sizes`.
+Term contract_pair(Term x, Term y, const Labels& keep, const std::array<idx, 256>& sizes) {
+  auto in = [](const Labels& l, char c) { return l.find(c) != Labels::npos; };
+  Labels both = keep;
+  for (const char c : y.labels) both.push_back(c);
+  x = sum_out(x, both);
+  both = keep + x.labels;
+  y = sum_out(y, both);
+  Labels batch;
+  Labels contr;
+  Labels fx;
+  Labels fy;
+  for (const char c : x.labels) {
+    if (!in(y.labels, c)) fx.push_back(c);
+    else if (in(keep, c)) batch.push_back(c);
+    else contr.push_back(c);
+  }
+  for (const char c : y.labels)
+    if (!in(x.labels, c)) fy.push_back(c);
+  auto prod_of = [&](const Labels& l) {
+    idx p = 1;
+    for (const char c : l) p *= sizes[static_cast<unsigned char>(c)];
+    return p;
+  };
+  auto arrange = [&](const Term& t, const Labels& order, const Shape& shape2) {
+    NDArray v = transpose(t.a, perm_for(t.labels, order));
+    Shape full;
+    for (const char c : order) full.push_back(sizes[static_cast<unsigned char>(c)]);
+    if (v.shape() != full) v = broadcast_to(v, full);
+    return v.reshape(shape2);
+  };
+  const idx nb = prod_of(batch);
+  const idx m = prod_of(fx);
+  const idx k = prod_of(contr);
+  const idx n = prod_of(fy);
+  const NDArray a = arrange(x, batch + fx + contr, {nb, m, k});
+  const NDArray b = arrange(y, batch + contr + fy, {nb, k, n});
+  const Labels out = batch + fx + fy;
+  Shape os;
+  for (const char c : out) os.push_back(sizes[static_cast<unsigned char>(c)]);
+  return {matmul(a, b).reshape(os), out};
+}
+
+}  // namespace
+
+NDArray einsum(const std::vector<NDArray>& operands, const std::vector<std::string>& terms,
+               const std::vector<EinsumStep>& steps) {
+  if (operands.empty()) throw_error(ErrorKind::Value, "No input operands");
+  if (terms.size() != operands.size()) {
+    throw_error(ErrorKind::Value, "Number of einsum subscripts must be equal to the number of operands.");
+  }
+  DType dt = operands[0].dtype();
+  for (const auto& o : operands) dt = promote_types(dt, o.dtype());
+  std::array<idx, 256> sizes{};
+  sizes.fill(-1);
+  std::vector<Term> work;
+  for (std::size_t i = 0; i < operands.size(); ++i) {
+    const NDArray& o = operands[i];
+    if (o.ndim() != terms[i].size()) {
+      throw_error(ErrorKind::Value, "Einstein sum subscript " + terms[i] +
+                                        " does not contain the correct number of indices for operand " +
+                                        std::to_string(i) + ".");
+    }
+    for (std::size_t d = 0; d < o.ndim(); ++d) {
+      idx& s = sizes[static_cast<unsigned char>(terms[i][d])];
+      const idx dim = o.shape()[d];
+      if (s == -1 || s == 1) s = dim;
+      else if (dim != 1 && dim != s) {
+        throw_error(ErrorKind::Value, std::string("Size of label '") + terms[i][d] + "' for operand " +
+                                          std::to_string(i) + " (" + std::to_string(s) +
+                                          ") does not match previous terms (" + std::to_string(dim) + ").");
+      }
+    }
+    work.push_back(take_diagonals(o.dtype() == dt ? o : o.astype(dt), terms[i], i));
+  }
+  for (const auto& st : steps) {
+    std::vector<Term> picked;
+    for (const auto p : st.positions) {
+      if (p < 0 || static_cast<std::size_t>(p) >= work.size()) {
+        throw_error(ErrorKind::Value, "einsum_path contraction index out of range");
+      }
+      picked.push_back(work[sz(p)]);
+      work.erase(work.begin() + p);
+    }
+    if (picked.empty()) throw_error(ErrorKind::Value, "einsum_path contraction is empty");
+    for (const char c : st.result) {
+      bool seen = false;
+      for (const auto& t : picked) seen = seen || t.labels.find(c) != Labels::npos;
+      if (!seen) {
+        throw_error(ErrorKind::Value, std::string("einstein sum subscripts string included output subscript '") +
+                                          c + "' which never appeared in an input");
+      }
+    }
+    // Left to right over the picked operands; `keep` = result labels plus
+    // the labels of picked operands not yet folded in.
+    Term acc = picked[0];
+    for (std::size_t j = 1; j < picked.size(); ++j) {
+      Labels keep = st.result;
+      for (std::size_t r = j + 1; r < picked.size(); ++r) keep += picked[r].labels;
+      acc = contract_pair(acc, picked[j], keep, sizes);
+    }
+    acc = sum_out(acc, st.result);
+    NDArray r = transpose(acc.a, perm_for(acc.labels, st.result));
+    Shape full;
+    for (const char c : st.result) full.push_back(sizes[static_cast<unsigned char>(c)]);
+    if (r.shape() != full) r = broadcast_to(r, full);
+    work.push_back({r, st.result});
+  }
+  if (work.size() != 1) {
+    throw_error(ErrorKind::Value, "Invalid einsum_path is specified: " + std::to_string(work.size() - 1) +
+                                      " more operands has to be contracted.");
+  }
+  return work[0].a.copy();
 }
 
 }  // namespace nativpy::linalg

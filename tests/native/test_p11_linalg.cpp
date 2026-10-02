@@ -174,3 +174,28 @@ TEST_CASE("p11: pinv, matrix_rank, cond") {
     CHECK_THROWS_KIND(cond(NDArray::zeros({2, 3}, DType::Float64), NormOrd{"p", 1.0}), ErrorKind::LinAlg);
   });
 }
+
+TEST_CASE("p11: einsum core") {
+  const NDArray a = mat(2, 3, {1, 2, 3, 4, 5, 6});
+  const NDArray b = mat(3, 2, {1, 0, 0, 1, 1, 1});
+  const std::vector<EinsumStep> one{{{1, 0}, "ik"}};
+  CHECK(all_near(einsum({a, b}, {"ij", "jk"}, one), {4, 5, 10, 11}));
+  CHECK(all_near(einsum({a}, {"ij"}, {{{0}, "ji"}}), {1, 4, 2, 5, 3, 6}));
+  CHECK(all_near(einsum({a}, {"ij"}, {{{0}, ""}}), {21}));
+  const NDArray sq = mat(2, 2, {1, 2, 3, 4});
+  CHECK(all_near(einsum({sq}, {"ii"}, {{{0}, "i"}}), {1, 4}));
+  CHECK(all_near(einsum({sq}, {"ii"}, {{{0}, ""}}), {5}));
+  CHECK(all_near(einsum({a, a}, {"ij", "ij"}, {{{1, 0}, "ij"}}), {1, 4, 9, 16, 25, 36}));
+  // three operands in one step, and a two-step path
+  const NDArray v = mat(1, 2, {1, 1}).reshape({2});
+  CHECK(all_near(einsum({v, a, b}, {"i", "ij", "jk"}, {{{2, 1, 0}, "k"}}), {14, 16}));
+  CHECK(all_near(einsum({v, a, b}, {"i", "ij", "jk"}, {{{2, 1}, "ik"}, {{1, 0}, "k"}}), {14, 16}));
+  // broadcasting a size-1 dim, int wrap, bool
+  CHECK(all_near(einsum({mat(1, 3, {1, 1, 1}), a}, {"ij", "ij"}, {{{1, 0}, "ij"}}), {1, 2, 3, 4, 5, 6}));
+  const NDArray i8 = mat(1, 2, {100, 100}, DType::Int8).reshape({2});
+  const NDArray r8 = einsum({i8}, {"i"}, {{{0}, ""}});
+  CHECK(r8.dtype() == DType::Int8 && r8.get_int64(0) == -56);
+  CHECK_THROWS_KIND(einsum({mat(2, 3, {1, 2, 3, 4, 5, 6})}, {"ii"}, {{{0}, "i"}}), ErrorKind::Value);
+  CHECK_THROWS_KIND(einsum({a, sq}, {"ij", "jk"}, one), ErrorKind::Value);
+  CHECK_THROWS_KIND(einsum({a, b}, {"ij", "jk"}, {{{1}, "jk"}}), ErrorKind::Value);
+}

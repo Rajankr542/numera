@@ -244,6 +244,32 @@ np.tensordot([1, 2], [3, 4], { axes: 0 });                   // => [[3, 4], [6, 
         returns: "NDArray",
         example: `np.vecmat([1, 1], [[1, 2], [3, 4]]); // => [4, 6]`,
       },
+      {
+        name: "einsum",
+        sig: "np.einsum(subscripts, ...operands, [options]) / np.einsum(op0, sub0, op1, sub1, ..., [outSub], [options])",
+        desc: "Einstein summation. Supports explicit (`->`) and implicit output (labels seen once, sorted), `...` broadcasting, repeated labels (diagonals) and the sublist form (integers 0–51 and `np.ellipsis`). `optimize` picks the pairwise contraction order (`false`, `true`/`\"greedy\"`, `\"optimal\"`, an `einsumPath` path, or `[name, memoryLimit]`). Integer results wrap as in NumPy. The result is always a new array.",
+        args: [
+          { name: "subscripts", type: "string", desc: "Labels, e.g. `\"ij,jk->ik\"`." },
+          { name: "...operands", type: "ArrayLike[]", desc: "Input arrays." },
+          { name: "[options.optimize]", type: "boolean | string | Array", desc: "Contraction order. Default `false`." },
+        ],
+        returns: "NDArray",
+        example: `np.einsum("ij,jk->ik", [[1, 2], [3, 4]], [[1, 0], [0, 1]]); // => [[1, 2], [3, 4]]
+np.einsum("ii", [[1, 2], [3, 4]]).item();                    // => 5
+np.einsum([[1, 2], [3, 4]], [0, 1], [1, 0]);                 // => [[1, 3], [2, 4]]`,
+      },
+      {
+        name: "einsumPath",
+        sig: "np.einsumPath(subscripts, ...operands, [options])",
+        desc: "Cheapest contraction order for an `einsum` expression, as `[path, report]`: `path` is `[\"einsum_path\", [i, j], ...]` (pass it as `optimize`) and `report` is NumPy's text summary. `optimize` defaults to `\"greedy\"`.",
+        args: [
+          { name: "subscripts", type: "string", desc: "Labels." },
+          { name: "...operands", type: "ArrayLike[]", desc: "Input arrays (only shapes are used)." },
+          { name: "[options.optimize]", type: "boolean | string | Array", desc: "Path algorithm. Default `\"greedy\"`." },
+        ],
+        returns: "[EinsumPath, string]",
+        example: `np.einsumPath("ij,jk,kl->il", np.ones([2, 2]), np.ones([2, 5]), np.ones([5, 2]))[0]; // => ["einsum_path", [1, 2], [0, 1]]`,
+      },
     ],
   },
   {
