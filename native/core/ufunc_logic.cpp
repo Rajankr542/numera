@@ -85,10 +85,17 @@ constexpr std::array<UnaryLoopFn, kNumDTypes> bool_unary_table() {
 
 struct EqF { template <typename T> bool operator()(T a, T b) const noexcept { return a == b; } };
 struct NeF { template <typename T> bool operator()(T a, T b) const noexcept { return a != b; } };
-struct LtF { template <typename T> bool operator()(T a, T b) const noexcept { return a < b; } };
-struct LeF { template <typename T> bool operator()(T a, T b) const noexcept { return a <= b; } };
-struct GtF { template <typename T> bool operator()(T a, T b) const noexcept { return a > b; } };
-struct GeF { template <typename T> bool operator()(T a, T b) const noexcept { return a >= b; } };
+// Floating-point ordering uses the quiet C99 macros: GCC emits signaling
+// compares (fcmpe/comisd) for `<`, which would raise FE_INVALID on NaN where
+// NumPy does not.
+struct LtF { template <typename T> bool operator()(T a, T b) const noexcept {
+  if constexpr (std::is_floating_point_v<T>) return std::isless(a, b); else return a < b; } };
+struct LeF { template <typename T> bool operator()(T a, T b) const noexcept {
+  if constexpr (std::is_floating_point_v<T>) return std::islessequal(a, b); else return a <= b; } };
+struct GtF { template <typename T> bool operator()(T a, T b) const noexcept {
+  if constexpr (std::is_floating_point_v<T>) return std::isgreater(a, b); else return a > b; } };
+struct GeF { template <typename T> bool operator()(T a, T b) const noexcept {
+  if constexpr (std::is_floating_point_v<T>) return std::isgreaterequal(a, b); else return a >= b; } };
 
 // Ordered compare that raises "invalid" on NaN, like the C comparisons in
 // NumPy's complex CLT/CLE/CGT/CGE macros (D-080).

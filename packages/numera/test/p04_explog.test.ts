@@ -12,7 +12,9 @@ describe("P4-2 exp / log", () => {
     expect(np.log2([8, 1]).toArray()).toEqual([3, 0]);
     expect(np.log10([1000]).toArray()).toEqual([3]);
     near(np.log1p(1e-10).toArray(), 9.9999999995e-11);
-    expect(np.cbrt([-8, 27]).toArray()).toEqual([-2, 3]);
+    // glibc's cbrt is not correctly rounded (aarch64 gives 3.0000000000000004, as NumPy does).
+    near(np.cbrt(-8).toArray(), -2, 1e-15);
+    near(np.cbrt(27).toArray(), 3, 1e-15);
     near(np.logaddexp(1, 2).toArray(), 2.313261687518223);
     expect(np.logaddexp2(1, 1).toArray()).toBe(2);
     expect(np.square([2, -3]).toArray()).toEqual([4, 9]);
