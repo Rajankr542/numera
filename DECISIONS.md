@@ -1530,3 +1530,22 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   `api/coverage*.json` and `TASK_SLICES.md` are updated only on `main`.
 - Build-first rule (TASK_SLICES.md) is unchanged: no NumPy-compatibility or
   performance claim until the V phase.
+
+## D-070 — P4 math ufuncs: registry rows and type resolution — Accepted — 2026-10-02
+- Every P4 element-wise ufunc that NumPy defines as a ufunc is a row in
+  `native/core/ufunc_math.cpp` (D-051/D-056) and a TS object from
+  `binaryUfunc`/`unaryUfunc`, so it gets `out/where/dtype/casting/order` and
+  `reduce/accumulate/outer/at`. Identities follow NumPy (`hypot` 0,
+  `logaddexp`/`logaddexp2` -inf, `gcd` 0, others none).
+- Type resolution mirrors NumPy's loop lists (`np.<ufunc>.types`):
+  - float-only ufuncs (trig, exp/log family, `arctan2 hypot deg2rad ...`):
+    integer/bool inputs use the smallest safe float (`float_for`: 8-bit →
+    float16, 16-bit → float32, wider → float64); binary ones promote the two
+    float loop types. Complex loops exist exactly where NumPy has them
+    (e.g. `sin`, `exp2`, `log10`, `square`, `sign`; not `arctan2`, `cbrt`,
+    `deg2rad`); otherwise complex input raises `DTypeError`.
+  - `dtype=` accepts only dtypes NumPy has a loop for (float, or inexact when
+    a complex loop exists); others raise the "No loop matching" `DTypeError`.
+- Array-API aliases (`asin` … `atan2`, `pow`) are the same JS objects.
+- The long-double (`g`/`G`) and object loops have no numera dtype and are out
+  of scope. libm results are not claimed bit-identical to NumPy (D-014).
