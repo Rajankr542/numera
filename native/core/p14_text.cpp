@@ -8,6 +8,7 @@
 #include <limits>
 #include <string_view>
 
+#include "c_strtod.hpp"
 #include "error.hpp"
 
 namespace nativpy::p14 {
@@ -76,29 +77,7 @@ bool parse_float_prefix(std::string_view s, std::size_t& i, double& out) {
     }
   }
   double v = 0.0;
-  const auto r = std::from_chars(s.data() + start, s.data() + p, v, std::chars_format::general);
-  if (r.ec == std::errc::result_out_of_range) {
-    // Decide overflow vs underflow from the decimal exponent.
-    std::size_t k = start;
-    long ip = 0;
-    bool nz = false;
-    long lead = 0;
-    for (; k < p && is_digit(s[k]); ++k) {
-      if (s[k] != '0') nz = true;
-      if (nz) ++ip;
-    }
-    if (k < p && s[k] == '.') {
-      for (++k; k < p && is_digit(s[k]); ++k) {
-        if (!nz && s[k] == '0') ++lead;
-        else nz = true;
-      }
-    }
-    long e = 0;
-    if (k < p && (s[k] == 'e' || s[k] == 'E')) e = std::strtol(std::string(s.substr(k + 1, p - k - 1)).c_str(), nullptr, 10);
-    v = (ip > 0 ? ip : -lead) + e > 0 ? std::numeric_limits<double>::infinity() : 0.0;
-  } else if (r.ec != std::errc{}) {
-    return false;
-  }
+  if (!parse_decimal_c(s.data() + start, s.data() + p, v)) return false;
   out = neg ? -v : v;
   i = p;
   return true;
@@ -369,7 +348,7 @@ void shortest_digits(double v, DType dt, std::string& digits, int& exp10) {
     for (int prec = 0; prec < 17; ++prec) {
       r = std::to_chars(buf, buf + sizeof buf, v, std::chars_format::scientific, prec);
       double back = 0;
-      std::from_chars(buf, r.ptr, back);
+      parse_decimal_c(buf, r.ptr, back);
       if (double_to_half(back).bits == want) break;
     }
   }

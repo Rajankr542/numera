@@ -9,6 +9,7 @@
 #include <type_traits>
 
 #include "broadcast.hpp"
+#include "c_strtod.hpp"
 #include "cast.hpp"
 #include "complex_kernels.hpp"
 #include "creation.hpp"
@@ -444,20 +445,15 @@ double plain_strtod(const char* s, const char** end) {
   bool neg = false;
   if (*p == '+' || *p == '-') neg = *p++ == '-';
   const char* digits = p;
-  std::int64_t int_digits = 0, lead_frac_zeros = 0;
-  bool nonzero_int = false, seen_nonzero = false, any = false;
+  bool any = false;
   while (is_digit(*p)) {
     any = true;
-    if (*p != '0') nonzero_int = true;
-    if (nonzero_int) ++int_digits;
     ++p;
   }
   if (*p == '.') {
     ++p;
     while (is_digit(*p)) {
       any = true;
-      if (*p != '0') seen_nonzero = true;
-      if (!nonzero_int && !seen_nonzero) ++lead_frac_zeros;
       ++p;
     }
   }
@@ -465,27 +461,17 @@ double plain_strtod(const char* s, const char** end) {
     *end = s;
     return -1.0;
   }
-  std::int64_t exp = 0;
   if (*p == 'e' || *p == 'E') {
     const char* q = p + 1;
-    bool eneg = false;
-    if (*q == '+' || *q == '-') eneg = *q++ == '-';
+    if (*q == '+' || *q == '-') ++q;
     if (is_digit(*q)) {
-      while (is_digit(*q)) {
-        if (exp < 100000000) exp = exp * 10 + (*q - '0');
-        ++q;
-      }
-      if (eneg) exp = -exp;
+      while (is_digit(*q)) ++q;
       p = q;
     }
   }
   *end = p;
   double v = 0.0;
-  const auto r = std::from_chars(digits, p, v, std::chars_format::general);
-  if (r.ec == std::errc::result_out_of_range) {
-    const std::int64_t magnitude = (nonzero_int ? int_digits : -lead_frac_zeros) + exp;
-    v = magnitude > 0 ? std::numeric_limits<double>::infinity() : 0.0;
-  } else if (r.ec != std::errc{}) {
+  if (!parse_decimal_c(digits, p, v)) {
     *end = s;
     return -1.0;
   }
