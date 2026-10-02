@@ -76,3 +76,42 @@ for (const which of ["default", "fallback"] as const) {
     });
   });
 }
+
+describe("P11-3", () => {
+  const a = np.arange(6).reshape([2, 3]);
+  it("vectorNorm / matrixNorm", () => {
+    close(np.linalg.vectorNorm(a), Math.sqrt(55));
+    close(np.linalg.vectorNorm(a, { axis: [1, 0], ord: 1 }), 15);
+    close(np.linalg.vectorNorm(a, { axis: 1, ord: Infinity }), [2, 5]);
+    expect(np.linalg.vectorNorm(a, { keepdims: true }).shape).toEqual([1, 1]);
+    expect(np.linalg.vectorNorm(np.ones([2, 3, 4]), { axis: [0, 2], keepdims: true }).shape).toEqual([1, 3, 1]);
+    close(np.linalg.vectorNorm(np.ones([2, 3, 4]), { axis: [0, 2] }), [Math.sqrt(8), Math.sqrt(8), Math.sqrt(8)]);
+    close(np.linalg.matrixNorm(a), Math.sqrt(55));
+    close(np.linalg.matrixNorm(a, { ord: 2, keepdims: true }), [[7.348469228349534]], 1e-9);
+    expect(() => np.linalg.matrixNorm([1, 2])).toThrow(np.IndexError);
+  });
+  it("matrixTranspose / diagonal / trace / outer", () => {
+    expect(np.linalg.matrixTranspose(a).shape).toEqual([3, 2]);
+    expect(() => np.linalg.matrixTranspose([1, 2])).toThrow(np.ValueError);
+    const s = np.arange(8).reshape([2, 2, 2]);
+    expect(np.linalg.diagonal(s).toArray()).toEqual([[0, 3], [4, 7]]);
+    expect(np.linalg.diagonal(a, { offset: 1 }).toArray()).toEqual([1, 5]);
+    expect(np.linalg.trace(s).toArray()).toEqual([3, 11]);
+    expect(np.linalg.outer([1, 2], [3, 4]).toArray()).toEqual([[3, 4], [6, 8]]);
+    expect(() => np.linalg.outer([[1]], [1])).toThrow(np.ValueError);
+  });
+  it("tensorinv / tensorsolve", () => {
+    const t = np.eye(24).reshape([4, 6, 8, 3]);
+    const ti = np.linalg.tensorinv(t);
+    expect(ti.shape).toEqual([8, 3, 4, 6]);
+    const t1 = np.linalg.tensorinv(np.eye(6).reshape([6, 2, 3]), { ind: 1 });
+    expect(t1.shape).toEqual([2, 3, 6]);
+    expect(() => np.linalg.tensorinv(t, { ind: 0 })).toThrow(np.ValueError);
+    const A = np.eye(6).reshape([6, 2, 3]);
+    const x = np.linalg.tensorsolve(A, [1, 2, 3, 4, 5, 6]);
+    expect(x.toArray()).toEqual([[1, 2, 3], [4, 5, 6]]);
+    const B = np.eye(6).reshape([2, 3, 6]);
+    expect(np.linalg.tensorsolve(B, [1, 2, 3, 4, 5, 6], { axes: [0, 1] }).shape).toEqual([2, 3]);
+    expect(() => np.linalg.tensorsolve(np.ones([2, 3]), [1, 2])).toThrow(np.LinAlgError);
+  });
+});
