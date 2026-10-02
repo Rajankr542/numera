@@ -3,7 +3,7 @@
 import { nativeModule, type NativeNDArray } from "./addon.js";
 import { array } from "./creation.js";
 import { dtype as toDType, type DTypeLike } from "./dtype.js";
-import { wrapNative } from "./errors.js";
+import { ValueError, wrapNative } from "./errors.js";
 import { NDArray } from "./ndarray.js";
 import type { ArgReduceOptions, ReduceOptions, VarOptions } from "./reduce.js";
 import type { ArrayLike } from "./ufunc.js";
@@ -34,6 +34,21 @@ interface P10Native {
   ptp(a: N, axis: number[] | null, keepdims: boolean): N;
   nanReduce(op: string, a: N, opts: NativeReduceOptions): N;
   nanArgReduce(isMax: boolean, a: N, axis: number | null, keepdims: boolean): N;
+  average(a: N, axis: number[] | null, weights: N | null, keepdims: boolean): [N, N];
+  cov(m: N, opts: NativeCovOptions): [N, boolean];
+  gradient(f: N, spacing: (number | N)[], axis: number[] | null, edgeOrder: number): N[];
+  trapezoid(y: N, x: N | null, dx: number, axis: number): N;
+}
+
+interface NativeCovOptions {
+  y: N | null;
+  rowvar: boolean;
+  bias: boolean;
+  ddof: number | null;
+  fweights: N | null;
+  aweights: N | null;
+  dtype: string | null;
+  corrcoef: boolean;
 }
 
 interface NativeReduceOptions {
@@ -249,6 +264,118 @@ export const nanargmin = (a: ArrayLike, opts: ArgReduceOptions = {}): NDArray =>
 /** NumPy nanargmax. */
 export const nanargmax = (a: ArrayLike, opts: ArgReduceOptions = {}): NDArray => nanArg(true, a, opts);
 
+// ---- average / cov / corrcoef / gradient / trapezoid (D-135, D-137) ----
+
+export interface AverageOptions {
+  axis?: Axis;
+  /** Weights with `a`'s shape, or the shape of `a` along `axis`. */
+  weights?: ArrayLike | null;
+  /** Also return the sum of the weights (`[avg, sumOfWeights]`). */
+  returned?: boolean;
+  keepdims?: boolean;
+}
+
+/** NumPy average: weighted mean along `axis` (integers average in float64). */
+export function average(a: ArrayLike, opts: AverageOptions & { returned: true }): [NDArray, NDArray];
+export function average(a: ArrayLike, opts?: AverageOptions): NDArray;
+export function average(a: ArrayLike, opts: AverageOptions = {}): NDArray | [NDArray, NDArray] {
+  const x = toArray(a);
+  const w = opts.weights == null ? null : toArray(opts.weights);
+  const [avg, scl] = wrapNative(() =>
+    native().average(x._native, axes(opts.axis), w?._native ?? null, opts.keepdims ?? false),
+  );
+  const r = NDArray._wrap(avg);
+  return opts.returned ? [r, NDArray._wrap(scl)] : r;
+}
+
+export interface CovOptions {
+  /** Extra variables, stacked after `m`. */
+  y?: ArrayLike | null;
+  /** Rows are variables (default true); false: columns are variables. */
+  rowvar?: boolean;
+  /** Normalise by N (ddof 0) instead of N - 1. */
+  bias?: boolean;
+  /** Overrides `bias`. */
+  ddof?: number | null;
+  /** Integer frequency weights per observation. */
+  fweights?: ArrayLike | null;
+  /** Observation weights. */
+  aweights?: ArrayLike | null;
+  dtype?: DTypeLike | null;
+}
+
+function covImpl(m: ArrayLike, opts: CovOptions, corrcoef: boolean): NDArray {
+  if (opts.ddof != null && !Number.isInteger(opts.ddof)) throw new ValueError("ddof must be integer");
+  const x = toArray(m);
+  const opt = (v: ArrayLike | null | undefined) => (v == null ? null : toArray(v)._native);
+  const [c, warn] = wrapNative(() =>
+    native().cov(x._native, {
+      y: opt(opts.y),
+      rowvar: opts.rowvar ?? true,
+      bias: opts.bias ?? false,
+      ddof: opts.ddof ?? null,
+      fweights: opt(opts.fweights),
+      aweights: opt(opts.aweights),
+      dtype: opts.dtype == null ? null : toDType(opts.dtype).name,
+      corrcoef,
+    }),
+  );
+  if (warn) process.emitWarning("Degrees of freedom <= 0 for slice", "RuntimeWarning");
+  return NDArray._wrap(c);
+}
+
+/** NumPy cov: covariance matrix (squeezed; a single variable gives a 0-d array). */
+export const cov = (m: ArrayLike, opts: CovOptions = {}): NDArray => covImpl(m, opts, false);
+
+export type CorrcoefOptions = Pick<CovOptions, "y" | "rowvar" | "dtype">;
+/** NumPy corrcoef: Pearson correlation coefficients, clipped to [-1, 1]. */
+export const corrcoef = (x: ArrayLike, opts: CorrcoefOptions = {}): NDArray =>
+  covImpl(x, { y: opts.y, rowvar: opts.rowvar, dtype: opts.dtype }, true);
+
+export interface GradientOptions {
+  axis?: Axis;
+  /** 1 (default) or 2: accuracy of the one-sided edge differences. */
+  edgeOrder?: number;
+}
+
+/** A sample spacing: a scalar distance or the 1-d coordinates along an axis. */
+export type Spacing = number | ArrayLike;
+
+/**
+ * NumPy gradient(f, *varargs, axis, edge_order). Spacings follow `f`
+ * (none, one for every axis, or one per axis); a trailing plain object is the
+ * options. Returns an `NDArray` for one axis, otherwise an `NDArray[]`.
+ */
+export function gradient(f: ArrayLike, ...args: (Spacing | GradientOptions)[]): NDArray | NDArray[] {
+  let opts: GradientOptions = {};
+  const last = args[args.length - 1];
+  if (last !== undefined && typeof last === "object" && !(last instanceof NDArray) && !Array.isArray(last)) {
+    opts = last as GradientOptions;
+    args = args.slice(0, -1);
+  }
+  const x = toArray(f);
+  const sp = (args as Spacing[]).map((s) => (typeof s === "number" ? s : toArray(s)._native));
+  const outs = wrapNative(() => native().gradient(x._native, sp, axes(opts.axis), opts.edgeOrder ?? 1));
+  const r = outs.map((o) => NDArray._wrap(o));
+  return r.length === 1 ? r[0]! : r;
+}
+
+export interface TrapezoidOptions {
+  /** Sample coordinates (1-d along `axis`, or `y`'s shape). */
+  x?: ArrayLike | null;
+  /** Spacing when `x` is not given (default 1). */
+  dx?: number;
+  /** Default -1. */
+  axis?: number;
+}
+
+/** NumPy trapezoid: integral of `y` by the composite trapezoidal rule. */
+export function trapezoid(y: ArrayLike, opts: TrapezoidOptions = {}): NDArray {
+  const ya = toArray(y);
+  const xa = opts.x == null ? null : toArray(opts.x);
+  return wrap(() => native().trapezoid(ya._native, xa?._native ?? null, opts.dx ?? 1, opts.axis ?? -1));
+}
+
 declare module "./ndarray.js" {
   interface NDArray {
     /** NumPy `a.cumsum({axis, dtype, out})`. */
@@ -293,4 +420,9 @@ export const p10 = {
   nanmax,
   nanargmin,
   nanargmax,
+  average,
+  cov,
+  corrcoef,
+  gradient,
+  trapezoid,
 } as const;

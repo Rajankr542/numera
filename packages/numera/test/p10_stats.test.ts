@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import np, { DTypeError, IndexError, NotImplementedError, ValueError } from "../src/index.js";
+import np, { DTypeError, IndexError, NDArray, NotImplementedError, ValueError } from "../src/index.js";
 
 describe("P10 quantile / percentile / median", () => {
   const a = np.arange(10).astype("float64");
@@ -114,5 +114,53 @@ describe("P10 NaN reductions", () => {
     expect(np.nanargmin([[NaN, 1], [2, 3]], { axis: 0 }).toArray()).toEqual([1, 0]);
     expect(() => np.nanargmin(x, { axis: 1 })).toThrow(ValueError);
     expect(() => np.nanmin([])).toThrow(ValueError);
+  });
+});
+
+describe("P10 average / cov / corrcoef / gradient / trapezoid", () => {
+  it("average", () => {
+    const [avg, scl] = np.average(np.ones([2, 3]), { axis: 1, weights: [1, 2, 3], returned: true });
+    expect(avg.toArray()).toEqual([1, 1]);
+    expect(scl.toArray()).toEqual([6, 6]);
+    expect(np.average(np.arange(6).reshape(2, 3)).item()).toBe(2.5);
+    expect(np.average([[1, 2], [3, 4]], { axis: 0, keepdims: true }).toArray()).toEqual([[2, 3]]);
+    expect(() => np.average([1, 2], { weights: [1, -1] })).toThrow(ValueError);
+    expect(() => np.average([[1, 2]], { weights: [1, 2] })).toThrow(DTypeError);
+  });
+  it("cov / corrcoef", () => {
+    expect(np.cov([1, 2, 3]).item()).toBe(1);
+    expect(np.cov([1, 2, 3], { y: [1, 5, 2] }).toArray()).toEqual([[1, 0.5], [0.5, 4.333333333333334]]);
+    expect(np.cov([[1, 2], [3, 4]], { rowvar: false, aweights: [1, 2], fweights: [2, 1] }).toArray()).toEqual([
+      [1.6, 1.6],
+      [1.6, 1.6],
+    ]);
+    expect(np.cov([[1, 2, 3]], { bias: true }).item()).toBeCloseTo(2 / 3, 15);
+    expect(() => np.cov([1, 2], { fweights: [1.5, 1] })).toThrow(DTypeError);
+    expect(() => np.cov([1, 2], { ddof: 1.5 })).toThrow(ValueError);
+    expect(np.corrcoef([[1, 2, 3], [1, 5, 2]]).toArray()).toEqual([
+      [1, 0.24019223070763066],
+      [0.24019223070763066, 0.9999999999999998],
+    ]);
+  });
+  it("gradient", () => {
+    expect((np.gradient([1, 2, 4, 7, 11]) as NDArray).toArray()).toEqual([1, 1.5, 2.5, 3.5, 4]);
+    expect((np.gradient([1, 2, 4, 7, 11], 2) as NDArray).toArray()).toEqual([0.5, 0.75, 1.25, 1.75, 2]);
+    expect((np.gradient([1, 2, 4, 7, 11], { edgeOrder: 2 }) as NDArray).toArray()).toEqual([0.5, 1.5, 2.5, 3.5, 4.5]);
+    expect((np.gradient([1, 2, 4, 7, 11], [0, 1, 3, 4, 7]) as NDArray).toArray()).toEqual([
+      1, 1, 2.3333333333333326, 2.5833333333333326, 1.3333333333333333,
+    ]);
+    const g = np.gradient([[1, 2, 6], [3, 4, 5]]) as NDArray[];
+    expect(g.map((a) => a.toArray())).toEqual([
+      [[2, 2, -1], [2, 2, -1]],
+      [[1, 2.5, 4], [1, 1, 1]],
+    ]);
+    expect((np.gradient([[1, 2, 6], [3, 4, 5]], { axis: 1 }) as NDArray).toArray()).toEqual([[1, 2.5, 4], [1, 1, 1]]);
+    expect(() => np.gradient([1, 2], { edgeOrder: 2 })).toThrow(ValueError);
+  });
+  it("trapezoid", () => {
+    expect(np.trapezoid([1, 2, 3]).item()).toBe(4);
+    expect(np.trapezoid([1, 2, 3], { x: [0, 1, 3] }).item()).toBe(6.5);
+    expect(np.trapezoid([1, 2, 3], { dx: 0.5 }).item()).toBe(2);
+    expect(np.trapezoid([[1, 2], [3, 4]], { axis: 0 }).toArray()).toEqual([2, 3]);
   });
 });

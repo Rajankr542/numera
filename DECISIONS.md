@@ -1651,3 +1651,15 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   NumPy); mean/var/std divide by the masked count. Implemented natively
   (`p10_reduce`). The NDArray methods (`a.sum()`) live in `ndarray.ts` (P3)
   and do not get `where`/`out` on this branch.
+
+## D-137 — average / cov / gradient errors and placement (P10) — Accepted — 2026-10-02
+- `average/cov/corrcoef/gradient/trapezoid` are native (`p10_stats`), not
+  composed in TS (refines D-135). `cov` uses a sequential conjugated dot
+  product instead of BLAS `dot`, so the last bits may differ.
+- Python exception mapping: `ZeroDivisionError` (weights sum to zero, `average`
+  with an empty slice) → `ValueError`; `TypeError` → `DTypeError`;
+  `RuntimeError` (bad `fweights`/`aweights` shape) → `ValueError`. The cov
+  "Degrees of freedom <= 0" warning is a Node `RuntimeWarning`.
+- `gradient(f, ...spacings, {axis, edgeOrder})`: a trailing plain object is the
+  options; a JS-number spacing is a weak scalar (keeps float32), a 0-d array or
+  uniform coordinates are strong (NumPy semantics).

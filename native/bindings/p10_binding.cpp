@@ -3,6 +3,7 @@
 #include "p10_cumdiff.hpp"
 #include "p10_nan.hpp"
 #include "p10_quantile.hpp"
+#include "p10_stats.hpp"
 
 namespace nativpy::bindings {
 
@@ -106,6 +107,47 @@ void init_p10_binding(Napi::Env env, Napi::Object exports) {
   // nanArgReduce(isMax, a, axis | null, keepdims)
   m.Set("nanArgReduce", fn(env, "nanArgReduce", [](Info i, Napi::Env e) {
           return wrap(e, p10::nan_arg_reduce(arg_bool(i[0]), arr(i, 1), opt_int(i[2], "axis"), arg_bool(i[3])));
+        }));
+  // average(a, axis | null, weights | null, keepdims) -> [avg, sumOfWeights]
+  m.Set("average", fn(env, "average", [](Info i, Napi::Env e) -> Napi::Value {
+          auto [avg, scl] = p10::average(arr(i, 0), opt_ints(i[1], "axis"), opt_arr(i[2]), arg_bool(i[3]));
+          return wrap_all(e, {avg, scl});
+        }));
+  // cov(m, {y, rowvar, bias, ddof, fweights, aweights, dtype}) -> [c, dofWarning]
+  m.Set("cov", fn(env, "cov", [](Info i, Napi::Env e) -> Napi::Value {
+          p10::CovOptions o;
+          o.y = opt_arr(prop(i[1], "y"));
+          const Napi::Value rowvar = prop(i[1], "rowvar");
+          o.rowvar = is_nullish(rowvar) || arg_bool(rowvar);
+          o.bias = opt_bool(i[1], "bias");
+          o.ddof = opt_int(prop(i[1], "ddof"), "ddof");
+          o.fweights = opt_arr(prop(i[1], "fweights"));
+          o.aweights = opt_arr(prop(i[1], "aweights"));
+          o.dtype = opt_dtype(prop(i[1], "dtype"));
+          bool warn = false;
+          NDArray c = opt_bool(i[1], "corrcoef") ? p10::corrcoef(arr(i, 0), o.y, o.rowvar, o.dtype, &warn)
+                                                  : p10::cov(arr(i, 0), o, &warn);
+          Napi::Array r = Napi::Array::New(e, 2);
+          r.Set(0u, wrap(e, std::move(c)));
+          r.Set(1u, Napi::Boolean::New(e, warn));
+          return r;
+        }));
+  // gradient(f, spacing: (number | NDArray)[], axis: number[] | null, edgeOrder) -> NDArray[]
+  m.Set("gradient", fn(env, "gradient", [](Info i, Napi::Env e) -> Napi::Value {
+          std::vector<p10::GradSpacing> sp;
+          const Napi::Array js = i[1].As<Napi::Array>();
+          for (std::uint32_t k = 0; k < js.Length(); ++k) {
+            const Napi::Value v = js.Get(k);
+            p10::GradSpacing g;
+            if (v.IsNumber()) g.value = arg_double(v, "spacing");
+            else g.array = NDArrayWrap::unwrap(v);
+            sp.push_back(std::move(g));
+          }
+          return wrap_all(e, p10::gradient(arr(i, 0), sp, opt_ints(i[2], "axis"), arg_int(i[3], "edge_order")));
+        }));
+  // trapezoid(y, x | null, dx, axis)
+  m.Set("trapezoid", fn(env, "trapezoid", [](Info i, Napi::Env e) {
+          return wrap(e, p10::trapezoid(arr(i, 0), opt_arr(i[1]), arg_double(i[2], "dx"), arg_int(i[3], "axis")));
         }));
   exports.Set("p10", m);
 }

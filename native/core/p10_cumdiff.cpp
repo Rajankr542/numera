@@ -15,12 +15,6 @@ namespace nativpy::p10 {
 
 namespace {
 
-NDArray axis_slice(const NDArray& a, std::size_t ax, std::int64_t start, std::int64_t len) {
-  Shape shape = a.shape();
-  shape[ax] = len;
-  return a.view(shape, a.strides(), a.offset() + start * a.strides()[ax]);
-}
-
 [[noreturn]] void bool_subtract_error() {
   throw_error(ErrorKind::DType,
               "numpy boolean subtract, the `-` operator, is not supported, use the bitwise_xor, the `^` "

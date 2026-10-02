@@ -56,6 +56,12 @@ NDArray count_not_nan(const NDArray& a, const std::optional<std::vector<std::int
 
 bool is_inexact(DType dt) noexcept;
 
+// View of `a` with axis `ax` restricted to [start, start + len).
+NDArray axis_slice(const NDArray& a, std::size_t ax, std::int64_t start, std::int64_t len);
+
+// 0-d array of dtype `dt` holding v.
+NDArray scalar(double v, DType dt);
+
 // axis nullopt = all axes. The data keeps a's dtype unless `dt` is given.
 Rows to_rows(const NDArray& a, const std::optional<std::vector<std::int64_t>>& axis, bool keepdims,
              std::optional<DType> dt = std::nullopt);

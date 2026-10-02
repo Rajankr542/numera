@@ -95,6 +95,45 @@ np.nanvar([1, NaN, 2], { ddof: 1 }); // => 0.5`,
         example: `np.nanargmax([NaN, 2, 5, NaN]);                  // => 2
 np.nanargmin([[NaN, 1], [2, 3]], { axis: 0 });   // => [1, 0]`,
       },
+      {
+        name: "average",
+        sig: "np.average(a, { axis?, weights?, returned?, keepdims? })",
+        desc: "Weighted mean. `weights` has `a`'s shape or the shape of `a` along `axis`; integer input averages in float64. With `returned: true` the result is `[avg, sumOfWeights]`. Weights summing to zero raise `ValueError` (NumPy: `ZeroDivisionError`).",
+        args: [arr(), axisArg, { name: "[options.weights]", type: "ArrayLike", desc: "Weights." }, { name: "[options.returned]", type: "boolean", desc: "Also return the sum of weights." }, keepdimsArg],
+        returns: "NDArray | [NDArray, NDArray]",
+        example: `np.average([1, 2, 3, 4]);                          // => 2.5
+np.average([1, 2, 3], { weights: [3, 0, 1] });      // => 1.5
+np.average([[1, 2], [3, 4]], { axis: 1, weights: [1, 3], returned: true }).map((r) => r.toArray()); // => [[1.75, 3.75], [4, 4]]`,
+      },
+      {
+        name: "cov",
+        sig: "np.cov(m, { y?, rowvar?, bias?, ddof?, fweights?, aweights?, dtype? }) · np.corrcoef(x, { y?, rowvar?, dtype? })",
+        desc: "Covariance matrix (rows are variables unless `rowvar: false`), normalised by N - 1 (N with `bias`, N - ddof with `ddof`), with optional frequency and observation weights. `corrcoef` divides by the standard deviations and clips to [-1, 1]. Results are squeezed (one variable gives a 0-d array).",
+        args: [arr("m"), { name: "[options.y]", type: "ArrayLike", desc: "Extra variables." }, { name: "[options.rowvar]", type: "boolean", desc: "Default true." }, { name: "[options.ddof]", type: "number", desc: "Overrides `bias`." }],
+        returns: "NDArray",
+        example: `np.cov([1, 2, 3]);                          // => 1
+np.cov([1, 2, 3], { y: [1, 5, 2] });        // => [[1, 0.5], [0.5, 4.333333333333334]]
+np.corrcoef([[1, 2, 3], [3, 2, 1]]);        // => [[1, -1], [-1, 1]]`,
+      },
+      {
+        name: "gradient",
+        sig: "np.gradient(f, ...spacing, { axis?, edgeOrder? })",
+        desc: "Central differences in the interior and one-sided (order 1 or 2) differences at the edges. Spacing is a scalar, one scalar or coordinate array per axis, or nothing (unit spacing). Returns an `NDArray` for one axis, otherwise one array per axis. Integer input gives float64.",
+        args: [arr("f"), { name: "...spacing", type: "number | ArrayLike", desc: "Scalar distances or 1-d coordinates." }, { name: "[options.edgeOrder]", type: "1 | 2", desc: "Edge accuracy (default 1)." }],
+        returns: "NDArray | NDArray[]",
+        example: `np.gradient([1, 2, 4, 7, 11]);                     // => [1, 1.5, 2.5, 3.5, 4]
+np.gradient([1, 2, 4, 7, 11], 2);                  // => [0.5, 0.75, 1.25, 1.75, 2]
+np.gradient([1, 2, 4, 7, 11], { edgeOrder: 2 });   // => [0.5, 1.5, 2.5, 3.5, 4.5]`,
+      },
+      {
+        name: "trapezoid",
+        sig: "np.trapezoid(y, { x?, dx?, axis? })",
+        desc: "Composite trapezoidal integral of `y` along `axis` (default -1), using sample points `x` or uniform spacing `dx` (default 1).",
+        args: [arr("y"), { name: "[options.x]", type: "ArrayLike", desc: "Sample points." }, { name: "[options.dx]", type: "number", desc: "Spacing when `x` is absent." }, { name: "[options.axis]", type: "number", desc: "Default -1." }],
+        returns: "NDArray",
+        example: `np.trapezoid([1, 2, 3]);                    // => 4
+np.trapezoid([1, 2, 3], { x: [0, 1, 3] });  // => 6.5`,
+      },
     ],
   },
 ];

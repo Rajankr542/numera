@@ -38,6 +38,18 @@ NDArray replace_nan(const NDArray& a, double v) {
   return c;
 }
 
+NDArray axis_slice(const NDArray& a, std::size_t ax, std::int64_t start, std::int64_t len) {
+  Shape shape = a.shape();
+  shape[ax] = len;
+  return a.view(shape, a.strides(), a.offset() + start * a.strides()[ax]);
+}
+
+NDArray scalar(double v, DType dt) {
+  NDArray r = NDArray::empty({}, dt);
+  r.set_double(0, v);
+  return r;
+}
+
 bool is_inexact(DType dt) noexcept { return dtype_info(dt).kind == 'f' || is_complex(dt); }
 
 NDArray count_not_nan(const NDArray& a, const std::optional<std::vector<std::int64_t>>& axis, bool keepdims) {
