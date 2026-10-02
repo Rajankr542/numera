@@ -2111,3 +2111,146 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   Lᴴ). A non-positive or NaN pivot raises `LinAlgError("Matrix is not positive
   definite")`. Only the lower (upper with `upper: true`) triangle is read; the
   other triangle of the result is zero.
+## D-060 — NDArray methods fill/tolist/tobytes/view/byteswap/setflags/base/mT/flat (P3-2) — Accepted — 2026-10-02
+- Native kernels in `native/core/p03_methods.{hpp,cpp}`, bound in `p03_binding.cpp`.
+  Build-first: NumPy differential and bench cases are deferred to the V phase.
+- `base` (NumPy identity semantics, `a[1:][1:].base === a`): the native addon keeps a
+  per-env map buffer → owning `NDArrayWrap*` (plain C++ map, inserted when an owning
+  array is wrapped, erased in its GC-time destructor without any N-API call, D-023).
+  When a non-owning result is wrapped, the owner's JS handle is stored as a hidden
+  property on the view's handle, so a view keeps its base alive, as in NumPy.
+  (JS `WeakRef`s were rejected: they keep every array alive until the end of a
+  synchronous job, which defeats D-023.)
+  The TS `NDArray` stores itself on its native handle so `base` returns the same
+  object. Arrays that own their data, and views whose buffer has no wrapped owner
+  (e.g. `imag` of a real array), have `base === null`. Shared-file edits (minimal):
+  `ndarray.hpp` (`set_writeable`) and `ndarray_binding.{hpp,cpp}` (owner map,
+  `base()`/`setWriteable()` handle methods).
+- `setflags({write})`: `write: false` always works; `write: true` raises
+  `ValueError("cannot set WRITEABLE flag to True of this array")` when the array's
+  owner is read-only (NumPy rule). `align`/`uic` are not supported (`NotImplementedError`).
+- `view(dtype?)`: NumPy 2 rules — same itemsize: dtype swap; 0-d with a different
+  itemsize, a non-contiguous last axis (unless its length is 1 or the array is empty),
+  or a last-axis byte size not divisible by the new itemsize raise `ValueError` with
+  NumPy's messages. Views inherit writeability.
+- `tobytes({order})` returns a `Uint8Array` copy. `"C"`/`"K"` → C order (NumPy's
+  tobytes treats K as C), `"F"` → F, `"A"` → F if F- and not C-contiguous.
+- `byteswap({inplace})`: per-element byte reversal (complex: per component); the copy
+  keeps the input layout (K). In place on a read-only array raises
+  `ValueError("array to be byte-swapped is read-only")`.
+- `fill(value)`: JS scalar (or size-1 array) cast like `np.array(value, {dtype})`
+  (D-009: out-of-range ints / NaN to int raise `ValueError`, floats truncate).
+- `tolist()` is `toArray()` (D-005 applies).
+- `mT`: swaps the last two axes; `ndim < 2` raises
+  `ValueError("matrix transpose with ndim < 2 is undefined")`.
+- `flat` returns a new `FlatIter` (NumPy `flatiter`): `get(i)` (number → JS scalar;
+  slice tuple, int array or bool mask → 1-D/shape-of-index copy), `set(i, value)`
+  (values repeat cyclically, as NumPy), `base`, `index`, `coords`, `length`, `copy()`,
+  `toArray()`, and the iterator protocol (yields JS scalars in C order, read live).
+  `a.flat = v` assigns cyclically to every element.
+- `astype(dt, {order, copy, casting})`: `casting` (default `"unsafe"`) is checked
+  with `canCast`; a disallowed cast raises `DTypeError` ("Cannot cast array data
+  from dtype('float64') to dtype('int32') according to the rule 'safe'").
+
+## D-061 — ndindex / ndenumerate / nditer (P3-3) — Accepted — 2026-10-02
+- Native `native/core/p03_iter.{hpp,cpp}` computes the iteration plan: broadcast
+  shape, the axis order (outermost → innermost) and per-axis flips. Orders:
+  `"C"` row-major, `"F"` column-major, `"A"` F if every operand is F-contiguous
+  else C, `"K"` (default) NumPy's memory order: axes sorted by |stride|
+  (`keep_order_axes`, D-050) and an axis is flipped when no operand has a positive
+  stride on it and at least one has a negative stride (NumPy
+  `npyiter_flip_negative_strides`). TS walks the plan and builds 0-d read-only views.
+- `np.nditer(op | op[], {flags, order, opFlags})` returns an `NDIter` (JS has no
+  context manager or Python iterator object; it is a JS iterable). Each step
+  yields a 0-d read-only `NDArray` view (one operand) or an array of them.
+  Supported flags: `multi_index`, `c_index`, `f_index`, `zerosize_ok`
+  (camelCase spellings accepted). `buffered`, `external_loop`, `reduce_ok`,
+  `refs_ok`, `ranged`, `delay_bufalloc`, `grow_inner`, `copy_if_overlap`,
+  `common_dtype` raise `NotImplementedError`; unknown flags raise `ValueError`
+  (NumPy message). `opFlags` other than `readonly` raise `NotImplementedError`.
+- Members: `shape`, `ndim`, `nop`, `itersize`, `iterindex` (get/set), `multiIndex`
+  (get/set, coordinates in operand space even when an axis is flipped), `index`
+  (C or F flat index of the broadcast shape), `finished`, `value`, `operands`,
+  `iternext()`, `reset()`. Errors follow NumPy: missing `multi_index` / index
+  → `ValueError`, out-of-range `iterindex`/`multiIndex` → `IndexError`, zero-size
+  operands without `zerosize_ok` → `ValueError`, broadcast mismatch → `BroadcastError`.
+- `np.ndindex(...shape)` (numbers or one shape array) and `np.ndenumerate(a)` are
+  generators of `number[]` / `[number[], scalar]` in C order (scalars are JS values,
+  D-005).
+
+## D-062 — dtype introspection: finfo, iinfo, resultType, minScalarType, issubdtype, isdtype, commonType, mintypecode, abstract dtypes (P3-4) — Accepted — 2026-10-02
+- `np.finfo(dt | array)` / `np.iinfo(dt | array)` return frozen `FInfo` / `IInfo`
+  objects computed natively (`native/core/p03_dtypes.cpp`, `std::numeric_limits`
+  plus binary16 constants). `FInfo` has NumPy's fields in camelCase (`bits, eps,
+  epsneg, max, min, tiny, smallestNormal, smallestSubnormal, resolution,
+  precision, iexp, nexp, nmant, machep, negep, minexp, maxexp, dtype`); float
+  values are JS numbers holding the dtype-rounded value (e.g. float32
+  `resolution` is `float32(1e-6)`). Complex dtypes report their component
+  dtype. `IInfo` has `bits, min, max, dtype, kind`; `min`/`max` are numbers
+  (lossy above 2^53, D-005) and `minExact`/`maxExact` are exact bigints.
+  Wrong kinds raise `ValueError` with NumPy's messages.
+- `np.resultType(...args)`: DTypes, dtype names and arrays (0-d included) are
+  strong and promoted with `promoteTypes`; JS scalars are weak (NEP 50, the same
+  rules as ufunc operands, D-014): the strongest scalar kind (bool < int < float
+  < complex) only raises the result's kind (int → int64, float → float64,
+  complex → complex64 for float16/float32, complex128 otherwise), never its size.
+  No argument raises `ValueError("at least one array or dtype is required")`.
+- `np.minScalarType(x)`: arrays with ndim > 0 return their dtype. 0-d arrays and
+  JS scalars (converted like `np.array(x)`) are value-based, natively: smallest
+  unsigned integer for values ≥ 0, smallest signed for negative ones; floats
+  → float16 when non-finite or in (−65000, 65000), float32 in (−3.4e38, 3.4e38),
+  else float64; complex → complex64 when both parts are in (−3.4e38, 3.4e38).
+  JS numbers count as integers only when they are safe integers (|x| < 2^53);
+  other numbers are floats (use a bigint for larger integers). Bigints that fit
+  no integer dtype (NumPy `object`) raise `ValueError`.
+- Abstract dtypes `np.generic, number, integer, signedinteger, unsignedinteger,
+  inexact, floating, complexfloating` are frozen `AbstractDType` objects
+  (`name`, `parent`); NumPy's scalar-type hierarchy, with `bool` directly under
+  `generic`. They are only meaningful for `issubdtype`.
+- `np.issubdtype(a, b)`: `a`, `b` are DTypeLike or AbstractDType. Concrete `b` →
+  equality; abstract `b` → `a` (or its kind's abstract type) descends from `b`.
+- `np.isdtype(dtype, kind)`: `dtype` must be a `DType` (strings raise
+  `DTypeError`, as NumPy's TypeError); `kind` is a DType, one of NumPy's kind
+  names, or an array of them. AbstractDType kinds raise `DTypeError`.
+- `np.commonType(...arrays)` returns a `DType` (NumPy returns a scalar type):
+  integers count as float64; bool raises `DTypeError`; no argument → float16.
+- `np.mintypecode(typechars, typeset = "GDFgdf", default = "d")`: NumPy's
+  algorithm with its type characters (int64 = `l`, uint64 = `L`). Strings are
+  iterated per character; array entries use their dtype's character.
+
+## D-063 — Array printing: dragon4, array2string/arrayRepr/arrayStr, print options, toString = repr (P3-5) — Accepted — 2026-10-02
+- `native/core/p03_print.cpp` ports NumPy's Dragon4 (`dragon4.c`: the
+  `Dragon4` digit generator in unique/exact mode with total/fraction-length
+  cutoffs, `FormatPositional`, `FormatScientific`, trim modes `k . 0 -`) on a
+  small arbitrary-precision integer. Values are decomposed in their own dtype
+  (binary16/32/64), so float16/float32 print their shortest unique digits.
+- `np.formatFloatPositional(x, {precision, unique, fractional, trim, sign,
+  padLeft, padRight, minDigits})` and `np.formatFloatScientific(x, {precision,
+  unique, trim, sign, padLeft, expDigits, minDigits})`: `x` is a JS number
+  (float64) or a 0-d/size-1 NDArray (its float dtype; ints and bool convert to
+  float64; complex raises `DTypeError`). NumPy's argument errors map to
+  `ValueError`/`DTypeError` (for its TypeErrors).
+- Element formatting (NumPy `FloatingFormat`, `ComplexFloatingFormat`,
+  `IntegerFormat`, `BoolFormat`, summarization corners) runs natively and
+  returns the C-order strings of the summarized array; TS does the line layout
+  (`_formatArray`/`_extendLine`) and the repr/str wrappers, which only
+  concatenate strings.
+- `np.array2string(a, {maxLineWidth, precision, suppressSmall, separator,
+  prefix, suffix, formatter, threshold, edgeitems, sign, floatmode, legacy})`,
+  `np.arrayRepr(a, {maxLineWidth, precision, suppressSmall})`,
+  `np.arrayStr(a, {...})` follow NumPy 2.x defaults (legacy=False). `formatter`
+  is an object of JS callbacks keyed by NumPy's names (`all`, `bool`, `int`,
+  `float`, `complexfloat`, `int_kind`, `float_kind`, `complex_kind`; camelCase
+  accepted); callbacks get the JS scalar (`item()`) and must return a string.
+  `legacy` other than `false` raises `NotImplementedError`.
+- Print options are module state: `np.setPrintoptions(opts)` (`precision,
+  threshold, edgeitems, linewidth, suppress, nanstr, infstr, sign, floatmode,
+  formatter, legacy, overrideRepr`; `formatter`/`overrideRepr` reset on every
+  call like NumPy; `undefined`/`null` = unchanged), `np.getPrintoptions()`
+  (a copy), and `np.printoptions(opts, fn)` — NumPy's context manager becomes a
+  callback: options apply while `fn()` runs and are restored afterwards (also
+  on throw); returns `fn`'s result.
+- `NDArray.toString()` is `np.arrayRepr(this)` (NumPy `repr`), e.g.
+  `array([1, 2])`; the old JSON-like `array([1,2], dtype=int64)` form is gone.
+  0-d `arrayStr` uses NumPy scalar `str` rules (float16/32/64 positional below
+  1e3/1e6/1e16 and ≥ 1e-4, complex `(a+bj)`).

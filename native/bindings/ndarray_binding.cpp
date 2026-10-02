@@ -177,6 +177,8 @@ struct AddonData {
   Napi::ObjectReference construct_token;
   // np.Complex, registered by the TS layer (D-033). Empty until then.
   Napi::FunctionReference complex_ctor;
+  // Owning wrappers by buffer (D-060).
+  std::shared_ptr<OwnerMap> owners = std::make_shared<OwnerMap>();
 };
 
 namespace {
@@ -216,6 +218,10 @@ NDArrayWrap::~NDArrayWrap() {
   if (reported_bytes_ != 0) {
     Napi::MemoryManagement::AdjustExternalMemory(Env(), -reported_bytes_);
   }
+  if (owners_ && array_) {
+    const auto it = owners_->find(array_->buffer().get());
+    if (it != owners_->end() && it->second == this) owners_->erase(it);
+  }
 }
 
 const NDArray& NDArrayWrap::array() const {
@@ -233,6 +239,15 @@ Napi::Object NDArrayWrap::create(Napi::Env env, NDArray array) {
     Napi::MemoryManagement::AdjustExternalMemory(env, w->reported_bytes_);
   }
   w->array_.emplace(std::move(array));
+  // NumPy `base` (D-060): an owning wrapper registers itself; a view keeps its
+  // owner's JS handle alive through a hidden property.
+  const MemoryBuffer* buf = w->array_->buffer().get();
+  if (w->array_->owns_data()) {
+    w->owners_ = d.owners;
+    (*d.owners)[buf] = w;
+  } else if (const auto it = d.owners->find(buf); it != d.owners->end()) {
+    obj.DefineProperty(Napi::PropertyDescriptor::Value("__base", it->second->Value(), napi_default));
+  }
   return obj;
 }
 
@@ -355,6 +370,26 @@ NATIVPY_METHOD(get_item, {
   return load_element(env, a.dtype(), a.buffer()->data() + off);
 })
 
+NATIVPY_METHOD(base, {
+  const Napi::Value b = info.This().As<Napi::Object>().Get("__base");
+  return b.IsUndefined() ? env.Null() : b;
+})
+
+// setWriteable(flag): NumPy setflags(write=) (D-060). Setting true fails when
+// the owner of the data is read-only.
+NATIVPY_METHOD(set_writeable, {
+  const bool w = info[0].ToBoolean().Value();
+  if (w) {
+    const Napi::Value b = info.This().As<Napi::Object>().Get("__base");
+    if (!b.IsUndefined() && !NDArrayWrap::unwrap(b).writeable()) {
+      throw_error(ErrorKind::Value, "cannot set WRITEABLE flag to True of this array");
+    }
+  }
+  (void)array();
+  array_->set_writeable(w);
+  return env.Undefined();
+})
+
 #undef NATIVPY_METHOD
 
 void NDArrayWrap::init(Napi::Env env, Napi::Object exports) {
@@ -378,9 +413,12 @@ void NDArrayWrap::init(Napi::Env env, Napi::Object exports) {
           InstanceMethod<&NDArrayWrap::astype>("astype"),
           InstanceMethod<&NDArrayWrap::shares_memory>("sharesMemory"),
           InstanceMethod<&NDArrayWrap::get_item>("getItem"),
+          InstanceMethod<&NDArrayWrap::base>("base"),
+          InstanceMethod<&NDArrayWrap::set_writeable>("setWriteable"),
       });
   auto data = std::make_unique<AddonData>(
-      AddonData{Napi::Persistent(ctor), Napi::Persistent(Napi::Object::New(env)), Napi::FunctionReference()});
+      AddonData{Napi::Persistent(ctor), Napi::Persistent(Napi::Object::New(env)), Napi::FunctionReference(),
+                std::make_shared<OwnerMap>()});
   env.SetInstanceData<AddonData>(data.release());  // env owns it; deleted on teardown
   exports.Set("NativeNDArray", ctor);
 }

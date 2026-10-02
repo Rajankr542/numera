@@ -49,6 +49,8 @@ class NDArray {
   [[nodiscard]] bool writeable() const noexcept { return writeable_; }
   // Same view with the writeable flag cleared (used by broadcast_to).
   [[nodiscard]] NDArray as_readonly() const;
+  // NumPy setflags(write=...) on this array object (D-060); callers check the rules.
+  void set_writeable(bool w) noexcept { writeable_ = w; }
   // Throws ErrorKind::Value "assignment destination is read-only".
   void check_writeable() const;
 

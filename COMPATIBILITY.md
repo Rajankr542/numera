@@ -124,6 +124,23 @@ differential tests (`pnpm test:diff`).
 | `einsum` without `optimize` | single n-ary C loop (`c_einsum`) | pairwise left-to-right contractions over `matmul`; results equal up to float rounding | D-141 |
 | `einsumPath` report for `...` subscripts | ellipsis letters from Python set order ("may vary") | the highest unused letters (`z`, `y`, …) | D-141 |
 | `einsumPath` unknown path name | `KeyError` / `TypeError` | `ValueError` | D-141 |
+| `a.flat` | `flatiter` object, `a.flat[i]` | `FlatIter` with `get(i)`/`set(i, v)`, iterable; `a.flat = v` assigns cyclically | D-060 |
+| `a.flat[i]` for an integer | NumPy scalar | JS scalar | D-060 |
+| `a.tobytes()` | Python `bytes` | `Uint8Array` copy | D-060 |
+| `a.setflags(align=, uic=)` | supported | `NotImplementedError` (only `write`) | D-060 |
+| `a.fill(300)` on int8 | `OverflowError` | `ValueError` | D-060 |
+| `a.astype(dt, casting=)` disallowed | `TypeError` | `DTypeError` | D-060 |
+| `np.nditer` | full iterator (buffering, writable operands, context manager) | read-only `NDIter`, flags `multi_index`/`c_index`/`f_index`/`zerosize_ok`; others raise `NotImplementedError` | D-061 |
+| `np.ndenumerate` values | NumPy scalars | JS scalars | D-061 |
+| `np.finfo`/`np.iinfo` fields | NumPy scalars of the dtype; snake_case | JS numbers (camelCase); `iinfo` also has exact bigint `minExact`/`maxExact` | D-062 |
+| `np.minScalarType(1e5)` | `float32` (Python float) | `uint32`: JS cannot tell `1e5` from `100000`, so safe integers count as integers | D-062 |
+| `np.minScalarType` for integers beyond 64 bits | `object` | `ValueError` | D-062 |
+| `np.commonType` | returns a scalar type | returns a `DType` | D-062 |
+| `np.printoptions(...)` | context manager (`with`) | callback form `np.printoptions(opts, fn)`; options restored after `fn` | D-063 |
+| print option `legacy` | `'1.13'`, `'1.21'`, `'1.25'`, `'2.1'`, `'2.2'` or `False` | only `false`; others raise `NotImplementedError` | D-063 |
+| `formatter` callables in `array2string`/print options | Python callables; keys incl. `str_kind`, `numpystr`, `datetime`, `object` | JS callbacks for `all`, `bool`, `int`, `float`, `complexfloat`, `int_kind`, `float_kind`, `complex_kind` | D-063 |
+| `formatFloatPositional`/`formatFloatScientific` argument `TypeError`s | `TypeError` | `DTypeError` | D-063 |
+| `String(a)` / `a.toString()` | n/a (`repr(a)`) | NumPy `repr` text | D-063 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).

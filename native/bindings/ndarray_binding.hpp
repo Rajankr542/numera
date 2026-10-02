@@ -2,11 +2,18 @@
 
 #include <napi.h>
 
+#include <memory>
 #include <optional>
+#include <unordered_map>
 
 #include "ndarray.hpp"
 
 namespace nativpy::bindings {
+
+class NDArrayWrap;
+// Buffer -> the wrapper that owns it (NumPy `base`, D-060). Shared by every
+// owning wrapper so its destructor can unregister without N-API calls (D-023).
+using OwnerMap = std::unordered_map<const MemoryBuffer*, NDArrayWrap*>;
 
 // JS wrapper owning one NDArray (i.e. one reference to its MemoryBuffer).
 // Instances can only be created from C++ via NDArrayWrap::create.
@@ -44,9 +51,12 @@ class NDArrayWrap : public Napi::ObjectWrap<NDArrayWrap> {
   Napi::Value astype(const Napi::CallbackInfo& info);
   Napi::Value shares_memory(const Napi::CallbackInfo& info);
   Napi::Value get_item(const Napi::CallbackInfo& info);
+  Napi::Value base(const Napi::CallbackInfo& info);
+  Napi::Value set_writeable(const Napi::CallbackInfo& info);
 
   std::optional<NDArray> array_;
   std::int64_t reported_bytes_ = 0;
+  std::shared_ptr<OwnerMap> owners_;  // set when this wrapper owns its buffer
 };
 
 void init_ndarray_binding(Napi::Env env, Napi::Object exports);

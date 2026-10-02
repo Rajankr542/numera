@@ -1,1 +1,22 @@
-[]
+[
+ "ndarray.byteswap [nativpy] [numpy]",
+ "ndarray.fill [nativpy] [numpy]",
+ "ndarray.setflags [nativpy] [numpy]",
+ "ndarray.tobytes [nativpy]",
+ "ndarray.tolist [nativpy]",
+ "ndarray.view [nativpy] [numpy]",
+ "np.array2string [nativpy] [numpy]",
+ "np.array_repr [nativpy] [numpy]",
+ "np.array_str [nativpy] [numpy]",
+ "np.common_type [nativpy] [numpy]",
+ "np.format_float_positional [nativpy] [numpy]",
+ "np.format_float_scientific [nativpy] [numpy]",
+ "np.get_printoptions [nativpy] [numpy]",
+ "np.isdtype [nativpy] [numpy]",
+ "np.issubdtype [nativpy] [numpy]",
+ "np.min_scalar_type [nativpy] [numpy]",
+ "np.mintypecode [nativpy] [numpy]",
+ "np.printoptions [nativpy] [numpy]",
+ "np.result_type [nativpy] [numpy]",
+ "np.set_printoptions [nativpy] [numpy]"
+]

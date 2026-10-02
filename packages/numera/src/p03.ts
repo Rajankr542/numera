@@ -6,5 +6,109 @@
 //   declare module "./ndarray.js" { interface NDArray { foo(): NDArray } }
 //   NDArray.prototype.foo = function () { ... };
 // (see AGENTS.md "Parallel milestones").
+import {
+  commonType,
+  complexfloating,
+  finfo,
+  floating,
+  generic,
+  iinfo,
+  inexact,
+  integer,
+  isdtype,
+  issubdtype,
+  minScalarType,
+  mintypecode,
+  number,
+  resultType,
+  signedinteger,
+  unsignedinteger,
+} from "./p03_dtypes.js";
+import { ndenumerate, nditer, ndindex } from "./p03_iter.js";
+import {
+  array2string,
+  arrayRepr,
+  arrayStr,
+  formatFloatPositional,
+  formatFloatScientific,
+  getPrintoptions,
+  printoptions,
+  setPrintoptions,
+} from "./p03_print.js";
 
-export const p03 = {} as const;
+export { FlatIter } from "./ndarray.js";
+export type { FlatIndex, ScalarValue } from "./ndarray.js";
+export { NDIter, ndenumerate, nditer, ndindex } from "./p03_iter.js";
+export type { NDIterOptions } from "./p03_iter.js";
+export {
+  AbstractDType,
+  commonType,
+  complexfloating,
+  finfo,
+  floating,
+  generic,
+  iinfo,
+  inexact,
+  integer,
+  isdtype,
+  issubdtype,
+  minScalarType,
+  mintypecode,
+  number,
+  resultType,
+  signedinteger,
+  unsignedinteger,
+} from "./p03_dtypes.js";
+export type { FInfo, IInfo } from "./p03_dtypes.js";
+export {
+  array2string,
+  arrayRepr,
+  arrayStr,
+  formatFloatPositional,
+  formatFloatScientific,
+  getPrintoptions,
+  printoptions,
+  setPrintoptions,
+} from "./p03_print.js";
+export type {
+  Array2StringOptions,
+  ArrayReprOptions,
+  FloatMode,
+  FormatFloatPositionalOptions,
+  FormatFloatScientificOptions,
+  Formatter,
+  PrintOptions,
+  PrintOptionsInput,
+  SignOption,
+  TrimOption,
+} from "./p03_print.js";
+
+export const p03 = {
+  ndindex,
+  ndenumerate,
+  nditer,
+  finfo,
+  iinfo,
+  resultType,
+  minScalarType,
+  issubdtype,
+  isdtype,
+  commonType,
+  mintypecode,
+  generic,
+  number,
+  integer,
+  signedinteger,
+  unsignedinteger,
+  inexact,
+  floating,
+  complexfloating,
+  array2string,
+  arrayRepr,
+  arrayStr,
+  formatFloatPositional,
+  formatFloatScientific,
+  setPrintoptions,
+  getPrintoptions,
+  printoptions,
+} as const;
