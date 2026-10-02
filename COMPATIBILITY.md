@@ -109,3 +109,17 @@ differential tests (`pnpm test:diff`).
 - Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
 - FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
 - Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
+
+## P7 creation and grids divergences
+| Behaviour | NumPy | nativpy | Decision |
+|---|---|---|---|
+| `mgrid`/`ogrid`/`r_`/`c_`/`s_`/`index_exp` | index-trick objects (`np.mgrid[0:3, 0:1:5j]`) | functions taking `[start, stop, step]` tuples (complex step = point count) or slice strings (`"1:4"`, `"0:1:5j"`) | D-100 |
+| `r_`/`c_` matrix directives `"r"`/`"c"` | return `np.matrix` | `NotImplementedError` (no matrix class) | D-100 |
+| `meshgrid`/`ix_`/`indices(sparse)`/`ogrid` results | tuple (`ogrid`: list) | JS array of NDArrays | D-100 |
+| `logspace`/`geomspace` bounds | array-like `start`/`stop`/`base`, `axis=` | scalar (real or complex) `start`/`stop`/`base` only, no `axis` | D-100 |
+| `np.astype` on non-arrays | `TypeError` | `DTypeError` | D-100 |
+| `tril`/`triu` on 0-d input | `ValueError` | `DTypeError` | D-100 |
+| `frombuffer` result | read-only view sharing the buffer | owned, writeable copy; native byte order only | D-101 |
+| `fromstring` binary mode (`sep=""`) | removed (`ValueError`) | same `ValueError` | D-101 |
+| `fromstring` with `count` larger than the data | `DeprecationWarning`, short array | `ValueError: string is smaller than requested size` | D-101 |
+| `fromiter` without `dtype` | `TypeError` | `dtype` is a required positional argument | D-101 |
