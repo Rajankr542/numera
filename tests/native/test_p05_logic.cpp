@@ -129,3 +129,43 @@ TEST_CASE("p05 compare: empty and broadcast") {
   CHECK(r.shape() == Shape({2, 2}));
   CHECK(ints(r) == IV({1, 1, 0, 1}));
 }
+
+TEST_CASE("p05 logical: and/or/xor/not on every dtype") {
+  for (DType dt : {DType::Bool, DType::Int8, DType::UInt64, DType::Float16, DType::Float64,
+                   DType::Complex64, DType::Complex128}) {
+    const NDArray a = vec_d({0, 0, 2, 3}, dt);
+    const NDArray b = vec_d({0, 1, 0, 1}, dt);
+    CHECK(ints(bin("logicalAnd", a, b)) == IV({0, 0, 0, 1}));
+    CHECK(ints(bin("logicalOr", a, b)) == IV({0, 1, 1, 1}));
+    CHECK(ints(bin("logicalXor", a, b)) == IV({0, 1, 1, 0}));
+    const NDArray n = unary(U("logicalNot"), a, nullptr, {});
+    CHECK(n.dtype() == DType::Bool);
+    CHECK(ints(n) == IV({1, 1, 0, 0}));
+  }
+  using C = std::complex<double>;
+  CHECK(ints(unary(U("logicalNot"), cvec({C(0, 1), C(0, 0)}), nullptr, {})) == IV({0, 1}));
+  CHECK(ints(unary(U("logicalNot"), vec_d({kNaN}), nullptr, {})) == IV({0}));
+}
+
+TEST_CASE("p05 logical: reduce casts to bool and uses identities") {
+  const NDArray r = ufunc_reduce(U("logicalAnd"), vec_i({1, 2, 0}), nullptr, {});
+  CHECK(r.dtype() == DType::Bool);
+  CHECK_EQ(r.get_int64(0), 0);
+  CHECK_EQ(ufunc_reduce(U("logicalXor"), vec_i({1, 1, 1}), nullptr, {}).get_int64(0), 1);
+  const NDArray e = NDArray::empty({0}, DType::Float64);
+  CHECK_EQ(ufunc_reduce(U("logicalAnd"), e, nullptr, {}).get_int64(0), 1);
+  CHECK_EQ(ufunc_reduce(U("logicalOr"), e, nullptr, {}).get_int64(0), 0);
+  NDArray m = NDArray::empty({2, 2}, DType::Int64);
+  for (int i = 0; i < 4; ++i) m.set_int64(i, i == 1 ? 0 : 1);
+  UfuncReduceOptions all;
+  all.all_axes = true;
+  CHECK_EQ(ufunc_reduce(U("logicalAnd"), m, nullptr, all).get_int64(0), 0);
+  CHECK_EQ(ufunc_reduce(U("logicalOr"), m, nullptr, all).get_int64(0), 1);
+  NDArray out = NDArray::zeros({}, DType::Int64);
+  ufunc_reduce(U("logicalAnd"), vec_d({1.5, 2}), &out, {});
+  CHECK_EQ(out.get_int64(0), 1);
+  CHECK(ints(ufunc_accumulate(U("logicalAnd"), vec_i({1, 2, 0, 3}), nullptr, {})) == IV({1, 1, 0, 0}));
+  UfuncReduceOptions bad;
+  bad.dtype = DType::Int64;
+  CHECK_THROWS_KIND(ufunc_reduce(U("logicalAnd"), vec_i({1}), nullptr, bad), ErrorKind::DType);
+}

@@ -5,9 +5,13 @@ import { dtype as toDType } from "./dtype.js";
 import { NDArray } from "./ndarray.js";
 import {
   binaryUfunc,
+  unaryUfunc,
+  type ArrayLike,
   type BinaryUfunc,
   type Operand,
   type UfuncOptions,
+  type UfuncReduceOptions,
+  type UnaryUfunc,
 } from "./ufunc.js";
 
 const INT_RANGE: Record<string, readonly [bigint, bigint]> = {
@@ -75,3 +79,52 @@ export const lessEqual: BinaryUfunc = boolBinaryUfunc("lessEqual");
 export const greater: BinaryUfunc = boolBinaryUfunc("greater");
 /** NumPy greater_equal: element-wise `a >= b` (bool). */
 export const greaterEqual: BinaryUfunc = boolBinaryUfunc("greaterEqual");
+
+/** NumPy logical_and: element-wise truth AND (bool; identity True). */
+export const logicalAnd: BinaryUfunc = boolBinaryUfunc("logicalAnd");
+/** NumPy logical_or: element-wise truth OR (bool; identity False). */
+export const logicalOr: BinaryUfunc = boolBinaryUfunc("logicalOr");
+/** NumPy logical_xor: element-wise truth XOR (bool; identity False). */
+export const logicalXor: BinaryUfunc = boolBinaryUfunc("logicalXor");
+/** NumPy logical_not: element-wise truth NOT (bool). */
+export const logicalNot: UnaryUfunc = unaryUfunc("logicalNot");
+
+/** Options for `np.all` / `np.any` (NumPy keywords, D-080). */
+export interface AllAnyOptions {
+  /** Axis or axes to reduce; `null`/omitted reduces all axes. */
+  axis?: number | readonly number[] | null;
+  /** Write the result into this array (cast to its dtype) and return it. */
+  out?: NDArray | null;
+  /** Keep reduced axes with length 1. */
+  keepdims?: boolean;
+  /** Bool mask: only true elements take part. */
+  where?: ArrayLike | boolean | number;
+}
+
+function allAny(u: BinaryUfunc, a: ArrayLike, opts: AllAnyOptions): NDArray {
+  const r: UfuncReduceOptions = { axis: opts.axis === undefined ? null : opts.axis };
+  if (opts.out !== undefined) r.out = opts.out;
+  if (opts.keepdims !== undefined) r.keepdims = opts.keepdims;
+  if (opts.where !== undefined) r.where = opts.where;
+  return u.reduce(a, r);
+}
+
+/** NumPy all: true if every element (along `axis`) is truthy. */
+export const all = (a: ArrayLike, opts: AllAnyOptions = {}): NDArray => allAny(logicalAnd, a, opts);
+/** NumPy any: true if some element (along `axis`) is truthy. */
+export const any = (a: ArrayLike, opts: AllAnyOptions = {}): NDArray => allAny(logicalOr, a, opts);
+
+declare module "./ndarray.js" {
+  interface NDArray {
+    /** NumPy ndarray.all (see `np.all`). */
+    all(opts?: AllAnyOptions): NDArray;
+    /** NumPy ndarray.any (see `np.any`). */
+    any(opts?: AllAnyOptions): NDArray;
+  }
+}
+NDArray.prototype.all = function (this: NDArray, opts: AllAnyOptions = {}): NDArray {
+  return all(this, opts);
+};
+NDArray.prototype.any = function (this: NDArray, opts: AllAnyOptions = {}): NDArray {
+  return any(this, opts);
+};

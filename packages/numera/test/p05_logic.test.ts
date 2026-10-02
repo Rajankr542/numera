@@ -86,3 +86,59 @@ describe("P5 comparisons (D-080)", () => {
     expect(np.notEqual.reduce([true, false, true]).toArray()).toBe(false);
   });
 });
+
+describe("P5 logical ops and all/any (D-080)", () => {
+  it("logical ufuncs on every dtype", () => {
+    for (const dt of DTYPES) {
+      const a = np.array([0, 0, 1, 1], { dtype: dt });
+      const b = np.array([0, 1, 0, 1], { dtype: dt });
+      expect(np.logicalAnd(a, b).toArray()).toEqual([false, false, false, true]);
+      expect(np.logicalOr(a, b).toArray()).toEqual([false, true, true, true]);
+      expect(np.logicalXor(a, b).toArray()).toEqual([false, true, true, false]);
+      expect(np.logicalNot(a).toArray()).toEqual([true, true, false, false]);
+      expect(np.logicalNot(a).dtype).toBe(np.bool);
+    }
+    expect(np.logicalNot([0.5, NaN, 0]).toArray()).toEqual([false, false, true]);
+    expect(np.logicalNot(np.array([np.complex(0, 1)])).toArray()).toEqual([false]);
+    expect(np.logicalAnd(np.array([1], { dtype: "int8" }), 1000).toArray()).toEqual([true]);
+    expect(np.logicalNot(np.array(0)).shape).toEqual([]);
+    expect(np.logicalNot([1], { dtype: "bool" }).toArray()).toEqual([false]);
+    expect(() => np.logicalNot([1], { dtype: "float64" })).toThrow(DTypeError);
+    expect(() => np.logicalAnd([1], [1], { dtype: "int64" })).toThrow(DTypeError);
+  });
+
+  it("logical reduce/accumulate use NumPy identities", () => {
+    expect(np.logicalAnd.reduce([1, 2, 0]).toArray()).toBe(false);
+    expect(np.logicalAnd.reduce(np.array([], { dtype: "int64" })).toArray()).toBe(true);
+    expect(np.logicalOr.reduce(np.array([], { dtype: "float64" })).toArray()).toBe(false);
+    expect(np.logicalXor.reduce([1, 1, 1]).toArray()).toBe(true);
+    expect(np.logicalXor.reduce([[1, 1], [1, 0]], { axis: null }).toArray()).toBe(true);
+    expect(np.logicalAnd.accumulate([1, 2, 0, 3]).toArray()).toEqual([true, true, false, false]);
+    const out = np.zeros([], { dtype: "int64" });
+    np.logicalAnd.reduce([1, 2], { out });
+    expect(out.toArray()).toBe(1);
+  });
+
+  it("all/any with axis, keepdims, where, out", () => {
+    const m = [[1, 0], [1, 1]];
+    expect(np.all(m).toArray()).toBe(false);
+    expect(np.any(m).toArray()).toBe(true);
+    expect(np.all(m, { axis: 0 }).toArray()).toEqual([true, false]);
+    expect(np.any([[0, 0], [0, 1]], { axis: 1 }).toArray()).toEqual([false, true]);
+    expect(np.all(m, { axis: [0, 1], keepdims: true }).toArray()).toEqual([[false]]);
+    expect(np.all([]).toArray()).toBe(true);
+    expect(np.any([]).toArray()).toBe(false);
+    expect(np.any(np.zeros([2, 0]), { axis: 1 }).toArray()).toEqual([false, false]);
+    expect(np.all([1, 0], { where: [true, false] }).toArray()).toBe(true);
+    expect(np.all(5).toArray()).toBe(true);
+    expect(np.any([NaN]).toArray()).toBe(true);
+    expect(np.all([np.complex(0, 0)]).toArray()).toBe(false);
+    const out = np.zeros([], { dtype: "int64" });
+    expect(np.all([1, 2], { out })).toBe(out);
+    expect(out.toArray()).toBe(1);
+    expect(() => np.all(m, { axis: 2 })).toThrow();
+    const a = np.array(m);
+    expect(a.all().toArray()).toBe(false);
+    expect(a.any({ axis: 0 }).toArray()).toEqual([true, true]);
+  });
+});

@@ -112,6 +112,15 @@ using CLeF = ComplexOrderF<LtF, LeF>;
 using CGtF = ComplexOrderF<GtF, GtF>;
 using CGeF = ComplexOrderF<GtF, GeF>;
 
+// ---- logical kernels (truthiness = NumPy's bool cast) ----
+
+template <typename T>
+bool truthy(T v) noexcept { return v != T{}; }
+struct LAndF { template <typename T> bool operator()(T a, T b) const noexcept { return truthy(a) && truthy(b); } };
+struct LOrF { template <typename T> bool operator()(T a, T b) const noexcept { return truthy(a) || truthy(b); } };
+struct LXorF { template <typename T> bool operator()(T a, T b) const noexcept { return truthy(a) != truthy(b); } };
+struct LNotF { template <typename T> bool operator()(T a) const noexcept { return !truthy(a); } };
+
 // ---- type resolution ----
 
 // Comparisons / logical ops: loop in the promoted dtype, bool output.
@@ -125,14 +134,28 @@ LoopTypes d_bool_binary(DType, DType d) {
   return same(DType::Bool);
 }
 
+// Unary bool-output ufuncs: the loop reads the input dtype.
+LoopTypes r_to_bool_unary(DType a, DType) { return {a, DType::Bool}; }
+// dtype=bool keeps the input loop (NumPy casts the input to the bool loop,
+// which gives the same values).
+template <const char* Name>
+LoopTypes d_bool_unary(DType a, DType d) {
+  if (d != DType::Bool) no_loop(Name);
+  return {a, DType::Bool};
+}
+
 constexpr char kEqual[] = "equal";
 constexpr char kNotEqual[] = "notEqual";
 constexpr char kLess[] = "less";
 constexpr char kLessEqual[] = "lessEqual";
 constexpr char kGreater[] = "greater";
 constexpr char kGreaterEqual[] = "greaterEqual";
+constexpr char kLogicalAnd[] = "logicalAnd";
+constexpr char kLogicalOr[] = "logicalOr";
+constexpr char kLogicalXor[] = "logicalXor";
+constexpr char kLogicalNot[] = "logicalNot";
 
-constexpr std::array<Ufunc, 6> kTable{{
+constexpr std::array<Ufunc, 10> kTable{{
     {kEqual, 2, std::nullopt, r_to_bool, d_bool_binary<kEqual>, nullptr,
      bool_binary_table<EqF, Avail::All, EqF>(), {}},
     {kNotEqual, 2, std::nullopt, r_to_bool, d_bool_binary<kNotEqual>, nullptr,
@@ -145,6 +168,14 @@ constexpr std::array<Ufunc, 6> kTable{{
      bool_binary_table<GtF, Avail::All, CGtF>(), {}},
     {kGreaterEqual, 2, std::nullopt, r_to_bool, d_bool_binary<kGreaterEqual>, nullptr,
      bool_binary_table<GeF, Avail::All, CGeF>(), {}},
+    {kLogicalAnd, 2, 1.0, r_to_bool, d_bool_binary<kLogicalAnd>, nullptr,
+     bool_binary_table<LAndF, Avail::All, LAndF>(), {}},
+    {kLogicalOr, 2, 0.0, r_to_bool, d_bool_binary<kLogicalOr>, nullptr,
+     bool_binary_table<LOrF, Avail::All, LOrF>(), {}},
+    {kLogicalXor, 2, 0.0, r_to_bool, d_bool_binary<kLogicalXor>, nullptr,
+     bool_binary_table<LXorF, Avail::All, LXorF>(), {}},
+    {kLogicalNot, 1, std::nullopt, r_to_bool_unary, d_bool_unary<kLogicalNot>, nullptr, {},
+     bool_unary_table<LNotF, Avail::All, LNotF>()},
 }};
 
 }  // namespace

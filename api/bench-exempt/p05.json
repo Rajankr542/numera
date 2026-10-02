@@ -1,8 +1,16 @@
 [
+  "ndarray.all [nativpy] [numpy]",
+  "ndarray.any [nativpy] [numpy]",
+  "np.all [nativpy] [numpy]",
+  "np.any [nativpy] [numpy]",
   "np.equal [nativpy] [numpy]",
   "np.greater [nativpy] [numpy]",
   "np.greater_equal [nativpy] [numpy]",
   "np.less [nativpy] [numpy]",
   "np.less_equal [nativpy] [numpy]",
+  "np.logical_and [nativpy] [numpy]",
+  "np.logical_not [nativpy] [numpy]",
+  "np.logical_or [nativpy] [numpy]",
+  "np.logical_xor [nativpy] [numpy]",
   "np.not_equal [nativpy] [numpy]"
 ]

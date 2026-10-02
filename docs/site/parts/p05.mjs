@@ -29,6 +29,36 @@ np.lessEqual([1, 2], 1);          // => [true, false]
 np.greater(np.array([1], { dtype: "int8" }), -1000); // => [true]
 np.greaterEqual([1, 2], 2);       // => [false, true]`,
       },
+      {
+        name: "logicalAnd",
+        sig: "np.logicalAnd(a, b, options?) · np.logicalOr · np.logicalXor · np.logicalNot(a, options?)",
+        desc: "Element-wise truth-value AND, OR, XOR and NOT with a `bool` result (zero, `false` and `0+0j` are false; NaN is true). `.reduce` uses NumPy's identities (`logicalAnd` true, the others false).",
+        args: [arrayArg("a"), arrayArg("b"), ufuncOpts],
+        returns: "NDArray (bool)",
+        example: `np.logicalAnd([1, 0, 2], [1, 1, 0]); // => [true, false, false]
+np.logicalOr([0, 0, 2], [0, 1, 0]);  // => [false, true, true]
+np.logicalXor([1, 1], [0, 1]);       // => [true, false]
+np.logicalNot([0, 1.5, NaN]);        // => [true, false, false]
+np.logicalXor.reduce([1, 1, 1]);     // => true`,
+      },
+      {
+        name: "all",
+        sig: "np.all(a, { axis?, keepdims?, where?, out? }) · np.any · a.all() · a.any()",
+        desc: "Whether every (`all`) or some (`any`) element is truthy, over all axes by default. Empty input gives `true` for `all` and `false` for `any`. Also available as `NDArray` methods.",
+        args: [
+          arrayArg("a"),
+          { name: "[options.axis]", type: "number | number[] | null", desc: "Axis or axes to reduce. Omitted or `null` reduces all axes." },
+          { name: "[options.keepdims]", type: "boolean", desc: "Keep reduced axes with length 1." },
+          { name: "[options.where]", type: "ArrayLike", desc: "Bool mask of the elements to include." },
+          { name: "[options.out]", type: "NDArray", desc: "Output array (the result is cast to its dtype)." },
+        ],
+        returns: "NDArray (bool)",
+        example: `np.all([[1, 0], [1, 1]]);              // => false
+np.all([[1, 0], [1, 1]], { axis: 0 });  // => [true, false]
+np.any([[0, 0], [0, 1]], { axis: 1 });  // => [false, true]
+np.all([1, 0], { where: [true, false] }); // => true
+np.array([0, 2]).any();                 // => true`,
+      },
     ],
   },
 ];
