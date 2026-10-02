@@ -2045,3 +2045,69 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   arrays); `copy: false` needs an NDArray and modifies it in place.
 - `realIfClose(x, tol = 100)` returns the `real` view (NumPy also returns
   `a.real`).
+
+## D-140 — P11 linear algebra completion: API and dtypes — Accepted — 2026-10-02
+- Native kernels in `native/linalg/p11_linalg.{hpp,cpp}` (`addon.p11`); TS in
+  `p11*.ts`; the new `np.linalg` names are added to the `linalg` object in
+  `linalg.ts` (owned by P11).
+- Results are always `NDArray`s (D-017): `matrixRank`, `cond`, `vdot`,
+  `multiDot` of two vectors, ... return 0-d arrays where NumPy returns scalars.
+  `slogdet` returns `{ sign, logabsdet }` (NumPy `SlogdetResult`).
+- New decompositions (`cholesky`, `slogdet`, the singular-matrix-tolerant
+  inverse used by `cond`) compute in float64 / complex128 and cast to NumPy's
+  `_commonType` result type at the end (float32 for float32, complex64 for
+  complex64, float64 for bool/int; float16 → `DTypeError`), as NumPy's
+  `'d->d'` / `'D->D'` signatures. Functions composed from the existing
+  `svd`/`eigh`/`inv`/`norm` (`pinv`, `matrixRank`, `svdvals`, `cond` with
+  p = None/±2, `matrixPower` with n < 0) keep those functions' dtype rules (D-018).
+- Keyword arguments are option objects: `cholesky(a, {upper})`,
+  `pinv(a, {rcond, hermitian, rtol})` (`rtol: null` = API-standard default
+  `max(M, N) * eps`; `rcond` and `rtol` together → `ValueError`),
+  `matrixRank(A, {tol, hermitian, rtol})`, `cond(x, p?)`,
+  `vectorNorm(x, {axis, keepdims, ord})`, `matrixNorm(x, {keepdims, ord})`,
+  `linalg.diagonal(x, {offset})`, `linalg.trace(x, {offset, dtype})`,
+  `tensorinv(a, {ind})`, `tensorsolve(a, b, {axes})`,
+  `cross(a, b, {axisa, axisb, axisc, axis})`, `linalg.cross(x1, x2, {axis})`,
+  `vecdot(x1, x2, {axis})`, `tensordot(a, b, {axes})` (also positional `axes`).
+  `rcond`/`tol`/`rtol` accept a number or an array that broadcasts against the stack.
+- `matrixPower(a, n)`: `n` must be a safe integer (`DTypeError`, NumPy
+  `TypeError`). `n = 0` gives the identity in `a`'s dtype, `n < 0` inverts first.
+- `vecdot`/`matvec`/`vecmat` are plain functions (not ufunc objects; no
+  `out`/`where`/`reduce`); they conjugate the vector argument for complex
+  input like NumPy (`vecdot`: x1, `vecmat`: the vector) and broadcast batch dims.
+- `NDArray.dot(b)` is added by declaration merging (= `np.dot(a, b)`).
+- `np.matrix_transpose` is P6's (reorder family); P11 adds only
+  `linalg.matrixTranspose`. Batched `lstsq` is not added: NumPy 2.5.3 still
+  rejects stacked `a`.
+
+## D-141 — P11 einsum / einsumPath — Accepted — 2026-10-02
+- `einsum(subscripts, ...operands, opts?)` and the sublist form
+  `einsum(op0, sub0, op1, sub1, ..., [outSub], opts?)` (sublists are arrays of
+  integers 0–51 and `np.ellipsis`). A trailing plain object (not an array,
+  NDArray or complex value) is the options object `{ optimize }`.
+- Parsing (explicit `->`, implicit output = labels seen once in sorted order,
+  `...` broadcasting, error messages) and path search (`greedy`, `optimal`,
+  explicit `["einsum_path", [i, j], ...]`, `[name, memoryLimit]`) are ports of
+  NumPy's `einsumfunc.py`, done in TS (shape bookkeeping only).
+  `einsumPath` returns `[path, report]` with NumPy's report text.
+- The numerics run in C++ (`p11_linalg.cpp::einsum`): repeated labels in an
+  operand take a strided diagonal view; size-1 dimensions broadcast (stride 0);
+  labels used by only one operand are summed out by a product with a ones
+  vector; each pairwise contraction is a transpose/reshape to
+  `(batch, M, K) @ (batch, K, N)` on the existing `matmul` (backend GEMM for
+  float32/float64/complex, the exact loop otherwise). Operands are cast to the
+  promoted dtype first, so integers wrap and bool is OR-of-AND as NumPy's
+  einsum. Without `optimize` the operands are still contracted pairwise left to
+  right (results agree with NumPy within floating-point rounding).
+- The result is always a new array; NumPy may return a view (`'ii->i'`,
+  `'ij->ji'`). No `out=`, `dtype=`, `order=`, `casting=`.
+
+## D-142 — Cholesky on both backends without changing the backend interface — Accepted — 2026-10-02
+- `Routines<T>` (backend.hpp) has no `potrf`. To avoid editing shared backend
+  files on the P11 branch, `p11_linalg.cpp` dispatches on
+  `active_backend().name()`: `"accelerate"` calls Accelerate `dpotrf_`/`zpotrf_`
+  (compiled under `NATIVPY_HAVE_ACCELERATE`), every other backend uses a
+  portable column Cholesky (lower: Cholesky–Banachiewicz; upper: L of Aᴴ then
+  Lᴴ). A non-positive or NaN pivot raises `LinAlgError("Matrix is not positive
+  definite")`. Only the lower (upper with `upper: true`) triangle is read; the
+  other triangle of the result is zero.

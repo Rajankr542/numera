@@ -116,6 +116,14 @@ differential tests (`pnpm test:diff`).
 | `np.clip` | dedicated `clip` ufunc | `minimum(maximum(a, min), max)`, `out` only | D-072 |
 | `nan_to_num` replacements | scalars or arrays | scalars only | D-074 |
 | `unwrap` on float16 | computed in float16 | computed in float32, cast back (last bit may differ) | D-074 |
+| P11 `slogdet`, `cond`, `matrix_rank`, `vdot`, `einsum` scalar results | NumPy scalars / `SlogdetResult` namedtuple | 0-d `NDArray`; `slogdet` returns `{ sign, logabsdet }` | D-140 |
+| P11 keyword arguments (`cholesky(upper)`, `pinv(rcond, hermitian, rtol)`, `matrix_rank(tol, hermitian, rtol)`, `tensorinv(ind)`, `tensorsolve(axes)`, `cross(axisa…)`, `vecdot(axis)`, `tensordot(axes)`, `einsum(optimize)`) | keywords | trailing options object | D-140 |
+| `cholesky`, `slogdet`, `pinv`, `cond` internal precision | LAPACK in the input precision (float32 stays float32) | compute in float64/complex128, then cast to the NumPy result dtype | D-140 |
+| `vecdot`/`matvec`/`vecmat` | gufuncs with `out=`, `axes=`, `dtype=` | plain functions (`vecdot` takes `axis` only) | D-140 |
+| `einsum` result | may be a view (`'ii->i'`, `'ij->ji'`); `out=`, `dtype=`, `order=`, `casting=` | always a new array; those keywords are not supported | D-141 |
+| `einsum` without `optimize` | single n-ary C loop (`c_einsum`) | pairwise left-to-right contractions over `matmul`; results equal up to float rounding | D-141 |
+| `einsumPath` report for `...` subscripts | ellipsis letters from Python set order ("may vary") | the highest unused letters (`z`, `y`, …) | D-141 |
+| `einsumPath` unknown path name | `KeyError` / `TypeError` | `ValueError` | D-141 |
 
 ## Not implemented
 - Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
@@ -208,3 +216,15 @@ still to be written.
 | `ihfft`/`rfftn` on complex input | `TypeError` | `DTypeError` | D-151 |
 | `fftshift`/`ifftshift` of a 0-d array | `ValueError` from `np.roll` | `ValueError` | D-152 |
 | `s` without `axes` (`rfftn`, `irfftn`) | `DeprecationWarning` | accepted, no warning | D-151 |
+
+## P11 linear algebra completion
+Implemented on both linalg backends (D-140, D-141, D-142): `linalg.cholesky` (upper),
+`slogdet`, `svdvals`, `matrixPower`, `pinv`, `matrixRank`, `cond`, `vectorNorm`,
+`matrixNorm`, `matrixTranspose`, `diagonal`, `trace`, `outer`, `tensorinv`,
+`tensorsolve`, `cross`, `tensordot`, `multiDot`, `vecdot`; `np.vdot`, `kron`,
+`cross`, `tensordot`, `vecdot`, `matvec`, `vecmat`, `einsum`, `einsumPath`;
+NDArray `dot`. This supersedes the "`pinv`, `matrix_rank`, `matrix_power`,
+`cholesky`, `slogdet`, `cond`, `tensordot`, `einsum`, `vdot`, `kron`" part of
+the Linalg item under "Not implemented". Batched `lstsq` (NumPy 2.5.3 rejects
+stacks too), `out=` and `eigh(UPLO='U')` are still missing. Divergences are
+listed in "Documented divergences" (D-140, D-141).

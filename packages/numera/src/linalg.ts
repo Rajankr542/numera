@@ -3,6 +3,7 @@ import { array } from "./creation.js";
 import { LinAlgError, wrapNative } from "./errors.js";
 import { NDArray } from "./ndarray.js";
 import type { ArrayLike } from "./ufunc.js";
+import { p11Linalg } from "./p11_linalg.js";
 
 /**
  * Linear algebra (PLAN §19/§20, M8). Semantics: DECISIONS D-018.
@@ -151,4 +152,5 @@ export const linalg = {
   backend,
   _setBackend,
   LinAlgError,
+  ...p11Linalg,
 } as const;
