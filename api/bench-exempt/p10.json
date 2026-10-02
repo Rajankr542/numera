@@ -1,1 +1,8 @@
-[]
+[
+ "np.median [nativpy] [numpy]",
+ "np.nanmedian [nativpy] [numpy]",
+ "np.nanpercentile [nativpy] [numpy]",
+ "np.nanquantile [nativpy] [numpy]",
+ "np.percentile [nativpy] [numpy]",
+ "np.quantile [nativpy] [numpy]"
+]
