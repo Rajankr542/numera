@@ -12,6 +12,10 @@ export interface P06Native {
   repeat(a: N, repeats: number[], axis: number | null): N;
   resize(a: N, shape: number[]): N;
   resizeInplace(a: N, shape: number[]): N;
+  insertAlong(a: N, axis: number, positions: number[], values: N): N;
+  deleteAlong(a: N, axis: number, keep: boolean[]): N;
+  trimZeros(a: N, front: boolean, back: boolean, axes: boolean[]): N;
+  bufferRefs(a: N): number;
   pad(a: N, mode: string, width: number[], values: N | null, statLength: number[] | null, odd: boolean): N;
 }
 

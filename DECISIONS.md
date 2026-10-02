@@ -1583,3 +1583,26 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   of leaving memory uninitialised.
 - A JS function as `mode` is called NumPy-style as `fn(vector, [before, after],
   axis, options)` on writable 1-d views of a zero-padded result.
+
+## D-093 — P6 append / insert / delete / resize / trimZeros (P6) — Accepted — 2026-10-02
+- `insert(arr, obj, values, axis?)` and `delete(arr, obj, axis?)` follow NumPy
+  `_function_base_impl`: `axis` omitted/null flattens; `obj` is an integer, an
+  integer or boolean list/array, or a slice written `{start, stop, step}` (JS
+  has no slice syntax; a plain array is always a list of indices). TS
+  normalises `obj` to result positions / a keep mask; the native kernels
+  `insert_along` / `delete_along` move the data. Results are new arrays, F
+  order if `arr` is F- and not C-contiguous, else C (also for array `obj` to
+  `delete`, where NumPy's advanced-indexing layout may differ). `values` are
+  cast unsafely to `arr.dtype`, as in NumPy's item assignment.
+- `append(arr, values, axis?)` is `concatenate` (flattening both when `axis`
+  is omitted), so it promotes dtypes.
+- `np.resize(a, shape)` cycles the flattened data (zeros if `a` is empty).
+  `NDArray.prototype.resize(shape, {refcheck})` resizes in place like
+  `ndarray.resize`: the array must own C/F-contiguous, writeable data; the data
+  is truncated or zero-extended in memory order and the wrapper switches to the
+  new buffer (the method returns `undefined`). With `refcheck` (default true)
+  it raises `ValueError` while another live NDArray (e.g. a view not yet
+  garbage-collected) shares the buffer; with `refcheck: false` existing views
+  keep the old data instead of dangling.
+- `trimZeros(filt, trim="fb", axis?)` trims every selected axis to the bounding
+  box of nonzero elements (NumPy 2.2+ N-d behaviour) and returns a view.

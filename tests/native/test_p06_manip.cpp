@@ -172,3 +172,38 @@ TEST_CASE("p06: pad modes") {
   CHECK(pad(iota({0}), pad_opts(PadMode::Edge, 0, 0)).shape() == Shape({0}));
   CHECK_THROWS_KIND(pad(a, pad_opts(PadMode::Edge, -1, 0)), ErrorKind::Value);
 }
+
+TEST_CASE("p06: insert_along / delete_along / trim_zeros") {
+  const NDArray a = iota({4});
+  const NDArray v = arange(10, 12, 1, DType::Float64);
+  CHECK(values(insert_along(a, 0, {1, 2}, v)) == std::vector<std::int64_t>({0, 10, 11, 1, 2, 3}));
+  CHECK(values(insert_along(a, 0, {5, 0}, v)) == std::vector<std::int64_t>({11, 0, 1, 2, 3, 10}));
+  NDArray m = insert_along(iota({2, 2}), 1, {1}, arange(7, 8, 1, DType::Int64));
+  CHECK(values(m) == std::vector<std::int64_t>({0, 7, 1, 2, 7, 3}));
+  const NDArray f = copy_order(iota({2, 3}), DType::Int64, Order::F);
+  CHECK(insert_along(f, 0, {0}, iota({3})).is_f_contiguous());
+  CHECK(insert_along(iota({0}), 0, {}, iota({0})).shape() == Shape({0}));
+  CHECK_THROWS_KIND(insert_along(a, 0, {6}, v), ErrorKind::Index);
+  CHECK_THROWS_KIND(insert_along(a, 0, {1, 1}, v), ErrorKind::Value);
+  CHECK_THROWS_KIND(insert_along(a, 1, {0}, v), ErrorKind::Index);
+  CHECK(values(delete_along(a, 0, {true, false, false, true})) == std::vector<std::int64_t>({0, 3}));
+  CHECK(values(delete_along(iota({2, 3}), 1, {false, true, true})) ==
+        std::vector<std::int64_t>({1, 2, 4, 5}));
+  CHECK(delete_along(f, 1, {true, false, true}).is_f_contiguous());
+  CHECK(delete_along(a, 0, {false, false, false, false}).shape() == Shape({0}));
+  CHECK_THROWS_KIND(delete_along(a, 0, {true}), ErrorKind::Value);
+  NDArray z = NDArray::zeros({5}, DType::Float64);
+  z.set_double(1, 1.0);
+  z.set_double(3, 2.0);
+  NDArray t = trim_zeros(z, true, true, {true});
+  CHECK(t.shape() == Shape({3}));
+  CHECK(t.shares_buffer(z));
+  CHECK(trim_zeros(z, true, false, {true}).shape() == Shape({4}));
+  CHECK(trim_zeros(z, false, true, {true}).shape() == Shape({4}));
+  CHECK(trim_zeros(NDArray::zeros({3}, DType::Int8), true, true, {true}).shape() == Shape({0}));
+  NDArray z2 = NDArray::zeros({3, 4}, DType::Int32);
+  z2.set_int64(5, 1);  // (1, 1)
+  z2.set_int64(7, 1);  // (1, 3)
+  CHECK(trim_zeros(z2, true, true, {true, true}).shape() == Shape({1, 3}));
+  CHECK(trim_zeros(z2, true, true, {false, true}).shape() == Shape({3, 3}));
+}

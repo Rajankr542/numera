@@ -136,6 +136,51 @@ np.pad([1, 2, 3], 2, "wrap");                                // => [2, 3, 1, 2, 
 np.pad([1, 2, 3], 1, "mean");                                // => [2, 1, 2, 3, 2]
 np.pad([0, 4], [2, 0], "linear_ramp", { endValues: 4 });     // => [4, 2, 0, 4]`,
       },
+      {
+        name: "append",
+        sig: "np.append(arr, values, [axis])",
+        desc: "Appends `values` to `arr` (both flattened when `axis` is omitted); a new array.",
+        returns: "NDArray",
+        example: `np.append([1, 2], [[3, 4]]);       // => [1, 2, 3, 4]
+np.append([[1, 2]], [[3, 4]], 0);   // => [[1, 2], [3, 4]]`,
+      },
+      {
+        name: "insert",
+        sig: "np.insert(arr, obj, values, [axis])",
+        desc: "Inserts `values` before index/indices `obj` (an integer, list, boolean mask or slice object `{start, stop, step}`). Without `axis` the array is flattened. Values are cast to `arr.dtype`.",
+        returns: "NDArray",
+        example: `np.insert([1, 2, 3], 1, 9);                       // => [1, 9, 2, 3]
+np.insert([[1, 1], [2, 2]], 1, 5, 1);              // => [[1, 5, 1], [2, 5, 2]]
+np.insert(np.arange(4), { start: 1, stop: 3 }, 0); // => [0, 0, 1, 0, 2, 3]`,
+      },
+      {
+        name: "delete",
+        sig: "np.delete(arr, obj, [axis])",
+        desc: "Removes the entries at `obj` (integer, list, boolean mask or slice object) along `axis`, flattening first when `axis` is omitted. Named export `delete` (implemented as `del`).",
+        returns: "NDArray",
+        example: `np.delete([1, 2, 3, 4], [0, -1]);                 // => [2, 3]
+np.delete([[1, 2], [3, 4]], 0, 1);                 // => [[2], [4]]
+np.delete(np.arange(6), { start: 0, step: 2 });    // => [1, 3, 5]`,
+      },
+      {
+        name: "resize",
+        sig: "np.resize(a, newShape) / a.resize(newShape, [{refcheck}])",
+        desc: "`np.resize` returns a new array filled by repeating `a`'s data. The method `a.resize` changes `a` itself (in place, returns `undefined`): data is truncated or zero-filled in memory order; `a` must own contiguous data, and while other arrays (views) still share it a `ValueError` is raised unless `refcheck: false`.",
+        returns: "NDArray / undefined",
+        example: `np.resize([1, 2, 3], [2, 4]);                     // => [[1, 2, 3, 1], [2, 3, 1, 2]]
+const x = np.array([1, 2, 3]);
+x.resize([5]);
+x.toArray();                                       // => [1, 2, 3, 0, 0]`,
+      },
+      {
+        name: "trimZeros",
+        sig: "np.trimZeros(filt, [trim], [axis])",
+        desc: "Trims leading (`\"f\"`) and/or trailing (`\"b\"`) zeros (default `\"fb\"`). N-d input is trimmed to the bounding box of the nonzero values on the selected axes. Returns a view.",
+        returns: "NDArray",
+        example: `np.trimZeros([0, 0, 1, 0, 2, 0]);        // => [1, 0, 2]
+np.trimZeros([0, 0, 1, 0, 2, 0], "b");   // => [0, 0, 1, 0, 2]
+np.trimZeros([[0, 0], [0, 3]]);          // => [[3]]`,
+      },
     ],
   },
 ];

@@ -89,6 +89,27 @@ void init_p06_binding(Napi::Env env, Napi::Object exports) {
           o.odd = arg_bool(i[5]);
           return wrap(e, pad(arr(i, 0), o));
         }));
+  m.Set("insertAlong", fn(env, "insertAlong", [](Info i, Napi::Env e) {
+          return wrap(e, insert_along(arr(i, 0), arg_int(i[1], "axis"), arg_ints(i[2], "positions"),
+                                      arr(i, 3)));
+        }));
+  m.Set("deleteAlong", fn(env, "deleteAlong", [](Info i, Napi::Env e) {
+          if (!i[2].IsArray()) throw_error(ErrorKind::Value, "keep must be an array");
+          const auto js = i[2].As<Napi::Array>();
+          std::vector<bool> keep(js.Length());
+          for (std::uint32_t k = 0; k < js.Length(); ++k) keep[k] = js.Get(k).ToBoolean().Value();
+          return wrap(e, delete_along(arr(i, 0), arg_int(i[1], "axis"), keep));
+        }));
+  m.Set("trimZeros", fn(env, "trimZeros", [](Info i, Napi::Env e) {
+          const auto js = i[3].As<Napi::Array>();
+          std::vector<bool> axes(js.Length());
+          for (std::uint32_t k = 0; k < js.Length(); ++k) axes[k] = js.Get(k).ToBoolean().Value();
+          return wrap(e, trim_zeros(arr(i, 0), arg_bool(i[1]), arg_bool(i[2]), axes));
+        }));
+  // Number of live native arrays referencing a's buffer (NDArray.resize refcheck, D-093).
+  m.Set("bufferRefs", fn(env, "bufferRefs", [](Info i, Napi::Env e) -> Napi::Value {
+          return Napi::Number::New(e, static_cast<double>(arr(i, 0).buffer().use_count()));
+        }));
   exports.Set("p06", m);
 }
 

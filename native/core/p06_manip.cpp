@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <string>
 
 #include "broadcast.hpp"
@@ -671,6 +672,134 @@ NDArray pad(const NDArray& a, const PadOptions& o) {
       });
     }
   });
+  return out;
+}
+
+}  // namespace nativpy
+
+// ---- insert / delete / trim_zeros (D-093) ----
+
+namespace nativpy {
+
+namespace {
+
+Order fnc_order(const NDArray& a) {
+  return (a.is_f_contiguous() && !a.is_c_contiguous()) ? Order::F : Order::C;
+}
+
+}  // namespace
+
+NDArray insert_along(const NDArray& arr, std::int64_t axis_in,
+                     const std::vector<std::int64_t>& positions, const NDArray& values) {
+  const auto axis = static_cast<std::size_t>(
+      normalize_axis(axis_in, static_cast<std::int64_t>(arr.ndim())));
+  const std::int64_t n = arr.shape()[axis];
+  const auto m = static_cast<std::int64_t>(positions.size());
+  Shape shape = arr.shape();
+  shape[axis] = n + m;
+  std::vector<std::int64_t> slot(static_cast<std::size_t>(n + m), -1);
+  for (std::int64_t k = 0; k < m; ++k) {
+    const std::int64_t p = positions[static_cast<std::size_t>(k)];
+    if (p < 0 || p >= n + m) throw_error(ErrorKind::Index, "insert position out of range");
+    if (slot[static_cast<std::size_t>(p)] >= 0) {
+      throw_error(ErrorKind::Value, "insert positions must be distinct");
+    }
+    slot[static_cast<std::size_t>(p)] = k;
+  }
+  Shape vshape = arr.shape();
+  vshape[axis] = m;
+  const NDArray vals = broadcast_to(values, vshape);
+  NDArray out = empty_order(shape, arr.dtype(), fnc_order(arr));
+  if (out.size() == 0) return out;
+  std::int64_t j = 0;
+  std::int64_t old = 0;
+  while (j < n + m) {
+    std::int64_t e = j + 1;
+    const std::int64_t k0 = slot[static_cast<std::size_t>(j)];
+    if (k0 < 0) {
+      while (e < n + m && slot[static_cast<std::size_t>(e)] < 0) ++e;
+      copy_into(slice_axis(out, axis, j, e, 1), slice_axis(arr, axis, old, old + (e - j), 1));
+      old += e - j;
+    } else {
+      while (e < n + m && slot[static_cast<std::size_t>(e)] == k0 + (e - j)) ++e;
+      copy_into(slice_axis(out, axis, j, e, 1), slice_axis(vals, axis, k0, k0 + (e - j), 1));
+    }
+    j = e;
+  }
+  return out;
+}
+
+NDArray delete_along(const NDArray& arr, std::int64_t axis_in, const std::vector<bool>& keep) {
+  const auto axis = static_cast<std::size_t>(
+      normalize_axis(axis_in, static_cast<std::int64_t>(arr.ndim())));
+  const std::int64_t n = arr.shape()[axis];
+  if (static_cast<std::int64_t>(keep.size()) != n) {
+    throw_error(ErrorKind::Value, "keep mask must match the axis length");
+  }
+  Shape shape = arr.shape();
+  shape[axis] = static_cast<std::int64_t>(std::count(keep.begin(), keep.end(), true));
+  NDArray out = empty_order(shape, arr.dtype(), fnc_order(arr));
+  if (out.size() == 0) return out;
+  std::int64_t dst = 0;
+  for (std::int64_t i = 0; i < n;) {
+    if (!keep[static_cast<std::size_t>(i)]) {
+      ++i;
+      continue;
+    }
+    std::int64_t e = i + 1;
+    while (e < n && keep[static_cast<std::size_t>(e)]) ++e;
+    copy_into(slice_axis(out, axis, dst, dst + (e - i), 1), slice_axis(arr, axis, i, e, 1));
+    dst += e - i;
+    i = e;
+  }
+  return out;
+}
+
+NDArray trim_zeros(const NDArray& a, bool front, bool back, const std::vector<bool>& trim_axis) {
+  const std::size_t nd = a.ndim();
+  if (trim_axis.size() != nd) throw_error(ErrorKind::Value, "trim_axis must have one flag per axis");
+  std::vector<std::int64_t> lo(nd, std::numeric_limits<std::int64_t>::max());
+  std::vector<std::int64_t> hi(nd, -1);
+  bool any = false;
+  if (a.size() > 0) {
+    dispatch_dtype(a.dtype(), [&](auto tag) {
+      using T = dtype_t<decltype(tag)::value>;
+      std::vector<std::int64_t> idx(nd, 0);
+      for (std::int64_t flat = 0; flat < a.size(); ++flat) {
+        std::int64_t off = 0;
+        for (std::size_t d = 0; d < nd; ++d) off += idx[d] * a.strides()[d];
+        const T v = load<T>(a.data() + off);
+        bool nz = false;
+        if constexpr (std::is_same_v<T, float16_t>) {
+          nz = half_to_double(v) != 0.0;
+        } else {
+          nz = v != T{};
+        }
+        if (nz) {
+          any = true;
+          for (std::size_t d = 0; d < nd; ++d) {
+            lo[d] = std::min(lo[d], idx[d]);
+            hi[d] = std::max(hi[d], idx[d]);
+          }
+        }
+        for (std::size_t d = nd; d-- > 0;) {
+          if (++idx[d] < a.shape()[d]) break;
+          idx[d] = 0;
+        }
+      }
+    });
+  }
+  NDArray out = a;
+  for (std::size_t d = 0; d < nd; ++d) {
+    if (!trim_axis[d]) continue;
+    if (!any) {
+      out = slice_axis(out, d, 0, 0, 1);
+      continue;
+    }
+    const std::int64_t start = front ? lo[d] : 0;
+    const std::int64_t stop = back ? hi[d] + 1 : a.shape()[d];
+    out = slice_axis(out, d, start, stop, 1);
+  }
   return out;
 }
 
