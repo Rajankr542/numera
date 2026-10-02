@@ -1052,3 +1052,27 @@ Done: `logspace`, `geomspace`, `tri`, `tril`, `triu`, `diag`, `diagflat`, `vande
 Verified: `pnpm build`, `pnpm test`, `pnpm test:native`, `pnpm api:check`, `pnpm test:asan`.
 Benchmarks are not written yet; the callables are listed in `api/bench-exempt/p07.json`.
 Divergences: see COMPATIBILITY.md "P7 creation and grids divergences".
+## 2026-10-02 — P5: comparison, logic and bitwise (branch p05)
+
+Done (D-080–D-084):
+- Comparison ufuncs `equal notEqual less lessEqual greater greaterEqual` and
+  logical `logicalAnd logicalOr logicalXor logicalNot` with `bool` output
+  (complex compared lexicographically, reduce/accumulate with NumPy identities);
+  `all`/`any` and `NDArray.all()/any()`.
+- `isnan isinf isfinite isnat isposinf isneginf`, `isscalar`.
+- Bitwise `bitwiseAnd bitwiseOr bitwiseXor invert` (`bitwiseNot`/`bitwiseInvert`
+  are the same object), `leftShift rightShift` (`bitwiseLeftShift`/`bitwiseRightShift`
+  aliases), `bitwiseCount`.
+- `isclose allclose arrayEqual arrayEquiv` (native isclose kernel).
+- `packbits unpackbits` (`axis`, `bitorder`, `count`).
+- Shared file touched (kept small): `native/core/ufunc_methods.cpp` (reduce loop
+  dtype for bool-output ufuncs, integer identity fill via int64).
+- Checks run on macOS arm64 with NumPy 2.5.3: `pnpm build`, `pnpm test`
+  (325 tests), `pnpm test:native`, `pnpm test:asan` (ASan+UBSan clean),
+  `pnpm test:diff` (10420 cases, none for P5 yet), `pnpm typecheck` and
+  `pnpm api:check` all pass. Expected values in the P5 unit tests were checked
+  by hand against NumPy.
+- Not done: NumPy differential cases for P5, because the generator
+  (`python/generators/generate_cases.py`) is a shared file; benchmarks (all
+  P5 names are listed in `api/bench-exempt/p05.json`); array-valued
+  `rtol`/`atol` in `isclose`.

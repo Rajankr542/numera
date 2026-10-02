@@ -1621,3 +1621,104 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   values convert with the `np.array` rules (D-009). A short iterator with
   `count >= 0` raises `ValueError` ("iterator too short: Expected N but iterator
   had only M items."); a longer one is truncated.
+## D-080 — Bool-output ufuncs: comparisons and logical ops (P5-1, P5-2) — Accepted — 2026-10-02
+- New rows in `native/core/ufunc_logic.cpp` (registry names in camelCase, like
+  `floorDivide`): `equal notEqual less lessEqual greater greaterEqual`,
+  `logicalAnd logicalOr logicalXor logicalNot`. The loop takes the promoted input
+  dtype and writes bool (`LoopTypes{promote(a, b), Bool}`); new bool-output loop
+  templates live in `ufunc_logic.cpp`.
+- Complex inputs compare lexicographically like NumPy's `CLT`/`CLE` macros
+  (`(xr < yr && xi == xi && yi == yi) || (xr == yr && xi < yi)`). As in NumPy,
+  the complex ordered comparisons raise the FP "invalid" flag when a NaN takes
+  part in an ordered compare (`np.seterr` then reports "invalid value encountered
+  in less"); real float comparisons and `equal`/`notEqual` stay quiet.
+- `dtype=` on a call means NumPy's output signature: only `bool` is accepted
+  (anything else raises `DTypeError: No loop matching ...`). For binary calls the
+  TS wrapper validates it and then uses the default loop, so
+  `equal([1], [1.5], {dtype: "bool"})` compares in float64 like NumPy.
+- JS integer scalars outside an integer array's range (e.g. `less(int8Array, 1000)`)
+  are not weak for the bool-output binary ufuncs: they become int64, uint64 or
+  float64 arrays, so the comparison is value-exact like NumPy 2 (no overflow error).
+- Logical ops take the truthiness of the promoted input dtype (same values as
+  NumPy's bool cast). Divergence: NumPy's logical ufuncs accept mixed input dtypes
+  under `casting: "no"/"equiv"/"safe"`; numera checks the cast to the promoted
+  dtype, so e.g. `logicalAnd(int64, float64, {casting: "no"})` raises.
+- uint64 vs int64 comparisons use the float64 loop (exact only up to 2^53);
+  NumPy has dedicated mixed loops. Documented divergence.
+- Reductions (`ufunc_methods.cpp`, D-052 loop dtype rule extended): when the
+  resolved loop's input and output dtypes differ (a bool-output ufunc), a ufunc
+  with an identity (`logicalAnd` True, `logicalOr`/`logicalXor` False) reduces in
+  bool (inputs cast to bool, as NumPy's logical reduce); without an identity
+  (comparisons) only bool input works, anything else raises
+  `DTypeError: No loop matching ...` (NumPy behaviour, e.g. `equal.reduce(int)`).
+- Identities are filled through an int64 scalar when integral, so `-1` fills
+  uint32/uint64 accumulators with all ones (needed by `bitwiseAnd`, D-081).
+- `np.all`/`np.any` (and NDArray methods) are `logicalAnd.reduce`/`logicalOr.reduce`
+  with NumPy's defaults (axis `null` = all axes; `axis`, `keepdims`, `where`, `out`).
+
+## D-081 — isnan/isinf/isfinite/isnat/isposinf/isneginf, isscalar (P5-3) — Accepted — 2026-10-02
+- `isnan isinf isfinite` are unary bool-output ufuncs in `ufunc_logic.cpp`
+  (D-080 templates) with loops for every dtype: integers and bool give the
+  constant answer, complex is NaN/inf if either part is, finite if both are.
+  `dtype=` accepts only `bool`.
+- `isnat` is a registry ufunc whose resolver always raises `DTypeError`
+  ("ufunc 'isnat' is only defined for np.datetime64 and np.timedelta64."),
+  since numera has no datetime dtypes yet; it starts working when P14 adds them.
+- `isposinf`/`isneginf` are NumPy functions, not ufuncs: `np.isposinf(x, {out})`.
+  Natively they are registry rows (`isposinf`/`isneginf`) whose resolver rejects
+  complex input with NumPy's `TypeError` message (as `DTypeError`); real dtypes
+  get bool loops.
+- `isscalar(x)`: true for JS `number`, `boolean`, `bigint`, `string` and complex
+  scalars (`Complex` / `{re, im}`); false for `NDArray` (including 0-d), arrays,
+  `null`/`undefined` and other objects. Matches NumPy for the Python analogues;
+  numera has no NumPy scalar types (D-005).
+
+## D-082 — Bitwise ufuncs (P5-4) — Accepted — 2026-10-02
+- Rows in `ufunc_logic.cpp`: `bitwiseAnd bitwiseOr bitwiseXor` (bool and integer
+  loops; identities -1 → all ones / True, 0, 0), `invert` (bool: logical not),
+  `leftShift rightShift` (integer loops; bool promotes to int8, like NumPy's
+  `??`-less loop table), `bitwiseCount` (integer/bool input, `uint8` output,
+  popcount of `|x|` as NumPy).
+- Shift semantics follow NumPy's `npy_lshift`/`npy_rshift`: a shift count that is
+  `>=` the bit width or negative gives 0 (`rightShift` of a negative signed value
+  gives -1), so there is no C++ undefined behaviour.
+- Float/complex inputs (or a promotion to float, e.g. uint64 with int64) raise
+  `DTypeError: ufunc '<name>' not supported for the input types, ...` (NumPy
+  `TypeError`). `dtype=` must be bool or an integer dtype (integers only for
+  shifts; `uint8` only for `bitwiseCount`).
+- JS aliases mirror NumPy's identical objects: `bitwiseNot = bitwiseInvert = invert`,
+  `bitwiseLeftShift = leftShift`, `bitwiseRightShift = rightShift`.
+
+## D-083 — isclose / allclose / arrayEqual / arrayEquiv (P5-5) — Accepted — 2026-10-02
+- Native kernel `isclose(a, b, rtol, atol, equal_nan)` in `native/core/p05_logic.cpp`
+  (binding `addon.p05.isclose`). Loop dtype as NumPy: `b` is made inexact
+  (`result_type(b, 1.0)`: bool/int → float64), then promoted with `a`.
+  Result: `|a - b| <= atol + rtol * |b|` and `isfinite(b)`, or `a == b`; with
+  `equal_nan`, also true where both are NaN (complex: either part NaN). float16
+  is evaluated in float32 (NumPy rounds each step to float16; documented
+  divergence, differences only at the tolerance boundary).
+- `rtol`/`atol` are JS numbers (NumPy also accepts arrays; not supported yet).
+  Non-finite tolerances report "One of rtol or atol is not valid, atol: ..., rtol: ..."
+  through the `np.seterr` "invalid" mode, as NumPy.
+- `isclose` returns an NDArray (0-d for scalar inputs, D-017 style), `allclose`
+  a JS boolean (`all(isclose(...))`).
+- `arrayEqual(a1, a2, {equalNan})` and `arrayEquiv(a1, a2)` return JS booleans
+  and are composed in TS from the native `equal`/`isnan`/`all` kernels: inputs
+  that cannot be converted give `false`; `arrayEqual` requires equal shapes,
+  `arrayEquiv` broadcastable shapes (else `false`).
+
+## D-084 — packbits / unpackbits (P5-6) — Accepted — 2026-10-02
+- Native kernels in `native/core/p05_logic.cpp` (`addon.p05.packbits/unpackbits`).
+  The input is copied C-contiguous (`packbits`: cast to bool, so any nonzero is
+  a 1 bit) and processed as (outer, axis, inner) blocks; the output is `uint8`.
+- `axis` default `null` flattens (NumPy `axis=None`); 0-d input acts like shape (1,).
+  Out-of-range axes raise `IndexError` (NumPy `AxisError`).
+- `packbits` input must be bool/integer (`DTypeError` "Expected an input array of
+  integer or boolean data type"); `unpackbits` input must be `uint8`.
+- `bitorder` is `"big"` (default) or `"little"`; other values raise `ValueError`
+  with NumPy's messages ("'order' must be either 'little' or 'big'" for
+  `packbits`, "'order' must begin with 'l' or 'b'" for `unpackbits`). numera
+  accepts only the two full words, not NumPy's prefix match.
+- `unpackbits` `count`: `null` → all bits; `>= 0` keeps that many (zero-padded
+  past the end); negative drops `-count` bits, ValueError
+  "-count larger than number of elements" when too negative.

@@ -142,3 +142,18 @@ cases come in the V phase.
 | `fromstring` binary mode (`sep=""`) | removed (`ValueError`) | same `ValueError` | D-101 |
 | `fromstring` with `count` larger than the data | `DeprecationWarning`, short array | `ValueError: string is smaller than requested size` | D-101 |
 | `fromiter` without `dtype` | `TypeError` | `dtype` is a required positional argument | D-101 |
+## P5 — comparison, logic and bitwise
+
+| Area | NumPy | numera | Decision |
+|---|---|---|---|
+| logical ufuncs with `casting=` | mixed dtypes accepted under `casting="no"` (inputs go through the bool loop) | casting is checked against the promoted dtype, so mixed inputs under `"no"` raise `DTypeError` | D-080 |
+| `uint64` vs `int64` comparisons | exact comparison | compared via `float64` (can differ for values above 2^53) | D-080 |
+| `dtype=` on comparison/logical/classification ufuncs | output signature, only `bool` | same; other dtypes raise `DTypeError` | D-080 |
+| `isnat` | works for datetime64/timedelta64 | always raises `DTypeError` (no datetime dtypes yet) | D-081 |
+| `isscalar` | true for Python and NumPy scalars | true for JS number/boolean/bigint/string and complex scalars; false for every `NDArray`, including 0-d | D-081 |
+| bitwise ufuncs on float / `uint64`+`int64` mixes | `TypeError` | `DTypeError` | D-082 |
+| `isclose` with `float16` | each step rounded to float16 | evaluated in float32 (can differ only right at the tolerance boundary) | D-083 |
+| `isclose` `rtol`/`atol` | scalars or arrays | JS numbers only | D-083 |
+| `allclose` / `arrayEqual` / `arrayEquiv` result | Python `bool` | JS `boolean` | D-083 |
+| `bitorder=` | prefix match (`"l..."`, `"b..."`) | only `"big"` / `"little"`; anything else raises `ValueError` | D-084 |
+| `packbits`/`unpackbits` bad axis | `AxisError` | `IndexError` | D-084 |
