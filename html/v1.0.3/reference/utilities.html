@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.3" data-path="reference/utilities.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Utilities · numera v1.0.3</title>
+<meta name="description" content="Utilities: numera API reference.">
+<meta property="og:title" content="Utilities · numera">
+<meta property="og:description" content="Utilities: numera API reference.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.ico" sizes="any">
+<link rel="icon" href="../../assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><img class="logo-mark" src="../../assets/logo.png" width="24" height="24" alt="Cyfora"><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.3" selected>v1.0.3 (latest)</option><option value="1.0.2">v1.0.2</option><option value="1.0.1">v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html">Guides</a><a href="../reference/index.html" aria-current="page">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Reference</p><ul><li><a href="../reference/index.html">Overview</a></li><li><a href="../reference/numpy-index.html">NumPy name index</a></li></ul></div><div class="side-group"><p class="side-title">Array objects</p><ul><li><a href="../reference/ndarray.html">NDArray<span class="badge">20</span></a></li><li><a href="../reference/dtype.html">Data types<span class="badge">43</span></a></li></ul></div><div class="side-group"><p class="side-title">Universal functions</p><ul><li><a href="../reference/ufuncs.html">ufunc overview<span class="badge">106</span></a></li><li><a href="../reference/math.html">Math (ufuncs)<span class="badge">31</span></a></li><li><a href="../reference/logic.html">Comparison, logic and bitwise<span class="badge">13</span></a></li></ul></div><div class="side-group"><p class="side-title">Routines</p><ul><li><a href="../reference/creation.html">Array creation<span class="badge">25</span></a></li><li><a href="../reference/shape.html">Shape manipulation<span class="badge">41</span></a></li><li><a href="../reference/indexing.html">Indexing<span class="badge">20</span></a></li><li><a href="../reference/grids.html">Grids and index helpers<span class="badge">9</span></a></li><li><a href="../reference/tri-indices.html">Triangle and diagonal indices<span class="badge">8</span></a></li><li><a href="../reference/reduce.html">Reductions<span class="badge">5</span></a></li><li><a href="../reference/reduce-where.html">Reductions with where= / out=<span class="badge">5</span></a></li><li><a href="../reference/sorting.html">Sorting, searching and sets<span class="badge">15</span></a></li><li><a href="../reference/statistics.html">Statistics<span class="badge">19</span></a></li><li><a href="../reference/polynomials.html">Polynomials<span class="badge">11</span></a></li><li><a href="../reference/windows.html">Window functions<span class="badge">5</span></a></li><li><a href="../reference/io.html">Input and output<span class="badge">11</span></a></li><li><a href="../reference/utilities.html" aria-current="page">Utilities<span class="badge">40</span></a></li><li><a href="../reference/errors.html">Errors<span class="badge">3</span></a></li></ul></div><div class="side-group"><p class="side-title">Modules</p><ul><li><a href="../reference/linalg.html">np.linalg<span class="badge">35</span></a></li><li><a href="../reference/fft.html">np.fft<span class="badge">8</span></a></li><li><a href="../reference/random.html">np.random<span class="badge">6</span></a></li><li><a href="../reference/random-bitgen.html">Random — bit generators<span class="badge">7</span></a></li><li><a href="../reference/random-discrete.html">Random — discrete distributions (Generator)<span class="badge">6</span></a></li><li><a href="../reference/random-continuous.html">Random — continuous distributions (Generator)<span class="badge">22</span></a></li><li><a href="../reference/random-multivariate.html">Random — multivariate distributions (Generator)<span class="badge">4</span></a></li><li><a href="../reference/random-state.html">Random state<span class="badge">5</span></a></li><li><a href="../reference/emath.html">np.emath (complex-valued math)<span class="badge">4</span></a></li><li><a href="../reference/testing.html">np.testing (assertions)<span class="badge">8</span></a></li><li><a href="../reference/polynomial.html">np.polynomial (series classes)<span class="badge">4</span></a></li><li><a href="../reference/ma.html">Masked arrays (np.ma)<span class="badge">1</span></a></li><li><a href="../reference/strings.html">String operations (np.strings / np.char)<span class="badge">8</span></a></li><li><a href="../reference/rec.html">Record arrays (np.rec)<span class="badge">5</span></a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose ref">
+<p class="eyebrow">API reference</p>
+<h1>Utilities</h1>
+
+<div class="summary-table table"><table><thead><tr><th>Name</th><th>Summary</th></tr></thead><tbody><tr><td><a href="#mayShareMemory"><code>np.mayShareMemory</code></a></td><td><code>true</code> if the two arrays may share memory, i.e.</td></tr><tr><td><a href="#copy"><code>np.copy</code></a></td><td>A copy of <code>a</code>.</td></tr><tr><td><a href="#ascontiguousarray"><code>np.ascontiguousarray</code></a></td><td><code>a</code> as a C-contiguous array with at least one dimension; no copy when it already is.</td></tr><tr><td><a href="#asfortranarray"><code>np.asfortranarray</code></a></td><td><code>a</code> as an F-contiguous (column-major) array with at least one dimension; no copy when it already is.</td></tr><tr><td><a href="#memoryStats"><code>np.memoryStats</code></a></td><td>Count and total size of the native buffers currently alive.</td></tr><tr><td><a href="#lib-stride-tricks-asStrided"><code>np.lib.stride_tricks.asStrided</code></a></td><td>View of the same memory with arbitrary shape and byte strides.</td></tr><tr><td><a href="#ndindex"><code>np.ndindex</code></a></td><td>Generator of every index of <code>shape</code> (dimensions as arguments or one array) in C order.</td></tr><tr><td><a href="#ndenumerate"><code>np.ndenumerate</code></a></td><td>Generator of <code>[index, value]</code> pairs in C order; values are JS scalars.</td></tr><tr><td><a href="#nditer"><code>np.nditer</code></a></td><td>Read-only multi-dimensional iterator (<code>NDIter</code>).</td></tr><tr><td><a href="#arrayRepr"><code>np.arrayRepr</code></a></td><td>NumPy <code>array_repr</code>: <code>array(...)</code> text with <code>shape=</code>/<code>dtype=</code> added when they cannot be inferred.</td></tr><tr><td><a href="#arrayStr"><code>np.arrayStr</code></a></td><td>NumPy <code>array_str</code> (Python <code>str(a)</code>): elements separated by spaces; a 0-d array prints like a NumPy scalar.</td></tr><tr><td><a href="#array2string"><code>np.array2string</code></a></td><td>NumPy <code>array2string</code>.</td></tr><tr><td><a href="#formatFloatPositional"><code>np.formatFloatPositional</code></a></td><td>NumPy <code>format_float_positional</code> (Dragon4).</td></tr><tr><td><a href="#formatFloatScientific"><code>np.formatFloatScientific</code></a></td><td>NumPy <code>format_float_scientific</code> (Dragon4), with the same argument rules as <code>formatFloatPositional</code>.</td></tr><tr><td><a href="#setPrintoptions"><code>np.setPrintoptions</code></a></td><td>NumPy <code>set_printoptions</code>: module-wide print options.</td></tr><tr><td><a href="#getPrintoptions"><code>np.getPrintoptions</code></a></td><td>NumPy <code>get_printoptions</code>: a copy of the current print options (camelCase keys).</td></tr><tr><td><a href="#printoptions"><code>np.printoptions</code></a></td><td>NumPy's <code>printoptions</code> context manager as a callback: <code>opts</code> apply while <code>fn()</code> runs and are restored afterwards, also if it throws.</td></tr><tr><td><a href="#baseRepr"><code>np.baseRepr</code></a></td><td>String of an integer in <code>base</code> (2 to 36, default 2), with <code>padding</code> zeros added on the left.</td></tr><tr><td><a href="#binaryRepr"><code>np.binaryRepr</code></a></td><td>Binary string of an integer.</td></tr><tr><td><a href="#pi"><code>np.pi</code></a></td><td>Mathematical constant π ≈ 3.14159…</td></tr><tr><td><a href="#e"><code>np.e</code></a></td><td>Euler's number, the base of natural logarithms, ≈ 2.71828…</td></tr><tr><td><a href="#inf"><code>np.inf</code></a></td><td>IEEE 754 positive infinity.</td></tr><tr><td><a href="#nan"><code>np.nan</code></a></td><td>IEEE 754 not-a-number.</td></tr><tr><td><a href="#euler-gamma"><code>np.euler_gamma</code></a></td><td>Euler–Mascheroni constant γ ≈ 0.5772156649…</td></tr><tr><td><a href="#True"><code>np.True_</code></a></td><td>Python <code>True</code> (JS <code>true</code>).</td></tr><tr><td><a href="#False"><code>np.False_</code></a></td><td>Python <code>False</code> (JS <code>false</code>).</td></tr><tr><td><a href="#PINF"><code>np.PINF</code></a></td><td>Positive infinity (alias of <code>np.inf</code>).</td></tr><tr><td><a href="#NINF"><code>np.NINF</code></a></td><td>Negative infinity.</td></tr><tr><td><a href="#PZERO"><code>np.PZERO</code></a></td><td>Positive zero.</td></tr><tr><td><a href="#NZERO"><code>np.NZERO</code></a></td><td>Negative zero.</td></tr><tr><td><a href="#vectorize"><code>np.vectorize</code></a></td><td>Wraps a JS callback so it is applied element-wise over its inputs, which are broadcast to a common shape.</td></tr><tr><td><a href="#shares-memory"><code>np.shares_memory</code></a></td><td>Returns <code>true</code> if arrays <code>a</code> and <code>b</code> share any underlying memory.</td></tr><tr><td><a href="#cumsum"><code>np.cumsum</code></a></td><td>Cumulative sum of array elements along the given axis.</td></tr><tr><td><a href="#cumprod"><code>np.cumprod</code></a></td><td>Cumulative product of array elements along the given axis.</td></tr><tr><td><a href="#nancumsum"><code>np.nancumsum</code></a></td><td>Like <code>cumsum</code>/<code>cumprod</code> but NaN values are treated as 0 / 1 respectively (i.e.</td></tr><tr><td><a href="#busdaycalendar"><code>np.busdaycalendar</code></a></td><td>A business-day calendar combining a weekmask (which weekdays are business days) and optional holidays.</td></tr><tr><td><a href="#is-busday"><code>np.is_busday</code></a></td><td>Return <code>true</code> for each date that is a business day (not a weekend and not a holiday).</td></tr><tr><td><a href="#busday-count"><code>np.busday_count</code></a></td><td>Count the number of business days in <code>[begindates, enddates)</code>.</td></tr><tr><td><a href="#busday-offset"><code>np.busday_offset</code></a></td><td>Shift <code>dates</code> by <code>offsets</code> business days.</td></tr><tr><td><a href="#sharesMemory"><code>np.sharesMemory</code></a></td><td>Return <code>true</code> if <code>a</code> and <code>b</code> share the same underlying memory buffer (NumPy <code>np.shares_memory</code>).</td></tr></tbody></table></div>
+<article class="api" id="mayShareMemory">
+<header class="api-head"><h3><code>np.mayShareMemory</code></h3><a class="anchor" href="#mayShareMemory" aria-label="Link to mayShareMemory">#</a></header>
+<pre class="sig"><code>np.mayShareMemory(a, b)</code></pre>
+<p><code>true</code> if the two arrays may share memory, i.e. one is a view of the other or both view the same buffer.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.may_share_memory.html#numpy.may_share_memory" rel="noopener" target="_blank" title="Determine if two arrays might share memory">numpy.may_share_memory</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a, b</code><span class="ty">NDArray</span></dt><dd>Arrays to compare.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>boolean</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">arange</span>(<span class="t-num">6</span>);
+np.<span class="t-fn">mayShareMemory</span>(a, a.<span class="t-fn">reshape</span>(<span class="t-num">2</span>, <span class="t-num">3</span>)); <span class="t-res">// =&gt; true</span>
+np.<span class="t-fn">mayShareMemory</span>(a, a.<span class="t-fn">copy</span>());        <span class="t-res">// =&gt; false</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">mayShareMemory</span>(a: NDArray, b: NDArray): boolean</code></pre></details>
+</article>
+<article class="api" id="copy">
+<header class="api-head"><h3><code>np.copy</code></h3><a class="anchor" href="#copy" aria-label="Link to copy">#</a></header>
+<pre class="sig"><code>np.copy(a, { order? })</code></pre>
+<p>A copy of <code>a</code>. <code>order</code> is <code>&quot;K&quot;</code> (default, keep the layout), <code>&quot;A&quot;</code>, <code>&quot;C&quot;</code> or <code>&quot;F&quot;</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.copy.html#numpy.copy" rel="noopener" target="_blank" title="Return an array copy of the given object.">numpy.copy</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>order</code><span class="ty">string</span></dt><dd>Memory order of the copy.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">copy</span>(np.<span class="t-fn">ones</span>([<span class="t-num">2</span>, <span class="t-num">3</span>], { order: <span class="t-str">&quot;F&quot;</span> })).strides; <span class="t-res">// =&gt; [8, 16]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">copy</span>(a: NDArray | NestedArray, options?: { order?: MemoryOrder | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>; } | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="ascontiguousarray">
+<header class="api-head"><h3><code>np.ascontiguousarray</code></h3><a class="anchor" href="#ascontiguousarray" aria-label="Link to ascontiguousarray">#</a></header>
+<pre class="sig"><code>np.ascontiguousarray(a, { dtype? })</code></pre>
+<p><code>a</code> as a C-contiguous array with at least one dimension; no copy when it already is.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.ascontiguousarray.html#numpy.ascontiguousarray" rel="noopener" target="_blank" title="Return a contiguous array (ndim &gt;= 1) in memory (C order).">numpy.ascontiguousarray</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">ascontiguousarray</span>(np.<span class="t-fn">arange</span>(<span class="t-num">6</span>).<span class="t-fn">reshape</span>(<span class="t-num">2</span>, <span class="t-num">3</span>).T).strides; <span class="t-res">// =&gt; [16, 8]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">ascontiguousarray</span>(a: NDArray | NestedArray, options?: ArrayOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="asfortranarray">
+<header class="api-head"><h3><code>np.asfortranarray</code></h3><a class="anchor" href="#asfortranarray" aria-label="Link to asfortranarray">#</a></header>
+<pre class="sig"><code>np.asfortranarray(a, { dtype? })</code></pre>
+<p><code>a</code> as an F-contiguous (column-major) array with at least one dimension; no copy when it already is.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.asfortranarray.html#numpy.asfortranarray" rel="noopener" target="_blank" title="Return an array (ndim &gt;= 1) laid out in Fortran order in memory.">numpy.asfortranarray</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">asfortranarray</span>(np.<span class="t-fn">arange</span>(<span class="t-num">6</span>).<span class="t-fn">reshape</span>(<span class="t-num">2</span>, <span class="t-num">3</span>)).strides; <span class="t-res">// =&gt; [8, 16]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">asfortranarray</span>(a: NDArray | NestedArray, options?: ArrayOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="memoryStats">
+<header class="api-head"><h3><code>np.memoryStats</code></h3><a class="anchor" href="#memoryStats" aria-label="Link to memoryStats">#</a></header>
+<pre class="sig"><code>np.memoryStats()</code></pre>
+<p>Count and total size of the native buffers currently alive. Native memory is freed when the JS objects are garbage-collected.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>{ buffers: number, bytes: number }</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> s = np.<span class="t-fn">memoryStats</span>();
+<span class="t-kw">typeof</span> s.bytes; <span class="t-res">// =&gt; &quot;number&quot;</span></code></pre></div>
+
+</article>
+<article class="api" id="lib-stride-tricks-asStrided">
+<header class="api-head"><h3><code>np.lib.stride_tricks.asStrided</code></h3><a class="anchor" href="#lib-stride-tricks-asStrided" aria-label="Link to lib.stride_tricks.asStrided">#</a></header>
+<pre class="sig"><code>np.lib.stride_tricks.asStrided(a, [shape], [strides])</code></pre>
+<p>View of the same memory with arbitrary shape and byte strides. It is unchecked, as in NumPy: wrong strides can read outside the buffer's logical data.</p>
+
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">NDArray</span></dt><dd>Base array.</dd></div><div><dt><code>[shape]</code><span class="ty">number[]</span></dt><dd>View shape.</dd></div><div><dt><code>[strides]</code><span class="ty">number[]</span></dt><dd>Strides in bytes.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">arange</span>(<span class="t-num">0</span>, <span class="t-num">5</span>, <span class="t-num">1</span>, { dtype: <span class="t-str">&quot;int32&quot;</span> });
+np.lib.stride_tricks.<span class="t-fn">asStrided</span>(a, [<span class="t-num">3</span>, <span class="t-num">3</span>], [<span class="t-num">4</span>, <span class="t-num">4</span>]); <span class="t-res">// =&gt; [[0, 1, 2], [1, 2, 3], [2, 3, 4]]</span></code></pre></div>
+
+</article>
+<article class="api" id="ndindex">
+<header class="api-head"><h3><code>np.ndindex</code></h3><a class="anchor" href="#ndindex" aria-label="Link to ndindex">#</a></header>
+<pre class="sig"><code>np.ndindex(...shape)</code></pre>
+<p>Generator of every index of <code>shape</code> (dimensions as arguments or one array) in C order. <code>ndindex()</code> yields <code>[]</code> once.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.ndindex.html#numpy.ndindex" rel="noopener" target="_blank" title="An N-dimensional iterator object to index arrays.">numpy.ndindex</a></div>
+
+<h4>Returns</h4><p class="ret"><code>Generator&lt;number[]&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>[...np.<span class="t-fn">ndindex</span>(<span class="t-num">2</span>, <span class="t-num">2</span>)]; <span class="t-res">// =&gt; [[0, 0], [0, 1], [1, 0], [1, 1]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">ndindex</span>(...shape: (number | readonly number[])[]): Generator&lt;number[], any, any&gt;</code></pre></details>
+</article>
+<article class="api" id="ndenumerate">
+<header class="api-head"><h3><code>np.ndenumerate</code></h3><a class="anchor" href="#ndenumerate" aria-label="Link to ndenumerate">#</a></header>
+<pre class="sig"><code>np.ndenumerate(a)</code></pre>
+<p>Generator of <code>[index, value]</code> pairs in C order; values are JS scalars.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.ndenumerate.html#numpy.ndenumerate" rel="noopener" target="_blank" title="Multidimensional index iterator.">numpy.ndenumerate</a></div>
+
+<h4>Returns</h4><p class="ret"><code>Generator&lt;[number[], number | boolean | Complex]&gt;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>[...np.<span class="t-fn">ndenumerate</span>(np.<span class="t-fn">array</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]]))]; <span class="t-res">// =&gt; [[[0, 0], 1], [[0, 1], 2], [[1, 0], 3], [[1, 1], 4]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">ndenumerate</span>(a: Operand): Generator&lt;[number[], ScalarValue], any, any&gt;</code></pre></details>
+</article>
+<article class="api" id="nditer">
+<header class="api-head"><h3><code>np.nditer</code></h3><a class="anchor" href="#nditer" aria-label="Link to nditer">#</a></header>
+<pre class="sig"><code>np.nditer(op | ops, { flags, order = &quot;K&quot;, opFlags })</code></pre>
+<p>Read-only multi-dimensional iterator (<code>NDIter</code>). Each step yields a 0-d read-only view (an array of views for several operands, which broadcast together). <code>&quot;K&quot;</code> walks memory order. Flags: <code>multi_index</code>, <code>c_index</code>, <code>f_index</code>, <code>zerosize_ok</code>; members <code>multiIndex</code>, <code>index</code>, <code>iterindex</code>, <code>itersize</code>, <code>shape</code>, <code>ndim</code>, <code>nop</code>, <code>operands</code>, <code>value</code>, <code>finished</code>, <code>iternext()</code>, <code>reset()</code>. Buffering, <code>external_loop</code> and writable operands raise <code>NotImplementedError</code>.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>NDIter</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> out = [];
+<span class="t-kw">for</span> (<span class="t-kw">const</span> x <span class="t-kw">of</span> np.<span class="t-fn">nditer</span>(np.<span class="t-fn">array</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]]).T)) out.<span class="t-fn">push</span>(x.<span class="t-fn">item</span>());
+out; <span class="t-res">// =&gt; [1, 2, 3, 4]</span>
+<span class="t-kw">const</span> it = np.<span class="t-fn">nditer</span>([np.<span class="t-fn">array</span>([[<span class="t-num">1</span>], [<span class="t-num">2</span>]]), np.<span class="t-fn">array</span>([<span class="t-num">10</span>, <span class="t-num">20</span>])]);
+[...it].<span class="t-fn">map</span>(([x, y]) =&gt; x.<span class="t-fn">item</span>() + y.<span class="t-fn">item</span>()); <span class="t-res">// =&gt; [11, 21, 12, 22]</span></code></pre></div>
+
+</article>
+<article class="api" id="arrayRepr">
+<header class="api-head"><h3><code>np.arrayRepr</code></h3><a class="anchor" href="#arrayRepr" aria-label="Link to arrayRepr">#</a></header>
+<pre class="sig"><code>np.arrayRepr(a, { maxLineWidth?, precision?, suppressSmall? })</code></pre>
+<p>NumPy <code>array_repr</code>: <code>array(...)</code> text with <code>shape=</code>/<code>dtype=</code> added when they cannot be inferred. Float digits come from a C++ port of NumPy's Dragon4 (shortest unique digits per dtype). <code>String(a)</code> / <code>a.toString()</code> return the same text.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.array_repr.html#numpy.array_repr" rel="noopener" target="_blank" title="Return the string representation of an array.">numpy.array_repr</a></div>
+
+<h4>Returns</h4><p class="ret"><code>string</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">arrayRepr</span>(np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>])); <span class="t-res">// =&gt; &quot;array([1, 2])&quot;</span>
+np.<span class="t-fn">arrayRepr</span>(np.<span class="t-fn">array</span>([<span class="t-num">1.5</span>, -<span class="t-num">2</span>, NaN])); <span class="t-res">// =&gt; &quot;array([ 1.5, -2. ,  nan])&quot;</span>
+np.<span class="t-fn">arrayRepr</span>(np.<span class="t-fn">array</span>([-<span class="t-num">1</span>, <span class="t-num">10</span>], { dtype: <span class="t-str">&quot;int8&quot;</span> })); <span class="t-res">// =&gt; &quot;array([-1, 10], dtype=int8)&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">arrayRepr</span>(a: AnyArray, opts?: ArrayReprOptions | <span class="t-kw">undefined</span>): string</code></pre></details>
+</article>
+<article class="api" id="arrayStr">
+<header class="api-head"><h3><code>np.arrayStr</code></h3><a class="anchor" href="#arrayStr" aria-label="Link to arrayStr">#</a></header>
+<pre class="sig"><code>np.arrayStr(a, { maxLineWidth?, precision?, suppressSmall? })</code></pre>
+<p>NumPy <code>array_str</code> (Python <code>str(a)</code>): elements separated by spaces; a 0-d array prints like a NumPy scalar.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.array_str.html#numpy.array_str" rel="noopener" target="_blank" title="Return a string representation of the data in an array.">numpy.array_str</a></div>
+
+<h4>Returns</h4><p class="ret"><code>string</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">arrayStr</span>(np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>])); <span class="t-res">// =&gt; &quot;[1 2 3]&quot;</span>
+np.<span class="t-fn">arrayStr</span>(np.<span class="t-fn">array</span>(<span class="t-num">1e16</span>)); <span class="t-res">// =&gt; &quot;1e+16&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">arrayStr</span>(a: AnyArray, opts?: ArrayReprOptions | <span class="t-kw">undefined</span>): string</code></pre></details>
+</article>
+<article class="api" id="array2string">
+<header class="api-head"><h3><code>np.array2string</code></h3><a class="anchor" href="#array2string" aria-label="Link to array2string">#</a></header>
+<pre class="sig"><code>np.array2string(a, { maxLineWidth?, precision?, suppressSmall?, separator?, prefix?, suffix?, formatter?, threshold?, edgeitems?, sign?, floatmode?, legacy? })</code></pre>
+<p>NumPy <code>array2string</code>. <code>formatter</code> maps NumPy formatter names (<code>all</code>, <code>bool</code>, <code>int</code>, <code>float</code>, <code>complexfloat</code>, <code>int_kind</code>, <code>float_kind</code>, <code>complex_kind</code>) to JS callbacks that get each element and return a string. Only <code>legacy: false</code> is supported (others raise <code>NotImplementedError</code>).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.array2string.html#numpy.array2string" rel="noopener" target="_blank" title="Return a string representation of an array.">numpy.array2string</a></div>
+
+<h4>Returns</h4><p class="ret"><code>string</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">array2string</span>(np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]), { separator: <span class="t-str">&quot;,&quot;</span> }); <span class="t-res">// =&gt; &quot;[1,2,3]&quot;</span>
+np.<span class="t-fn">array2string</span>(np.<span class="t-fn">array</span>([<span class="t-num">1.123</span>, <span class="t-num">2</span>]), { floatmode: <span class="t-str">&quot;fixed&quot;</span>, precision: <span class="t-num">2</span> }); <span class="t-res">// =&gt; &quot;[1.12 2.00]&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">array2string</span>(a: AnyArray, opts?: Array2StringOptions | <span class="t-kw">undefined</span>): string</code></pre></details>
+</article>
+<article class="api" id="formatFloatPositional">
+<header class="api-head"><h3><code>np.formatFloatPositional</code></h3><a class="anchor" href="#formatFloatPositional" aria-label="Link to formatFloatPositional">#</a></header>
+<pre class="sig"><code>np.formatFloatPositional(x, { precision?, unique?, fractional?, trim?, sign?, padLeft?, padRight?, minDigits? })</code></pre>
+<p>NumPy <code>format_float_positional</code> (Dragon4). <code>x</code> is a JS number (float64) or a size-1 NDArray, formatted in its own float dtype (ints/bool as float64; complex raises <code>DTypeError</code>).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.format_float_positional.html#numpy.format_float_positional" rel="noopener" target="_blank" title="Format a floating-point scalar as a decimal string in positional notation.">numpy.format_float_positional</a></div>
+
+<h4>Returns</h4><p class="ret"><code>string</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">formatFloatPositional</span>(<span class="t-num">1</span>); <span class="t-res">// =&gt; &quot;1.&quot;</span>
+np.<span class="t-fn">formatFloatPositional</span>(<span class="t-num">0.3</span>, { minDigits: <span class="t-num">20</span> }); <span class="t-res">// =&gt; &quot;0.29999999999999998890&quot;</span>
+np.<span class="t-fn">formatFloatPositional</span>(np.<span class="t-fn">array</span>(<span class="t-num">0.1</span>, { dtype: <span class="t-str">&quot;float32&quot;</span> }), { unique: <span class="t-kw">false</span>, precision: <span class="t-num">10</span> }); <span class="t-res">// =&gt; &quot;0.1000000015&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">formatFloatPositional</span>(x: number | boolean | NDArray, opts?: FormatFloatPositionalOptions | <span class="t-kw">undefined</span>): string</code></pre></details>
+</article>
+<article class="api" id="formatFloatScientific">
+<header class="api-head"><h3><code>np.formatFloatScientific</code></h3><a class="anchor" href="#formatFloatScientific" aria-label="Link to formatFloatScientific">#</a></header>
+<pre class="sig"><code>np.formatFloatScientific(x, { precision?, unique?, trim?, sign?, padLeft?, expDigits?, minDigits? })</code></pre>
+<p>NumPy <code>format_float_scientific</code> (Dragon4), with the same argument rules as <code>formatFloatPositional</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.format_float_scientific.html#numpy.format_float_scientific" rel="noopener" target="_blank" title="Format a floating-point scalar as a decimal string in scientific notation.">numpy.format_float_scientific</a></div>
+
+<h4>Returns</h4><p class="ret"><code>string</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">formatFloatScientific</span>(<span class="t-num">123.456</span>, { precision: <span class="t-num">2</span> }); <span class="t-res">// =&gt; &quot;1.23e+02&quot;</span>
+np.<span class="t-fn">formatFloatScientific</span>(<span class="t-num">1e100</span>, { expDigits: <span class="t-num">4</span> }); <span class="t-res">// =&gt; &quot;1.e+0100&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">formatFloatScientific</span>(x: number | boolean | NDArray, opts?: FormatFloatScientificOptions | <span class="t-kw">undefined</span>): string</code></pre></details>
+</article>
+<article class="api" id="setPrintoptions">
+<header class="api-head"><h3><code>np.setPrintoptions</code></h3><a class="anchor" href="#setPrintoptions" aria-label="Link to setPrintoptions">#</a></header>
+<pre class="sig"><code>np.setPrintoptions({ precision?, threshold?, edgeitems?, linewidth?, suppress?, nanstr?, infstr?, sign?, floatmode?, formatter?, legacy?, overrideRepr? })</code></pre>
+<p>NumPy <code>set_printoptions</code>: module-wide print options. Omitted options stay unchanged, except <code>formatter</code> and <code>overrideRepr</code>, which reset on every call (like NumPy).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.set_printoptions.html#numpy.set_printoptions" rel="noopener" target="_blank" title="Set printing options.">numpy.set_printoptions</a></div>
+
+<h4>Returns</h4><p class="ret"><code>void</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">setPrintoptions</span>({ precision: <span class="t-num">2</span> });
+<span class="t-fn">String</span>(np.<span class="t-fn">array</span>([<span class="t-num">1</span> / <span class="t-num">3</span>])); <span class="t-res">// =&gt; &quot;array([0.33])&quot;</span>
+np.<span class="t-fn">setPrintoptions</span>({ precision: <span class="t-num">8</span> });</code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">setPrintoptions</span>(opts?: PrintOptionsInput | <span class="t-kw">undefined</span>): void</code></pre></details>
+</article>
+<article class="api" id="getPrintoptions">
+<header class="api-head"><h3><code>np.getPrintoptions</code></h3><a class="anchor" href="#getPrintoptions" aria-label="Link to getPrintoptions">#</a></header>
+<pre class="sig"><code>np.getPrintoptions()</code></pre>
+<p>NumPy <code>get_printoptions</code>: a copy of the current print options (camelCase keys).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.get_printoptions.html#numpy.get_printoptions" rel="noopener" target="_blank" title="Return the current print options.">numpy.get_printoptions</a></div>
+
+<h4>Returns</h4><p class="ret"><code>PrintOptions</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">getPrintoptions</span>().threshold; <span class="t-res">// =&gt; 1000</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">getPrintoptions</span>(): PrintOptions</code></pre></details>
+</article>
+<article class="api" id="printoptions">
+<header class="api-head"><h3><code>np.printoptions</code></h3><a class="anchor" href="#printoptions" aria-label="Link to printoptions">#</a></header>
+<pre class="sig"><code>np.printoptions(opts, fn)</code></pre>
+<p>NumPy's <code>printoptions</code> context manager as a callback: <code>opts</code> apply while <code>fn()</code> runs and are restored afterwards, also if it throws. Returns <code>fn</code>'s result.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.printoptions.html#numpy.printoptions" rel="noopener" target="_blank" title="Context manager for setting print options.">numpy.printoptions</a></div>
+
+<h4>Returns</h4><p class="ret"><code>T</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">printoptions</span>({ precision: <span class="t-num">2</span> }, () =&gt; <span class="t-fn">String</span>(np.<span class="t-fn">array</span>([<span class="t-num">2</span> / <span class="t-num">3</span>]))); <span class="t-res">// =&gt; &quot;array([0.67])&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.printoptions&lt;T&gt;(opts: PrintOptionsInput, fn: () =&gt; T): T</code></pre></details>
+</article>
+<article class="api" id="baseRepr">
+<header class="api-head"><h3><code>np.baseRepr</code></h3><a class="anchor" href="#baseRepr" aria-label="Link to baseRepr">#</a></header>
+<pre class="sig"><code>np.baseRepr(number, [base], [padding])</code></pre>
+<p>String of an integer in <code>base</code> (2 to 36, default 2), with <code>padding</code> zeros added on the left. Negative numbers get a minus sign. Accepts <code>number</code>, <code>bigint</code> or a 0-d integer array.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.base_repr.html#numpy.base_repr" rel="noopener" target="_blank" title="Return a string representation of a number in the given base system.">numpy.base_repr</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>number</code><span class="ty">number | bigint | NDArray</span></dt><dd>Integer to convert.</dd></div><div><dt><code>[base]</code><span class="ty">number</span></dt><dd>Base, 2 to 36 (default 2).</dd></div><div><dt><code>[padding]</code><span class="ty">number</span></dt><dd>Zeros to prepend (default 0).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>string</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">baseRepr</span>(<span class="t-num">255</span>, <span class="t-num">16</span>); <span class="t-res">// =&gt; &quot;FF&quot;</span>
+np.<span class="t-fn">baseRepr</span>(-<span class="t-num">7</span>, <span class="t-num">2</span>, <span class="t-num">3</span>); <span class="t-res">// =&gt; &quot;-000111&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">baseRepr</span>(number: IntegerLike, base?: number | <span class="t-kw">undefined</span>, padding?: number | <span class="t-kw">undefined</span>): string</code></pre></details>
+</article>
+<article class="api" id="binaryRepr">
+<header class="api-head"><h3><code>np.binaryRepr</code></h3><a class="anchor" href="#binaryRepr" aria-label="Link to binaryRepr">#</a></header>
+<pre class="sig"><code>np.binaryRepr(num, [options])</code></pre>
+<p>Binary string of an integer. Without <code>width</code>, negative numbers get a minus sign; with <code>width</code>, they are written in two's complement. A <code>width</code> that is too small raises <code>ValueError</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.binary_repr.html#numpy.binary_repr" rel="noopener" target="_blank" title="Return the binary representation of the input number as a string.">numpy.binary_repr</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>num</code><span class="ty">number | bigint | NDArray</span></dt><dd>Integer to convert.</dd></div><div><dt><code>[options.width]</code><span class="ty">number</span></dt><dd>Output length (zero-padded, or two's complement for negatives).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>string</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">binaryRepr</span>(<span class="t-num">5</span>); <span class="t-res">// =&gt; &quot;101&quot;</span>
+np.<span class="t-fn">binaryRepr</span>(-<span class="t-num">5</span>); <span class="t-res">// =&gt; &quot;-101&quot;</span>
+np.<span class="t-fn">binaryRepr</span>(-<span class="t-num">5</span>, { width: <span class="t-num">8</span> }); <span class="t-res">// =&gt; &quot;11111011&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">binaryRepr</span>(num: IntegerLike, options?: BinaryReprOptions | <span class="t-kw">undefined</span>): string</code></pre></details>
+</article>
+<article class="api" id="pi">
+<header class="api-head"><h3><code>np.pi</code></h3><a class="anchor" href="#pi" aria-label="Link to pi">#</a></header>
+<pre class="sig"><code>np.pi</code></pre>
+<p>Mathematical constant π ≈ 3.14159…</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/constants.html#numpy.pi" rel="noopener" target="_blank" title="">numpy.pi</a></div>
+
+<h4>Returns</h4><p class="ret"><code>number</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.pi; <span class="t-res">// =&gt; 3.141592653589793</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.pi: number</code></pre></details>
+</article>
+<article class="api" id="e">
+<header class="api-head"><h3><code>np.e</code></h3><a class="anchor" href="#e" aria-label="Link to e">#</a></header>
+<pre class="sig"><code>np.e</code></pre>
+<p>Euler's number, the base of natural logarithms, ≈ 2.71828…</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/constants.html#numpy.e" rel="noopener" target="_blank" title="">numpy.e</a></div>
+
+<h4>Returns</h4><p class="ret"><code>number</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.e; <span class="t-res">// =&gt; 2.718281828459045</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.e: number</code></pre></details>
+</article>
+<article class="api" id="inf">
+<header class="api-head"><h3><code>np.inf</code></h3><a class="anchor" href="#inf" aria-label="Link to inf">#</a></header>
+<pre class="sig"><code>np.inf</code></pre>
+<p>IEEE 754 positive infinity. Aliases: <code>np.PINF</code>, <code>np.Inf</code>, <code>np.Infinity</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/constants.html#numpy.inf" rel="noopener" target="_blank" title="">numpy.inf</a></div>
+
+<h4>Returns</h4><p class="ret"><code>number</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.inf &gt; <span class="t-num">1e308</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.inf: number</code></pre></details>
+</article>
+<article class="api" id="nan">
+<header class="api-head"><h3><code>np.nan</code></h3><a class="anchor" href="#nan" aria-label="Link to nan">#</a></header>
+<pre class="sig"><code>np.nan</code></pre>
+<p>IEEE 754 not-a-number. Alias: <code>np.NaN</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/constants.html#numpy.nan" rel="noopener" target="_blank" title="">numpy.nan</a></div>
+
+<h4>Returns</h4><p class="ret"><code>number</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.nan !== np.nan; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.nan: number</code></pre></details>
+</article>
+<article class="api" id="euler-gamma">
+<header class="api-head"><h3><code>np.euler_gamma</code></h3><a class="anchor" href="#euler-gamma" aria-label="Link to euler_gamma">#</a></header>
+<pre class="sig"><code>np.euler_gamma</code></pre>
+<p>Euler–Mascheroni constant γ ≈ 0.5772156649…</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/constants.html#numpy.euler_gamma" rel="noopener" target="_blank" title="">numpy.euler_gamma</a></div>
+
+<h4>Returns</h4><p class="ret"><code>number</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>Math.<span class="t-fn">abs</span>(np.euler_gamma - <span class="t-num">0.5772156649015329</span>) &lt; <span class="t-num">1e-15</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.euler_gamma: number</code></pre></details>
+</article>
+<article class="api" id="True">
+<header class="api-head"><h3><code>np.True_</code></h3><a class="anchor" href="#True" aria-label="Link to True_">#</a></header>
+<pre class="sig"><code>np.True_</code></pre>
+<p>Python <code>True</code> (JS <code>true</code>). Provided for NumPy API parity.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>boolean</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.True_ === <span class="t-kw">true</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.True_: <span class="t-kw">true</span></code></pre></details>
+</article>
+<article class="api" id="False">
+<header class="api-head"><h3><code>np.False_</code></h3><a class="anchor" href="#False" aria-label="Link to False_">#</a></header>
+<pre class="sig"><code>np.False_</code></pre>
+<p>Python <code>False</code> (JS <code>false</code>). Provided for NumPy API parity.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>boolean</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.False_ === <span class="t-kw">false</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.False_: <span class="t-kw">false</span></code></pre></details>
+</article>
+<article class="api" id="PINF">
+<header class="api-head"><h3><code>np.PINF</code></h3><a class="anchor" href="#PINF" aria-label="Link to PINF">#</a></header>
+<pre class="sig"><code>np.PINF</code></pre>
+<p>Positive infinity (alias of <code>np.inf</code>).</p>
+
+
+<h4>Returns</h4><p class="ret"><code>number</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.PINF === Infinity; <span class="t-res">// =&gt; true</span></code></pre></div>
+
+</article>
+<article class="api" id="NINF">
+<header class="api-head"><h3><code>np.NINF</code></h3><a class="anchor" href="#NINF" aria-label="Link to NINF">#</a></header>
+<pre class="sig"><code>np.NINF</code></pre>
+<p>Negative infinity.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>number</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.NINF === -Infinity; <span class="t-res">// =&gt; true</span></code></pre></div>
+
+</article>
+<article class="api" id="PZERO">
+<header class="api-head"><h3><code>np.PZERO</code></h3><a class="anchor" href="#PZERO" aria-label="Link to PZERO">#</a></header>
+<pre class="sig"><code>np.PZERO</code></pre>
+<p>Positive zero.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>number</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-num">1</span> / np.PZERO === Infinity; <span class="t-res">// =&gt; true</span></code></pre></div>
+
+</article>
+<article class="api" id="NZERO">
+<header class="api-head"><h3><code>np.NZERO</code></h3><a class="anchor" href="#NZERO" aria-label="Link to NZERO">#</a></header>
+<pre class="sig"><code>np.NZERO</code></pre>
+<p>Negative zero.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>number</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-num">1</span> / np.NZERO === -Infinity; <span class="t-res">// =&gt; true</span></code></pre></div>
+
+</article>
+<article class="api" id="vectorize">
+<header class="api-head"><h3><code>np.vectorize</code></h3><a class="anchor" href="#vectorize" aria-label="Link to vectorize">#</a></header>
+<pre class="sig"><code>np.vectorize(fn, [options])</code></pre>
+<p>Wraps a JS callback so it is applied element-wise over its inputs, which are broadcast to a common shape. Returns a callable with a <code>pyfunc</code> property. <code>otypes[0]</code> forces the output dtype; otherwise it is inferred from the first call. <code>signature</code> must be <code>null</code> (scalar-in / scalar-out only).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.vectorize.html#numpy.vectorize" rel="noopener" target="_blank" title="Returns an object that acts like pyfunc, but takes arrays as input.">numpy.vectorize</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>fn</code><span class="ty">(...args: unknown[]) =&gt; unknown</span></dt><dd>The scalar function to apply element-wise.</dd></div><div><dt><code>[options.otypes]</code><span class="ty">DTypeLike[]</span></dt><dd>Output dtype(s); only the first element is used.</dd></div><div><dt><code>[options.signature]</code><span class="ty">null</span></dt><dd>Must be <code>null</code> or omitted (generalised ufunc signatures are not supported).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>VectorizedFn</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> vf = np.<span class="t-fn">vectorize</span>((x, y) =&gt; x + y);
+<span class="t-fn">vf</span>([<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">10</span>, <span class="t-num">20</span>]).<span class="t-fn">toArray</span>(); <span class="t-res">// =&gt; [11, 22]</span>
+vf.<span class="t-fn">pyfunc</span>(<span class="t-num">3</span>, <span class="t-num">4</span>); <span class="t-res">// =&gt; 7</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">vectorize</span>(fn: (...args: unknown[]) =&gt; unknown, opts?: VectorizeOptions | <span class="t-kw">undefined</span>): VectorizedFn</code></pre></details>
+</article>
+<article class="api" id="shares-memory">
+<header class="api-head"><h3><code>np.shares_memory</code></h3><a class="anchor" href="#shares-memory" aria-label="Link to shares_memory">#</a></header>
+<pre class="sig"><code>np.shares_memory(a, b, [options])</code></pre>
+<p>Returns <code>true</code> if arrays <code>a</code> and <code>b</code> share any underlying memory. Delegates to native buffer identity and byte-range overlap. <code>maxWork</code> is accepted for NumPy API compatibility but ignored.</p>
+
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">NDArray</span></dt><dd>First array.</dd></div><div><dt><code>b</code><span class="ty">NDArray</span></dt><dd>Second array.</dd></div><div><dt><code>[options.maxWork]</code><span class="ty">number</span></dt><dd>Accepted but not used.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>boolean</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]);
+<span class="t-kw">const</span> b = a.<span class="t-fn">slice</span>([[<span class="t-num">0</span>, <span class="t-num">2</span>]]);
+np.<span class="t-fn">shares_memory</span>(a, b); <span class="t-res">// =&gt; true</span>
+np.<span class="t-fn">shares_memory</span>(a, np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>])); <span class="t-res">// =&gt; false</span></code></pre></div>
+
+</article>
+<article class="api" id="cumsum">
+<header class="api-head"><h3><code>np.cumsum</code></h3><a class="anchor" href="#cumsum" aria-label="Link to cumsum">#</a></header>
+<pre class="sig"><code>np.cumsum(a, [axis], [options])</code></pre>
+<p>Cumulative sum of array elements along the given axis. If <code>axis</code> is omitted or <code>null</code>, the array is flattened first.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.cumsum.html#numpy.cumsum" rel="noopener" target="_blank" title="Return the cumulative sum of the elements along a given axis.">numpy.cumsum</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>Input array.</dd></div><div><dt><code>[axis]</code><span class="ty">number | null</span></dt><dd>Axis to accumulate along; <code>null</code> flattens first.</dd></div><div><dt><code>[options.dtype]</code><span class="ty">DTypeLike</span></dt><dd>Accumulator dtype.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">cumsum</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>]).<span class="t-fn">toArray</span>(); <span class="t-res">// =&gt; [1, 3, 6]</span>
+np.<span class="t-fn">cumsum</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]], <span class="t-num">0</span>).<span class="t-fn">toArray</span>(); <span class="t-res">// =&gt; [[1, 2], [4, 6]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">cumsum</span>(a: NDArray | NestedArray, axis?: number | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>, opts?: { dtype?: DTypeLike | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>; } | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="cumprod">
+<header class="api-head"><h3><code>np.cumprod</code></h3><a class="anchor" href="#cumprod" aria-label="Link to cumprod">#</a></header>
+<pre class="sig"><code>np.cumprod(a, [axis], [options])</code></pre>
+<p>Cumulative product of array elements along the given axis. If <code>axis</code> is omitted or <code>null</code>, the array is flattened first.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.cumprod.html#numpy.cumprod" rel="noopener" target="_blank" title="Return the cumulative product of elements along a given axis.">numpy.cumprod</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>Input array.</dd></div><div><dt><code>[axis]</code><span class="ty">number | null</span></dt><dd>Axis to accumulate along; <code>null</code> flattens first.</dd></div><div><dt><code>[options.dtype]</code><span class="ty">DTypeLike</span></dt><dd>Accumulator dtype.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">cumprod</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>, <span class="t-num">4</span>]).<span class="t-fn">toArray</span>(); <span class="t-res">// =&gt; [1, 2, 6, 24]</span>
+np.<span class="t-fn">cumprod</span>([[<span class="t-num">1</span>, <span class="t-num">2</span>], [<span class="t-num">3</span>, <span class="t-num">4</span>]], <span class="t-num">1</span>).<span class="t-fn">toArray</span>(); <span class="t-res">// =&gt; [[1, 2], [3, 12]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">cumprod</span>(a: NDArray | NestedArray, axis?: number | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>, opts?: { dtype?: DTypeLike | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>; } | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="nancumsum">
+<header class="api-head"><h3><code>np.nancumsum</code></h3><a class="anchor" href="#nancumsum" aria-label="Link to nancumsum">#</a></header>
+<pre class="sig"><code>np.nancumsum(a, opts?) · np.nancumprod(a, opts?)</code></pre>
+<p>Like <code>cumsum</code>/<code>cumprod</code> but NaN values are treated as 0 / 1 respectively (i.e. they are skipped).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.nancumsum.html#numpy.nancumsum" rel="noopener" target="_blank" title="Return the cumulative sum of array elements over a given axis treating Not a Numbers (NaNs) as zero. The cumulative sum does not change when NaNs are encountered and leading NaNs are replaced by zeros.">numpy.nancumsum</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.nancumprod.html#numpy.nancumprod" rel="noopener" target="_blank" title="Return the cumulative product of array elements over a given axis treating Not a Numbers (NaNs) as one. The cumulative product does not change when NaNs are encountered and leading NaNs are replaced by ones.">numpy.nancumprod</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>Input array.</dd></div><div><dt><code>[opts.axis]</code><span class="ty">number | null</span></dt><dd>Axis; default flattened.</dd></div><div><dt><code>[opts.dtype]</code><span class="ty">DTypeLike</span></dt><dd>Accumulator dtype.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">nancumsum</span>([<span class="t-num">1</span>, NaN, <span class="t-num">2</span>]).<span class="t-fn">toArray</span>(); <span class="t-res">// =&gt; [1, 1, 3]</span>
+np.<span class="t-fn">nancumprod</span>([<span class="t-num">2</span>, NaN, <span class="t-num">3</span>]).<span class="t-fn">toArray</span>(); <span class="t-res">// =&gt; [2, 2, 6]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">nancumsum</span>(a: ArrayLike, opts?: CumsumOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">nancumprod</span>(a: ArrayLike, opts?: CumsumOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="busdaycalendar">
+<header class="api-head"><h3><code>np.busdaycalendar</code></h3><a class="anchor" href="#busdaycalendar" aria-label="Link to busdaycalendar">#</a></header>
+<pre class="sig"><code>new np.busdaycalendar([options])</code></pre>
+<p>A business-day calendar combining a weekmask (which weekdays are business days) and optional holidays. Used with <code>is_busday</code>, <code>busday_count</code>, and <code>busday_offset</code>.</p>
+
+<h4>Parameters</h4><dl class="params"><div><dt><code>[options.weekmask]</code><span class="ty">string | boolean[]</span></dt><dd>7-character bit string <code>&quot;1111100&quot;</code>, a space-separated list of day names like <code>&quot;Mon Tue Wed Thu Fri&quot;</code>, or a boolean array. Defaults to Mon–Fri.</dd></div><div><dt><code>[options.holidays]</code><span class="ty">(string | number | bigint)[]</span></dt><dd>List of holiday dates as ISO-8601 strings or epoch-day integers.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>busdaycalendar</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">new</span> np.<span class="t-fn">busdaycalendar</span>({ weekmask: <span class="t-str">&quot;Mon Tue Wed Thu Fri&quot;</span> }).weekmask[<span class="t-num">0</span>]; <span class="t-res">// =&gt; true</span></code></pre></div>
+
+</article>
+<article class="api" id="is-busday">
+<header class="api-head"><h3><code>np.is_busday</code></h3><a class="anchor" href="#is-busday" aria-label="Link to is_busday">#</a></header>
+<pre class="sig"><code>np.is_busday(dates, [options])</code></pre>
+<p>Return <code>true</code> for each date that is a business day (not a weekend and not a holiday).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.is_busday.html#numpy.is_busday" rel="noopener" target="_blank" title="Calculates which of the given dates are valid days, and which are not.">numpy.is_busday</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>dates</code><span class="ty">string | number | DatetimeArray | Array</span></dt><dd>One or more dates.</dd></div><div><dt><code>[options.weekmask]</code><span class="ty">string | boolean[]</span></dt><dd>Which weekdays count as business days. Defaults to Mon–Fri.</dd></div><div><dt><code>[options.holidays]</code><span class="ty">(string | number | bigint)[]</span></dt><dd>Holidays to exclude.</dd></div><div><dt><code>[options.busdaycal]</code><span class="ty">busdaycalendar</span></dt><dd>Pre-built calendar; overrides weekmask/holidays.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>boolean | boolean[]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">is_busday</span>(<span class="t-str">&quot;2023-01-16&quot;</span>); <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">is_busday</span>(dates: string | number | bigint | DatetimeArray | (string | number | bigint | DatetimeArray)[], options?: IsBusdayOptions | <span class="t-kw">undefined</span>): boolean | boolean[]</code></pre></details>
+</article>
+<article class="api" id="busday-count">
+<header class="api-head"><h3><code>np.busday_count</code></h3><a class="anchor" href="#busday-count" aria-label="Link to busday_count">#</a></header>
+<pre class="sig"><code>np.busday_count(begindates, enddates, [options])</code></pre>
+<p>Count the number of business days in <code>[begindates, enddates)</code>. Negative when <code>end &lt; begin</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.busday_count.html#numpy.busday_count" rel="noopener" target="_blank" title="Counts the number of valid days between `begindates` and `enddates`, not including the day of `enddates`.">numpy.busday_count</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>begindates</code><span class="ty">string | number | DatetimeArray</span></dt><dd>Start date(s), inclusive.</dd></div><div><dt><code>enddates</code><span class="ty">string | number | DatetimeArray</span></dt><dd>End date(s), exclusive.</dd></div><div><dt><code>[options.weekmask]</code><span class="ty">string | boolean[]</span></dt><dd>Which weekdays count. Defaults to Mon–Fri.</dd></div><div><dt><code>[options.holidays]</code><span class="ty">(string | number | bigint)[]</span></dt><dd>Holidays to exclude.</dd></div><div><dt><code>[options.busdaycal]</code><span class="ty">busdaycalendar</span></dt><dd>Pre-built calendar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>number | number[]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">busday_count</span>(<span class="t-str">&quot;2023-01-01&quot;</span>, <span class="t-str">&quot;2023-01-08&quot;</span>); <span class="t-res">// =&gt; 5</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">busday_count</span>(begindates: string | number | bigint | DatetimeArray, enddates: string | number | bigint | DatetimeArray, options?: BusdayCountOptions | <span class="t-kw">undefined</span>): number | number[]</code></pre></details>
+</article>
+<article class="api" id="busday-offset">
+<header class="api-head"><h3><code>np.busday_offset</code></h3><a class="anchor" href="#busday-offset" aria-label="Link to busday_offset">#</a></header>
+<pre class="sig"><code>np.busday_offset(dates, offsets, [options])</code></pre>
+<p>Shift <code>dates</code> by <code>offsets</code> business days. The <code>roll</code> option controls what to do when a date falls on a non-business day before stepping.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.busday_offset.html#numpy.busday_offset" rel="noopener" target="_blank" title="First adjusts the date to fall on a valid day according to the ``roll`` rule, then applies offsets to the given dates counted in valid days.">numpy.busday_offset</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>dates</code><span class="ty">string | number | DatetimeArray | Array</span></dt><dd>Starting date(s).</dd></div><div><dt><code>offsets</code><span class="ty">number | number[]</span></dt><dd>Number of business days to advance (positive) or retreat (negative).</dd></div><div><dt><code>[options.roll]</code><span class="ty">string</span></dt><dd><code>&quot;raise&quot;</code> (default), <code>&quot;nat&quot;</code>, <code>&quot;forward&quot;</code>, <code>&quot;following&quot;</code>, <code>&quot;backward&quot;</code>, <code>&quot;preceding&quot;</code>, <code>&quot;modifiedfollowing&quot;</code>, <code>&quot;modifiedpreceding&quot;</code>.</dd></div><div><dt><code>[options.weekmask]</code><span class="ty">string | boolean[]</span></dt><dd>Which weekdays count. Defaults to Mon–Fri.</dd></div><div><dt><code>[options.holidays]</code><span class="ty">(string | number | bigint)[]</span></dt><dd>Holidays to exclude.</dd></div><div><dt><code>[options.busdaycal]</code><span class="ty">busdaycalendar</span></dt><dd>Pre-built calendar.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>DatetimeArray | DatetimeArray[]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">busday_offset</span>(<span class="t-str">&quot;2023-01-16&quot;</span>, <span class="t-num">5</span>).<span class="t-fn">toString</span>(); <span class="t-res">// =&gt; &quot;2023-01-23&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">busday_offset</span>(dates: string | number | bigint | DatetimeArray | (string | number | bigint | DatetimeArray)[], offsets: number | number[], options?: BusdayOffsetOptions | <span class="t-kw">undefined</span>): DatetimeArray | DatetimeArray[] | <span class="t-kw">null</span></code></pre></details>
+</article>
+<article class="api" id="sharesMemory">
+<header class="api-head"><h3><code>np.sharesMemory</code></h3><a class="anchor" href="#sharesMemory" aria-label="Link to sharesMemory">#</a></header>
+<pre class="sig"><code>np.sharesMemory(a, b, [options])</code></pre>
+<p>Return <code>true</code> if <code>a</code> and <code>b</code> share the same underlying memory buffer (NumPy <code>np.shares_memory</code>). Unlike <code>mayShareMemory</code>, this is always an exact check.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.shares_memory.html#numpy.shares_memory" rel="noopener" target="_blank" title="Determine if two arrays share memory.">numpy.shares_memory</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">NDArray</span></dt><dd>First array.</dd></div><div><dt><code>b</code><span class="ty">NDArray</span></dt><dd>Second array.</dd></div><div><dt><code>[options.maxWork]</code><span class="ty">number</span></dt><dd>Ignored (always exact).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>boolean</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">arange</span>(<span class="t-num">6</span>);
+<span class="t-kw">const</span> b = a.<span class="t-fn">reshape</span>([<span class="t-num">2</span>, <span class="t-num">3</span>]);
+np.<span class="t-fn">sharesMemory</span>(a, b); <span class="t-res">// =&gt; true</span>
+np.<span class="t-fn">sharesMemory</span>(a, np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>])); <span class="t-res">// =&gt; false</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">sharesMemory</span>(a: NDArray, b: NDArray, _opts?: SharesMemoryOptions | <span class="t-kw">undefined</span>): boolean</code></pre></details>
+</article>
+</article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../reference/io.html"><small>Previous</small><span>Input and output</span></a><a class="pg next" href="../reference/errors.html"><small>Next</small><span>Errors</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l3"><a href="#mayShareMemory">np.mayShareMemory</a></li><li class="l3"><a href="#copy">np.copy</a></li><li class="l3"><a href="#ascontiguousarray">np.ascontiguousarray</a></li><li class="l3"><a href="#asfortranarray">np.asfortranarray</a></li><li class="l3"><a href="#memoryStats">np.memoryStats</a></li><li class="l3"><a href="#lib-stride-tricks-asStrided">np.lib.stride_tricks.asStrided</a></li><li class="l3"><a href="#ndindex">np.ndindex</a></li><li class="l3"><a href="#ndenumerate">np.ndenumerate</a></li><li class="l3"><a href="#nditer">np.nditer</a></li><li class="l3"><a href="#arrayRepr">np.arrayRepr</a></li><li class="l3"><a href="#arrayStr">np.arrayStr</a></li><li class="l3"><a href="#array2string">np.array2string</a></li><li class="l3"><a href="#formatFloatPositional">np.formatFloatPositional</a></li><li class="l3"><a href="#formatFloatScientific">np.formatFloatScientific</a></li><li class="l3"><a href="#setPrintoptions">np.setPrintoptions</a></li><li class="l3"><a href="#getPrintoptions">np.getPrintoptions</a></li><li class="l3"><a href="#printoptions">np.printoptions</a></li><li class="l3"><a href="#baseRepr">np.baseRepr</a></li><li class="l3"><a href="#binaryRepr">np.binaryRepr</a></li><li class="l3"><a href="#pi">np.pi</a></li><li class="l3"><a href="#e">np.e</a></li><li class="l3"><a href="#inf">np.inf</a></li><li class="l3"><a href="#nan">np.nan</a></li><li class="l3"><a href="#euler-gamma">np.euler_gamma</a></li><li class="l3"><a href="#True">np.True_</a></li><li class="l3"><a href="#False">np.False_</a></li><li class="l3"><a href="#PINF">np.PINF</a></li><li class="l3"><a href="#NINF">np.NINF</a></li><li class="l3"><a href="#PZERO">np.PZERO</a></li><li class="l3"><a href="#NZERO">np.NZERO</a></li><li class="l3"><a href="#vectorize">np.vectorize</a></li><li class="l3"><a href="#shares-memory">np.shares_memory</a></li><li class="l3"><a href="#cumsum">np.cumsum</a></li><li class="l3"><a href="#cumprod">np.cumprod</a></li><li class="l3"><a href="#nancumsum">np.nancumsum</a></li><li class="l3"><a href="#busdaycalendar">np.busdaycalendar</a></li><li class="l3"><a href="#is-busday">np.is_busday</a></li><li class="l3"><a href="#busday-count">np.busday_count</a></li><li class="l3"><a href="#busday-offset">np.busday_offset</a></li><li class="l3"><a href="#sharesMemory">np.sharesMemory</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><img class="logo-mark" src="../../assets/logo.png" width="24" height="24" alt="Cyfora"><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.3</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.3","versions":["1.0.3","1.0.2","1.0.1"],"pages":{"1.0.3":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>

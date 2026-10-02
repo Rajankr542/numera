@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.3" data-path="reference/tri-indices.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triangle and diagonal indices · numera v1.0.3</title>
+<meta name="description" content="Triangle and diagonal indices: numera API reference.">
+<meta property="og:title" content="Triangle and diagonal indices · numera">
+<meta property="og:description" content="Triangle and diagonal indices: numera API reference.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.ico" sizes="any">
+<link rel="icon" href="../../assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><img class="logo-mark" src="../../assets/logo.png" width="24" height="24" alt="Cyfora"><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.3" selected>v1.0.3 (latest)</option><option value="1.0.2">v1.0.2</option><option value="1.0.1">v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html">Guides</a><a href="../reference/index.html" aria-current="page">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Reference</p><ul><li><a href="../reference/index.html">Overview</a></li><li><a href="../reference/numpy-index.html">NumPy name index</a></li></ul></div><div class="side-group"><p class="side-title">Array objects</p><ul><li><a href="../reference/ndarray.html">NDArray<span class="badge">20</span></a></li><li><a href="../reference/dtype.html">Data types<span class="badge">43</span></a></li></ul></div><div class="side-group"><p class="side-title">Universal functions</p><ul><li><a href="../reference/ufuncs.html">ufunc overview<span class="badge">106</span></a></li><li><a href="../reference/math.html">Math (ufuncs)<span class="badge">31</span></a></li><li><a href="../reference/logic.html">Comparison, logic and bitwise<span class="badge">13</span></a></li></ul></div><div class="side-group"><p class="side-title">Routines</p><ul><li><a href="../reference/creation.html">Array creation<span class="badge">25</span></a></li><li><a href="../reference/shape.html">Shape manipulation<span class="badge">41</span></a></li><li><a href="../reference/indexing.html">Indexing<span class="badge">20</span></a></li><li><a href="../reference/grids.html">Grids and index helpers<span class="badge">9</span></a></li><li><a href="../reference/tri-indices.html" aria-current="page">Triangle and diagonal indices<span class="badge">8</span></a></li><li><a href="../reference/reduce.html">Reductions<span class="badge">5</span></a></li><li><a href="../reference/reduce-where.html">Reductions with where= / out=<span class="badge">5</span></a></li><li><a href="../reference/sorting.html">Sorting, searching and sets<span class="badge">15</span></a></li><li><a href="../reference/statistics.html">Statistics<span class="badge">19</span></a></li><li><a href="../reference/polynomials.html">Polynomials<span class="badge">11</span></a></li><li><a href="../reference/windows.html">Window functions<span class="badge">5</span></a></li><li><a href="../reference/io.html">Input and output<span class="badge">11</span></a></li><li><a href="../reference/utilities.html">Utilities<span class="badge">40</span></a></li><li><a href="../reference/errors.html">Errors<span class="badge">3</span></a></li></ul></div><div class="side-group"><p class="side-title">Modules</p><ul><li><a href="../reference/linalg.html">np.linalg<span class="badge">35</span></a></li><li><a href="../reference/fft.html">np.fft<span class="badge">8</span></a></li><li><a href="../reference/random.html">np.random<span class="badge">6</span></a></li><li><a href="../reference/random-bitgen.html">Random — bit generators<span class="badge">7</span></a></li><li><a href="../reference/random-discrete.html">Random — discrete distributions (Generator)<span class="badge">6</span></a></li><li><a href="../reference/random-continuous.html">Random — continuous distributions (Generator)<span class="badge">22</span></a></li><li><a href="../reference/random-multivariate.html">Random — multivariate distributions (Generator)<span class="badge">4</span></a></li><li><a href="../reference/random-state.html">Random state<span class="badge">5</span></a></li><li><a href="../reference/emath.html">np.emath (complex-valued math)<span class="badge">4</span></a></li><li><a href="../reference/testing.html">np.testing (assertions)<span class="badge">8</span></a></li><li><a href="../reference/polynomial.html">np.polynomial (series classes)<span class="badge">4</span></a></li><li><a href="../reference/ma.html">Masked arrays (np.ma)<span class="badge">1</span></a></li><li><a href="../reference/strings.html">String operations (np.strings / np.char)<span class="badge">8</span></a></li><li><a href="../reference/rec.html">Record arrays (np.rec)<span class="badge">5</span></a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose ref">
+<p class="eyebrow">API reference</p>
+<h1>Triangle and diagonal indices</h1>
+
+<div class="summary-table table"><table><thead><tr><th>Name</th><th>Summary</th></tr></thead><tbody><tr><td><a href="#trilIndices"><code>np.trilIndices</code></a></td><td>Row and column indices of the lower triangle of an <code>n × m</code> array.</td></tr><tr><td><a href="#triuIndices"><code>np.triuIndices</code></a></td><td>Row and column indices of the upper triangle of an <code>n × m</code> array.</td></tr><tr><td><a href="#trilIndicesFrom"><code>np.trilIndicesFrom</code></a></td><td><code>trilIndices</code> for the shape of a 2-D array.</td></tr><tr><td><a href="#triuIndicesFrom"><code>np.triuIndicesFrom</code></a></td><td><code>triuIndices</code> for the shape of a 2-D array.</td></tr><tr><td><a href="#diagIndices"><code>np.diagIndices</code></a></td><td>Indices of the main diagonal of an <code>ndim</code>-dimensional array with all sides <code>n</code>.</td></tr><tr><td><a href="#diagIndicesFrom"><code>np.diagIndicesFrom</code></a></td><td><code>diagIndices</code> for an array whose sides are all equal (at least 2-D).</td></tr><tr><td><a href="#maskIndices"><code>np.maskIndices</code></a></td><td>Indices where <code>maskFunc(np.ones([n, n]), k)</code> is nonzero, e.g.</td></tr><tr><td><a href="#fillDiagonal"><code>np.fillDiagonal</code></a></td><td>Fills the main diagonal of <code>a</code> in place (values repeat cyclically).</td></tr></tbody></table></div>
+<article class="api" id="trilIndices">
+<header class="api-head"><h3><code>np.trilIndices</code></h3><a class="anchor" href="#trilIndices" aria-label="Link to trilIndices">#</a></header>
+<pre class="sig"><code>np.trilIndices(n, [k], [m])</code></pre>
+<p>Row and column indices of the lower triangle of an <code>n × m</code> array.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.tril_indices.html#numpy.tril_indices" rel="noopener" target="_blank" title="Return the indices for the lower-triangle of an (n, m) array.">numpy.tril_indices</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>n</code><span class="ty">number</span></dt><dd>Rows.</dd></div><div><dt><code>[k]</code><span class="ty">number</span></dt><dd>Diagonal offset: <code>0</code> main, <code>&gt; 0</code> above, <code>&lt; 0</code> below. Default <code>0</code>.</dd></div><div><dt><code>[m]</code><span class="ty">number | null</span></dt><dd>Columns. Default <code>n</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>[NDArray, NDArray]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">trilIndices</span>(<span class="t-num">3</span>).<span class="t-fn">map</span>((a) =&gt; a.<span class="t-fn">toArray</span>()); <span class="t-res">// =&gt; [[0, 1, 1, 2, 2, 2], [0, 0, 1, 0, 1, 2]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">trilIndices</span>(n: number, k?: number | <span class="t-kw">undefined</span>, m?: number | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): NDArray[]</code></pre></details>
+</article>
+<article class="api" id="triuIndices">
+<header class="api-head"><h3><code>np.triuIndices</code></h3><a class="anchor" href="#triuIndices" aria-label="Link to triuIndices">#</a></header>
+<pre class="sig"><code>np.triuIndices(n, [k], [m])</code></pre>
+<p>Row and column indices of the upper triangle of an <code>n × m</code> array.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.triu_indices.html#numpy.triu_indices" rel="noopener" target="_blank" title="Return the indices for the upper-triangle of an (n, m) array.">numpy.triu_indices</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>n</code><span class="ty">number</span></dt><dd>Rows.</dd></div><div><dt><code>[k]</code><span class="ty">number</span></dt><dd>Diagonal offset: <code>0</code> main, <code>&gt; 0</code> above, <code>&lt; 0</code> below. Default <code>0</code>.</dd></div><div><dt><code>[m]</code><span class="ty">number | null</span></dt><dd>Columns. Default <code>n</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>[NDArray, NDArray]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">triuIndices</span>(<span class="t-num">3</span>, <span class="t-num">1</span>).<span class="t-fn">map</span>((a) =&gt; a.<span class="t-fn">toArray</span>()); <span class="t-res">// =&gt; [[0, 0, 1], [1, 2, 2]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">triuIndices</span>(n: number, k?: number | <span class="t-kw">undefined</span>, m?: number | <span class="t-kw">null</span> | <span class="t-kw">undefined</span>): NDArray[]</code></pre></details>
+</article>
+<article class="api" id="trilIndicesFrom">
+<header class="api-head"><h3><code>np.trilIndicesFrom</code></h3><a class="anchor" href="#trilIndicesFrom" aria-label="Link to trilIndicesFrom">#</a></header>
+<pre class="sig"><code>np.trilIndicesFrom(arr, [k])</code></pre>
+<p><code>trilIndices</code> for the shape of a 2-D array.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.tril_indices_from.html#numpy.tril_indices_from" rel="noopener" target="_blank" title="Return the indices for the lower-triangle of arr.">numpy.tril_indices_from</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>arr</code><span class="ty">NDArray</span></dt><dd>2-D array.</dd></div><div><dt><code>[k]</code><span class="ty">number</span></dt><dd>Diagonal offset: <code>0</code> main, <code>&gt; 0</code> above, <code>&lt; 0</code> below. Default <code>0</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>[NDArray, NDArray]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">trilIndicesFrom</span>(np.<span class="t-fn">zeros</span>([<span class="t-num">2</span>, <span class="t-num">3</span>])).<span class="t-fn">map</span>((a) =&gt; a.<span class="t-fn">toArray</span>()); <span class="t-res">// =&gt; [[0, 1, 1], [0, 0, 1]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">trilIndicesFrom</span>(arr: NDArray, k?: number | <span class="t-kw">undefined</span>): NDArray[]</code></pre></details>
+</article>
+<article class="api" id="triuIndicesFrom">
+<header class="api-head"><h3><code>np.triuIndicesFrom</code></h3><a class="anchor" href="#triuIndicesFrom" aria-label="Link to triuIndicesFrom">#</a></header>
+<pre class="sig"><code>np.triuIndicesFrom(arr, [k])</code></pre>
+<p><code>triuIndices</code> for the shape of a 2-D array.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.triu_indices_from.html#numpy.triu_indices_from" rel="noopener" target="_blank" title="Return the indices for the upper-triangle of arr.">numpy.triu_indices_from</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>arr</code><span class="ty">NDArray</span></dt><dd>2-D array.</dd></div><div><dt><code>[k]</code><span class="ty">number</span></dt><dd>Diagonal offset: <code>0</code> main, <code>&gt; 0</code> above, <code>&lt; 0</code> below. Default <code>0</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>[NDArray, NDArray]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">triuIndicesFrom</span>(np.<span class="t-fn">zeros</span>([<span class="t-num">2</span>, <span class="t-num">3</span>])).<span class="t-fn">map</span>((a) =&gt; a.<span class="t-fn">toArray</span>()); <span class="t-res">// =&gt; [[0, 0, 0, 1, 1], [0, 1, 2, 1, 2]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">triuIndicesFrom</span>(arr: NDArray, k?: number | <span class="t-kw">undefined</span>): NDArray[]</code></pre></details>
+</article>
+<article class="api" id="diagIndices">
+<header class="api-head"><h3><code>np.diagIndices</code></h3><a class="anchor" href="#diagIndices" aria-label="Link to diagIndices">#</a></header>
+<pre class="sig"><code>np.diagIndices(n, [ndim])</code></pre>
+<p>Indices of the main diagonal of an <code>ndim</code>-dimensional array with all sides <code>n</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.diag_indices.html#numpy.diag_indices" rel="noopener" target="_blank" title="Return the indices to access the main diagonal of an array.">numpy.diag_indices</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>n</code><span class="ty">number</span></dt><dd>Side length.</dd></div><div><dt><code>[ndim]</code><span class="ty">number</span></dt><dd>Dimensions. Default <code>2</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray[]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">diagIndices</span>(<span class="t-num">3</span>).<span class="t-fn">map</span>((a) =&gt; a.<span class="t-fn">toArray</span>()); <span class="t-res">// =&gt; [[0, 1, 2], [0, 1, 2]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">diagIndices</span>(n: number, ndim?: number | <span class="t-kw">undefined</span>): NDArray[]</code></pre></details>
+</article>
+<article class="api" id="diagIndicesFrom">
+<header class="api-head"><h3><code>np.diagIndicesFrom</code></h3><a class="anchor" href="#diagIndicesFrom" aria-label="Link to diagIndicesFrom">#</a></header>
+<pre class="sig"><code>np.diagIndicesFrom(arr)</code></pre>
+<p><code>diagIndices</code> for an array whose sides are all equal (at least 2-D).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.diag_indices_from.html#numpy.diag_indices_from" rel="noopener" target="_blank" title="Return the indices to access the main diagonal of an n-dimensional array.">numpy.diag_indices_from</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>arr</code><span class="ty">NDArray</span></dt><dd>Input array.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray[]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">diagIndicesFrom</span>(np.<span class="t-fn">zeros</span>([<span class="t-num">2</span>, <span class="t-num">2</span>, <span class="t-num">2</span>])).<span class="t-fn">map</span>((a) =&gt; a.<span class="t-fn">toArray</span>()); <span class="t-res">// =&gt; [[0, 1], [0, 1], [0, 1]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">diagIndicesFrom</span>(arr: NDArray): NDArray[]</code></pre></details>
+</article>
+<article class="api" id="maskIndices">
+<header class="api-head"><h3><code>np.maskIndices</code></h3><a class="anchor" href="#maskIndices" aria-label="Link to maskIndices">#</a></header>
+<pre class="sig"><code>np.maskIndices(n, maskFunc, [k])</code></pre>
+<p>Indices where <code>maskFunc(np.ones([n, n]), k)</code> is nonzero, e.g. <code>np.triu</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.mask_indices.html#numpy.mask_indices" rel="noopener" target="_blank" title="Return the indices to access (n, n) arrays, given a masking function.">numpy.mask_indices</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>n</code><span class="ty">number</span></dt><dd>Side length.</dd></div><div><dt><code>maskFunc</code><span class="ty">(m: NDArray, k: number) =&gt; NDArray</span></dt><dd>Mask function such as <code>np.tril</code>.</dd></div><div><dt><code>[k]</code><span class="ty">number</span></dt><dd>Diagonal offset: <code>0</code> main, <code>&gt; 0</code> above, <code>&lt; 0</code> below. Default <code>0</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray[]</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">maskIndices</span>(<span class="t-num">3</span>, np.triu, <span class="t-num">1</span>).<span class="t-fn">map</span>((a) =&gt; a.<span class="t-fn">toArray</span>()); <span class="t-res">// =&gt; [[0, 0, 1], [1, 2, 2]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">maskIndices</span>(n: number, maskFunc: (m: NDArray, k: number) =&gt; NDArray, k?: number | <span class="t-kw">undefined</span>): NDArray[]</code></pre></details>
+</article>
+<article class="api" id="fillDiagonal">
+<header class="api-head"><h3><code>np.fillDiagonal</code></h3><a class="anchor" href="#fillDiagonal" aria-label="Link to fillDiagonal">#</a></header>
+<pre class="sig"><code>np.fillDiagonal(a, val, [options])</code></pre>
+<p>Fills the main diagonal of <code>a</code> in place (values repeat cyclically). For tall 2-D arrays, <code>wrap: true</code> restarts the diagonal after every <code>ncols + 1</code> rows, like NumPy.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.fill_diagonal.html#numpy.fill_diagonal" rel="noopener" target="_blank" title="Fill the main diagonal of the given array of any dimensionality.">numpy.fill_diagonal</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">NDArray</span></dt><dd>Writeable array, at least 2-D (all sides equal when &gt; 2-D).</dd></div><div><dt><code>val</code><span class="ty">ArrayLike</span></dt><dd>Scalar or values to write.</dd></div><div><dt><code>[options.wrap]</code><span class="ty">boolean</span></dt><dd>Default <code>false</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>void</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">zeros</span>([<span class="t-num">3</span>, <span class="t-num">3</span>]);
+np.<span class="t-fn">fillDiagonal</span>(a, [<span class="t-num">1</span>, <span class="t-num">2</span>]);
+a; <span class="t-res">// =&gt; [[1, 0, 0], [0, 2, 0], [0, 0, 1]]</span>
+<span class="t-kw">const</span> b = np.<span class="t-fn">zeros</span>([<span class="t-num">5</span>, <span class="t-num">2</span>]);
+np.<span class="t-fn">fillDiagonal</span>(b, <span class="t-num">7</span>, { wrap: <span class="t-kw">true</span> });
+b; <span class="t-res">// =&gt; [[7, 0], [0, 7], [0, 0], [7, 0], [0, 7]]</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">fillDiagonal</span>(a: NDArray, val: ArrayInput, options?: { wrap?: boolean | <span class="t-kw">undefined</span>; } | <span class="t-kw">undefined</span>): void</code></pre></details>
+</article>
+</article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../reference/grids.html"><small>Previous</small><span>Grids and index helpers</span></a><a class="pg next" href="../reference/reduce.html"><small>Next</small><span>Reductions</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l3"><a href="#trilIndices">np.trilIndices</a></li><li class="l3"><a href="#triuIndices">np.triuIndices</a></li><li class="l3"><a href="#trilIndicesFrom">np.trilIndicesFrom</a></li><li class="l3"><a href="#triuIndicesFrom">np.triuIndicesFrom</a></li><li class="l3"><a href="#diagIndices">np.diagIndices</a></li><li class="l3"><a href="#diagIndicesFrom">np.diagIndicesFrom</a></li><li class="l3"><a href="#maskIndices">np.maskIndices</a></li><li class="l3"><a href="#fillDiagonal">np.fillDiagonal</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><img class="logo-mark" src="../../assets/logo.png" width="24" height="24" alt="Cyfora"><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.3</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.3","versions":["1.0.3","1.0.2","1.0.1"],"pages":{"1.0.3":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>

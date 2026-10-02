@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.3" data-path="guides/dtypes.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data types · numera v1.0.3</title>
+<meta name="description" content="The 14 numeric dtypes, NumPy type promotion, weak JS scalars, casting rules and 64-bit integers.">
+<meta property="og:title" content="Data types · numera">
+<meta property="og:description" content="The 14 numeric dtypes, NumPy type promotion, weak JS scalars, casting rules and 64-bit integers.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.ico" sizes="any">
+<link rel="icon" href="../../assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><img class="logo-mark" src="../../assets/logo.png" width="24" height="24" alt="Cyfora"><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.3" selected>v1.0.3 (latest)</option><option value="1.0.2">v1.0.2</option><option value="1.0.1">v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html" aria-current="page">Guides</a><a href="../reference/index.html">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Getting started</p><ul><li><a href="../index.html">Introduction</a></li><li><a href="../guides/installation.html">Installation</a></li><li><a href="../guides/quickstart.html">Quickstart</a></li><li><a href="../guides/numpy-migration.html">Coming from NumPy</a></li></ul></div><div class="side-group"><p class="side-title">Core concepts</p><ul><li><a href="../guides/array-basics.html">Array basics</a></li><li><a href="../guides/dtypes.html" aria-current="page">Data types</a></li><li><a href="../guides/broadcasting.html">Broadcasting</a></li><li><a href="../guides/indexing.html">Indexing and slicing</a></li><li><a href="../guides/reductions.html">Reductions and statistics</a></li></ul></div><div class="side-group"><p class="side-title">Topics</p><ul><li><a href="../guides/random.html">Random numbers</a></li><li><a href="../guides/linalg-fft.html">Linear algebra and FFT</a></li><li><a href="../guides/errors.html">Errors and floating-point</a></li><li><a href="../guides/typescript.html">TypeScript</a></li><li><a href="../guides/performance.html">Performance and memory</a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose"><p class="eyebrow">Core concepts</p><h1>Data types</h1><p>Every array has a single dtype. numera supports the same numeric dtypes as NumPy, uses its promotion table and casting rules, and applies NEP 50's weak scalars. Non-numeric dtypes have their own modules: strings in <code>np.strings</code> and <code>np.char</code>, datetimes as <code>datetime64</code>/<code>timedelta64</code>, and records in <code>np.rec</code>.</p>
+<h2 id="numeric-dtypes">Numeric dtypes<a class="anchor" href="#numeric-dtypes" aria-label="Link to this section">#</a></h2>
+<div class="table"><table><thead><tr><th>Kind</th><th>dtypes</th><th>JS element type in <code>toArray()</code></th><th><code>toTypedArray()</code></th></tr></thead><tbody><tr><td>boolean</td><td><code>bool</code></td><td><code>boolean</code></td><td><code>Uint8Array</code></td></tr><tr><td>signed integer</td><td><code>int8</code>, <code>int16</code>, <code>int32</code>, <code>int64</code></td><td><code>number</code></td><td><code>Int8Array</code> … <code>BigInt64Array</code></td></tr><tr><td>unsigned integer</td><td><code>uint8</code>, <code>uint16</code>, <code>uint32</code>, <code>uint64</code></td><td><code>number</code></td><td><code>Uint8Array</code> … <code>BigUint64Array</code></td></tr><tr><td>floating</td><td><code>float16</code>, <code>float32</code>, <code>float64</code></td><td><code>number</code></td><td><code>Uint16Array</code> (raw bits), <code>Float32Array</code>, <code>Float64Array</code></td></tr><tr><td>complex</td><td><code>complex64</code>, <code>complex128</code></td><td><code>Complex</code></td><td>interleaved <code>Float32Array</code> / <code>Float64Array</code></td></tr></tbody></table></div>
+<p>You can pass a dtype as a name (<code>&quot;float32&quot;</code>), a NumPy alias (<code>&quot;single&quot;</code>, <code>&quot;double&quot;</code>, <code>&quot;int_&quot;</code>) or a <code>DType</code> object (<code>np.float32</code>). <code>np.dtype(x)</code> resolves any of these to the canonical <code>DType</code>:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> d = np.<span class="t-fn">dtype</span>(<span class="t-str">&quot;single&quot;</span>);
+d.name;              <span class="t-res">// =&gt; &quot;float32&quot;</span>
+d.kind;              <span class="t-res">// =&gt; &quot;f&quot;</span>
+d.itemSize;          <span class="t-res">// =&gt; 4</span>
+d === np.float32;    <span class="t-res">// =&gt; true</span>
+np.<span class="t-fn">zeros</span>([<span class="t-num">2</span>], { dtype: np.int32 }).dtype.name; <span class="t-res">// =&gt; &quot;int32&quot;</span></code></pre></div>
+<h2 id="inference">Inference<a class="anchor" href="#inference" aria-label="Link to this section">#</a></h2>
+<p><code>np.array</code> infers the dtype from the data, like NumPy:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">array</span>([<span class="t-kw">true</span>, <span class="t-kw">false</span>]).dtype.name;  <span class="t-res">// =&gt; &quot;bool&quot;</span>
+np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>]).dtype.name;         <span class="t-res">// =&gt; &quot;int64&quot;</span>
+np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2.5</span>]).dtype.name;       <span class="t-res">// =&gt; &quot;float64&quot;</span>
+np.<span class="t-fn">array</span>([np.<span class="t-fn">complex</span>(<span class="t-num">1</span>, <span class="t-num">2</span>)]).dtype.name; <span class="t-res">// =&gt; &quot;complex128&quot;</span></code></pre></div>
+<p>All booleans give <code>bool</code>, all integers give <code>int64</code>, anything else gives <code>float64</code>. One exception: a JS number that is an integer but larger than 2^53 is inferred as <code>float64</code>, because it is no longer exact. Use a <code>bigint</code> for large integers.</p>
+<h2 id="type-promotion">Type promotion<a class="anchor" href="#type-promotion" aria-label="Link to this section">#</a></h2>
+<p>When two arrays are combined, the result has the smallest dtype that can hold both, using NumPy's promotion table:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">promoteTypes</span>(<span class="t-str">&quot;int8&quot;</span>, <span class="t-str">&quot;uint8&quot;</span>).name;     <span class="t-res">// =&gt; &quot;int16&quot;</span>
+np.<span class="t-fn">promoteTypes</span>(<span class="t-str">&quot;int32&quot;</span>, <span class="t-str">&quot;float32&quot;</span>).name;  <span class="t-res">// =&gt; &quot;float64&quot;</span>
+np.<span class="t-fn">add</span>(np.<span class="t-fn">array</span>([<span class="t-num">1</span>], { dtype: <span class="t-str">&quot;int32&quot;</span> }), np.<span class="t-fn">array</span>([<span class="t-num">1</span>], { dtype: <span class="t-str">&quot;float32&quot;</span> })).dtype.name; <span class="t-res">// =&gt; &quot;float64&quot;</span></code></pre></div>
+<p>JS numbers are <strong>weak</strong> scalars (NEP 50). They can raise the <em>kind</em> (integer → float → complex) but never the <em>size</em>:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> i8 = np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>], { dtype: <span class="t-str">&quot;int8&quot;</span> });
+np.<span class="t-fn">add</span>(i8, <span class="t-num">1</span>).dtype.name;        <span class="t-res">// =&gt; &quot;int8&quot;</span>
+np.<span class="t-fn">add</span>(i8, <span class="t-num">1.5</span>).dtype.name;      <span class="t-res">// =&gt; &quot;float64&quot;</span>
+np.<span class="t-fn">resultType</span>(<span class="t-str">&quot;int8&quot;</span>, <span class="t-num">300</span>).name; <span class="t-res">// =&gt; &quot;int8&quot;</span>
+np.<span class="t-fn">multiply</span>(np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>], { dtype: <span class="t-str">&quot;float32&quot;</span> }), <span class="t-num">2.5</span>).dtype.name; <span class="t-res">// =&gt; &quot;float32&quot;</span></code></pre></div>
+<p>A weak scalar that doesn't fit the array's dtype raises an error. Integer overflow inside array arithmetic wraps around, as in NumPy:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">add</span>(np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>], { dtype: <span class="t-str">&quot;uint8&quot;</span> }), <span class="t-num">255</span>); <span class="t-res">// =&gt; [0, 1]</span>
+np.<span class="t-fn">add</span>(np.<span class="t-fn">array</span>([<span class="t-num">100</span>], { dtype: <span class="t-str">&quot;int8&quot;</span> }), np.<span class="t-fn">array</span>([<span class="t-num">100</span>], { dtype: <span class="t-str">&quot;int8&quot;</span> })); <span class="t-res">// =&gt; [-56]</span></code></pre></div>
+<h2 id="casting">Casting<a class="anchor" href="#casting" aria-label="Link to this section">#</a></h2>
+<p><code>a.astype(dtype)</code> converts and copies. Float → int truncates toward zero. By default the cast is <code>&quot;unsafe&quot;</code>, which allows anything. Pass <code>casting</code> to restrict it:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">array</span>([-<span class="t-num">1.5</span>, <span class="t-num">2.7</span>]).<span class="t-fn">astype</span>(<span class="t-str">&quot;int32&quot;</span>);                        <span class="t-res">// =&gt; [-1, 2]</span>
+np.<span class="t-fn">array</span>([<span class="t-kw">true</span>, <span class="t-kw">false</span>]).<span class="t-fn">astype</span>(<span class="t-str">&quot;int32&quot;</span>);                      <span class="t-res">// =&gt; [1, 0]</span>
+np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>], { dtype: <span class="t-str">&quot;int8&quot;</span> }).<span class="t-fn">astype</span>(<span class="t-str">&quot;float32&quot;</span>, { casting: <span class="t-str">&quot;safe&quot;</span> }).dtype.name; <span class="t-res">// =&gt; &quot;float32&quot;</span>
+np.<span class="t-fn">canCast</span>(<span class="t-str">&quot;int8&quot;</span>, <span class="t-str">&quot;int16&quot;</span>);                                  <span class="t-res">// =&gt; true</span>
+np.<span class="t-fn">canCast</span>(<span class="t-str">&quot;float64&quot;</span>, <span class="t-str">&quot;int32&quot;</span>);                               <span class="t-res">// =&gt; false</span>
+np.<span class="t-fn">canCast</span>(<span class="t-str">&quot;float64&quot;</span>, <span class="t-str">&quot;int32&quot;</span>, <span class="t-str">&quot;unsafe&quot;</span>);                     <span class="t-res">// =&gt; true</span></code></pre></div>
+<p>The five casting rules are <code>&quot;no&quot;</code>, <code>&quot;equiv&quot;</code>, <code>&quot;safe&quot;</code>, <code>&quot;same_kind&quot;</code> and <code>&quot;unsafe&quot;</code>. Ufuncs check their inputs and <code>out=</code> with <code>&quot;same_kind&quot;</code> by default:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> out = np.<span class="t-fn">zeros</span>(<span class="t-num">1</span>, { dtype: <span class="t-str">&quot;int32&quot;</span> });
+np.<span class="t-fn">add</span>(np.<span class="t-fn">array</span>([<span class="t-num">1.5</span>]), <span class="t-num">1</span>, { out, casting: <span class="t-str">&quot;unsafe&quot;</span> });
+out;                                                          <span class="t-res">// =&gt; [2]</span></code></pre></div>
+<h2 id="limits">Limits<a class="anchor" href="#limits" aria-label="Link to this section">#</a></h2>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">iinfo</span>(<span class="t-str">&quot;int8&quot;</span>).max;      <span class="t-res">// =&gt; 127</span>
+np.<span class="t-fn">iinfo</span>(<span class="t-str">&quot;int8&quot;</span>).min;      <span class="t-res">// =&gt; -128</span>
+np.<span class="t-fn">finfo</span>(<span class="t-str">&quot;float64&quot;</span>).eps;   <span class="t-res">// =&gt; 2.220446049250313e-16</span>
+np.<span class="t-fn">finfo</span>(<span class="t-str">&quot;float32&quot;</span>).eps;   <span class="t-res">// =&gt; 1.1920928955078125e-7</span></code></pre></div>
+<h2 id="64-bit-integers">64-bit integers<a class="anchor" href="#64-bit-integers" aria-label="Link to this section">#</a></h2>
+<p>JS numbers are exact only up to 2^53, while <code>int64</code> and <code>uint64</code> go further. numera stores them exactly in native memory. Only the conversion back to JS can lose precision:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> big = np.<span class="t-fn">array</span>([<span class="t-num">2n</span> ** <span class="t-num">60n</span>]);
+big.dtype.name;                         <span class="t-res">// =&gt; &quot;int64&quot;</span>
+big.<span class="t-fn">toTypedArray</span>()[<span class="t-num">0</span>];                  <span class="t-res">// =&gt; &quot;1152921504606846976&quot;</span>
+np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>], { dtype: <span class="t-str">&quot;int64&quot;</span> }).<span class="t-fn">toTypedArray</span>().constructor.name; <span class="t-res">// =&gt; &quot;BigInt64Array&quot;</span></code></pre></div>
+<p>Use <code>toTypedArray()</code> (or <code>bigint</code> inputs) when values may exceed <code>Number.MAX_SAFE_INTEGER</code>. <code>toArray()</code> returns JS numbers.</p>
+<h2 id="float16">float16<a class="anchor" href="#float16" aria-label="Link to this section">#</a></h2>
+<p><code>float16</code> is stored natively, and arithmetic follows NumPy's half-precision results. <code>toArray()</code> returns the values as JS numbers, while <code>toTypedArray()</code> returns the raw 16-bit patterns as a <code>Uint16Array</code>:</p>
+<div class="codeblock" data-lang="js"><div class="codehead"><span>JavaScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">array</span>([<span class="t-num">0.1</span>], { dtype: <span class="t-str">&quot;float16&quot;</span> }).<span class="t-fn">item</span>(); <span class="t-res">// =&gt; 0.0999755859375</span></code></pre></div></article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../guides/array-basics.html"><small>Previous</small><span>Array basics</span></a><a class="pg next" href="../guides/broadcasting.html"><small>Next</small><span>Broadcasting</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l2"><a href="#numeric-dtypes">Numeric dtypes</a></li><li class="l2"><a href="#inference">Inference</a></li><li class="l2"><a href="#type-promotion">Type promotion</a></li><li class="l2"><a href="#casting">Casting</a></li><li class="l2"><a href="#limits">Limits</a></li><li class="l2"><a href="#64-bit-integers">64-bit integers</a></li><li class="l2"><a href="#float16">float16</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><img class="logo-mark" src="../../assets/logo.png" width="24" height="24" alt="Cyfora"><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.3</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.3","versions":["1.0.3","1.0.2","1.0.1"],"pages":{"1.0.3":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>

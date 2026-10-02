@@ -2,6 +2,13 @@
 
 All notable changes to `@cyfora/numera`. NumPy coverage figures count the public NumPy 2.5.3 names that numera tracks. The [NumPy name index](/reference/numpy-index.html) of each version lists them.
 
+## 1.0.3
+
+Documentation-only release. The API is unchanged from 1.0.2.
+
+- Rewritten README with the Cyfora logo, and a shorter README for npm.
+- New `CONTRIBUTING.md`.
+
 ## 1.0.2
 
 Coverage went from 15% to 99.1% of the tracked NumPy API (from 158 to 1045 of 1054 names).

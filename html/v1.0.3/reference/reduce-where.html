@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.3" data-path="reference/reduce-where.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reductions with where= / out= · numera v1.0.3</title>
+<meta name="description" content="All seven scalar reductions (sum, prod, min, max, mean, var, std) accept where (a boolean mask broadcast to a) and out (a pre-allocated result array). Only elements where the mask is true contribute; masked-out positions use the reduction identity (0 for sum, 1 for prod; for min/max you must supply initial). mean/var/std divide by the count of true positions.">
+<meta property="og:title" content="Reductions with where= / out= · numera">
+<meta property="og:description" content="All seven scalar reductions (sum, prod, min, max, mean, var, std) accept where (a boolean mask broadcast to a) and out (a pre-allocated result array). Only elements where the mask is true contribute; masked-out positions use the reduction identity (0 for sum, 1 for prod; for min/max you must supply initial). mean/var/std divide by the count of true positions.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.ico" sizes="any">
+<link rel="icon" href="../../assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><img class="logo-mark" src="../../assets/logo.png" width="24" height="24" alt="Cyfora"><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.3" selected>v1.0.3 (latest)</option><option value="1.0.2">v1.0.2</option><option value="1.0.1">v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html">Guides</a><a href="../reference/index.html" aria-current="page">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Reference</p><ul><li><a href="../reference/index.html">Overview</a></li><li><a href="../reference/numpy-index.html">NumPy name index</a></li></ul></div><div class="side-group"><p class="side-title">Array objects</p><ul><li><a href="../reference/ndarray.html">NDArray<span class="badge">20</span></a></li><li><a href="../reference/dtype.html">Data types<span class="badge">43</span></a></li></ul></div><div class="side-group"><p class="side-title">Universal functions</p><ul><li><a href="../reference/ufuncs.html">ufunc overview<span class="badge">106</span></a></li><li><a href="../reference/math.html">Math (ufuncs)<span class="badge">31</span></a></li><li><a href="../reference/logic.html">Comparison, logic and bitwise<span class="badge">13</span></a></li></ul></div><div class="side-group"><p class="side-title">Routines</p><ul><li><a href="../reference/creation.html">Array creation<span class="badge">25</span></a></li><li><a href="../reference/shape.html">Shape manipulation<span class="badge">41</span></a></li><li><a href="../reference/indexing.html">Indexing<span class="badge">20</span></a></li><li><a href="../reference/grids.html">Grids and index helpers<span class="badge">9</span></a></li><li><a href="../reference/tri-indices.html">Triangle and diagonal indices<span class="badge">8</span></a></li><li><a href="../reference/reduce.html">Reductions<span class="badge">5</span></a></li><li><a href="../reference/reduce-where.html" aria-current="page">Reductions with where= / out=<span class="badge">5</span></a></li><li><a href="../reference/sorting.html">Sorting, searching and sets<span class="badge">15</span></a></li><li><a href="../reference/statistics.html">Statistics<span class="badge">19</span></a></li><li><a href="../reference/polynomials.html">Polynomials<span class="badge">11</span></a></li><li><a href="../reference/windows.html">Window functions<span class="badge">5</span></a></li><li><a href="../reference/io.html">Input and output<span class="badge">11</span></a></li><li><a href="../reference/utilities.html">Utilities<span class="badge">40</span></a></li><li><a href="../reference/errors.html">Errors<span class="badge">3</span></a></li></ul></div><div class="side-group"><p class="side-title">Modules</p><ul><li><a href="../reference/linalg.html">np.linalg<span class="badge">35</span></a></li><li><a href="../reference/fft.html">np.fft<span class="badge">8</span></a></li><li><a href="../reference/random.html">np.random<span class="badge">6</span></a></li><li><a href="../reference/random-bitgen.html">Random — bit generators<span class="badge">7</span></a></li><li><a href="../reference/random-discrete.html">Random — discrete distributions (Generator)<span class="badge">6</span></a></li><li><a href="../reference/random-continuous.html">Random — continuous distributions (Generator)<span class="badge">22</span></a></li><li><a href="../reference/random-multivariate.html">Random — multivariate distributions (Generator)<span class="badge">4</span></a></li><li><a href="../reference/random-state.html">Random state<span class="badge">5</span></a></li><li><a href="../reference/emath.html">np.emath (complex-valued math)<span class="badge">4</span></a></li><li><a href="../reference/testing.html">np.testing (assertions)<span class="badge">8</span></a></li><li><a href="../reference/polynomial.html">np.polynomial (series classes)<span class="badge">4</span></a></li><li><a href="../reference/ma.html">Masked arrays (np.ma)<span class="badge">1</span></a></li><li><a href="../reference/strings.html">String operations (np.strings / np.char)<span class="badge">8</span></a></li><li><a href="../reference/rec.html">Record arrays (np.rec)<span class="badge">5</span></a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose ref">
+<p class="eyebrow">API reference</p>
+<h1>Reductions with where= / out=</h1>
+<p class="lede">All seven scalar reductions (<code>sum</code>, <code>prod</code>, <code>min</code>, <code>max</code>, <code>mean</code>, <code>var</code>, <code>std</code>) accept <code>where</code> (a boolean mask broadcast to <code>a</code>) and <code>out</code> (a pre-allocated result array). Only elements where the mask is <code>true</code> contribute; masked-out positions use the reduction identity (0 for sum, 1 for prod; for <code>min</code>/<code>max</code> you must supply <code>initial</code>). <code>mean</code>/<code>var</code>/<code>std</code> divide by the count of <code>true</code> positions.</p>
+<div class="summary-table table"><table><thead><tr><th>Name</th><th>Summary</th></tr></thead><tbody><tr><td><a href="#sum-where"><code>sum</code></a></td><td><code>where</code> is a bool <code>ArrayLike</code> broadcast to <code>a</code>.</td></tr><tr><td><a href="#mean-where"><code>mean</code></a></td><td>Mean of the unmasked elements; divisor is the count of <code>true</code> positions.</td></tr><tr><td><a href="#var-std-where"><code>var</code></a></td><td>Variance / standard deviation over unmasked elements.</td></tr><tr><td><a href="#min-max-where-initial"><code>min</code></a></td><td><code>min</code>/<code>max</code> with a mask require <code>initial</code> (the identity / seed value), matching NumPy's requirement.</td></tr><tr><td><a href="#out-parameter"><code>out=</code></a></td><td>Write the result into a pre-allocated <code>NDArray</code>.</td></tr></tbody></table></div>
+<article class="api" id="sum-where">
+<header class="api-head"><h3><code>sum (where=)</code></h3><a class="anchor" href="#sum-where" aria-label="Link to sum (where=)">#</a></header>
+<pre class="sig"><code>np.sum(a, { where, out? })</code></pre>
+<p><code>where</code> is a bool <code>ArrayLike</code> broadcast to <code>a</code>. Masked-out positions contribute 0.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.sum.html#numpy.sum" rel="noopener" target="_blank" title="Sum of array elements over a given axis.">numpy.sum</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>options.where</code><span class="ty">ArrayLike</span></dt><dd>Boolean mask; <code>true</code> positions are summed.</dd></div><div><dt><code>[options.out]</code><span class="ty">NDArray</span></dt><dd>Pre-allocated output (exact result shape).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>, <span class="t-num">4</span>, <span class="t-num">5</span>], { dtype: <span class="t-str">&quot;float64&quot;</span> });
+<span class="t-kw">const</span> mask = np.<span class="t-fn">array</span>([<span class="t-kw">true</span>, <span class="t-kw">false</span>, <span class="t-kw">true</span>, <span class="t-kw">false</span>, <span class="t-kw">true</span>]);
+np.<span class="t-fn">sum</span>(a, { where: mask }).<span class="t-fn">item</span>();   <span class="t-res">// =&gt; 9</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">sum</span>(a: ArrayLike, opts?: ReduceOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="mean-where">
+<header class="api-head"><h3><code>mean (where=)</code></h3><a class="anchor" href="#mean-where" aria-label="Link to mean (where=)">#</a></header>
+<pre class="sig"><code>np.mean(a, { where, out? })</code></pre>
+<p>Mean of the unmasked elements; divisor is the count of <code>true</code> positions.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.mean.html#numpy.mean" rel="noopener" target="_blank" title="Compute the arithmetic mean along the specified axis.">numpy.mean</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>options.where</code><span class="ty">ArrayLike</span></dt><dd>Boolean mask.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>, <span class="t-num">4</span>, <span class="t-num">5</span>], { dtype: <span class="t-str">&quot;float64&quot;</span> });
+<span class="t-kw">const</span> mask = np.<span class="t-fn">array</span>([<span class="t-kw">true</span>, <span class="t-kw">false</span>, <span class="t-kw">true</span>, <span class="t-kw">false</span>, <span class="t-kw">true</span>]);
+np.<span class="t-fn">mean</span>(a, { where: mask }).<span class="t-fn">item</span>();  <span class="t-res">// =&gt; 3</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">mean</span>(a: ArrayLike, opts?: Omit&lt;ReduceOptions, <span class="t-str">&quot;initial&quot;</span>&gt; | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="var-std-where">
+<header class="api-head"><h3><code>var / std (where=)</code></h3><a class="anchor" href="#var-std-where" aria-label="Link to var / std (where=)">#</a></header>
+<pre class="sig"><code>np.var(a, { where, ddof? }) · np.std(a, { where, ddof? })</code></pre>
+<p>Variance / standard deviation over unmasked elements.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.var.html#numpy.var" rel="noopener" target="_blank" title="Compute the variance along the specified axis.">numpy.var</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.std.html#numpy.std" rel="noopener" target="_blank" title="Compute the standard deviation along the specified axis.">numpy.std</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>options.where</code><span class="ty">ArrayLike</span></dt><dd>Boolean mask.</dd></div><div><dt><code>[options.ddof]</code><span class="ty">number</span></dt><dd>Delta degrees of freedom (default 0).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>, <span class="t-num">4</span>, <span class="t-num">5</span>], { dtype: <span class="t-str">&quot;float64&quot;</span> });
+<span class="t-kw">const</span> mask = np.<span class="t-fn">array</span>([<span class="t-kw">true</span>, <span class="t-kw">false</span>, <span class="t-kw">true</span>, <span class="t-kw">false</span>, <span class="t-kw">true</span>]);
+np.<span class="t-kw">var</span>(a, { where: mask }).<span class="t-fn">item</span>();   <span class="t-res">// =&gt; 2.6666666666666665</span>
+np.<span class="t-fn">std</span>(a, { where: mask }).<span class="t-fn">item</span>();   <span class="t-res">// =&gt; 1.632993161855452</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-kw">var</span>(a: ArrayLike, opts?: VarOptions | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">std</span>(a: ArrayLike, opts?: VarOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="min-max-where-initial">
+<header class="api-head"><h3><code>min / max (where= + initial=)</code></h3><a class="anchor" href="#min-max-where-initial" aria-label="Link to min / max (where= + initial=)">#</a></header>
+<pre class="sig"><code>np.min(a, { where, initial }) · np.max(a, { where, initial })</code></pre>
+<p><code>min</code>/<code>max</code> with a mask require <code>initial</code> (the identity / seed value), matching NumPy's requirement.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.min.html#numpy.min" rel="noopener" target="_blank" title="Return the minimum of an array or minimum along an axis.">numpy.min</a><a href="https://numpy.org/doc/2.5/reference/generated/numpy.max.html#numpy.max" rel="noopener" target="_blank" title="Return the maximum of an array or maximum along an axis.">numpy.max</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>options.where</code><span class="ty">ArrayLike</span></dt><dd>Boolean mask.</dd></div><div><dt><code>options.initial</code><span class="ty">number</span></dt><dd>Required seed value.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>, <span class="t-num">4</span>], { dtype: <span class="t-str">&quot;float64&quot;</span> });
+<span class="t-kw">const</span> mask = np.<span class="t-fn">array</span>([<span class="t-kw">false</span>, <span class="t-kw">true</span>, <span class="t-kw">false</span>, <span class="t-kw">true</span>]);
+np.<span class="t-fn">min</span>(a, { where: mask, initial: <span class="t-num">1e10</span> }).<span class="t-fn">item</span>();  <span class="t-res">// =&gt; 2</span>
+np.<span class="t-fn">max</span>(a, { where: mask, initial: -<span class="t-num">1e10</span> }).<span class="t-fn">item</span>(); <span class="t-res">// =&gt; 4</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">min</span>(a: ArrayLike, opts?: Omit&lt;ReduceOptions, <span class="t-str">&quot;dtype&quot;</span>&gt; | <span class="t-kw">undefined</span>): NDArray
+np.<span class="t-fn">max</span>(a: ArrayLike, opts?: Omit&lt;ReduceOptions, <span class="t-str">&quot;dtype&quot;</span>&gt; | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+<article class="api" id="out-parameter">
+<header class="api-head"><h3><code>out= parameter</code></h3><a class="anchor" href="#out-parameter" aria-label="Link to out= parameter">#</a></header>
+<pre class="sig"><code>np.sum/prod/min/max/mean/var/std(a, { out })</code></pre>
+<p>Write the result into a pre-allocated <code>NDArray</code>. <code>out.shape</code> must exactly match the result shape. The same array is returned.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.sum.html#numpy.sum" rel="noopener" target="_blank" title="Sum of array elements over a given axis.">numpy.sum</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a</code><span class="ty">ArrayLike</span></dt><dd>An <code>NDArray</code>, nested JS array or scalar.</dd></div><div><dt><code>options.out</code><span class="ty">NDArray</span></dt><dd>Pre-allocated output (exact result shape).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>NDArray (same object as out)</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> a = np.<span class="t-fn">array</span>([<span class="t-num">1</span>, <span class="t-num">2</span>, <span class="t-num">3</span>, <span class="t-num">4</span>, <span class="t-num">5</span>], { dtype: <span class="t-str">&quot;float64&quot;</span> });
+<span class="t-kw">const</span> out = np.<span class="t-fn">zeros</span>([]);
+np.<span class="t-fn">sum</span>(a, { out });
+out.<span class="t-fn">item</span>();  <span class="t-res">// =&gt; 15</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">sum</span>(a: ArrayLike, opts?: ReduceOptions | <span class="t-kw">undefined</span>): NDArray</code></pre></details>
+</article>
+</article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../reference/reduce.html"><small>Previous</small><span>Reductions</span></a><a class="pg next" href="../reference/sorting.html"><small>Next</small><span>Sorting, searching and sets</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l3"><a href="#sum-where">sum</a></li><li class="l3"><a href="#mean-where">mean</a></li><li class="l3"><a href="#var-std-where">var</a></li><li class="l3"><a href="#min-max-where-initial">min</a></li><li class="l3"><a href="#out-parameter">out=</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><img class="logo-mark" src="../../assets/logo.png" width="24" height="24" alt="Cyfora"><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.3</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.3","versions":["1.0.3","1.0.2","1.0.1"],"pages":{"1.0.3":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>

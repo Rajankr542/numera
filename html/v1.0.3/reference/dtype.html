@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en" data-root="../../" data-ver-root="../" data-version="1.0.3" data-path="reference/dtype.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data types · numera v1.0.3</title>
+<meta name="description" content="Supported: bool, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float16, float32, float64, complex64 and complex128. Each one is available as np.&lt;name&gt;, and anywhere a DTypeLike is accepted you can pass the name as a string. NumPy aliases float, double, single, half, int, complex and bool_ are also accepted.">
+<meta property="og:title" content="Data types · numera">
+<meta property="og:description" content="Supported: bool, int8, int16, int32, int64, uint8, uint16, uint32, uint64, float16, float32, float64, complex64 and complex128. Each one is available as np.&lt;name&gt;, and anywhere a DTypeLike is accepted you can pass the name as a string. NumPy aliases float, double, single, half, int, complex and bool_ are also accepted.">
+<meta name="theme-color" content="#0b6e4f">
+<link rel="icon" href="../../assets/favicon.ico" sizes="any">
+<link rel="icon" href="../../assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../../assets/style.css">
+<script>try{var t=localStorage.getItem("numera-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <div class="top-in">
+    <button class="icon-btn menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <a class="brand" href="../index.html"><img class="logo-mark" src="../../assets/logo.png" width="24" height="24" alt="Cyfora"><span>numera</span></a>
+    <label class="ver-pick"><span class="sr">Documentation version</span><select id="ver" aria-label="Documentation version"><option value="1.0.3" selected>v1.0.3 (latest)</option><option value="1.0.2">v1.0.2</option><option value="1.0.1">v1.0.1</option></select></label>
+    <nav class="tabs" aria-label="Sections"><a href="../index.html">Guides</a><a href="../reference/index.html" aria-current="page">API Reference</a><a href="../compatibility.html">NumPy compatibility</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="top-actions">
+      <button class="search-btn" type="button" data-open-search><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
+      <button class="icon-btn theme" type="button" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" aria-hidden="true" class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg viewBox="0 0 24 24" aria-hidden="true" class="i-moon"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg></button>
+      <a class="npm" href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm</a>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="Documentation"><div class="side-group"><p class="side-title">Reference</p><ul><li><a href="../reference/index.html">Overview</a></li><li><a href="../reference/numpy-index.html">NumPy name index</a></li></ul></div><div class="side-group"><p class="side-title">Array objects</p><ul><li><a href="../reference/ndarray.html">NDArray<span class="badge">20</span></a></li><li><a href="../reference/dtype.html" aria-current="page">Data types<span class="badge">43</span></a></li></ul></div><div class="side-group"><p class="side-title">Universal functions</p><ul><li><a href="../reference/ufuncs.html">ufunc overview<span class="badge">106</span></a></li><li><a href="../reference/math.html">Math (ufuncs)<span class="badge">31</span></a></li><li><a href="../reference/logic.html">Comparison, logic and bitwise<span class="badge">13</span></a></li></ul></div><div class="side-group"><p class="side-title">Routines</p><ul><li><a href="../reference/creation.html">Array creation<span class="badge">25</span></a></li><li><a href="../reference/shape.html">Shape manipulation<span class="badge">41</span></a></li><li><a href="../reference/indexing.html">Indexing<span class="badge">20</span></a></li><li><a href="../reference/grids.html">Grids and index helpers<span class="badge">9</span></a></li><li><a href="../reference/tri-indices.html">Triangle and diagonal indices<span class="badge">8</span></a></li><li><a href="../reference/reduce.html">Reductions<span class="badge">5</span></a></li><li><a href="../reference/reduce-where.html">Reductions with where= / out=<span class="badge">5</span></a></li><li><a href="../reference/sorting.html">Sorting, searching and sets<span class="badge">15</span></a></li><li><a href="../reference/statistics.html">Statistics<span class="badge">19</span></a></li><li><a href="../reference/polynomials.html">Polynomials<span class="badge">11</span></a></li><li><a href="../reference/windows.html">Window functions<span class="badge">5</span></a></li><li><a href="../reference/io.html">Input and output<span class="badge">11</span></a></li><li><a href="../reference/utilities.html">Utilities<span class="badge">40</span></a></li><li><a href="../reference/errors.html">Errors<span class="badge">3</span></a></li></ul></div><div class="side-group"><p class="side-title">Modules</p><ul><li><a href="../reference/linalg.html">np.linalg<span class="badge">35</span></a></li><li><a href="../reference/fft.html">np.fft<span class="badge">8</span></a></li><li><a href="../reference/random.html">np.random<span class="badge">6</span></a></li><li><a href="../reference/random-bitgen.html">Random — bit generators<span class="badge">7</span></a></li><li><a href="../reference/random-discrete.html">Random — discrete distributions (Generator)<span class="badge">6</span></a></li><li><a href="../reference/random-continuous.html">Random — continuous distributions (Generator)<span class="badge">22</span></a></li><li><a href="../reference/random-multivariate.html">Random — multivariate distributions (Generator)<span class="badge">4</span></a></li><li><a href="../reference/random-state.html">Random state<span class="badge">5</span></a></li><li><a href="../reference/emath.html">np.emath (complex-valued math)<span class="badge">4</span></a></li><li><a href="../reference/testing.html">np.testing (assertions)<span class="badge">8</span></a></li><li><a href="../reference/polynomial.html">np.polynomial (series classes)<span class="badge">4</span></a></li><li><a href="../reference/ma.html">Masked arrays (np.ma)<span class="badge">1</span></a></li><li><a href="../reference/strings.html">String operations (np.strings / np.char)<span class="badge">8</span></a></li><li><a href="../reference/rec.html">Record arrays (np.rec)<span class="badge">5</span></a></li></ul></div></nav>
+  <main id="content" class="content">
+<article class="prose ref">
+<p class="eyebrow">API reference</p>
+<h1>Data types</h1>
+<p class="lede">Supported: <code>bool</code>, <code>int8</code>, <code>int16</code>, <code>int32</code>, <code>int64</code>, <code>uint8</code>, <code>uint16</code>, <code>uint32</code>, <code>uint64</code>, <code>float16</code>, <code>float32</code>, <code>float64</code>, <code>complex64</code> and <code>complex128</code>. Each one is available as <code>np.&lt;name&gt;</code>, and anywhere a <code>DTypeLike</code> is accepted you can pass the name as a string. NumPy aliases <code>float</code>, <code>double</code>, <code>single</code>, <code>half</code>, <code>int</code>, <code>complex</code> and <code>bool_</code> are also accepted.</p>
+<div class="summary-table table"><table><thead><tr><th>Name</th><th>Summary</th></tr></thead><tbody><tr><td><a href="#dtype"><code>np.dtype</code></a></td><td>Resolves a name or <code>DType</code> to the canonical <code>DType</code> singleton, which has <code>name</code>, <code>kind</code> (<code>b</code>/<code>i</code>/<code>u</code>/<code>f</code>/<code>c</code>), <code>itemSize</code> and <code>alignment</code>.</td></tr><tr><td><a href="#promoteTypes"><code>np.promoteTypes</code></a></td><td>The smallest dtype that both inputs can be safely cast to, using NumPy's promotion table.</td></tr><tr><td><a href="#canCast"><code>np.canCast</code></a></td><td>Whether <code>from</code> can be cast to <code>to</code> under a NumPy casting rule: <code>&quot;no&quot;</code>, <code>&quot;equiv&quot;</code>, <code>&quot;safe&quot;</code> (the default), <code>&quot;same_kind&quot;</code> or <code>&quot;unsafe&quot;</code>.</td></tr><tr><td><a href="#finfo"><code>np.finfo</code></a></td><td>Machine limits of a float dtype (complex: of its component).</td></tr><tr><td><a href="#iinfo"><code>np.iinfo</code></a></td><td>Limits of an integer dtype: <code>bits, min, max, dtype, kind</code>; <code>min</code>/<code>max</code> are numbers (lossy beyond 2^53) and <code>minExact</code>/<code>maxExact</code> exact bigints.</td></tr><tr><td><a href="#resultType"><code>np.resultType</code></a></td><td>The dtype NumPy's type promotion gives.</td></tr><tr><td><a href="#minScalarType"><code>np.minScalarType</code></a></td><td>The smallest dtype that holds the value of a JS scalar or a 0-d array (unsigned integers preferred for non-negative values; floats sized by NumPy's thresholds).</td></tr><tr><td><a href="#issubdtype"><code>np.issubdtype</code></a></td><td>Whether <code>a</code> is <code>b</code> (concrete dtype) or descends from the abstract dtype <code>b</code> (<code>np.generic</code>, <code>np.number</code>, <code>np.integer</code>, <code>np.signedinteger</code>, <code>np.unsignedinteger</code>, <code>np.inexact</code>, <code>np.floating</code>, <code>np.complexfloating</code>).</td></tr><tr><td><a href="#isdtype"><code>np.isdtype</code></a></td><td>Array API dtype test.</td></tr><tr><td><a href="#commonType"><code>np.commonType</code></a></td><td>The float or complex dtype all inputs convert to (integers count as float64; bool raises <code>DTypeError</code>).</td></tr><tr><td><a href="#mintypecode"><code>np.mintypecode</code></a></td><td>NumPy's smallest-size type character from <code>typeset</code> among <code>typechars</code> (a string of type characters or a list of characters, DTypes or arrays).</td></tr><tr><td><a href="#generic"><code>np.generic</code></a></td><td>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>null</code>), for <code>issubdtype</code>.</td></tr><tr><td><a href="#number"><code>np.number</code></a></td><td>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>generic</code>), for <code>issubdtype</code>.</td></tr><tr><td><a href="#integer"><code>np.integer</code></a></td><td>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>number</code>), for <code>issubdtype</code>.</td></tr><tr><td><a href="#signedinteger"><code>np.signedinteger</code></a></td><td>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>integer</code>), for <code>issubdtype</code>.</td></tr><tr><td><a href="#unsignedinteger"><code>np.unsignedinteger</code></a></td><td>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>integer</code>), for <code>issubdtype</code>.</td></tr><tr><td><a href="#inexact"><code>np.inexact</code></a></td><td>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>number</code>), for <code>issubdtype</code>.</td></tr><tr><td><a href="#floating"><code>np.floating</code></a></td><td>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>inexact</code>), for <code>issubdtype</code>.</td></tr><tr><td><a href="#complexfloating"><code>np.complexfloating</code></a></td><td>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>inexact</code>), for <code>issubdtype</code>.</td></tr><tr><td><a href="#int"><code>np.int_</code></a></td><td>Default Python integer dtype: <code>int64</code> on 64-bit platforms.</td></tr><tr><td><a href="#intc"><code>np.intc</code></a></td><td>C <code>int</code> dtype: <code>int32</code>.</td></tr><tr><td><a href="#intp"><code>np.intp</code></a></td><td>Pointer-sized signed integer dtype: <code>int64</code> on 64-bit platforms.</td></tr><tr><td><a href="#short"><code>np.short</code></a></td><td>C <code>short</code> dtype: <code>int16</code>.</td></tr><tr><td><a href="#byte"><code>np.byte</code></a></td><td>C <code>signed char</code> dtype: <code>int8</code>.</td></tr><tr><td><a href="#ubyte"><code>np.ubyte</code></a></td><td>C <code>unsigned char</code> dtype: <code>uint8</code>.</td></tr><tr><td><a href="#ushort"><code>np.ushort</code></a></td><td>C <code>unsigned short</code> dtype: <code>uint16</code>.</td></tr><tr><td><a href="#uint"><code>np.uint</code></a></td><td>Platform unsigned integer dtype: <code>uint64</code> on 64-bit platforms.</td></tr><tr><td><a href="#uintc"><code>np.uintc</code></a></td><td>C <code>unsigned int</code> dtype: <code>uint32</code>.</td></tr><tr><td><a href="#uintp"><code>np.uintp</code></a></td><td>Pointer-sized unsigned integer dtype: <code>uint64</code> on 64-bit platforms.</td></tr><tr><td><a href="#ulong"><code>np.ulong</code></a></td><td>C <code>unsigned long</code> dtype: <code>uint64</code> on 64-bit platforms.</td></tr><tr><td><a href="#double"><code>np.double</code></a></td><td>Double-precision float dtype: <code>float64</code>.</td></tr><tr><td><a href="#single"><code>np.single</code></a></td><td>Single-precision float dtype: <code>float32</code>.</td></tr><tr><td><a href="#half"><code>np.half</code></a></td><td>Half-precision float dtype: <code>float16</code>.</td></tr><tr><td><a href="#cdouble"><code>np.cdouble</code></a></td><td>Double-precision complex dtype: <code>complex128</code>.</td></tr><tr><td><a href="#csingle"><code>np.csingle</code></a></td><td>Single-precision complex dtype: <code>complex64</code>.</td></tr><tr><td><a href="#longdouble"><code>np.longdouble</code></a></td><td>Long double dtype: aliased to <code>float64</code> (no 80-bit float in JS).</td></tr><tr><td><a href="#clongdouble"><code>np.clongdouble</code></a></td><td>Long double complex dtype: aliased to <code>complex128</code> (no 80-bit complex in JS).</td></tr><tr><td><a href="#bytes"><code>np.bytes_</code></a></td><td>Byte-string dtype sentinel (string literal <code>&quot;bytes&quot;</code>).</td></tr><tr><td><a href="#str"><code>np.str_</code></a></td><td>Unicode-string dtype sentinel (string literal <code>&quot;str&quot;</code>).</td></tr><tr><td><a href="#datetime64"><code>np.datetime64</code></a></td><td>Construct a <code>datetime64</code> scalar from an ISO-8601 string, integer epoch offset, or another <code>DatetimeArray</code>.</td></tr><tr><td><a href="#timedelta64"><code>np.timedelta64</code></a></td><td>Construct a <code>timedelta64</code> scalar from an integer duration and unit.</td></tr><tr><td><a href="#datetime-data"><code>np.datetime_data</code></a></td><td>Returns the unit and count for a <code>datetime64</code> or <code>timedelta64</code> dtype.</td></tr><tr><td><a href="#datetime-as-string"><code>np.datetime_as_string</code></a></td><td>Convert a <code>DatetimeArray</code> to ISO-8601 string(s).</td></tr></tbody></table></div>
+<article class="api" id="dtype">
+<header class="api-head"><h3><code>np.dtype</code></h3><a class="anchor" href="#dtype" aria-label="Link to dtype">#</a></header>
+<pre class="sig"><code>np.dtype(like)</code></pre>
+<p>Resolves a name or <code>DType</code> to the canonical <code>DType</code> singleton, which has <code>name</code>, <code>kind</code> (<code>b</code>/<code>i</code>/<code>u</code>/<code>f</code>/<code>c</code>), <code>itemSize</code> and <code>alignment</code>. Unknown names throw <code>DTypeError</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.dtype.html#numpy.dtype" rel="noopener" target="_blank" title="dtype(dtype, align=False, copy=False, **kwargs) --">numpy.dtype</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>like</code><span class="ty">DTypeLike</span></dt><dd>Name, alias or DType.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code><span class="t-kw">const</span> d = np.<span class="t-fn">dtype</span>(<span class="t-str">&quot;single&quot;</span>);
+d.name;              <span class="t-res">// =&gt; &quot;float32&quot;</span>
+d.kind;              <span class="t-res">// =&gt; &quot;f&quot;</span>
+d.itemSize;          <span class="t-res">// =&gt; 4</span>
+d === np.float32;    <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">dtype</span>(like: DTypeLike): DType</code></pre></details>
+</article>
+<article class="api" id="promoteTypes">
+<header class="api-head"><h3><code>np.promoteTypes</code></h3><a class="anchor" href="#promoteTypes" aria-label="Link to promoteTypes">#</a></header>
+<pre class="sig"><code>np.promoteTypes(a, b)</code></pre>
+<p>The smallest dtype that both inputs can be safely cast to, using NumPy's promotion table.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.promote_types.html#numpy.promote_types" rel="noopener" target="_blank" title="Returns the data type with the smallest size and smallest scalar kind to which both ``type1`` and ``type2`` may be safely cast. The returned data type is always considered &quot;canonical&quot;, this mainly means that the promoted dtype will always be in native byte order.">numpy.promote_types</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>a, b</code><span class="ty">DTypeLike</span></dt><dd>Input dtypes.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">promoteTypes</span>(<span class="t-str">&quot;int32&quot;</span>, <span class="t-str">&quot;float32&quot;</span>).name; <span class="t-res">// =&gt; &quot;float64&quot;</span>
+np.<span class="t-fn">promoteTypes</span>(<span class="t-str">&quot;uint8&quot;</span>, <span class="t-str">&quot;int8&quot;</span>).name;    <span class="t-res">// =&gt; &quot;int16&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">promoteTypes</span>(a: DTypeLike, b: DTypeLike): DType</code></pre></details>
+</article>
+<article class="api" id="canCast">
+<header class="api-head"><h3><code>np.canCast</code></h3><a class="anchor" href="#canCast" aria-label="Link to canCast">#</a></header>
+<pre class="sig"><code>np.canCast(from, to, casting = &quot;safe&quot;)</code></pre>
+<p>Whether <code>from</code> can be cast to <code>to</code> under a NumPy casting rule: <code>&quot;no&quot;</code>, <code>&quot;equiv&quot;</code>, <code>&quot;safe&quot;</code> (the default), <code>&quot;same_kind&quot;</code> or <code>&quot;unsafe&quot;</code>. <code>from</code> can be a dtype or an array, in which case only its dtype is used. JS numbers raise <code>DTypeError</code>, as Python scalars do in NumPy 2. An unknown rule raises <code>ValueError</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.can_cast.html#numpy.can_cast" rel="noopener" target="_blank" title="Returns True if cast between data types can occur according to the casting rule.">numpy.can_cast</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>from</code><span class="ty">DTypeLike | NDArray</span></dt><dd>Source dtype, or an array whose dtype is used.</dd></div><div><dt><code>to</code><span class="ty">DTypeLike</span></dt><dd>Target dtype.</dd></div><div><dt><code>casting</code><span class="ty">string</span></dt><dd>Casting rule.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>boolean</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">canCast</span>(<span class="t-str">&quot;int8&quot;</span>, <span class="t-str">&quot;int16&quot;</span>);                   <span class="t-res">// =&gt; true</span>
+np.<span class="t-fn">canCast</span>(<span class="t-str">&quot;float64&quot;</span>, <span class="t-str">&quot;float32&quot;</span>);              <span class="t-res">// =&gt; false</span>
+np.<span class="t-fn">canCast</span>(<span class="t-str">&quot;float64&quot;</span>, <span class="t-str">&quot;float32&quot;</span>, <span class="t-str">&quot;same_kind&quot;</span>); <span class="t-res">// =&gt; true</span>
+np.<span class="t-fn">canCast</span>(<span class="t-str">&quot;int64&quot;</span>, <span class="t-str">&quot;uint8&quot;</span>, <span class="t-str">&quot;same_kind&quot;</span>);     <span class="t-res">// =&gt; false</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">canCast</span>(<span class="t-kw">from</span>: DTypeLike | { readonly dtype: DType; }, to: DTypeLike, casting?: Casting | <span class="t-kw">undefined</span>): boolean</code></pre></details>
+</article>
+<article class="api" id="finfo">
+<header class="api-head"><h3><code>np.finfo</code></h3><a class="anchor" href="#finfo" aria-label="Link to finfo">#</a></header>
+<pre class="sig"><code>np.finfo(dtype | array)</code></pre>
+<p>Machine limits of a float dtype (complex: of its component). Fields as NumPy in camelCase: <code>bits, eps, epsneg, max, min, tiny, smallestNormal, smallestSubnormal, resolution, precision, iexp, nexp, nmant, machep, negep, minexp, maxexp, dtype</code>. Values are JS numbers holding the dtype's value. Non-float dtypes raise <code>ValueError</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.finfo.html#numpy.finfo" rel="noopener" target="_blank" title="Machine limits for floating point types.">numpy.finfo</a></div>
+
+<h4>Returns</h4><p class="ret"><code>FInfo</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">finfo</span>(<span class="t-str">&quot;float16&quot;</span>).max;  <span class="t-res">// =&gt; 65504</span>
+np.<span class="t-fn">finfo</span>(<span class="t-str">&quot;float32&quot;</span>).nmant; <span class="t-res">// =&gt; 23</span>
+np.<span class="t-fn">finfo</span>(<span class="t-str">&quot;float64&quot;</span>).eps;   <span class="t-res">// =&gt; 2.220446049250313e-16</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">finfo</span>(dt: NDArray | DTypeLike): FInfo</code></pre></details>
+</article>
+<article class="api" id="iinfo">
+<header class="api-head"><h3><code>np.iinfo</code></h3><a class="anchor" href="#iinfo" aria-label="Link to iinfo">#</a></header>
+<pre class="sig"><code>np.iinfo(dtype | array)</code></pre>
+<p>Limits of an integer dtype: <code>bits, min, max, dtype, kind</code>; <code>min</code>/<code>max</code> are numbers (lossy beyond 2^53) and <code>minExact</code>/<code>maxExact</code> exact bigints. Non-integer dtypes raise <code>ValueError</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.iinfo.html#numpy.iinfo" rel="noopener" target="_blank" title="Machine limits for integer types.">numpy.iinfo</a></div>
+
+<h4>Returns</h4><p class="ret"><code>IInfo</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">iinfo</span>(<span class="t-str">&quot;int8&quot;</span>).min;   <span class="t-res">// =&gt; -128</span>
+np.<span class="t-fn">iinfo</span>(<span class="t-str">&quot;uint16&quot;</span>).max; <span class="t-res">// =&gt; 65535</span>
+np.<span class="t-fn">iinfo</span>(<span class="t-str">&quot;uint64&quot;</span>).maxExact === <span class="t-num">18446744073709551615n</span>; <span class="t-res">// =&gt; true</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">iinfo</span>(dt: NDArray | DTypeLike): IInfo</code></pre></details>
+</article>
+<article class="api" id="resultType">
+<header class="api-head"><h3><code>np.resultType</code></h3><a class="anchor" href="#resultType" aria-label="Link to resultType">#</a></header>
+<pre class="sig"><code>np.resultType(...arraysAndDtypes)</code></pre>
+<p>The dtype NumPy's type promotion gives. DTypes, dtype names and arrays are promoted with <code>promoteTypes</code>; JS scalars are weak (NEP 50): they can raise the kind (int → float → complex) but not the size.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.result_type.html#numpy.result_type" rel="noopener" target="_blank" title="Returns the type that results from applying the NumPy :ref:`type promotion &lt;arrays.promotion&gt;` rules to the arguments.">numpy.result_type</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">resultType</span>(<span class="t-str">&quot;int8&quot;</span>, <span class="t-num">300</span>).name;          <span class="t-res">// =&gt; &quot;int8&quot;</span>
+np.<span class="t-fn">resultType</span>(<span class="t-str">&quot;int8&quot;</span>, <span class="t-num">1.5</span>).name;          <span class="t-res">// =&gt; &quot;float64&quot;</span>
+np.<span class="t-fn">resultType</span>(<span class="t-str">&quot;float32&quot;</span>, np.<span class="t-fn">complex</span>(<span class="t-num">0</span>, <span class="t-num">1</span>)).name; <span class="t-res">// =&gt; &quot;complex64&quot;</span>
+np.<span class="t-fn">resultType</span>(<span class="t-str">&quot;int8&quot;</span>, <span class="t-str">&quot;uint8&quot;</span>).name;      <span class="t-res">// =&gt; &quot;int16&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">resultType</span>(...args: (NDArray | NestedArray | DTypeLike)[]): DType</code></pre></details>
+</article>
+<article class="api" id="minScalarType">
+<header class="api-head"><h3><code>np.minScalarType</code></h3><a class="anchor" href="#minScalarType" aria-label="Link to minScalarType">#</a></header>
+<pre class="sig"><code>np.minScalarType(x)</code></pre>
+<p>The smallest dtype that holds the value of a JS scalar or a 0-d array (unsigned integers preferred for non-negative values; floats sized by NumPy's thresholds). Arrays with <code>ndim &gt; 0</code> return their dtype. JS numbers count as integers only when they are safe integers; use a bigint beyond 2^53.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.min_scalar_type.html#numpy.min_scalar_type" rel="noopener" target="_blank" title="For scalar ``a``, returns the data type with the smallest size and smallest scalar kind which can hold its value. For non-scalar array ``a``, returns the vector's dtype unmodified.">numpy.min_scalar_type</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">minScalarType</span>(<span class="t-num">10</span>).name;   <span class="t-res">// =&gt; &quot;uint8&quot;</span>
+np.<span class="t-fn">minScalarType</span>(-<span class="t-num">129</span>).name; <span class="t-res">// =&gt; &quot;int16&quot;</span>
+np.<span class="t-fn">minScalarType</span>(<span class="t-num">3.1</span>).name;  <span class="t-res">// =&gt; &quot;float16&quot;</span>
+np.<span class="t-fn">minScalarType</span>(<span class="t-num">1e50</span>).name; <span class="t-res">// =&gt; &quot;float64&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">minScalarType</span>(a: NDArray | JSScalar): DType</code></pre></details>
+</article>
+<article class="api" id="issubdtype">
+<header class="api-head"><h3><code>np.issubdtype</code></h3><a class="anchor" href="#issubdtype" aria-label="Link to issubdtype">#</a></header>
+<pre class="sig"><code>np.issubdtype(a, b)</code></pre>
+<p>Whether <code>a</code> is <code>b</code> (concrete dtype) or descends from the abstract dtype <code>b</code> (<code>np.generic</code>, <code>np.number</code>, <code>np.integer</code>, <code>np.signedinteger</code>, <code>np.unsignedinteger</code>, <code>np.inexact</code>, <code>np.floating</code>, <code>np.complexfloating</code>).</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.issubdtype.html#numpy.issubdtype" rel="noopener" target="_blank" title="Returns True if first argument is a typecode lower/equal in type hierarchy.">numpy.issubdtype</a></div>
+
+<h4>Returns</h4><p class="ret"><code>boolean</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;float32&quot;</span>, np.floating); <span class="t-res">// =&gt; true</span>
+np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;bool&quot;</span>, np.integer);     <span class="t-res">// =&gt; false</span>
+np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;int8&quot;</span>, <span class="t-str">&quot;int16&quot;</span>);        <span class="t-res">// =&gt; false</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">issubdtype</span>(a: DTypeLike | AbstractDType, b: DTypeLike | AbstractDType): boolean</code></pre></details>
+</article>
+<article class="api" id="isdtype">
+<header class="api-head"><h3><code>np.isdtype</code></h3><a class="anchor" href="#isdtype" aria-label="Link to isdtype">#</a></header>
+<pre class="sig"><code>np.isdtype(dtype, kind)</code></pre>
+<p>Array API dtype test. <code>kind</code> is a DType, one of <code>&quot;bool&quot;</code>, <code>&quot;signed integer&quot;</code>, <code>&quot;unsigned integer&quot;</code>, <code>&quot;integral&quot;</code>, <code>&quot;real floating&quot;</code>, <code>&quot;complex floating&quot;</code>, <code>&quot;numeric&quot;</code>, or an array of these. <code>dtype</code> must be a DType object.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.isdtype.html#numpy.isdtype" rel="noopener" target="_blank" title="Determine if a provided dtype is of a specified data type ``kind``.">numpy.isdtype</a></div>
+
+<h4>Returns</h4><p class="ret"><code>boolean</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">isdtype</span>(np.float64, <span class="t-str">&quot;real floating&quot;</span>);          <span class="t-res">// =&gt; true</span>
+np.<span class="t-fn">isdtype</span>(np.int8, [<span class="t-str">&quot;bool&quot;</span>, <span class="t-str">&quot;unsigned integer&quot;</span>]); <span class="t-res">// =&gt; false</span>
+np.<span class="t-fn">isdtype</span>(np.bool, <span class="t-str">&quot;numeric&quot;</span>);                    <span class="t-res">// =&gt; false</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">isdtype</span>(dt: DType, kind: string | DType | readonly (string | DType)[]): boolean</code></pre></details>
+</article>
+<article class="api" id="commonType">
+<header class="api-head"><h3><code>np.commonType</code></h3><a class="anchor" href="#commonType" aria-label="Link to commonType">#</a></header>
+<pre class="sig"><code>np.commonType(...arrays)</code></pre>
+<p>The float or complex dtype all inputs convert to (integers count as float64; bool raises <code>DTypeError</code>). NumPy returns a scalar type; this returns a DType.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.common_type.html#numpy.common_type" rel="noopener" target="_blank" title="Return a scalar type which is common to the input arrays.">numpy.common_type</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">commonType</span>(np.<span class="t-fn">arange</span>(<span class="t-num">3</span>)).name; <span class="t-res">// =&gt; &quot;float64&quot;</span>
+np.<span class="t-fn">commonType</span>(np.<span class="t-fn">zeros</span>([<span class="t-num">1</span>], { dtype: <span class="t-str">&quot;float32&quot;</span> }), np.<span class="t-fn">zeros</span>([<span class="t-num">1</span>], { dtype: <span class="t-str">&quot;complex64&quot;</span> })).name; <span class="t-res">// =&gt; &quot;complex64&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">commonType</span>(...arrays: (NDArray | NestedArray)[]): DType</code></pre></details>
+</article>
+<article class="api" id="mintypecode">
+<header class="api-head"><h3><code>np.mintypecode</code></h3><a class="anchor" href="#mintypecode" aria-label="Link to mintypecode">#</a></header>
+<pre class="sig"><code>np.mintypecode(typechars, typeset = &quot;GDFgdf&quot;, default = &quot;d&quot;)</code></pre>
+<p>NumPy's smallest-size type character from <code>typeset</code> among <code>typechars</code> (a string of type characters or a list of characters, DTypes or arrays). <code>F</code> with <code>d</code> gives <code>D</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.mintypecode.html#numpy.mintypecode" rel="noopener" target="_blank" title="Return the character for the minimum-size type to which given types can be safely cast.">numpy.mintypecode</a></div>
+
+<h4>Returns</h4><p class="ret"><code>string</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">mintypecode</span>([<span class="t-str">&quot;d&quot;</span>, <span class="t-str">&quot;f&quot;</span>]); <span class="t-res">// =&gt; &quot;d&quot;</span>
+np.<span class="t-fn">mintypecode</span>(<span class="t-str">&quot;dF&quot;</span>);       <span class="t-res">// =&gt; &quot;D&quot;</span>
+np.<span class="t-fn">mintypecode</span>(<span class="t-str">&quot;i&quot;</span>);        <span class="t-res">// =&gt; &quot;d&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">mintypecode</span>(typechars: string | readonly (string | NDArray | NestedArray | DType)[], typeset?: string | <span class="t-kw">undefined</span>, defaultCode?: string | <span class="t-kw">undefined</span>): string</code></pre></details>
+</article>
+<article class="api" id="generic">
+<header class="api-head"><h3><code>np.generic</code></h3><a class="anchor" href="#generic" aria-label="Link to generic">#</a></header>
+<pre class="sig"><code>np.generic</code></pre>
+<p>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>null</code>), for <code>issubdtype</code>. Not usable as an array dtype.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>AbstractDType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;float32&quot;</span>, np.generic); <span class="t-res">// =&gt; true</span></code></pre></div>
+
+</article>
+<article class="api" id="number">
+<header class="api-head"><h3><code>np.number</code></h3><a class="anchor" href="#number" aria-label="Link to number">#</a></header>
+<pre class="sig"><code>np.number</code></pre>
+<p>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>generic</code>), for <code>issubdtype</code>. Not usable as an array dtype.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>AbstractDType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;float32&quot;</span>, np.number); <span class="t-res">// =&gt; true</span></code></pre></div>
+
+</article>
+<article class="api" id="integer">
+<header class="api-head"><h3><code>np.integer</code></h3><a class="anchor" href="#integer" aria-label="Link to integer">#</a></header>
+<pre class="sig"><code>np.integer</code></pre>
+<p>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>number</code>), for <code>issubdtype</code>. Not usable as an array dtype.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>AbstractDType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;float32&quot;</span>, np.integer); <span class="t-res">// =&gt; false</span></code></pre></div>
+
+</article>
+<article class="api" id="signedinteger">
+<header class="api-head"><h3><code>np.signedinteger</code></h3><a class="anchor" href="#signedinteger" aria-label="Link to signedinteger">#</a></header>
+<pre class="sig"><code>np.signedinteger</code></pre>
+<p>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>integer</code>), for <code>issubdtype</code>. Not usable as an array dtype.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>AbstractDType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;float32&quot;</span>, np.signedinteger); <span class="t-res">// =&gt; false</span></code></pre></div>
+
+</article>
+<article class="api" id="unsignedinteger">
+<header class="api-head"><h3><code>np.unsignedinteger</code></h3><a class="anchor" href="#unsignedinteger" aria-label="Link to unsignedinteger">#</a></header>
+<pre class="sig"><code>np.unsignedinteger</code></pre>
+<p>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>integer</code>), for <code>issubdtype</code>. Not usable as an array dtype.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>AbstractDType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;float32&quot;</span>, np.unsignedinteger); <span class="t-res">// =&gt; false</span></code></pre></div>
+
+</article>
+<article class="api" id="inexact">
+<header class="api-head"><h3><code>np.inexact</code></h3><a class="anchor" href="#inexact" aria-label="Link to inexact">#</a></header>
+<pre class="sig"><code>np.inexact</code></pre>
+<p>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>number</code>), for <code>issubdtype</code>. Not usable as an array dtype.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>AbstractDType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;float32&quot;</span>, np.inexact); <span class="t-res">// =&gt; true</span></code></pre></div>
+
+</article>
+<article class="api" id="floating">
+<header class="api-head"><h3><code>np.floating</code></h3><a class="anchor" href="#floating" aria-label="Link to floating">#</a></header>
+<pre class="sig"><code>np.floating</code></pre>
+<p>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>inexact</code>), for <code>issubdtype</code>. Not usable as an array dtype.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>AbstractDType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;float32&quot;</span>, np.floating); <span class="t-res">// =&gt; true</span></code></pre></div>
+
+</article>
+<article class="api" id="complexfloating">
+<header class="api-head"><h3><code>np.complexfloating</code></h3><a class="anchor" href="#complexfloating" aria-label="Link to complexfloating">#</a></header>
+<pre class="sig"><code>np.complexfloating</code></pre>
+<p>Abstract dtype (NumPy's scalar type hierarchy, parent: <code>inexact</code>), for <code>issubdtype</code>. Not usable as an array dtype.</p>
+
+
+<h4>Returns</h4><p class="ret"><code>AbstractDType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">issubdtype</span>(<span class="t-str">&quot;float32&quot;</span>, np.complexfloating); <span class="t-res">// =&gt; false</span></code></pre></div>
+
+</article>
+<article class="api" id="int">
+<header class="api-head"><h3><code>np.int_</code></h3><a class="anchor" href="#int" aria-label="Link to int_">#</a></header>
+<pre class="sig"><code>np.int_</code></pre>
+<p>Default Python integer dtype: <code>int64</code> on 64-bit platforms.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.int_" rel="noopener" target="_blank" title="Signed integer type, compatible with C ``long``.">numpy.int_</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.int_.name; <span class="t-res">// =&gt; &quot;int64&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.int_: DType</code></pre></details>
+</article>
+<article class="api" id="intc">
+<header class="api-head"><h3><code>np.intc</code></h3><a class="anchor" href="#intc" aria-label="Link to intc">#</a></header>
+<pre class="sig"><code>np.intc</code></pre>
+<p>C <code>int</code> dtype: <code>int32</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.intc" rel="noopener" target="_blank" title="Signed integer type, compatible with C ``int``.">numpy.intc</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.intc.name; <span class="t-res">// =&gt; &quot;int32&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.intc: DType</code></pre></details>
+</article>
+<article class="api" id="intp">
+<header class="api-head"><h3><code>np.intp</code></h3><a class="anchor" href="#intp" aria-label="Link to intp">#</a></header>
+<pre class="sig"><code>np.intp</code></pre>
+<p>Pointer-sized signed integer dtype: <code>int64</code> on 64-bit platforms.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.intp" rel="noopener" target="_blank" title="Signed integer type, compatible with C ``long``.">numpy.intp</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.intp.name; <span class="t-res">// =&gt; &quot;int64&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.intp: DType</code></pre></details>
+</article>
+<article class="api" id="short">
+<header class="api-head"><h3><code>np.short</code></h3><a class="anchor" href="#short" aria-label="Link to short">#</a></header>
+<pre class="sig"><code>np.short</code></pre>
+<p>C <code>short</code> dtype: <code>int16</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.short" rel="noopener" target="_blank" title="Signed integer type, compatible with C ``short``.">numpy.short</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.short.name; <span class="t-res">// =&gt; &quot;int16&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.short: DType</code></pre></details>
+</article>
+<article class="api" id="byte">
+<header class="api-head"><h3><code>np.byte</code></h3><a class="anchor" href="#byte" aria-label="Link to byte">#</a></header>
+<pre class="sig"><code>np.byte</code></pre>
+<p>C <code>signed char</code> dtype: <code>int8</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.byte" rel="noopener" target="_blank" title="Signed integer type, compatible with C ``char``.">numpy.byte</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.byte.name; <span class="t-res">// =&gt; &quot;int8&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.byte: DType</code></pre></details>
+</article>
+<article class="api" id="ubyte">
+<header class="api-head"><h3><code>np.ubyte</code></h3><a class="anchor" href="#ubyte" aria-label="Link to ubyte">#</a></header>
+<pre class="sig"><code>np.ubyte</code></pre>
+<p>C <code>unsigned char</code> dtype: <code>uint8</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.ubyte" rel="noopener" target="_blank" title="Unsigned integer type, compatible with C ``unsigned char``.">numpy.ubyte</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.ubyte.name; <span class="t-res">// =&gt; &quot;uint8&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.ubyte: DType</code></pre></details>
+</article>
+<article class="api" id="ushort">
+<header class="api-head"><h3><code>np.ushort</code></h3><a class="anchor" href="#ushort" aria-label="Link to ushort">#</a></header>
+<pre class="sig"><code>np.ushort</code></pre>
+<p>C <code>unsigned short</code> dtype: <code>uint16</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.ushort" rel="noopener" target="_blank" title="Unsigned integer type, compatible with C ``unsigned short``.">numpy.ushort</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.ushort.name; <span class="t-res">// =&gt; &quot;uint16&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.ushort: DType</code></pre></details>
+</article>
+<article class="api" id="uint">
+<header class="api-head"><h3><code>np.uint</code></h3><a class="anchor" href="#uint" aria-label="Link to uint">#</a></header>
+<pre class="sig"><code>np.uint</code></pre>
+<p>Platform unsigned integer dtype: <code>uint64</code> on 64-bit platforms.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.uint" rel="noopener" target="_blank" title="Unsigned signed integer type, 64bit on 64bit systems and 32bit on 32bit systems.">numpy.uint</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.uint.name; <span class="t-res">// =&gt; &quot;uint64&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.uint: DType</code></pre></details>
+</article>
+<article class="api" id="uintc">
+<header class="api-head"><h3><code>np.uintc</code></h3><a class="anchor" href="#uintc" aria-label="Link to uintc">#</a></header>
+<pre class="sig"><code>np.uintc</code></pre>
+<p>C <code>unsigned int</code> dtype: <code>uint32</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.uintc" rel="noopener" target="_blank" title="Unsigned integer type, compatible with C ``unsigned int``.">numpy.uintc</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.uintc.name; <span class="t-res">// =&gt; &quot;uint32&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.uintc: DType</code></pre></details>
+</article>
+<article class="api" id="uintp">
+<header class="api-head"><h3><code>np.uintp</code></h3><a class="anchor" href="#uintp" aria-label="Link to uintp">#</a></header>
+<pre class="sig"><code>np.uintp</code></pre>
+<p>Pointer-sized unsigned integer dtype: <code>uint64</code> on 64-bit platforms.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.uintp" rel="noopener" target="_blank" title="Unsigned signed integer type, 64bit on 64bit systems and 32bit on 32bit systems.">numpy.uintp</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.uintp.name; <span class="t-res">// =&gt; &quot;uint64&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.uintp: DType</code></pre></details>
+</article>
+<article class="api" id="ulong">
+<header class="api-head"><h3><code>np.ulong</code></h3><a class="anchor" href="#ulong" aria-label="Link to ulong">#</a></header>
+<pre class="sig"><code>np.ulong</code></pre>
+<p>C <code>unsigned long</code> dtype: <code>uint64</code> on 64-bit platforms.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.ulong" rel="noopener" target="_blank" title="Unsigned signed integer type, 64bit on 64bit systems and 32bit on 32bit systems.">numpy.ulong</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.ulong.name; <span class="t-res">// =&gt; &quot;uint64&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.ulong: DType</code></pre></details>
+</article>
+<article class="api" id="double">
+<header class="api-head"><h3><code>np.double</code></h3><a class="anchor" href="#double" aria-label="Link to double">#</a></header>
+<pre class="sig"><code>np.double</code></pre>
+<p>Double-precision float dtype: <code>float64</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.double" rel="noopener" target="_blank" title="Double-precision floating-point number type, compatible with Python :class:`float` and C ``double``.">numpy.double</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.double.name; <span class="t-res">// =&gt; &quot;float64&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.double: DType</code></pre></details>
+</article>
+<article class="api" id="single">
+<header class="api-head"><h3><code>np.single</code></h3><a class="anchor" href="#single" aria-label="Link to single">#</a></header>
+<pre class="sig"><code>np.single</code></pre>
+<p>Single-precision float dtype: <code>float32</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.single" rel="noopener" target="_blank" title="Single-precision floating-point number type, compatible with C ``float``.">numpy.single</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.single.name; <span class="t-res">// =&gt; &quot;float32&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.single: DType</code></pre></details>
+</article>
+<article class="api" id="half">
+<header class="api-head"><h3><code>np.half</code></h3><a class="anchor" href="#half" aria-label="Link to half">#</a></header>
+<pre class="sig"><code>np.half</code></pre>
+<p>Half-precision float dtype: <code>float16</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.half" rel="noopener" target="_blank" title="Half-precision floating-point number type.">numpy.half</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.half.name; <span class="t-res">// =&gt; &quot;float16&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.half: DType</code></pre></details>
+</article>
+<article class="api" id="cdouble">
+<header class="api-head"><h3><code>np.cdouble</code></h3><a class="anchor" href="#cdouble" aria-label="Link to cdouble">#</a></header>
+<pre class="sig"><code>np.cdouble</code></pre>
+<p>Double-precision complex dtype: <code>complex128</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.cdouble" rel="noopener" target="_blank" title="Complex number type composed of two double-precision floating-point numbers, compatible with Python :class:`complex`.">numpy.cdouble</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.cdouble.name; <span class="t-res">// =&gt; &quot;complex128&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.cdouble: DType</code></pre></details>
+</article>
+<article class="api" id="csingle">
+<header class="api-head"><h3><code>np.csingle</code></h3><a class="anchor" href="#csingle" aria-label="Link to csingle">#</a></header>
+<pre class="sig"><code>np.csingle</code></pre>
+<p>Single-precision complex dtype: <code>complex64</code>.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.csingle" rel="noopener" target="_blank" title="Complex number type composed of two single-precision floating-point numbers.">numpy.csingle</a></div>
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.csingle.name; <span class="t-res">// =&gt; &quot;complex64&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.csingle: DType</code></pre></details>
+</article>
+<article class="api" id="longdouble">
+<header class="api-head"><h3><code>np.longdouble</code></h3><a class="anchor" href="#longdouble" aria-label="Link to longdouble">#</a></header>
+<pre class="sig"><code>np.longdouble</code></pre>
+<p>Long double dtype: aliased to <code>float64</code> (no 80-bit float in JS).</p>
+
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.longdouble.name; <span class="t-res">// =&gt; &quot;float64&quot;</span></code></pre></div>
+
+</article>
+<article class="api" id="clongdouble">
+<header class="api-head"><h3><code>np.clongdouble</code></h3><a class="anchor" href="#clongdouble" aria-label="Link to clongdouble">#</a></header>
+<pre class="sig"><code>np.clongdouble</code></pre>
+<p>Long double complex dtype: aliased to <code>complex128</code> (no 80-bit complex in JS).</p>
+
+
+<h4>Returns</h4><p class="ret"><code>DType</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.clongdouble.name; <span class="t-res">// =&gt; &quot;complex128&quot;</span></code></pre></div>
+
+</article>
+<article class="api" id="bytes">
+<header class="api-head"><h3><code>np.bytes_</code></h3><a class="anchor" href="#bytes" aria-label="Link to bytes_">#</a></header>
+<pre class="sig"><code>np.bytes_</code></pre>
+<p>Byte-string dtype sentinel (string literal <code>&quot;bytes&quot;</code>). In NumPy, <code>bytes_</code> is the fixed-width byte-string dtype; in numera it is a string tag for dtype-aware APIs.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.bytes_" rel="noopener" target="_blank" title="A byte string.">numpy.bytes_</a></div>
+
+<h4>Returns</h4><p class="ret"><code>&quot;bytes&quot;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.bytes_; <span class="t-res">// =&gt; &quot;bytes&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.bytes_: <span class="t-str">&quot;bytes&quot;</span></code></pre></details>
+</article>
+<article class="api" id="str">
+<header class="api-head"><h3><code>np.str_</code></h3><a class="anchor" href="#str" aria-label="Link to str_">#</a></header>
+<pre class="sig"><code>np.str_</code></pre>
+<p>Unicode-string dtype sentinel (string literal <code>&quot;str&quot;</code>). In NumPy, <code>str_</code> is the fixed-width unicode dtype; in numera it is a string tag for dtype-aware APIs.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.str_" rel="noopener" target="_blank" title="A unicode string.">numpy.str_</a></div>
+
+<h4>Returns</h4><p class="ret"><code>&quot;str&quot;</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.str_; <span class="t-res">// =&gt; &quot;str&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.str_: <span class="t-str">&quot;str&quot;</span></code></pre></details>
+</article>
+<article class="api" id="datetime64">
+<header class="api-head"><h3><code>np.datetime64</code></h3><a class="anchor" href="#datetime64" aria-label="Link to datetime64">#</a></header>
+<pre class="sig"><code>np.datetime64(value, [unit])</code></pre>
+<p>Construct a <code>datetime64</code> scalar from an ISO-8601 string, integer epoch offset, or another <code>DatetimeArray</code>. The returned <code>DatetimeArray</code> holds int64 epoch offsets and a unit string.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.datetime64" rel="noopener" target="_blank" title="If created from a 64-bit integer, it represents an offset from ``1970-01-01T00:00:00``. If created from string, the string can be in ISO 8601 date or datetime format.">numpy.datetime64</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>value</code><span class="ty">string | number | bigint | DatetimeArray</span></dt><dd>ISO-8601 string (e.g. <code>&quot;2023-01-15&quot;</code>) or integer epoch offset.</dd></div><div><dt><code>[unit]</code><span class="ty">string</span></dt><dd>Datetime unit: <code>&quot;Y&quot;</code> <code>&quot;M&quot;</code> <code>&quot;W&quot;</code> <code>&quot;D&quot;</code> <code>&quot;h&quot;</code> <code>&quot;m&quot;</code> <code>&quot;s&quot;</code> <code>&quot;ms&quot;</code> <code>&quot;us&quot;</code> <code>&quot;ns&quot;</code>. Inferred from the string when omitted.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>DatetimeArray — a 0-d datetime64 array.</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">datetime64</span>(<span class="t-str">&quot;2023-01-15&quot;</span>).unit; <span class="t-res">// =&gt; &quot;D&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">datetime64</span>(value: DatetimeInput, unit?: string | <span class="t-kw">undefined</span>): DatetimeArray</code></pre></details>
+</article>
+<article class="api" id="timedelta64">
+<header class="api-head"><h3><code>np.timedelta64</code></h3><a class="anchor" href="#timedelta64" aria-label="Link to timedelta64">#</a></header>
+<pre class="sig"><code>np.timedelta64(value, [unit])</code></pre>
+<p>Construct a <code>timedelta64</code> scalar from an integer duration and unit.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/arrays.scalars.html#numpy.timedelta64" rel="noopener" target="_blank" title="A timedelta stored as a 64-bit integer.">numpy.timedelta64</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>value</code><span class="ty">number | bigint | TimedeltaArray</span></dt><dd>Duration value.</dd></div><div><dt><code>[unit]</code><span class="ty">string</span></dt><dd>Time unit (same set as <code>datetime64</code>). Defaults to <code>&quot;s&quot;</code>.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>TimedeltaArray — a 0-d timedelta64 array.</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">timedelta64</span>(<span class="t-num">5</span>, <span class="t-str">&quot;D&quot;</span>).unit; <span class="t-res">// =&gt; &quot;D&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">timedelta64</span>(value: TimedeltaInput, unit?: string | <span class="t-kw">undefined</span>): TimedeltaArray</code></pre></details>
+</article>
+<article class="api" id="datetime-data">
+<header class="api-head"><h3><code>np.datetime_data</code></h3><a class="anchor" href="#datetime-data" aria-label="Link to datetime_data">#</a></header>
+<pre class="sig"><code>np.datetime_data(dtype)</code></pre>
+<p>Returns the unit and count for a <code>datetime64</code> or <code>timedelta64</code> dtype. The count is always <code>1</code>.</p>
+
+<h4>Parameters</h4><dl class="params"><div><dt><code>dtype</code><span class="ty">DatetimeDType | TimedeltaDType | DatetimeArray | TimedeltaArray</span></dt><dd>A datetime or timedelta dtype or array.</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>[unit, count] — a tuple `[string, 1]`.</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">datetime_data</span>(np.<span class="t-fn">datetime64</span>(<span class="t-str">&quot;2023-01-15&quot;</span>))[<span class="t-num">0</span>]; <span class="t-res">// =&gt; &quot;D&quot;</span></code></pre></div>
+
+</article>
+<article class="api" id="datetime-as-string">
+<header class="api-head"><h3><code>np.datetime_as_string</code></h3><a class="anchor" href="#datetime-as-string" aria-label="Link to datetime_as_string">#</a></header>
+<pre class="sig"><code>np.datetime_as_string(arr, [options])</code></pre>
+<p>Convert a <code>DatetimeArray</code> to ISO-8601 string(s). Optionally truncate to a coarser unit.</p>
+<div class="np-links"><span>NumPy</span><a href="https://numpy.org/doc/2.5/reference/generated/numpy.datetime_as_string.html#numpy.datetime_as_string" rel="noopener" target="_blank" title="Convert an array of datetimes into an array of strings.">numpy.datetime_as_string</a></div>
+<h4>Parameters</h4><dl class="params"><div><dt><code>arr</code><span class="ty">DatetimeArray</span></dt><dd>The datetime array to format.</dd></div><div><dt><code>[options.unit]</code><span class="ty">string</span></dt><dd>Output unit (truncates to this resolution). Defaults to the array's own unit.</dd></div><div><dt><code>[options.timezone]</code><span class="ty">string</span></dt><dd>Timezone hint (accepted, not applied; all output is UTC).</dd></div></dl>
+<h4>Returns</h4><p class="ret"><code>string | string[] — one string per element.</code></p>
+<h4>Example</h4><div class="codeblock"><div class="codehead"><span>TypeScript</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code>np.<span class="t-fn">datetime_as_string</span>(np.<span class="t-fn">datetime64</span>(<span class="t-str">&quot;2023-01-15&quot;</span>)); <span class="t-res">// =&gt; &quot;2023-01-15&quot;</span></code></pre></div>
+<details class="ts"><summary>TypeScript declaration</summary><pre><code>np.<span class="t-fn">datetime_as_string</span>(arr: DatetimeArray, options?: string | DatetimeAsStringOptions | <span class="t-kw">undefined</span>): string | string[]</code></pre></details>
+</article>
+</article>
+<nav class="pager" aria-label="Pagination"><a class="pg prev" href="../reference/ndarray.html"><small>Previous</small><span>NDArray</span></a><a class="pg next" href="../reference/ufuncs.html"><small>Next</small><span>Universal functions (ufunc)</span></a></nav>
+  </main>
+  <aside class="otp" aria-label="On this page"><p class="otp-title">On this page</p><ul><li class="l3"><a href="#dtype">np.dtype</a></li><li class="l3"><a href="#promoteTypes">np.promoteTypes</a></li><li class="l3"><a href="#canCast">np.canCast</a></li><li class="l3"><a href="#finfo">np.finfo</a></li><li class="l3"><a href="#iinfo">np.iinfo</a></li><li class="l3"><a href="#resultType">np.resultType</a></li><li class="l3"><a href="#minScalarType">np.minScalarType</a></li><li class="l3"><a href="#issubdtype">np.issubdtype</a></li><li class="l3"><a href="#isdtype">np.isdtype</a></li><li class="l3"><a href="#commonType">np.commonType</a></li><li class="l3"><a href="#mintypecode">np.mintypecode</a></li><li class="l3"><a href="#generic">np.generic</a></li><li class="l3"><a href="#number">np.number</a></li><li class="l3"><a href="#integer">np.integer</a></li><li class="l3"><a href="#signedinteger">np.signedinteger</a></li><li class="l3"><a href="#unsignedinteger">np.unsignedinteger</a></li><li class="l3"><a href="#inexact">np.inexact</a></li><li class="l3"><a href="#floating">np.floating</a></li><li class="l3"><a href="#complexfloating">np.complexfloating</a></li><li class="l3"><a href="#int">np.int_</a></li><li class="l3"><a href="#intc">np.intc</a></li><li class="l3"><a href="#intp">np.intp</a></li><li class="l3"><a href="#short">np.short</a></li><li class="l3"><a href="#byte">np.byte</a></li><li class="l3"><a href="#ubyte">np.ubyte</a></li><li class="l3"><a href="#ushort">np.ushort</a></li><li class="l3"><a href="#uint">np.uint</a></li><li class="l3"><a href="#uintc">np.uintc</a></li><li class="l3"><a href="#uintp">np.uintp</a></li><li class="l3"><a href="#ulong">np.ulong</a></li><li class="l3"><a href="#double">np.double</a></li><li class="l3"><a href="#single">np.single</a></li><li class="l3"><a href="#half">np.half</a></li><li class="l3"><a href="#cdouble">np.cdouble</a></li><li class="l3"><a href="#csingle">np.csingle</a></li><li class="l3"><a href="#longdouble">np.longdouble</a></li><li class="l3"><a href="#clongdouble">np.clongdouble</a></li><li class="l3"><a href="#bytes">np.bytes_</a></li><li class="l3"><a href="#str">np.str_</a></li><li class="l3"><a href="#datetime64">np.datetime64</a></li><li class="l3"><a href="#timedelta64">np.timedelta64</a></li><li class="l3"><a href="#datetime-data">np.datetime_data</a></li><li class="l3"><a href="#datetime-as-string">np.datetime_as_string</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="../index.html"><img class="logo-mark" src="../../assets/logo.png" width="24" height="24" alt="Cyfora"><span>numera</span></a>
+      <p>NumPy for JavaScript and TypeScript, backed by a native C++ core.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h2>Docs</h2><ul>
+        <li><a href="../guides/quickstart.html">Quickstart</a></li>
+        <li><a href="../reference/index.html">API reference</a></li>
+        <li><a href="../reference/numpy-index.html">NumPy name index</a></li>
+        <li><a href="../changelog.html">Changelog</a></li>
+      </ul></div>
+      <div><h2>Package</h2><ul>
+        <li><a href="https://www.npmjs.com/package/@cyfora/numera" rel="noopener" target="_blank">npm: @cyfora/numera</a></li>
+        <li><a href="../compatibility.html">NumPy compatibility</a></li>
+        <li><span>MIT License</span></li>
+      </ul></div>
+      <div><h2>Made by</h2><ul>
+        <li><a href="https://github.com/Rajankr542" rel="noopener author" target="_blank">Rajan Kumar · @Rajankr542</a></li>
+        <li><a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora · cyfora.in</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <p>© 2026 <a href="https://github.com/Rajankr542" rel="noopener" target="_blank">Rajan Kumar</a> and <a href="https://cyfora.in" rel="noopener" target="_blank">Cyfora</a>. numera is released under the MIT License.
+    NumPy names, one-line summaries and links come from the <a href="https://numpy.org/doc/stable/" rel="noopener" target="_blank">NumPy documentation</a> (BSD-3-Clause). numera is not affiliated with the NumPy project.</p>
+  </div>
+</footer>
+<div class="palette" hidden role="dialog" aria-modal="true" aria-label="Search the documentation">
+  <div class="palette-box">
+    <div class="palette-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" placeholder="Search functions, guides and NumPy names…" autocomplete="off" spellcheck="false" aria-label="Search"><kbd>Esc</kbd></div>
+    <ul class="palette-res" role="listbox"></ul>
+    <p class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span>v1.0.3</span></p>
+  </div>
+</div>
+<script>window.NUMERA_VERSIONS={"latest":"1.0.3","versions":["1.0.3","1.0.2","1.0.1"],"pages":{"1.0.3":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.2":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","guides/typescript.html","guides/performance.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/logic.html","reference/grids.html","reference/tri-indices.html","reference/sorting.html","reference/statistics.html","reference/reduce-where.html","reference/random-bitgen.html","reference/random-discrete.html","reference/random-continuous.html","reference/random-multivariate.html","reference/random-state.html","reference/io.html","reference/windows.html","reference/polynomials.html","reference/emath.html","reference/testing.html","reference/polynomial.html","reference/ma.html","reference/strings.html","reference/rec.html","reference/numpy-index.html","compatibility.html","changelog.html"],"1.0.1":["index.html","guides/installation.html","guides/quickstart.html","guides/numpy-migration.html","guides/array-basics.html","guides/dtypes.html","guides/broadcasting.html","guides/indexing.html","guides/reductions.html","guides/random.html","guides/linalg-fft.html","guides/errors.html","reference/index.html","reference/ufuncs.html","reference/creation.html","reference/ndarray.html","reference/shape.html","reference/indexing.html","reference/math.html","reference/reduce.html","reference/linalg.html","reference/fft.html","reference/random.html","reference/dtype.html","reference/utilities.html","reference/errors.html","reference/numpy-index.html","compatibility.html","changelog.html"]}};</script>
+<script src="../search-index.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</body>
+</html>
