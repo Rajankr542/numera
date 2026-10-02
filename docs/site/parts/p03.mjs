@@ -259,4 +259,74 @@ np.mintypecode("i");        // => "d"`,
       },
     ],
   },
+  {
+    id: "utilities",
+    entries: [
+      {
+        name: "arrayRepr",
+        sig: "np.arrayRepr(a, { maxLineWidth?, precision?, suppressSmall? })",
+        desc: "NumPy `array_repr`: `array(...)` text with `shape=`/`dtype=` added when they cannot be inferred. Float digits come from a C++ port of NumPy's Dragon4 (shortest unique digits per dtype). `String(a)` / `a.toString()` return the same text.",
+        returns: "string",
+        example: `np.arrayRepr(np.array([1, 2])); // => "array([1, 2])"
+np.arrayRepr(np.array([1.5, -2, NaN])); // => "array([ 1.5, -2. ,  nan])"
+np.arrayRepr(np.array([-1, 10], { dtype: "int8" })); // => "array([-1, 10], dtype=int8)"`,
+      },
+      {
+        name: "arrayStr",
+        sig: "np.arrayStr(a, { maxLineWidth?, precision?, suppressSmall? })",
+        desc: "NumPy `array_str` (Python `str(a)`): elements separated by spaces; a 0-d array prints like a NumPy scalar.",
+        returns: "string",
+        example: `np.arrayStr(np.array([1, 2, 3])); // => "[1 2 3]"
+np.arrayStr(np.array(1e16)); // => "1e+16"`,
+      },
+      {
+        name: "array2string",
+        sig: "np.array2string(a, { maxLineWidth?, precision?, suppressSmall?, separator?, prefix?, suffix?, formatter?, threshold?, edgeitems?, sign?, floatmode?, legacy? })",
+        desc: "NumPy `array2string`. `formatter` maps NumPy formatter names (`all`, `bool`, `int`, `float`, `complexfloat`, `int_kind`, `float_kind`, `complex_kind`) to JS callbacks that get each element and return a string. Only `legacy: false` is supported (others raise `NotImplementedError`).",
+        returns: "string",
+        example: `np.array2string(np.array([1, 2, 3]), { separator: "," }); // => "[1,2,3]"
+np.array2string(np.array([1.123, 2]), { floatmode: "fixed", precision: 2 }); // => "[1.12 2.00]"`,
+      },
+      {
+        name: "formatFloatPositional",
+        sig: "np.formatFloatPositional(x, { precision?, unique?, fractional?, trim?, sign?, padLeft?, padRight?, minDigits? })",
+        desc: "NumPy `format_float_positional` (Dragon4). `x` is a JS number (float64) or a size-1 NDArray, formatted in its own float dtype (ints/bool as float64; complex raises `DTypeError`).",
+        returns: "string",
+        example: `np.formatFloatPositional(1); // => "1."
+np.formatFloatPositional(0.3, { minDigits: 20 }); // => "0.29999999999999998890"
+np.formatFloatPositional(np.array(0.1, { dtype: "float32" }), { unique: false, precision: 10 }); // => "0.1000000015"`,
+      },
+      {
+        name: "formatFloatScientific",
+        sig: "np.formatFloatScientific(x, { precision?, unique?, trim?, sign?, padLeft?, expDigits?, minDigits? })",
+        desc: "NumPy `format_float_scientific` (Dragon4), with the same argument rules as `formatFloatPositional`.",
+        returns: "string",
+        example: `np.formatFloatScientific(123.456, { precision: 2 }); // => "1.23e+02"
+np.formatFloatScientific(1e100, { expDigits: 4 }); // => "1.e+0100"`,
+      },
+      {
+        name: "setPrintoptions",
+        sig: "np.setPrintoptions({ precision?, threshold?, edgeitems?, linewidth?, suppress?, nanstr?, infstr?, sign?, floatmode?, formatter?, legacy?, overrideRepr? })",
+        desc: "NumPy `set_printoptions`: module-wide print options. Omitted options stay unchanged, except `formatter` and `overrideRepr`, which reset on every call (like NumPy).",
+        returns: "void",
+        example: `np.setPrintoptions({ precision: 2 });
+String(np.array([1 / 3])); // => "array([0.33])"
+np.setPrintoptions({ precision: 8 });`,
+      },
+      {
+        name: "getPrintoptions",
+        sig: "np.getPrintoptions()",
+        desc: "NumPy `get_printoptions`: a copy of the current print options (camelCase keys).",
+        returns: "PrintOptions",
+        example: `np.getPrintoptions().threshold; // => 1000`,
+      },
+      {
+        name: "printoptions",
+        sig: "np.printoptions(opts, fn)",
+        desc: "NumPy's `printoptions` context manager as a callback: `opts` apply while `fn()` runs and are restored afterwards, also if it throws. Returns `fn`'s result.",
+        returns: "T",
+        example: `np.printoptions({ precision: 2 }, () => String(np.array([2 / 3]))); // => "array([0.67])"`,
+      },
+    ],
+  },
 ];

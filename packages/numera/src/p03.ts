@@ -25,6 +25,16 @@ import {
   unsignedinteger,
 } from "./p03_dtypes.js";
 import { ndenumerate, nditer, ndindex } from "./p03_iter.js";
+import {
+  array2string,
+  arrayRepr,
+  arrayStr,
+  formatFloatPositional,
+  formatFloatScientific,
+  getPrintoptions,
+  printoptions,
+  setPrintoptions,
+} from "./p03_print.js";
 
 export { FlatIter } from "./ndarray.js";
 export type { FlatIndex, ScalarValue } from "./ndarray.js";
@@ -50,6 +60,28 @@ export {
   unsignedinteger,
 } from "./p03_dtypes.js";
 export type { FInfo, IInfo } from "./p03_dtypes.js";
+export {
+  array2string,
+  arrayRepr,
+  arrayStr,
+  formatFloatPositional,
+  formatFloatScientific,
+  getPrintoptions,
+  printoptions,
+  setPrintoptions,
+} from "./p03_print.js";
+export type {
+  Array2StringOptions,
+  ArrayReprOptions,
+  FloatMode,
+  FormatFloatPositionalOptions,
+  FormatFloatScientificOptions,
+  Formatter,
+  PrintOptions,
+  PrintOptionsInput,
+  SignOption,
+  TrimOption,
+} from "./p03_print.js";
 
 export const p03 = {
   ndindex,
@@ -71,4 +103,12 @@ export const p03 = {
   inexact,
   floating,
   complexfloating,
+  array2string,
+  arrayRepr,
+  arrayStr,
+  formatFloatPositional,
+  formatFloatScientific,
+  setPrintoptions,
+  getPrintoptions,
+  printoptions,
 } as const;

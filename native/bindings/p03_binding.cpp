@@ -5,6 +5,7 @@
 #include "p03_dtypes.hpp"
 #include "p03_iter.hpp"
 #include "p03_methods.hpp"
+#include "p03_print.hpp"
 #include "shape_ops.hpp"
 
 namespace nativpy::bindings {
@@ -101,6 +102,52 @@ void init_p03_binding(Napi::Env env, Napi::Object exports) {
         }));
   m.Set("minScalarType", fn(env, "minScalarType", [](Info i, Napi::Env e) -> Napi::Value {
           return Napi::String::New(e, std::string(dtype_name(min_scalar_type(arr(i, 0)))));
+        }));
+
+  // ---- P3-5 printing (D-063) ----
+  m.Set("formatFloat", fn(env, "formatFloat", [](Info i, Napi::Env e) -> Napi::Value {
+          const NDArray& a = arr(i, 0);
+          const Napi::Object o = i[1].As<Napi::Object>();
+          const auto num = [&](const char* k) {
+            const Napi::Value v = o.Get(k);
+            return v.IsNumber() ? v.As<Napi::Number>().Int32Value() : -1;
+          };
+          const auto flag = [&](const char* k) { return o.Get(k).ToBoolean().Value(); };
+          Dragon4Options d;
+          d.scientific = flag("scientific");
+          d.unique = flag("unique");
+          d.fractional = flag("fractional");
+          d.sign = flag("sign");
+          d.precision = num("precision");
+          d.min_digits = num("minDigits");
+          d.pad_left = num("padLeft");
+          d.pad_right = num("padRight");
+          d.exp_digits = num("expDigits");
+          const std::string t = o.Get("trim").As<Napi::String>().Utf8Value();
+          d.trim = t == "." ? TrimMode::Zeros : t == "0" ? TrimMode::LeaveOneZero : t == "-" ? TrimMode::DptZeros
+                                                                                            : TrimMode::None;
+          return Napi::String::New(e, dragon4(a.get_double(0), a.dtype(), d));
+        }));
+  m.Set("leadingTrailing", fn(env, "leadingTrailing", [](Info i, Napi::Env e) {
+          return wrap(e, leading_trailing(arr(i, 0), i[1].As<Napi::Number>().Int64Value()));
+        }));
+  m.Set("formatElements", fn(env, "formatElements", [](Info i, Napi::Env e) -> Napi::Value {
+          const Napi::Object o = i[1].As<Napi::Object>();
+          PrintOptions po;
+          const Napi::Value prec = o.Get("precision");
+          po.precision = prec.IsNumber() ? prec.As<Napi::Number>().Int32Value() : -1;
+          po.floatmode = o.Get("floatmode").As<Napi::String>().Utf8Value();
+          po.suppress = o.Get("suppress").ToBoolean().Value();
+          po.sign = o.Get("sign").As<Napi::String>().Utf8Value().at(0);
+          po.nanstr = o.Get("nanstr").As<Napi::String>().Utf8Value();
+          po.infstr = o.Get("infstr").As<Napi::String>().Utf8Value();
+          const std::vector<std::string> v = format_elements(arr(i, 0), po);
+          Napi::Array out = Napi::Array::New(e, v.size());
+          for (std::size_t k = 0; k < v.size(); ++k) out.Set(static_cast<std::uint32_t>(k), v[k]);
+          return out;
+        }));
+  m.Set("scalarStr", fn(env, "scalarStr", [](Info i, Napi::Env e) -> Napi::Value {
+          return Napi::String::New(e, scalar_str(arr(i, 0)));
         }));
 
   exports.Set("p03", m);

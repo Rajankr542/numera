@@ -25,6 +25,14 @@ export interface P03Native {
   finfo(dtype: string): Record<string, number> & { dtype: string };
   iinfo(dtype: string): { bits: number; min: bigint; max: bigint };
   minScalarType(a: N): string;
+  // P3-5 (D-063)
+  formatFloat(a: N, opts: Record<string, unknown>): string;
+  leadingTrailing(a: N, edgeitems: number): N;
+  formatElements(
+    a: N,
+    opts: { precision: number | null; floatmode: string; suppress: boolean; sign: string; nanstr: string; infstr: string },
+  ): string[];
+  scalarStr(a: N): string;
 }
 
 export const p03native = nativeModule<P03Native>("p03");

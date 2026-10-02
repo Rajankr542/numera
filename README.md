@@ -42,7 +42,7 @@ const a = np.array([[1, 2, 3], [4, 5, 6]]);
 a.shape;          // [2, 3]
 a.dtype.name;     // "int64"
 a.toArray();      // [[1, 2, 3], [4, 5, 6]]
-String(a);        // "array([[1,2,3],[4,5,6]], dtype=int64)"
+String(a);        // "array([[1, 2, 3],\n       [4, 5, 6]])"
 
 np.add(a, 10).toArray();           // [[11, 12, 13], [14, 15, 16]]
 a.sum({ axis: 0 }).toArray();      // [5, 7, 9]

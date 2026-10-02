@@ -1637,3 +1637,40 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `np.mintypecode(typechars, typeset = "GDFgdf", default = "d")`: NumPy's
   algorithm with its type characters (int64 = `l`, uint64 = `L`). Strings are
   iterated per character; array entries use their dtype's character.
+
+## D-063 — Array printing: dragon4, array2string/arrayRepr/arrayStr, print options, toString = repr (P3-5) — Accepted — 2026-10-02
+- `native/core/p03_print.cpp` ports NumPy's Dragon4 (`dragon4.c`: the
+  `Dragon4` digit generator in unique/exact mode with total/fraction-length
+  cutoffs, `FormatPositional`, `FormatScientific`, trim modes `k . 0 -`) on a
+  small arbitrary-precision integer. Values are decomposed in their own dtype
+  (binary16/32/64), so float16/float32 print their shortest unique digits.
+- `np.formatFloatPositional(x, {precision, unique, fractional, trim, sign,
+  padLeft, padRight, minDigits})` and `np.formatFloatScientific(x, {precision,
+  unique, trim, sign, padLeft, expDigits, minDigits})`: `x` is a JS number
+  (float64) or a 0-d/size-1 NDArray (its float dtype; ints and bool convert to
+  float64; complex raises `DTypeError`). NumPy's argument errors map to
+  `ValueError`/`DTypeError` (for its TypeErrors).
+- Element formatting (NumPy `FloatingFormat`, `ComplexFloatingFormat`,
+  `IntegerFormat`, `BoolFormat`, summarization corners) runs natively and
+  returns the C-order strings of the summarized array; TS does the line layout
+  (`_formatArray`/`_extendLine`) and the repr/str wrappers, which only
+  concatenate strings.
+- `np.array2string(a, {maxLineWidth, precision, suppressSmall, separator,
+  prefix, suffix, formatter, threshold, edgeitems, sign, floatmode, legacy})`,
+  `np.arrayRepr(a, {maxLineWidth, precision, suppressSmall})`,
+  `np.arrayStr(a, {...})` follow NumPy 2.x defaults (legacy=False). `formatter`
+  is an object of JS callbacks keyed by NumPy's names (`all`, `bool`, `int`,
+  `float`, `complexfloat`, `int_kind`, `float_kind`, `complex_kind`; camelCase
+  accepted); callbacks get the JS scalar (`item()`) and must return a string.
+  `legacy` other than `false` raises `NotImplementedError`.
+- Print options are module state: `np.setPrintoptions(opts)` (`precision,
+  threshold, edgeitems, linewidth, suppress, nanstr, infstr, sign, floatmode,
+  formatter, legacy, overrideRepr`; `formatter`/`overrideRepr` reset on every
+  call like NumPy; `undefined`/`null` = unchanged), `np.getPrintoptions()`
+  (a copy), and `np.printoptions(opts, fn)` — NumPy's context manager becomes a
+  callback: options apply while `fn()` runs and are restored afterwards (also
+  on throw); returns `fn`'s result.
+- `NDArray.toString()` is `np.arrayRepr(this)` (NumPy `repr`), e.g.
+  `array([1, 2])`; the old JSON-like `array([1,2], dtype=int64)` form is gone.
+  0-d `arrayStr` uses NumPy scalar `str` rules (float16/32/64 positional below
+  1e3/1e6/1e16 and ≥ 1e-4, complex `(a+bj)`).

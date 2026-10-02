@@ -99,22 +99,6 @@ differential tests (`pnpm test:diff`).
 | `mod` / `floorDivide` on complex | `TypeError` | `DTypeError` | D-033 |
 | complex `sqrt`/`exp`/`log`/`power`/`abs`/`angle` | platform libm / npymath | NumPy's npymath algorithms (`npy_csqrt`, `npy_clog`, `npy_cpow`, SIMD `cabsolute`); `exp`, `pow` and `atan2` come from the C++ library; libm results may differ by a few ULP | D-014, D-033 |
 | `imag` of a real array | read-only zeros array | same (read-only zeros) | D-033 |
-
-## Not implemented
-- Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
-- Complex ufuncs beyond `add`, `subtract`, `multiply`, `divide`, `power`, `negative`, `abs`, `sqrt`, `exp`, `log`, `conjugate` and `angle`. Trig/hyperbolic functions and comparison ufuncs are not implemented for any dtype yet; they will accept complex input when they land (D-033).
-- Linalg (every implemented function accepts complex input): `pinv`, `matrix_rank`, `matrix_power`, `cholesky`, `slogdet`, `cond`, `tensordot`, `einsum`, `vdot`, `kron`; batched `lstsq`; `out=` parameters; `eigh(UPLO='U')` (only the lower triangle is used). The `@` operator is not available in JS; use `np.matmul`.
-- `NDArray` operator methods; ufunc keywords on `conjugate`/`angle` (the other 12 element-wise ufuncs support `out=`, `where=`, `casting=`, `dtype=` and `order=`).
-- `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.
-- Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
-- FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
-- Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
-
-## Documented divergences
-P3 NDArray methods and core API (build-first; NumPy differential checks pending):
-
-| NumPy | NumPy behaviour | numera | Decision |
-|---|---|---|---|
 | `a.flat` | `flatiter` object, `a.flat[i]` | `FlatIter` with `get(i)`/`set(i, v)`, iterable; `a.flat = v` assigns cyclically | D-060 |
 | `a.flat[i]` for an integer | NumPy scalar | JS scalar | D-060 |
 | `a.tobytes()` | Python `bytes` | `Uint8Array` copy | D-060 |
@@ -127,4 +111,18 @@ P3 NDArray methods and core API (build-first; NumPy differential checks pending)
 | `np.minScalarType(1e5)` | `float32` (Python float) | `uint32`: JS cannot tell `1e5` from `100000`, so safe integers count as integers | D-062 |
 | `np.minScalarType` for integers beyond 64 bits | `object` | `ValueError` | D-062 |
 | `np.commonType` | returns a scalar type | returns a `DType` | D-062 |
-| abstract dtypes (`np.floating`, ...) | scalar type classes | frozen `AbstractDType` objects, only for `issubdtype` | D-062 |
+| `np.printoptions(...)` | context manager (`with`) | callback form `np.printoptions(opts, fn)`; options restored after `fn` | D-063 |
+| print option `legacy` | `'1.13'`, `'1.21'`, `'1.25'`, `'2.1'`, `'2.2'` or `False` | only `false`; others raise `NotImplementedError` | D-063 |
+| `formatter` callables in `array2string`/print options | Python callables; keys incl. `str_kind`, `numpystr`, `datetime`, `object` | JS callbacks for `all`, `bool`, `int`, `float`, `complexfloat`, `int_kind`, `float_kind`, `complex_kind` | D-063 |
+| `formatFloatPositional`/`formatFloatScientific` argument `TypeError`s | `TypeError` | `DTypeError` | D-063 |
+| `String(a)` / `a.toString()` | n/a (`repr(a)`) | NumPy `repr` text | D-063 |
+
+## Not implemented
+- Reduction keywords `out=`, `where=`; `nansum`/`nanmean` etc.; `argmin`/`argmax` with axis tuples (NumPy doesn't support them either).
+- Complex ufuncs beyond `add`, `subtract`, `multiply`, `divide`, `power`, `negative`, `abs`, `sqrt`, `exp`, `log`, `conjugate` and `angle`. Trig/hyperbolic functions and comparison ufuncs are not implemented for any dtype yet; they will accept complex input when they land (D-033).
+- Linalg (every implemented function accepts complex input): `pinv`, `matrix_rank`, `matrix_power`, `cholesky`, `slogdet`, `cond`, `tensordot`, `einsum`, `vdot`, `kron`; batched `lstsq`; `out=` parameters; `eigh(UPLO='U')` (only the lower triangle is used). The `@` operator is not available in JS; use `np.matmul`.
+- `NDArray` operator methods; ufunc keywords on `conjugate`/`angle` (the other 12 element-wise ufuncs support `out=`, `where=`, `casting=`, `dtype=` and `order=`).
+- `take` `mode=`/`out=`; field (structured) indexing; `put`, `putmask`, `choose`, `compress`.
+- Random: `choice(p=...)`, other distributions (`exponential`, `gamma`, `binomial`, `poisson`, ...), `permuted`, `bytes`, `spawn`, `get_state`/`set_state`, other bit generators (Philox, SFC64), and `float32` `normal` with non-default loc/scale (NumPy has no such API either).
+- FFT: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift`, `out=`; `fftfreq` `device=`.
+- Everything from PLAN M11 onward (see ROADMAP.md). Not yet supported: `order='F'` for array creation/`reshape`/`astype` (ufuncs support it, D-050), `arange`/`linspace` with complex arguments, `linspace` `retstep`/`axis`.
