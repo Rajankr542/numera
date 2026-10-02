@@ -121,6 +121,33 @@ np.bitwiseRightShift([16], 2);  // => [4]`,
         returns: "NDArray (uint8)",
         example: `np.bitwiseCount([0, 7, -1, 255]); // => [0, 3, 1, 8]`,
       },
+      {
+        name: "isclose",
+        sig: "np.isclose(a, b, { rtol?, atol?, equalNan? }) · np.allclose(a, b, options?)",
+        desc: "Element-wise `|a - b| <= atol + rtol * |b|` (with `b` finite), or `a == b`. The test is not symmetric in `a` and `b`. Integers are compared as `float64`. `equalNan` treats NaN in both inputs as equal. `allclose` returns a JS boolean: true if `isclose` holds everywhere. A non-finite `rtol`/`atol` is reported through the `np.seterr` `invalid` mode.",
+        args: [
+          arrayArg("a"),
+          arrayArg("b"),
+          { name: "[options.rtol]", type: "number", desc: "Relative tolerance (default `1e-5`)." },
+          { name: "[options.atol]", type: "number", desc: "Absolute tolerance (default `1e-8`)." },
+          { name: "[options.equalNan]", type: "boolean", desc: "Treat NaNs in the same place as equal (default `false`)." },
+        ],
+        returns: "NDArray (bool) · boolean (allclose)",
+        example: `np.isclose([1e10, 1e-7], [1.00001e10, 1e-8]); // => [true, false]
+np.isclose([1, NaN], [1, NaN], { equalNan: true }); // => [true, true]
+np.allclose([1e10, 1e-8], [1.00001e10, 1e-9]);   // => true`,
+      },
+      {
+        name: "arrayEqual",
+        sig: "np.arrayEqual(a1, a2, { equalNan? }) · np.arrayEquiv(a1, a2)",
+        desc: "`arrayEqual` returns true if both inputs have the same shape and equal elements (`equalNan` lets NaNs in the same places match). `arrayEquiv` only needs the shapes to broadcast. Both return a JS boolean and give `false` for inputs that cannot be converted.",
+        args: [arrayArg("a1"), arrayArg("a2"), { name: "[options.equalNan]", type: "boolean", desc: "Treat NaNs in the same place as equal (default `false`)." }],
+        returns: "boolean",
+        example: `np.arrayEqual([1, 2], [1, 2]);       // => true
+np.arrayEqual([1, 2], [1, 2, 3]);    // => false
+np.arrayEqual([1, NaN], [1, NaN], { equalNan: true }); // => true
+np.arrayEquiv([1, 2], [[1, 2], [1, 2]]); // => true`,
+      },
     ],
   },
 ];

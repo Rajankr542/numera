@@ -1598,3 +1598,21 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   shifts; `uint8` only for `bitwiseCount`).
 - JS aliases mirror NumPy's identical objects: `bitwiseNot = bitwiseInvert = invert`,
   `bitwiseLeftShift = leftShift`, `bitwiseRightShift = rightShift`.
+
+## D-083 — isclose / allclose / arrayEqual / arrayEquiv (P5-5) — Accepted — 2026-10-02
+- Native kernel `isclose(a, b, rtol, atol, equal_nan)` in `native/core/p05_logic.cpp`
+  (binding `addon.p05.isclose`). Loop dtype as NumPy: `b` is made inexact
+  (`result_type(b, 1.0)`: bool/int → float64), then promoted with `a`.
+  Result: `|a - b| <= atol + rtol * |b|` and `isfinite(b)`, or `a == b`; with
+  `equal_nan`, also true where both are NaN (complex: either part NaN). float16
+  is evaluated in float32 (NumPy rounds each step to float16; documented
+  divergence, differences only at the tolerance boundary).
+- `rtol`/`atol` are JS numbers (NumPy also accepts arrays; not supported yet).
+  Non-finite tolerances report "One of rtol or atol is not valid, atol: ..., rtol: ..."
+  through the `np.seterr` "invalid" mode, as NumPy.
+- `isclose` returns an NDArray (0-d for scalar inputs, D-017 style), `allclose`
+  a JS boolean (`all(isclose(...))`).
+- `arrayEqual(a1, a2, {equalNan})` and `arrayEquiv(a1, a2)` return JS booleans
+  and are composed in TS from the native `equal`/`isnan`/`all` kernels: inputs
+  that cannot be converted give `false`; `arrayEqual` requires equal shapes,
+  `arrayEquiv` broadcastable shapes (else `false`).

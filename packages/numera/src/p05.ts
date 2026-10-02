@@ -60,6 +60,10 @@ export {
   leftShift,
   rightShift,
 } from "./p05_bitwise.js";
+import { allclose, arrayEqual, arrayEquiv, isclose } from "./p05_close.js";
+
+export { allclose, arrayEqual, arrayEquiv, isclose } from "./p05_close.js";
+export type { IscloseOptions } from "./p05_close.js";
 export type { AllAnyOptions } from "./p05_compare.js";
 
 export const p05 = {
@@ -93,4 +97,8 @@ export const p05 = {
   bitwiseLeftShift,
   bitwiseRightShift,
   bitwiseCount,
+  isclose,
+  allclose,
+  arrayEqual,
+  arrayEquiv,
 } as const;

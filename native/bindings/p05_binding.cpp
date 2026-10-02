@@ -1,5 +1,6 @@
 #include "binding_utils.hpp"
 #include "milestone_bindings.hpp"
+#include "p05_logic.hpp"
 
 namespace nativpy::bindings {
 
@@ -7,7 +8,11 @@ namespace nativpy::bindings {
 void init_p05_binding(Napi::Env env, Napi::Object exports) {
   using namespace util;
   Napi::Object m = Napi::Object::New(env);
-  // m.Set("name", fn(env, "name", [](Info i, Napi::Env e) { return wrap(e, ...); }));
+  // isclose(a, b, rtol, atol, equalNan) (D-083).
+  m.Set("isclose", fn(env, "isclose", [](Info i, Napi::Env e) {
+          return wrap(e, isclose(arr(i, 0), arr(i, 1), arg_double(i[2], "rtol"),
+                                 arg_double(i[3], "atol"), arg_bool(i[4])));
+        }));
   exports.Set("p05", m);
 }
 

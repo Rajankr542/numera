@@ -258,3 +258,43 @@ describe("P5 bitwise (D-082)", () => {
     expect(() => np.bitwiseCount([3], { dtype: "int64" })).toThrow(DTypeError);
   });
 });
+
+describe("P5 isclose family (D-083)", () => {
+  it("isclose matches NumPy", () => {
+    expect(np.isclose([1e10, 1e-7], [1.00001e10, 1e-8]).toArray()).toEqual([true, false]);
+    expect(np.isclose([1e-8, 1e-7], [0, 0]).toArray()).toEqual([true, false]);
+    expect(np.isclose([1, NaN], [1, NaN]).toArray()).toEqual([true, false]);
+    expect(np.isclose([1, NaN], [1, NaN], { equalNan: true }).toArray()).toEqual([true, true]);
+    expect(np.isclose([Infinity, -Infinity, 1], [Infinity, Infinity, Infinity]).toArray()).toEqual([true, false, false]);
+    expect(np.isclose(1, 2, { rtol: 1 }).toArray()).toBe(true);
+    expect(np.isclose(2, [1, 2, 3]).shape).toEqual([3]);
+    expect(np.isclose(1, 1).shape).toEqual([]);
+    expect(np.isclose(np.array([1.1], { dtype: "float32" }), 1.1, { rtol: 0, atol: 0 }).toArray()).toEqual([true]);
+    expect(np.isclose(np.array([1], { dtype: "int8" }), 1).toArray()).toEqual([true]);
+    expect(np.isclose(np.array([np.complex(NaN, 0)]), np.array([np.complex(0, NaN)]), { equalNan: true }).toArray()).toEqual([true]);
+    expect(np.isclose(np.array([1], { dtype: "float16" }), np.array([1.001], { dtype: "float16" })).toArray()).toEqual([false]);
+    expect(np.isclose(np.zeros([0]), 1).shape).toEqual([0]);
+  });
+
+  it("invalid tolerances follow seterr invalid", () => {
+    expect(() => np.errstate({ invalid: "raise" }, () => np.isclose(1, 1, { atol: NaN }))).toThrow(FloatingPointError);
+    expect(np.errstate({ invalid: "ignore" }, () => np.isclose(1, 1, { atol: NaN }).toArray())).toBe(true);
+  });
+
+  it("allclose / arrayEqual / arrayEquiv", () => {
+    expect(np.allclose([1e10, 1e-8], [1.00001e10, 1e-9])).toBe(true);
+    expect(np.allclose([1e10, 1e-7], [1.00001e10, 1e-8])).toBe(false);
+    expect(np.allclose([], [])).toBe(true);
+    expect(np.arrayEqual([1, 2], [1, 2])).toBe(true);
+    expect(np.arrayEqual([1, 2], [1, 2, 3])).toBe(false);
+    expect(np.arrayEqual([1, 2], [[1, 2]])).toBe(false);
+    expect(np.arrayEqual([1, NaN], [1, NaN])).toBe(false);
+    expect(np.arrayEqual([1, NaN], [1, NaN], { equalNan: true })).toBe(true);
+    expect(np.arrayEqual([NaN, 1], [1, NaN], { equalNan: true })).toBe(false);
+    expect(np.arrayEqual([1, 2], [1, 3], { equalNan: true })).toBe(false);
+    expect(np.arrayEqual([[1, 2], [3]] as never, [1])).toBe(false);
+    expect(np.arrayEquiv([1, 2], [[1, 2], [1, 2]])).toBe(true);
+    expect(np.arrayEquiv([1, 2], [[1, 2], [1, 3]])).toBe(false);
+    expect(np.arrayEquiv([1, 2], [1, 2, 3])).toBe(false);
+  });
+});

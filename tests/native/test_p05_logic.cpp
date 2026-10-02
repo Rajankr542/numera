@@ -8,6 +8,7 @@
 #include "cast.hpp"
 #include "error.hpp"
 #include "fp_errors.hpp"
+#include "p05_logic.hpp"
 #include "test_harness.hpp"
 #include "ufunc_methods.hpp"
 #include "ufunc_registry.hpp"
@@ -268,4 +269,22 @@ TEST_CASE("p05 bitwiseCount") {
   CHECK(ints(unary(U("bitwiseCount"), big, nullptr, {})) == IV({64}));
   CHECK(ints(unary(U("bitwiseCount"), vec_i({std::numeric_limits<std::int64_t>::min()}), nullptr, {})) == IV({1}));
   CHECK_THROWS_KIND(unary(U("bitwiseCount"), vec_d({1}), nullptr, {}), ErrorKind::DType);
+}
+
+TEST_CASE("p05 isclose kernel") {
+  constexpr double inf = std::numeric_limits<double>::infinity();
+  const NDArray a = vec_d({1.0, 1.0, inf, -inf, kNaN, 1e10});
+  const NDArray b = vec_d({1.0 + 1e-6, 1.1, inf, inf, kNaN, 1.00001e10});
+  NDArray r = isclose(a, b, 1e-5, 1e-8, false);
+  CHECK(r.dtype() == DType::Bool);
+  CHECK(ints(r) == IV({1, 0, 1, 0, 0, 1}));
+  CHECK(ints(isclose(a, b, 1e-5, 1e-8, true)) == IV({1, 0, 1, 0, 1, 1}));
+  CHECK(ints(isclose(vec_i({1, 2}, DType::Int8), vec_i({1, 3}), 1e-5, 1e-8, false)) == IV({1, 0}));
+  CHECK(ints(isclose(vec_i({1, 2}), vec_i({2, 2}), 1.0, 0.0, false)) == IV({1, 1}));
+  using C = std::complex<double>;
+  CHECK(ints(isclose(cvec({C(1, 1), C(kNaN, 0)}), cvec({C(1, 1 + 1e-9), C(0, kNaN)}), 1e-5, 1e-8, true)) ==
+        IV({1, 1}));
+  const NDArray f16 = vec_d({1.0}, DType::Float16);
+  CHECK(ints(isclose(f16, vec_d({1.001}, DType::Float16), 1e-5, 1e-8, false)) == IV({0}));
+  CHECK(isclose(vec_d({1.0, 2.0}), vec_d({1.0}), 1e-5, 1e-8, false).shape() == Shape{2});
 }
