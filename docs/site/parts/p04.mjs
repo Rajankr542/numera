@@ -168,6 +168,45 @@ np.clip([1, 5, 9], null, 4);     // => [1, 4, 4]
 np.array([1, 5, 9]).clip(4);     // => [4, 5, 9]
 np.array([1, 2]).conjugate();    // => [1, 2]`,
       },
+      {
+        name: "copysign",
+        sig: "np.copysign(a, b, opts?) · np.nextafter(a, b, opts?) · np.spacing(x, opts?) · np.signbit(x, opts?)",
+        desc: "Floating-point bit helpers: magnitude of `a` with the sign of `b`; the next representable value after `a` toward `b`; the gap to the next value away from zero; whether the sign bit is set (`bool` result, true for `-0`). Float loops only.",
+        args: [arrayArg("a"), arrayArg("b"), ufuncOpts],
+        returns: "NDArray",
+        example: `np.copysign([3, 2], [-1, 1]);  // => [-3, 2]
+np.nextafter([0], [-1]);       // => [-5e-324]
+np.spacing([1]);               // => [2.220446049250313e-16]
+np.signbit([-0.0, 1]);         // => [true, false]`,
+      },
+      {
+        name: "ldexp",
+        sig: "np.ldexp(x, n, opts?)",
+        desc: "`x * 2**n` for an integer exponent array `n` (non-integer or `uint64` exponents raise `DTypeError`, as in NumPy).",
+        args: [arrayArg("x"), arrayArg("n"), ufuncOpts],
+        returns: "NDArray",
+        example: `np.ldexp([1.5, 1.5], [3, -1]); // => [12, 0.75]`,
+      },
+      {
+        name: "gcd",
+        sig: "np.gcd(a, b, opts?) · np.lcm(a, b, opts?)",
+        desc: "Greatest common divisor and least common multiple of integers (results are non-negative). `gcd` has identity 0.",
+        args: [arrayArg("a"), arrayArg("b"), ufuncOpts],
+        returns: "NDArray",
+        example: `np.gcd([12, -12, 7], [18, 18, 0]); // => [6, 6, 7]
+np.lcm([4, -3], [6, 7]);           // => [12, 21]
+np.gcd.reduce([12, 18, 27]).toArray(); // => 3`,
+      },
+      {
+        name: "divmod",
+        sig: "np.divmod(a, b, { out?, dtype?, casting? }) · np.modf(x, opts?) · np.frexp(x, opts?)",
+        desc: "Two-output ufuncs returning `[NDArray, NDArray]`. `divmod` gives `[floorDivide(a, b), mod(a, b)]`; `modf` gives `[fractional, integral]` parts; `frexp` gives `[mantissa, exponent]` with `x = m * 2**e` and an `int32` exponent. `out` is a pair (entries may be `null`).",
+        args: [arrayArg("a"), arrayArg("b"), { name: "[opts]", type: "MultiUfuncOptions", desc: "`out: [o1, o2]`, `dtype`, `casting`." }],
+        returns: "[NDArray, NDArray]",
+        example: `np.divmod([7, -7], 2).map((x) => x.toArray()); // => [[3, -4], [1, 1]]
+np.modf([-2.5]).map((x) => x.toArray());       // => [[-0.5], [-2]]
+np.frexp([8]).map((x) => x.toArray());         // => [[0.5], [4]]`,
+      },
     ],
   },
 ];

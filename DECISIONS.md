@@ -1581,3 +1581,20 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   NumPy's dedicated `clip` ufunc (and its `out`/`where` keywords beyond `out`)
   is not exposed as a ufunc object.
 - `a.conjugate()` is added by declaration merging (same as `a.conj()`).
+
+## D-073 — P4 float bits, gcd/lcm and multi-output ufuncs — Accepted — 2026-10-02
+- Registry rows: `copysign`, `nextafter`, `spacing` (float loops; float16 uses
+  NumPy's bit-pattern `npy_half_nextafter`/`npy_half_spacing`, whose spacing
+  steps toward +inf), `ldexp` (x picks the float loop; the exponent must be
+  bool/int/uint ≤ 32 bits or int64 — NumPy's `fi`/`fl` loops — and is cast
+  to the float type and clamped to ±100000 before `std::ldexp`), `signbit`
+  (float in, bool out), `gcd` (identity 0) and `lcm` (integer loops only,
+  modular on magnitudes like NumPy).
+- `divmod`, `modf`, `frexp` have two outputs, which the single-output
+  registry cannot express. They use a dedicated path
+  (`native/core/p04_multi.cpp`, `addon.p04.multi`) and return
+  `[NDArray, NDArray]` in TS. They support `out: [o1 | null, o2 | null]`,
+  `dtype`, `casting`, not `where`/`order` or ufunc methods (`reduce` etc.).
+  Loops: divmod uses NumPy's floor_divide/remainder kernels (bool → int8);
+  modf/frexp are float-only (ints → `float_for`); the frexp exponent is int32
+  (0 for inf/nan).

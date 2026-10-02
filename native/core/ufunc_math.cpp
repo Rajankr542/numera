@@ -1,5 +1,6 @@
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 #include <numbers>
@@ -248,6 +249,102 @@ struct CExtremumF {
 struct FabsF {
   template <typename T> T operator()(T v) const noexcept { return std::fabs(v); }
 };
+// P4-5 float bits / integer.
+P04_STD_BIN(CopysignF, copysign)
+// Exponent arrives cast to the float loop type (D-073); clamp before int.
+struct LdexpF {
+  template <typename T> T operator()(T x, T n) const noexcept {
+    const T c = std::isnan(n) ? T{0} : std::fmax(std::fmin(n, T{100000}), T{-100000});
+    return std::ldexp(x, static_cast<int>(c));
+  }
+};
+struct NextafterF {
+  template <typename T> T operator()(T x, T y) const noexcept { return std::nextafter(x, y); }
+};
+// NumPy npy_spacing: distance to the next value away from zero (zero -> the
+// smallest subnormal); inf/nan -> nan; the largest finite -> inf (overflow).
+struct SpacingF {
+  template <typename T> T operator()(T x) const noexcept {
+    if (!std::isfinite(x)) return std::numeric_limits<T>::quiet_NaN();
+    if (x == T{0}) return std::numeric_limits<T>::denorm_min();
+    const T inf = std::numeric_limits<T>::infinity();
+    return std::nextafter(x, std::signbit(x) ? -inf : inf) - x;
+  }
+};
+// float16 versions on the bit pattern (npy_half_nextafter / npy_half_spacing).
+// The loop computes float16 as float; values are exact halves.
+inline std::uint16_t half_bits(float v) noexcept { return double_to_half(static_cast<double>(v)).bits; }
+inline float half_value(std::uint16_t b) noexcept { return static_cast<float>(half_to_double(float16_t{b})); }
+inline float half_next(float x, float y) noexcept {
+  if (std::isnan(x) || std::isnan(y)) return std::numeric_limits<float>::quiet_NaN();
+  if (x == y) return y;
+  const std::uint16_t hx = half_bits(x);
+  std::uint16_t r;
+  if ((hx & 0x7fffu) == 0) {
+    r = static_cast<std::uint16_t>((half_bits(y) & 0x8000u) | 1u);
+  } else if ((x < y) != std::signbit(x)) {
+    r = static_cast<std::uint16_t>(hx + 1u);  // away from zero
+  } else {
+    r = static_cast<std::uint16_t>(hx - 1u);
+  }
+  const float out = half_value(r);
+  if (std::isinf(out) && std::isfinite(x)) raise_fp_overflow();
+  return out;
+}
+struct HalfNextafterF {
+  float operator()(float x, float y) const noexcept { return half_next(x, y); }
+};
+// NumPy's half spacing steps toward +inf for every finite value.
+struct HalfSpacingF {
+  float operator()(float x) const noexcept {
+    if (!std::isfinite(x)) return std::numeric_limits<float>::quiet_NaN();
+    return half_next(x, std::numeric_limits<float>::infinity()) - x;
+  }
+};
+struct SignbitF {
+  template <typename T> bool operator()(T x) const noexcept { return std::signbit(x); }
+};
+// gcd / lcm on magnitudes (modular, like NumPy: gcd(INT_MIN, 0) == INT_MIN).
+template <typename T>
+std::make_unsigned_t<T> umag(T v) noexcept {
+  using UT = std::make_unsigned_t<T>;
+  if constexpr (std::is_signed_v<T>) {
+    return v < 0 ? static_cast<UT>(UT{0} - static_cast<UT>(v)) : static_cast<UT>(v);
+  } else {
+    return v;
+  }
+}
+template <typename UT>
+UT ugcd(UT a, UT b) noexcept {
+  while (b != 0) {
+    const UT t = static_cast<UT>(a % b);
+    a = b;
+    b = t;
+  }
+  return a;
+}
+struct GcdF {
+  template <typename T> T operator()(T a, T b) const noexcept {
+    if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+      return static_cast<T>(ugcd(umag(a), umag(b)));
+    } else {
+      return a;  // no loop is registered for these types
+    }
+  }
+};
+struct LcmF {
+  template <typename T> T operator()(T a, T b) const noexcept {
+    if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+      using UT = std::make_unsigned_t<T>;
+      const UT ua = umag(a), ub = umag(b);
+      const UT g = ugcd(ua, ub);
+      if (g == 0) return 0;
+      return static_cast<T>(kernels::mul<UT>(static_cast<UT>(ua / g), ub));
+    } else {
+      return a;
+    }
+  }
+};
 #undef P04_STD_UN
 #undef P04_STD_BIN
 
@@ -341,6 +438,40 @@ LoopTypes d_float_power(DType, DType d) {
 LoopTypes r_promote(DType a, DType b) { return same(promote_types(a, b)); }
 LoopTypes d_any(DType, DType d) { return same(d); }
 
+// ldexp: x picks the float loop; the exponent must be an integer that casts
+// safely to int64 (NumPy's `fi`/`fl` loops). Both are cast to the float type.
+template <const char* Name>
+LoopTypes r_ldexp(DType a, DType b) {
+  const char kb = dtype_info(b).kind;
+  if (is_complex(a) || !(kb == 'b' || kb == 'i' || (kb == 'u' && b != DType::UInt64))) {
+    bad_loop(Name, promote_types(a, b));
+  }
+  return same(float_for(a));
+}
+// signbit: float input, bool output.
+template <const char* Name>
+LoopTypes r_signbit(DType a, DType) {
+  if (is_complex(a)) bad_loop(Name, a);
+  return {float_for(a), DType::Bool};
+}
+template <const char* Name>
+LoopTypes d_signbit(DType a, DType d) {
+  if (d != DType::Bool || is_complex(a)) no_loop(Name);
+  return {float_for(a), DType::Bool};
+}
+// gcd / lcm: integer loops only.
+template <const char* Name>
+LoopTypes r_int_only(DType a, DType b) {
+  const DType p = promote_types(a, b);
+  if (!is_integer(p)) bad_loop(Name, p);
+  return same(p);
+}
+template <const char* Name>
+LoopTypes d_int_only(DType, DType d) {
+  if (!is_integer(d)) no_loop(Name);
+  return same(d);
+}
+
 using V = void;  // no complex loop
 
 #define P04_NAME(id, str) constexpr char id[] = str;
@@ -386,6 +517,13 @@ P04_NAME(kMinimum, "minimum")
 P04_NAME(kFmax, "fmax")
 P04_NAME(kFmin, "fmin")
 P04_NAME(kFabs, "fabs")
+P04_NAME(kCopysign, "copysign")
+P04_NAME(kLdexp, "ldexp")
+P04_NAME(kNextafter, "nextafter")
+P04_NAME(kSpacing, "spacing")
+P04_NAME(kSignbit, "signbit")
+P04_NAME(kGcd, "gcd")
+P04_NAME(kLcm, "lcm")
 #undef P04_NAME
 
 // Unary float ufunc with a complex loop sharing the same functor.
@@ -408,6 +546,31 @@ template <const char* Name, typename F>
 constexpr Ufunc float_binary(std::optional<double> identity = std::nullopt) {
   return {Name, 2, identity, r_float2<Name>, d_float<Name>, nullptr,
           binary_table<F, Avail::FloatOnly, V>(), {}};
+}
+
+constexpr int kF16 = static_cast<int>(DType::Float16);
+
+constexpr std::array<BinaryLoopFn, kNumDTypes> nextafter_loops() {
+  auto t = binary_table<NextafterF, Avail::FloatOnly, V>();
+  t[kF16] = &bloop<float16_t, HalfNextafterF>;
+  return t;
+}
+constexpr std::array<UnaryLoopFn, kNumDTypes> spacing_loops() {
+  auto t = unary_table<SpacingF, Avail::FloatOnly, V>();
+  t[kF16] = &uloop<float16_t, float16_t, HalfSpacingF>;
+  return t;
+}
+constexpr std::array<UnaryLoopFn, kNumDTypes> signbit_loops() {
+  std::array<UnaryLoopFn, kNumDTypes> t{};
+  t[kF16] = &uloop<float16_t, bool, SignbitF>;
+  t[static_cast<int>(DType::Float32)] = &uloop<float, bool, SignbitF>;
+  t[static_cast<int>(DType::Float64)] = &uloop<double, bool, SignbitF>;
+  return t;
+}
+constexpr std::array<BinaryLoopFn, kNumDTypes> int_table_gcd(bool lcm) {
+  auto t = lcm ? binary_table<LcmF, Avail::NotBool, V>() : binary_table<GcdF, Avail::NotBool, V>();
+  for (std::size_t i = kF16; i <= static_cast<std::size_t>(DType::Float64); ++i) t[i] = nullptr;
+  return t;
 }
 
 constexpr std::array kTable{
@@ -467,6 +630,18 @@ constexpr std::array kTable{
           binary_table<ExtremumF<true, false>, Avail::All, CExtremumF<true, false>>(), {}},
     Ufunc{kFmin, 2, std::nullopt, r_promote, d_any, nullptr,
           binary_table<ExtremumF<false, false>, Avail::All, CExtremumF<false, false>>(), {}},
+    // P4-5 float bits / integer
+    float_binary<kCopysign, CopysignF>(),
+    Ufunc{kLdexp, 2, std::nullopt, r_ldexp<kLdexp>, d_float<kLdexp>, nullptr,
+          binary_table<LdexpF, Avail::FloatOnly, V>(), {}},
+    Ufunc{kNextafter, 2, std::nullopt, r_float2<kNextafter>, d_float<kNextafter>, nullptr,
+          nextafter_loops(), {}},
+    Ufunc{kSpacing, 1, std::nullopt, r_float1<kSpacing>, d_float<kSpacing>, nullptr, {},
+          spacing_loops()},
+    Ufunc{kSignbit, 1, std::nullopt, r_signbit<kSignbit>, d_signbit<kSignbit>, nullptr, {},
+          signbit_loops()},
+    Ufunc{kGcd, 2, 0.0, r_int_only<kGcd>, d_int_only<kGcd>, nullptr, int_table_gcd(false), {}},
+    Ufunc{kLcm, 2, std::nullopt, r_int_only<kLcm>, d_int_only<kLcm>, nullptr, int_table_gcd(true), {}},
 };
 
 }  // namespace

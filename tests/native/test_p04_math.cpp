@@ -7,6 +7,7 @@
 #include "cast.hpp"
 
 #include "error.hpp"
+#include "p04_multi.hpp"
 #include "test_harness.hpp"
 #include "ufunc_registry.hpp"
 
@@ -208,4 +209,109 @@ TEST_CASE("p04 arithmetic: maximum minimum fmax fmin") {
   store(w.data(), std::complex<double>(1.0, 3.0));
   CHECK(load<std::complex<double>>(bin("maximum", z, w).data()) == std::complex<double>(1.0, 3.0));
   CHECK(load<std::complex<double>>(bin("fmin", z, w).data()) == std::complex<double>(1.0, 2.0));
+}
+
+TEST_CASE("p04 float bits: copysign ldexp nextafter spacing signbit") {
+  const NDArray c = bin("copysign", vec_d({3.0, 2.0}), vec_d({-0.0, 1.0}));
+  CHECK_EQ(c.get_double(0), -3.0);
+  CHECK_EQ(c.get_double(1), 2.0);
+  CHECK(bin("copysign", vec_i({1}, DType::Int8), vec_i({-1}, DType::Int8)).dtype() == DType::Float16);
+  const NDArray l = bin("ldexp", vec_d({1.5, 1.0}), vec_i({3, -1}, DType::Int64));
+  CHECK_EQ(l.get_double(0), 12.0);
+  CHECK_EQ(l.get_double(1), 0.5);
+  CHECK(bin("ldexp", vec_i({1}, DType::Int8), vec_i({3}, DType::Int64)).dtype() == DType::Float16);
+  CHECK(std::isinf(bin("ldexp", vec_d({1.0}), vec_i({std::int64_t{1} << 40}, DType::Int64)).get_double(0)));
+  CHECK_THROWS_KIND(bin("ldexp", vec_d({1.0}), vec_d({2.5})), ErrorKind::DType);
+  CHECK_THROWS_KIND(bin("ldexp", vec_d({1.0}), vec_i({2}, DType::UInt64)), ErrorKind::DType);
+  const NDArray n = bin("nextafter", vec_d({1.0, 0.0}), vec_d({2.0, -1.0}));
+  CHECK_EQ(n.get_double(0), std::nextafter(1.0, 2.0));
+  CHECK_EQ(n.get_double(1), -std::numeric_limits<double>::denorm_min());
+  const NDArray nh = bin("nextafter", vec_d({1.0, 0.0}, DType::Float16), vec_d({2.0, -1.0}, DType::Float16));
+  CHECK_EQ(nh.get_double(0), 1.0 + 1.0 / 1024);
+  CHECK(near(nh.get_double(1), -5.960464477539063e-08));
+  const NDArray sp = un("spacing", vec_d({1.0, -1.0, 0.0, std::numeric_limits<double>::infinity()}));
+  CHECK_EQ(sp.get_double(0), std::numeric_limits<double>::epsilon());
+  CHECK_EQ(sp.get_double(1), -std::numeric_limits<double>::epsilon());
+  CHECK_EQ(sp.get_double(2), std::numeric_limits<double>::denorm_min());
+  CHECK(std::isnan(sp.get_double(3)));
+  const NDArray sh = un("spacing", vec_d({1.0, -1.0, -65504.0}, DType::Float16));
+  CHECK_EQ(sh.get_double(0), 1.0 / 1024);
+  CHECK_EQ(sh.get_double(1), 1.0 / 2048);
+  CHECK_EQ(sh.get_double(2), 32.0);
+  CHECK(un("spacing", vec_i({1}, DType::Int8)).dtype() == DType::Float16);
+  const NDArray sb = un("signbit", vec_d({-0.0, 1.0, -3.0}));
+  CHECK(sb.dtype() == DType::Bool);
+  CHECK_EQ(sb.get_int64(0), std::int64_t{1});
+  CHECK_EQ(sb.get_int64(1), std::int64_t{0});
+  CHECK(un("signbit", vec_i({-1}, DType::Int8)).get_int64(0) == 1);
+  CHECK_THROWS_KIND(un("signbit", NDArray::empty({1}, DType::Complex128)), ErrorKind::DType);
+}
+
+TEST_CASE("p04 integer: gcd lcm") {
+  const NDArray g = bin("gcd", vec_i({12, -12, 0, 7}, DType::Int64), vec_i({18, 18, 0, 0}, DType::Int64));
+  const std::int64_t eg[] = {6, 6, 0, 7};
+  for (int i = 0; i < 4; ++i) CHECK_EQ(g.get_int64(i), eg[i]);
+  const NDArray l = bin("lcm", vec_i({4, 0, -3}, DType::Int64), vec_i({6, 5, 7}, DType::Int64));
+  const std::int64_t el[] = {12, 0, 21};
+  for (int i = 0; i < 3; ++i) CHECK_EQ(l.get_int64(i), el[i]);
+  CHECK_EQ(bin("lcm", vec_i({100}, DType::Int8), vec_i({3}, DType::Int8)).get_int64(0), std::int64_t{44});
+  CHECK(bin("gcd", vec_i({1}, DType::Int8), vec_i({1}, DType::UInt8)).dtype() == DType::Int16);
+  CHECK_EQ(*U("gcd").identity, 0.0);
+  CHECK_THROWS_KIND(bin("gcd", vec_d({1.0}), vec_d({2.0})), ErrorKind::DType);
+  CHECK_THROWS_KIND(bin("gcd", vec_i({1}, DType::Bool), vec_i({1}, DType::Bool)), ErrorKind::DType);
+}
+
+TEST_CASE("p04 multi-output: divmod modf frexp") {
+  const NDArray div2 = vec_i({2, 2, 0}, DType::Int64);
+  const auto dm = multi_ufunc(MultiOp::Divmod, vec_i({7, -7, 5}, DType::Int64),
+                              &div2, {});
+  const std::int64_t eq[] = {3, -4, 0}, er[] = {1, 1, 0};
+  for (int i = 0; i < 3; ++i) {
+    CHECK_EQ(dm[0].get_int64(i), eq[i]);
+    CHECK_EQ(dm[1].get_int64(i), er[i]);
+  }
+  const NDArray fb = vec_d({2.0, 2.0, 0.0});
+  const auto df = multi_ufunc(MultiOp::Divmod, vec_d({7.5, -7.5, 1.0}), &fb, {});
+  CHECK_EQ(df[0].get_double(0), 3.0);
+  CHECK_EQ(df[1].get_double(1), 0.5);
+  CHECK_EQ(df[0].get_double(1), -4.0);
+  CHECK(std::isinf(df[0].get_double(2)) && std::isnan(df[1].get_double(2)));
+  const NDArray bb = vec_i({1}, DType::Bool);
+  CHECK(multi_ufunc(MultiOp::Divmod, bb, &bb, {})[0].dtype() == DType::Int8);
+  NDArray z = NDArray::empty({1}, DType::Complex128);
+  CHECK_THROWS_KIND(multi_ufunc(MultiOp::Divmod, z, &z, {}), ErrorKind::DType);
+
+  const auto mf = multi_ufunc(MultiOp::Modf, vec_d({-2.5, std::numeric_limits<double>::infinity()}), nullptr, {});
+  CHECK_EQ(mf[0].get_double(0), -0.5);
+  CHECK_EQ(mf[1].get_double(0), -2.0);
+  CHECK_EQ(mf[0].get_double(1), 0.0);
+  CHECK(std::isinf(mf[1].get_double(1)));
+  CHECK(multi_ufunc(MultiOp::Modf, vec_i({8}, DType::Int8), nullptr, {})[0].dtype() == DType::Float16);
+
+  const auto fr = multi_ufunc(MultiOp::Frexp, vec_d({8.0, 0.0, -3.0, std::nan("")}), nullptr, {});
+  CHECK(fr[1].dtype() == DType::Int32);
+  CHECK_EQ(fr[0].get_double(0), 0.5);
+  CHECK_EQ(fr[1].get_int64(0), std::int64_t{4});
+  CHECK_EQ(fr[0].get_double(2), -0.75);
+  CHECK_EQ(fr[1].get_int64(2), std::int64_t{2});
+  CHECK_EQ(fr[1].get_int64(3), std::int64_t{0});
+  CHECK_THROWS_KIND(multi_ufunc(MultiOp::Frexp, z, nullptr, {}), ErrorKind::DType);
+
+  // out= with casting, and a bad shape
+  NDArray o0 = NDArray::empty({2}, DType::Float64), o1 = NDArray::empty({2}, DType::Int64);
+  MultiParams p;
+  p.out0 = &o0;
+  p.out1 = &o1;
+  const NDArray three = vec_i({3}, DType::Int64);
+  const auto res = multi_ufunc(MultiOp::Divmod, vec_i({7, 8}, DType::Int64), &three, p);
+  CHECK(res[0].shares_buffer(o0));
+  CHECK_EQ(o0.get_double(1), 2.0);
+  CHECK_EQ(o1.get_int64(1), std::int64_t{2});
+  NDArray bad = NDArray::empty({3}, DType::Float64);
+  p.out0 = &bad;
+  CHECK_THROWS_KIND(multi_ufunc(MultiOp::Divmod, vec_i({7, 8}, DType::Int64), &three, p), ErrorKind::Broadcast);
+  NDArray io = NDArray::empty({2}, DType::Int64);
+  MultiParams q;
+  q.out0 = &io;
+  CHECK_THROWS_KIND(multi_ufunc(MultiOp::Modf, vec_d({1.5, 2.5}), nullptr, q), ErrorKind::DType);
 }
