@@ -2397,3 +2397,61 @@ File ownership: each branch owns `packages/numera/src/p16[abcde]*.ts`,
 `api/aliases.d/p16[abcde].json`, `api/exclusions.d/p16[abcde].json`,
 `docs/plan/slices/p16[abcde].md`. P16-B also owns `packages/numera/src/ma.ts`.
 Append-only: DECISIONS.md, PROGRESS.md, COMPATIBILITY.md.
+
+## D-230 — P16E np.rec record arrays — Accepted — 2026-10-02
+
+`np.rec` is implemented as a lightweight pure-TypeScript module (no new C++ DType).
+
+**Data model:** A `recarray` instance wraps a plain `Record<string, NDArray>` map of
+named fields. Attribute access (`rec.x`) returns the NDArray for field `x`.
+All fields must have compatible shapes (broadcast-compatible leading dims).
+
+**API:**
+- `recarray(shape, {names, formats})` — creates zero-filled columns (each column is
+  `np.zeros(shape, {dtype})` where dtype is parsed from the format string).
+- `record` — type alias; a 0-d record is just a length-1 recarray with `shape=[]`.
+- `fromarrays(arrayList, {names, formats, titles, byteorder, aligned})` — builds a
+  recarray from a list of equal-length NDArrays; `names` is required unless `formats`
+  contains `name:fmt` entries.
+- `fromrecords(recList, {names, formats})` — builds columns from a list of rows
+  (each row is an array of scalars or nested arrays, one per field).
+- `format_parser(formats, names, titles, {aligned, byteorder})` — parses a NumPy
+  dtype string or an array of format strings into a list of `{name, dtype}` pairs.
+  Recognized format chars: `b/B` int8/uint8, `h/H` int16/uint16, `i/I` int32/uint32,
+  `l/L/q/Q` int64/uint64, `e` float16, `f` float32, `d` float64, `F` complex64,
+  `D` complex128. Prefix N for fixed-size arrays (e.g. `3f` → float32[3]).
+- `fromfile(file, dtype, shape)` — not implemented in this milestone (file I/O);
+  raises `NotImplementedError`. Listed as excluded in `api/exclusions.d/p16e.json`.
+- `fromstring(string, dtype, shape)` — not implemented in this milestone; raises
+  `NotImplementedError`. Listed as excluded.
+- `array(obj, {names, formats, ...})` — flexible constructor: delegates to
+  `fromarrays` when `obj` is an array of NDArrays, to `fromrecords` when it is
+  an array of rows, or clones an existing `recarray`.
+- `find_duplicate(list)` — returns values that appear more than once in the input
+  list (pure TS, mirrors `np.rec.find_duplicate`).
+
+**np surface:**
+- `recarray` is exported from `p16e` and added to the `np` object so that the
+  `np.recarray` missing entry disappears.
+- `shares_memory(a, b, {maxWork})` — pure-TS check: compares the underlying
+  `ArrayBuffer` references of two NDArrays (same buffer → true). No C++.
+  This covers the `np.shares_memory` missing entry (P16-A has not added it yet
+  at time of writing; if P16-A merges first and already exports it, our entry
+  is a no-op duplicate and the later-spreading milestone wins harmlessly).
+
+**Exclusions (api/exclusions.d/p16e.json):**
+- `rec.fromfile` / `rec.fromstring` — deferred (binary file/buffer I/O for rec)
+- `np.asmatrix` / `np.bmat` / `np.matrix` — matrix class is excluded (D-032 c)
+- `np.bytes_` / `np.str_` — dtype constants; covered by `np.char` module exclusions
+- dtype aliases (`byte`, `short`, `int_`, `intc`, `intp`, `long`, `ubyte`, `ushort`,
+  `uint`, `uintc`, `uintp`, `ulong`, `half`, `single`, `double`, `cdouble`, `csingle`) —
+  these are C-type aliases that map to existing numera dtypes; excluded (D-032 b).
+- math constants (`pi`, `e`, `nan`, `inf`, `euler_gamma`) — these are numeric constants
+  that P16-A owns; recorded as aliases to JS globals here so coverage counts them.
+- `np.False_` / `np.True_` — P16-A constants; added as aliases to `false`/`true`.
+- `np.vectorize` — P16-A class; added as exclusion pending P16-A merge.
+- All `np` functions owned by other P16 branches (busday*, datetime*, nan*,
+  histogram*, ptp, quantile, percentile, etc.) remain in missing for now.
+
+**Compatibility:** `recarray` instances do not support NumPy's `view()` casting
+or structured-dtype memory layout. Recorded in COMPATIBILITY.md.
