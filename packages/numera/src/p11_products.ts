@@ -192,3 +192,74 @@ declare module "./ndarray.js" {
 NDArray.prototype.dot = function (this: NDArray, b: ArrayLike): NDArray {
   return dot2(this, toArray(b));
 };
+
+const matmul2 = (a: NDArray, b: NDArray): NDArray =>
+  wrapNative(() => NDArray._wrap(addon.linalg.matmul(a._native, b._native)));
+
+const coreCheck = (
+  name: string,
+  sig: string,
+  ops: readonly [NDArray, number][],
+): void => {
+  ops.forEach(([a, need], i) => {
+    if (a.ndim < need) {
+      throw new ValueError(
+        `${name}: Input operand ${i} does not have enough dimensions (has ${a.ndim}, gufunc core with signature ${sig} requires ${need})`,
+      );
+    }
+  });
+};
+const mismatch = (name: string, sig: string, op: number, dim: number, got: number, want: number): never => {
+  throw new ValueError(
+    `${name}: Input operand ${op} has a mismatch in its core dimension ${dim}, with gufunc signature ${sig} (size ${got} is different from ${want})`,
+  );
+};
+const conjIf = (a: NDArray): NDArray => (isComplex(a) ? conjugate(a) : a);
+
+export interface VecdotOptions {
+  /** Axis holding the vectors (after broadcasting). Default -1. */
+  axis?: number;
+}
+const VECDOT_SIG = "(n),(n)->()";
+/** Vector dot product `sum(conj(x1) * x2)` along `axis`, broadcasting the other axes. */
+export function vecdot(x1: ArrayLike, x2: ArrayLike, opts: VecdotOptions = {}): NDArray {
+  let a = toArray(x1);
+  let b = toArray(x2);
+  coreCheck("vecdot", VECDOT_SIG, [[a, 1], [b, 1]]);
+  const axis = opts.axis ?? -1;
+  if (axis !== -1) {
+    a = moveAxis(a, normAxis(axis, a.ndim), -1);
+    b = moveAxis(b, normAxis(axis, b.ndim), -1);
+  }
+  const n = a.shape[a.ndim - 1]!;
+  const m = b.shape[b.ndim - 1]!;
+  if (n !== m) mismatch("vecdot", VECDOT_SIG, 1, 0, m, n);
+  const r = matmul2(expandDims(conjIf(a), -2), expandDims(b, -1));
+  return r.reshape(r.shape.slice(0, -2));
+}
+
+const MATVEC_SIG = "(m,n),(n)->(m)";
+/** Matrix-vector product over the last axes, broadcasting the rest: `x1 @ x2[..., None]`. */
+export function matvec(x1: ArrayLike, x2: ArrayLike): NDArray {
+  const a = toArray(x1);
+  const b = toArray(x2);
+  coreCheck("matvec", MATVEC_SIG, [[a, 2], [b, 1]]);
+  const n = a.shape[a.ndim - 1]!;
+  const m = b.shape[b.ndim - 1]!;
+  if (n !== m) mismatch("matvec", MATVEC_SIG, 1, 0, m, n);
+  const r = matmul2(a, expandDims(b, -1));
+  return r.reshape(r.shape.slice(0, -1));
+}
+
+const VECMAT_SIG = "(n),(n,m)->(m)";
+/** Vector-matrix product `conj(x1)[..., None, :] @ x2`, broadcasting the batch axes. */
+export function vecmat(x1: ArrayLike, x2: ArrayLike): NDArray {
+  const a = toArray(x1);
+  const b = toArray(x2);
+  coreCheck("vecmat", VECMAT_SIG, [[a, 1], [b, 2]]);
+  const n = a.shape[a.ndim - 1]!;
+  const m = b.shape[b.ndim - 2]!;
+  if (n !== m) mismatch("vecmat", VECMAT_SIG, 1, 0, m, n);
+  const r = matmul2(expandDims(conjIf(a), -2), b);
+  return r.reshape([...r.shape.slice(0, -2), r.shape[r.ndim - 1]!]);
+}

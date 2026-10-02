@@ -16,10 +16,14 @@
  "linalg.tensorinv [nativpy] [numpy]",
  "linalg.tensorsolve [nativpy] [numpy]",
  "linalg.trace [nativpy] [numpy]",
+ "linalg.vecdot [nativpy] [numpy]",
  "linalg.vector_norm [nativpy] [numpy]",
  "ndarray.dot [nativpy] [numpy]",
  "np.cross [nativpy] [numpy]",
  "np.kron [nativpy] [numpy]",
+ "np.matvec [nativpy] [numpy]",
  "np.tensordot [nativpy] [numpy]",
- "np.vdot [nativpy] [numpy]"
+ "np.vdot [nativpy] [numpy]",
+ "np.vecdot [nativpy] [numpy]",
+ "np.vecmat [nativpy] [numpy]"
 ]

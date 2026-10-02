@@ -3,10 +3,10 @@
 // `np.linalg` names are added to the `linalg` object in linalg.ts.
 export type { CholeskyOptions, SlogdetResult } from "./p11_linalg.js";
 
-import { cross, kron, tensordot, vdot } from "./p11_products.js";
+import { cross, kron, matvec, tensordot, vdot, vecdot, vecmat } from "./p11_products.js";
 
-export { cross, kron, tensordot, vdot };
+export { cross, kron, matvec, tensordot, vdot, vecdot, vecmat };
 
-export type { CrossOptions, TensordotAxes, TensordotOptions } from "./p11_products.js";
+export type { CrossOptions, TensordotAxes, TensordotOptions, VecdotOptions } from "./p11_products.js";
 
-export const p11 = { vdot, kron, cross, tensordot } as const;
+export const p11 = { vdot, kron, cross, tensordot, vecdot, matvec, vecmat } as const;

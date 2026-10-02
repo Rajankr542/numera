@@ -5,7 +5,7 @@ import { addon } from "./addon.js";
 import type { DTypeLike } from "./dtype.js";
 import { DTypeError, IndexError, LinAlgError, ValueError, wrapNative } from "./errors.js";
 import { diagonal, trace } from "./p08.js";
-import { linalgCross, multiDot, tensordot } from "./p11_products.js";
+import { linalgCross, multiDot, tensordot, vecdot } from "./p11_products.js";
 import { NDArray } from "./ndarray.js";
 import type { ArrayLike } from "./ufunc.js";
 import { native, toArray, w } from "./p11_native.js";
@@ -248,4 +248,5 @@ export const p11Linalg = {
   cross: linalgCross,
   tensordot,
   multiDot,
+  vecdot,
 } as const;

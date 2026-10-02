@@ -61,3 +61,31 @@ describe("P11-4 products", () => {
     expect(np.array([[1, 2], [3, 4]]).dot([1, 1]).toArray()).toEqual([3, 7]);
   });
 });
+
+describe("P11-5 vecdot / matvec / vecmat", () => {
+  const c = (re: number, im: number) => np.complex(re, im);
+  const pair = (v: unknown) => {
+    const z = v as { re: number; im: number };
+    return [z.re, z.im];
+  };
+  it("vecdot", () => {
+    expect(np.vecdot([1, 2, 3], [4, 5, 6]).item()).toBe(32);
+    expect(pair(np.vecdot(np.array([c(0, 1), 2]), np.array([c(0, 1), 2])).item())).toEqual([5, 0]);
+    expect(np.vecdot(np.ones([2, 3]), np.ones([2, 3]), { axis: 0 }).toArray()).toEqual([2, 2, 2]);
+    expect(np.linalg.vecdot([[1, 2, 3]], [1, 1, 1]).toArray()).toEqual([6]);
+    expect(np.vecdot(np.array([100, 1], { dtype: "int8" }), np.array([2, 1], { dtype: "int8" })).item()).toBe(-55);
+    expect(() => np.vecdot([1, 2, 3], [1, 2])).toThrow(/core dimension 0, with gufunc signature \(n\),\(n\)->\(\)/);
+    expect(() => np.vecdot(3, 3)).toThrow(np.ValueError);
+  });
+  it("matvec / vecmat", () => {
+    const A = np.array([[c(1, 1), 2], [3, c(0, 4)]]);
+    const v = np.array([c(0, 1), 2]);
+    expect((np.matvec(A, v).toArray() as unknown[]).map(pair)).toEqual([[3, 1], [0, 11]]);
+    expect((np.vecmat(v, A).toArray() as unknown[]).map(pair)).toEqual([[7, -1], [0, 6]]);
+    expect(np.matvec(np.ones([5, 2, 3]), np.ones([4, 1, 3])).shape).toEqual([4, 5, 2]);
+    expect(np.vecmat(np.ones([4, 2]), np.ones([2, 3])).shape).toEqual([4, 3]);
+    expect(() => np.matvec(np.ones([2, 3]), np.ones(2))).toThrow(np.ValueError);
+    expect(() => np.vecmat(np.ones(2), np.ones([3, 2]))).toThrow(np.ValueError);
+    expect(() => np.matvec(np.ones(3), np.ones(3))).toThrow(/does not have enough dimensions/);
+  });
+});
