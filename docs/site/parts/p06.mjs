@@ -258,6 +258,21 @@ np.size([[1, 2, 3]], 1);                        // => 3
 np.ndim(5);                                     // => 0
 np.isfortran(np.zeros([2, 3], { order: "F" })); // => true`,
       },
+      {
+        name: "applyAlongAxis",
+        sig: "np.applyAlongAxis(func1d, axis, arr, ...args)",
+        desc: "Calls the JS function `func1d(lane, ...args)` on every 1-d lane of `arr` along `axis`. Results must all have the first result's shape; they replace that axis (scalars remove it).",
+        returns: "NDArray",
+        example: `np.applyAlongAxis((v) => v.sum(), 1, [[1, 2], [3, 4]]);        // => [3, 7]
+np.applyAlongAxis((v) => np.flip(v), 1, [[1, 2], [3, 4]]);      // => [[2, 1], [4, 3]]`,
+      },
+      {
+        name: "applyOverAxes",
+        sig: "np.applyOverAxes(func, a, axes)",
+        desc: "Applies `func(val, axis)` for each axis in turn; a result with one dimension fewer gets the axis back as length 1 (like `keepdims`).",
+        returns: "NDArray",
+        example: `np.applyOverAxes((x, ax) => x.sum({ axis: ax }), np.arange(6).reshape(2, 3), [0, 1]); // => [[15]]`,
+      },
     ],
   },
 ];

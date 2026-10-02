@@ -21,6 +21,7 @@ import {
   vstack,
 } from "./p06_join.js";
 
+import { applyAlongAxis, applyOverAxes } from "./p06_apply.js";
 import {
   asanyarray,
   asarrayChkfinite,
@@ -43,6 +44,7 @@ export * from "./p06_pad.js";
 export * from "./p06_edit.js";
 export * from "./p06_reorder.js";
 export * from "./p06_convert.js";
+export * from "./p06_apply.js";
 
 export const p06 = {
   concatenate,
@@ -87,4 +89,6 @@ export const p06 = {
   size,
   ndim,
   isfortran,
+  applyAlongAxis,
+  applyOverAxes,
 } as const;

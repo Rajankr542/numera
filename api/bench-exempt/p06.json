@@ -2,6 +2,8 @@
  "ndarray.repeat [nativpy] [numpy]",
  "ndarray.resize [nativpy] [numpy]",
  "np.append [nativpy] [numpy]",
+ "np.apply_along_axis [nativpy] [numpy]",
+ "np.apply_over_axes [nativpy] [numpy]",
  "np.array_split [nativpy] [numpy]",
  "np.asanyarray [nativpy] [numpy]",
  "np.asarray_chkfinite [nativpy] [numpy]",
