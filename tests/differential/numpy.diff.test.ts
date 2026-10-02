@@ -1415,7 +1415,7 @@ describe("differential: ufunc out= (P2-3, D-046/D-047)", () => {
   interface View { shape: number[]; strides: number[]; offset: number }
   interface OutArg { data?: Encoded; dtype?: string; shape?: number[]; scalar?: number; view?: View }
   interface OutSpec { dtype: string; n: number; init: "zeros" | "arange"; view: View; readonly?: boolean }
-  interface OutCase { op: string; args: OutArg[]; out: OutSpec; approx?: boolean; error?: string; expected?: Described }
+  interface OutCase { op: string; args: OutArg[]; out: OutSpec; approx?: boolean; error?: string; loop?: string; expected?: Described }
   const { numpy_version, cases } = load("ufunc_out") as unknown as { numpy_version: string; cases: OutCase[] };
   const ufuncs = np as unknown as Record<string, (...a: unknown[]) => NDArray>;
   const errors: Record<string, typeof np.ValueError> = {
@@ -1464,7 +1464,9 @@ describe("differential: ufunc out= (P2-3, D-046/D-047)", () => {
         if (Number.isNaN(ev) || !Number.isFinite(ev) || Number.isInteger(ev) || ev === 0) {
           expect(g).toEqual(ev);
         } else {
-          expect(Math.abs(g - ev)).toBeLessThanOrEqual(rtol(exp.dtype) * Math.abs(ev));
+          // The coarser of the loop and out precisions (an int16 exp runs in float32).
+          const tol = Math.max(rtol(exp.dtype), rtol(c.loop ?? exp.dtype));
+          expect(Math.abs(g - ev)).toBeLessThanOrEqual(tol * Math.abs(ev));
         }
       });
     },
@@ -1533,8 +1535,8 @@ describe("differential: ufunc dtype= / casting= (P2-4, D-048)", () => {
       }
       want.forEach((e, i) => {
         const g = got[i];
-        // The loop dtype sets the precision (a float32 loop may write a float64 out).
-        const dt = c.loop ?? exp.dtype;
+        // The coarser of the loop and out precisions (a float32 loop may write a float64 out).
+        const dt = rtol(c.loop ?? exp.dtype) > rtol(exp.dtype) ? c.loop! : exp.dtype;
         if (typeof e === "number") close(g as number, e, dt);
         else {
           const ec = e as { re: number; im: number };
@@ -1612,8 +1614,8 @@ describe("differential: ufunc where= (P2-5, D-049)", () => {
       }
       want.forEach((e, i) => {
         const g = got[i];
-        // The loop dtype sets the precision (a float32 loop may write a float64 out).
-        const dt = c.loop ?? exp.dtype;
+        // The coarser of the loop and out precisions (a float32 loop may write a float64 out).
+        const dt = rtol(c.loop ?? exp.dtype) > rtol(exp.dtype) ? c.loop! : exp.dtype;
         if (typeof e === "number") close(g as number, e, dt);
         else {
           const ec = e as { re: number; im: number };

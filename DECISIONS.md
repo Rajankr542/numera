@@ -2904,7 +2904,13 @@ delegate to their plain-np counterparts on `.filled()` data and combine masks.
 - `expected_noblas` (D-037) is now computed by writing out NumPy's non-BLAS
   complex loop in the generator. Strided views no longer force NumPy's own loop
   (OpenBLAS accepts any stride), so the old approach recorded per-CPU BLAS
-  results.
+  results. It is recorded for every exact 1-D/2-D product (not only
+  non-finite inputs) whenever it differs from the local BLAS result, because
+  OpenBLAS kernels vary with the CPU (AVX2/AVX-512) of the machine that
+  generates the cases.
+- `ufunc_out` approximate cases also record `loop`. For example, `exp(int16)`
+  runs in float32 even with a float64 `out`. Each tolerance is the coarser of
+  the loop's and `out`'s.
 - Verified: case files generated with NumPy 2.5.3 on linux-x86_64 and on
   linux-aarch64 both pass against the GCC 13 Linux build. macOS cases pass
   against the macOS build.

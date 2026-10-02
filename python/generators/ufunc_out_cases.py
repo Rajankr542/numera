@@ -10,6 +10,7 @@ import warnings
 
 import numpy as np
 
+
 BINARY = {"add": np.add, "subtract": np.subtract, "multiply": np.multiply,
           "divide": np.true_divide, "power": np.power, "mod": np.mod,
           "floorDivide": np.floor_divide}
@@ -47,8 +48,16 @@ def _case(enc, describe, op, args, out_spec, run):
             base = run()
         except (TypeError, ValueError) as e:
             return {"op": op, "args": args, "out": out_spec, "error": _err(e)}
-    return {"op": op, "args": args, "out": out_spec, "approx": op in APPROX,
+    case = {"op": op, "args": args, "out": out_spec, "approx": op in APPROX,
             "expected": describe(base)}
+    if all("dtype" in a or "scalar" in a for a in args):
+        # Loop dtype from one-element operands (shape-independent).
+        xs = [a["scalar"] if "scalar" in a else np.ones(1, dtype=a["dtype"]) for a in args]
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            fn = BINARY.get(op) or UNARY[op]
+            case["loop"] = np.asarray(fn(*xs)).dtype.name
+    return case
 
 
 def ufunc_out_cases(enc, describe) -> list[dict]:

@@ -1317,9 +1317,10 @@ def complex_matmul_cases() -> list[dict]:
                 c["expected"] = describe(r)
                 # D-037: with non-finite input NumPy's BLAS path and its own non-BLAS
                 # loop can disagree. Record the latter for the fallback backend.
-                if fn != "outer" and not (np.isfinite(a).all() and np.isfinite(b).all()):
-                    # dot/inner here only take <= 2-D operands, so they are matmuls.
-                    assert a.ndim <= 2 and b.ndim <= 2
+                # Recorded for every exact 1-D/2-D product: BLAS kernels differ per
+                # CPU (signed zeros, NaN vs inf), while the fallback is NumPy's loop.
+                if (fn != "outer" and not approx and 1 <= a.ndim <= 2 and 1 <= b.ndim <= 2
+                        and (fn != "dot" or b.ndim == 1 or a.shape[-1] == b.shape[0])):
                     bm = np.swapaxes(b, -1, -2) if fn == "inner" and b.ndim == 2 else b
                     nb = _noblas_matmul(a, bm, r.dtype).reshape(r.shape)
                     if enc(nb.tolist()) != enc(r.tolist()):
