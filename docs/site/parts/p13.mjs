@@ -497,4 +497,57 @@ p.shape; // => [2, 3]`,
       },
     ],
   },
+  {
+    id: "random-state",
+    title: "Random state",
+    entries: [
+      {
+        name: "get_state",
+        sig: "np.random.get_state()",
+        desc: "Return the internal state of the global RandomState as a bigint array (MT19937 words). Can be restored with `set_state`. Equivalent to `numpy.random.get_state`.",
+        args: [],
+        returns: "bigint[]",
+        example: `const state = np.random.get_state();
+typeof state; // => "object"`,
+      },
+      {
+        name: "set_state",
+        sig: "np.random.set_state(words)",
+        desc: "Restore the global RandomState from a bigint array returned by `get_state`. Equivalent to `numpy.random.set_state`.",
+        args: [{ name: "words", type: "bigint[]", desc: "State words from get_state()." }],
+        returns: "void",
+        example: `const state = np.random.get_state();
+np.random.set_state(state);
+typeof state; // => "object"`,
+      },
+      {
+        name: "ranf",
+        sig: "np.random.ranf(size?)",
+        desc: "Return random floats in [0.0, 1.0). Alias for `np.random.random`. Equivalent to `numpy.random.ranf`.",
+        args: [{ name: "[size]", type: "number | number[]", desc: "Output shape." }],
+        returns: "NDArray | number",
+        example: `np.random.ranf([3]).shape; // => [3]`,
+      },
+      {
+        name: "sample",
+        sig: "np.random.sample(size?)",
+        desc: "Alias for `np.random.random`. Return random floats in [0.0, 1.0). Equivalent to `numpy.random.sample`.",
+        args: [{ name: "[size]", type: "number | number[]", desc: "Output shape." }],
+        returns: "NDArray | number",
+        example: `np.random.sample([2, 3]).shape; // => [2, 3]`,
+      },
+      {
+        name: "random_integers",
+        sig: "np.random.random_integers(low, high?, size?)",
+        desc: "Return random integers from `low` (inclusive) to `high` (inclusive). If `high` is null, returns integers in [1, low]. Deprecated in NumPy — use `randint` instead. Equivalent to `numpy.random.random_integers`.",
+        args: [
+          { name: "low", type: "number", desc: "Lowest integer (or highest if high omitted)." },
+          { name: "[high]", type: "number | null", desc: "Highest integer (inclusive)." },
+          { name: "[size]", type: "number | number[]", desc: "Output shape." },
+        ],
+        returns: "NDArray | number",
+        example: `np.random.random_integers(5).valueOf() <= 5; // => true`,
+      },
+    ],
+  },
 ];

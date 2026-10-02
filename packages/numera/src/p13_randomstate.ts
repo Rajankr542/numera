@@ -414,3 +414,60 @@ RandomState.prototype.setState = function (this: RandomState, words: bigint[]): 
 RandomState.prototype.bytes = function (this: RandomState, length: number): Uint8Array {
   return wrapNative(() => this._bg.bytes(length));
 };
+
+// ---- triangular ----
+declare module "./random.js" {
+  interface RandomState {
+    triangular(left: number, mode: number, right: number, size?: Size | null): NDArray | number;
+    random_integers(low: number, high?: number | null, size?: Size | null): NDArray | number;
+    multinomial(n: number, pvals: readonly number[], size?: Size | null): NDArray;
+    dirichlet(alpha: readonly number[], size?: Size | null): NDArray;
+  }
+}
+
+RandomState.prototype.triangular = function (
+  this: RandomState,
+  left: number,
+  mode: number,
+  right: number,
+  size?: Size | null,
+): NDArray | number {
+  if (left > mode || mode > right) throw new ValueError("left <= mode <= right required");
+  if (left === right) throw new ValueError("left == right");
+  const shape = toShape(size);
+  return wrapNative(() => finish(this._bg.triangular(left, mode, right, shape ?? []), shape));
+};
+
+RandomState.prototype.random_integers = function (
+  this: RandomState,
+  low: number,
+  high: number | null = null,
+  size?: Size | null,
+): NDArray | number {
+  // np.random.random_integers(low, high=None) → integers in [low, high]
+  const hi = high === null ? low : high;
+  const lo = high === null ? 1 : low;
+  const shape = toShape(size);
+  return wrapNative(() =>
+    finish(this._bg.integers(lo, hi, true, shape ?? [], "int64", true), shape),
+  );
+};
+
+RandomState.prototype.multinomial = function (
+  this: RandomState,
+  n: number,
+  pvals: readonly number[],
+  size?: Size | null,
+): NDArray {
+  const shape = toShape(size);
+  return wrapNative(() => NDArray._wrap(this._bg.multinomial(Math.trunc(n), Array.from(pvals), shape ?? [])));
+};
+
+RandomState.prototype.dirichlet = function (
+  this: RandomState,
+  alpha: readonly number[],
+  size?: Size | null,
+): NDArray {
+  const shape = toShape(size);
+  return wrapNative(() => NDArray._wrap(this._bg.dirichlet(Array.from(alpha), shape ?? [])));
+};

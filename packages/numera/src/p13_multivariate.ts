@@ -21,7 +21,7 @@ function toShape(size: Size | null | undefined): number[] | null {
   return s;
 }
 
-function wrapArr(raw: NativeNDArray): NDArray {
+export function wrapArr(raw: NativeNDArray): NDArray {
   return NDArray._wrap(raw);
 }
 

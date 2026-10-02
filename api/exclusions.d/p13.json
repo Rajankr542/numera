@@ -1,1 +1,5 @@
-{ "_doc": "P13 exclusions: numpy name -> reason (D-056)" }
+{
+  "_doc": "P13 exclusions: numpy name -> reason (D-056)",
+  "Generator.multivariate_normal": "requires Cholesky decomposition — deferred; use np.linalg.cholesky + normal",
+  "RandomState.multivariate_normal": "requires Cholesky decomposition — deferred; use np.linalg.cholesky + normal"
+}
