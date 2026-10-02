@@ -58,6 +58,45 @@ z.get("a.npy"); // => [1, 2]
 [...z]; // => ["a", "b"]
 z.has("c"); // => false`,
       },
+      {
+        name: "loadtxt",
+        sig: "np.loadtxt(fname, [options])",
+        desc: "Reads a numeric table from a text file. Blank lines and comments are skipped and every row must have the same number of columns. The result is squeezed (one row or one column gives a 1-D array), then `ndmin` and `unpack` are applied. Only numeric and bool dtypes are supported (bool cells are integers).",
+        args: [
+          { name: "fname", type: "string | URL | Uint8Array | string[]", desc: "Path (`.gz` is decompressed), the contents as bytes, or a list of lines." },
+          { name: "[options.dtype]", type: "DTypeLike", desc: "Default `float64`." },
+          { name: "[options.delimiter]", type: "string | null", desc: "One character; `null` (default) splits on whitespace." },
+          { name: "[options.comments]", type: "string | string[] | null", desc: "Comment prefixes (default `\"#\"`)." },
+          { name: "[options.skiprows]", type: "number", desc: "Leading lines to skip." },
+          { name: "[options.usecols]", type: "number | number[]", desc: "Columns to read; negative indices count from the end." },
+          { name: "[options.maxRows]", type: "number", desc: "Read at most this many rows." },
+          { name: "[options.unpack]", type: "boolean", desc: "Transpose the result." },
+          { name: "[options.ndmin]", type: "0 | 1 | 2", desc: "Minimum number of dimensions." },
+          { name: "[options.quotechar]", type: "string", desc: "Quote character for fields that contain the delimiter." },
+        ],
+        returns: "NDArray",
+        example: `np.loadtxt(["# x y", "1 2", "3 4"]); // => [[1, 2], [3, 4]]
+np.loadtxt(Buffer.from("1,2\\n3,4\\n"), { delimiter: ",", usecols: 1, dtype: "int32" }); // => [2, 4]
+np.loadtxt(["1 2 3"], { ndmin: 2 }).shape; // => [1, 3]`,
+      },
+      {
+        name: "savetxt",
+        sig: "np.savetxt(fname, X, [options])",
+        desc: "Writes a 1-D or 2-D array as text with Python `%`-formatting (`d i u o x X e E f F g G s`). A 1-D array is written as one column. With one format, complex values are written as `(re+imj)`. A path ending in `.gz` is gzip-compressed.",
+        args: [
+          { name: "fname", type: "string | URL | null", desc: "Path to write, or `null` to return the text." },
+          { name: "X", type: "ArrayLike", desc: "1-D or 2-D data." },
+          { name: "[options.fmt]", type: "string | string[]", desc: "One format, one per column, or a whole-row format. Default `\"%.18e\"`." },
+          { name: "[options.delimiter]", type: "string", desc: "Column separator (default `\" \"`)." },
+          { name: "[options.newline]", type: "string", desc: "Line terminator (default `\"\\n\"`)." },
+          { name: "[options.header]", type: "string", desc: "Text written before the data, each line prefixed by `comments`." },
+          { name: "[options.footer]", type: "string", desc: "Text written after the data." },
+          { name: "[options.comments]", type: "string", desc: "Prefix for header and footer lines (default `\"# \"`)." },
+        ],
+        returns: "string when `fname` is null, otherwise undefined",
+        example: `np.savetxt(null, [[1, 2], [3, 4]], { fmt: "%d", delimiter: "," }); // => "1,2\\n3,4\\n"
+np.savetxt(null, [0.5, 1e16], { fmt: "%s", header: "v" }); // => "# v\\n0.5\\n1e+16\\n"`,
+      },
     ],
   },
 ];

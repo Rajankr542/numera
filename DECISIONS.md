@@ -1925,3 +1925,42 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   `fix_imports`, `encoding`, `max_header_size` (headers of any size are
   parsed). Truncated or empty input raises `ValueError` (NumPy `EOFError` for
   an empty file).
+
+## D-171 — P14 text I/O: loadtxt, savetxt, genfromtxt, fromregex, fromfile, tofile (P14) — Accepted — 2026-10-02
+- Text sources: a path (`string` or file `URL`), the contents as a
+  `Buffer`/`Uint8Array` (UTF-8), or an array of lines (`string[]`, like
+  NumPy's list-of-lines input). A plain string is always a path. Text sinks
+  (`savetxt`) take a path or `null` (returns the text as a string).
+- `loadtxt` is parsed in C++ (`native/core/p14_text.cpp`) with the rules of
+  NumPy's C reader: single-character (UTF-8) `delimiter` or whitespace runs,
+  one or more `comments` strings, optional `quotechar` (doubled quote escapes),
+  `skiprows` (raw lines), `usecols` (negative allowed, per row), `maxRows`,
+  `ndmin`, `unpack`; numeric dtypes only; integers must be plain decimal,
+  floats accept `inf`/`nan` but no hex or `_`, bool parses an integer. Error
+  messages follow NumPy's. `converters`, `encoding`, structured and string
+  dtypes are not supported. Lines end at `\n` (a trailing `\r` is dropped).
+- `savetxt` formatting is native: Python `%`-formatting for `d i u o x X e E
+  f F g G s` with flags `-+ 0#`, width, precision and ignored `h l L`; `%s`
+  of a float prints NumPy's scalar `str` (shortest round-trip digits, the
+  float16/32/64 positional/scientific cut-offs). `%r`, `%c`, `%a` and `*`
+  raise `ValueError`. Booleans are accepted by `%o %x %X` (NumPy raises
+  `TypeError` because `np.bool` has no `__index__`).
+- `genfromtxt` is implemented in TS on top of the same splitting rules as
+  NumPy's `LineSplitter` (comment split, whitespace or delimiter or fixed
+  widths, autostrip) and the `StringConverter` semantics for an explicit
+  numeric `dtype`: Python `int()/float()/complex()` syntax, `str2bool` for
+  bool, loose mode (unconvertible → filling value) or strict mode
+  (`loose: false`), `missingValues`/`fillingValues` as a value, list or
+  `{column: value}` map, `skipHeader`, `skipFooter`, `usecols`, `maxRows`,
+  `invalidRaise`, `ndmin`, `unpack`. `dtype: null` (type inference), `names`,
+  `converters` and `usemask` are not supported. Int64 cells are parsed as
+  BigInt so they keep full precision.
+- `fromregex(file, regexp, dtype)`: `dtype` is a list of `[name, dtype]`
+  fields (NumPy requires a structured dtype); the result is a plain object
+  `{name: NDArray}` (one 1-D array per field) since structured arrays are not
+  available. A JS `RegExp` (flags kept, `g` added) or a pattern string.
+- `fromfile(file, {dtype, count, sep, offset})`: binary mode (`sep` empty)
+  reads like `frombuffer`; text mode parses like `fromstring`. 
+  `NDArray.tofile(file, {sep, format})` writes raw C-order bytes, or text
+  items joined by `sep` using Python-scalar formatting (float repr, complex
+  repr), `format` applied with `%`. `file` may be `null` to return a Buffer.

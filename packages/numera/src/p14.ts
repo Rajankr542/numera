@@ -3,6 +3,10 @@
 import { load, NpzFile, save, savez, savezCompressed } from "./p14_npy.js";
 
 export { load, NpzFile, save, savez, savezCompressed } from "./p14_npy.js";
+import { loadtxt, savetxt } from "./p14_text.js";
+
+export { loadtxt, savetxt } from "./p14_text.js";
+export type { LoadtxtOptions, SavetxtOptions, TextSource } from "./p14_text.js";
 export type { BytesLike, FileLike, LoadOptions, NamedArrays } from "./p14_npy.js";
 
 export const p14 = {
@@ -11,4 +15,6 @@ export const p14 = {
   savez,
   savezCompressed,
   NpzFile,
+  loadtxt,
+  savetxt,
 } as const;
