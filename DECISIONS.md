@@ -1555,3 +1555,13 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   returns new arrays.
 - `delete` is a JS reserved word: it is exported as `np.delete` and as the
   named export `delete` (implemented as `del`).
+
+## D-091 — P6 tile / repeat (P6) — Accepted — 2026-10-02
+- `tile(a, reps)` and `repeat(a, repeats, axis?)` are native copy kernels;
+  results are always new C-contiguous arrays (`tile` with all-ones reps still
+  copies, like NumPy).
+- `repeats` is an integer or an integer list (length 1 broadcasts); non-integer
+  repeats raise `DTypeError` (NumPy `TypeError` under "safe" casting), negative
+  values and length mismatches raise `ValueError` with NumPy's messages.
+- `NDArray.prototype.repeat(repeats, axis?)` is added by declaration merging in
+  `p06_tile.ts`.

@@ -96,6 +96,28 @@ np.atleast2d([1, 2]).shape;     // => [1, 2]
 np.atleast3d([1, 2]).shape;     // => [1, 2, 1]
 np.atleast1d(1, [2, 3]).length; // => 2`,
       },
+      {
+        name: "tile",
+        sig: "np.tile(a, reps)",
+        desc: "Repeats the whole array `reps` times along each axis; `reps` shorter than `a.ndim` is padded with 1s on the left, longer prepends new axes. Always returns a copy.",
+        args: [{ name: "reps", type: "number | number[]", desc: "Repetitions per axis." }],
+        returns: "NDArray",
+        example: `np.tile([1, 2], 2);         // => [1, 2, 1, 2]
+np.tile([1, 2], [2, 1]);    // => [[1, 2], [1, 2]]`,
+      },
+      {
+        name: "repeat",
+        sig: "np.repeat(a, repeats, [axis]) / a.repeat(repeats, [axis])",
+        desc: "Repeats each element `repeats` times (an integer, or one count per element along `axis`). Without `axis` the input is flattened first.",
+        args: [
+          { name: "repeats", type: "number | number[]", desc: "Non-negative repetition counts." },
+          { name: "[axis]", type: "number | null", desc: "Axis to repeat along." },
+        ],
+        returns: "NDArray",
+        example: `np.repeat([[1, 2], [3, 4]], 2);          // => [1, 1, 2, 2, 3, 3, 4, 4]
+np.repeat([[1, 2], [3, 4]], [1, 2], 0);  // => [[1, 2], [3, 4], [3, 4]]
+np.array([1, 2]).repeat(2);              // => [1, 1, 2, 2]`,
+      },
     ],
   },
 ];

@@ -223,3 +223,121 @@ std::vector<NDArray> unstack(const NDArray& a, std::int64_t axis) {
 }
 
 }  // namespace nativpy
+
+// ---- tile / repeat / resize (D-091, D-093) ----
+
+namespace nativpy {
+
+NDArray tile(const NDArray& a, const std::vector<std::int64_t>& reps_in) {
+  for (const auto r : reps_in) {
+    if (r < 0) throw_error(ErrorKind::Value, "negative dimensions are not allowed");
+  }
+  const std::size_t nd = std::max(a.ndim(), reps_in.size());
+  if (nd > kMaxDims) throw_error(ErrorKind::Value, "too many dimensions");
+  std::vector<std::int64_t> reps(nd - reps_in.size(), 1);
+  reps.insert(reps.end(), reps_in.begin(), reps_in.end());
+  Shape src(nd - a.ndim(), 1);
+  src.insert(src.end(), a.shape().begin(), a.shape().end());
+  if (std::all_of(reps.begin(), reps.end(), [](std::int64_t r) { return r == 1; })) {
+    return copy_order(a, a.dtype(), Order::K).reshape(src);
+  }
+  Shape shape(nd);
+  for (std::size_t d = 0; d < nd; ++d) shape[d] = src[d] * reps[d];
+  NDArray out = NDArray::empty(shape, a.dtype());
+  if (out.size() == 0) return out;
+  // View out as (r0, s0, r1, s1, ...) and broadcast `a` (1, s0, 1, s1, ...) into it.
+  Shape vshape;
+  Strides vstrides;
+  Shape ashape;
+  for (std::size_t d = 0; d < nd; ++d) {
+    const std::int64_t st = out.strides()[d];
+    vshape.push_back(reps[d]);
+    vstrides.push_back(st * src[d]);
+    vshape.push_back(src[d]);
+    vstrides.push_back(st);
+    ashape.push_back(1);
+    ashape.push_back(src[d]);
+  }
+  copy_into(out.view(vshape, vstrides, out.offset()), a.reshape(src).reshape(ashape));
+  return out;
+}
+
+NDArray repeat(const NDArray& a_in, const std::vector<std::int64_t>& repeats,
+               std::optional<std::int64_t> axis_in) {
+  const NDArray a = axis_in ? a_in : ravel(a_in);
+  if (a.ndim() == 0) throw_error(ErrorKind::Index, "axis 0 is out of bounds for array of dimension 0");
+  const auto axis = static_cast<std::size_t>(
+      normalize_axis(axis_in.value_or(0), static_cast<std::int64_t>(a.ndim())));
+  const std::int64_t n = a.shape()[axis];
+  if (repeats.size() != 1 && static_cast<std::int64_t>(repeats.size()) != n) {
+    throw_error(ErrorKind::Value, "operands could not be broadcast together with shape (" +
+                                      std::to_string(n) + ",) (" +
+                                      std::to_string(repeats.size()) + ",)");
+  }
+  std::int64_t total = 0;
+  for (const auto r : repeats) {
+    if (r < 0) throw_error(ErrorKind::Value, "repeats may not contain negative values.");
+  }
+  for (std::int64_t i = 0; i < n; ++i) {
+    total += repeats.size() == 1 ? repeats[0] : repeats[static_cast<std::size_t>(i)];
+  }
+  Shape shape = a.shape();
+  shape[axis] = total;
+  NDArray out = NDArray::empty(shape, a.dtype());
+  if (out.size() == 0) return out;
+  const NDArray src = a.is_c_contiguous() ? a : a.copy();
+  std::int64_t outer = 1;
+  for (std::size_t d = 0; d < axis; ++d) outer *= shape[d];
+  std::int64_t chunk = static_cast<std::int64_t>(a.itemsize());
+  for (std::size_t d = axis + 1; d < shape.size(); ++d) chunk *= shape[d];
+  const auto bytes = static_cast<std::size_t>(chunk);
+  const std::byte* sp = src.data();
+  std::byte* dp = out.data();
+  for (std::int64_t o = 0; o < outer; ++o) {
+    for (std::int64_t i = 0; i < n; ++i) {
+      const std::int64_t r = repeats.size() == 1 ? repeats[0] : repeats[static_cast<std::size_t>(i)];
+      for (std::int64_t k = 0; k < r; ++k) {
+        std::memcpy(dp, sp, bytes);
+        dp += chunk;
+      }
+      sp += chunk;
+    }
+  }
+  return out;
+}
+
+NDArray resize(const NDArray& a, const Shape& shape) {
+  for (const auto d : shape) {
+    if (d < 0) throw_error(ErrorKind::Value, "all elements of `new_shape` must be non-negative");
+  }
+  const std::int64_t n = shape_size(shape);
+  if (a.size() == 0 || n == 0) return NDArray::zeros(shape, a.dtype());
+  const NDArray flat = flatten(a);
+  NDArray out = NDArray::empty(shape, a.dtype());
+  const auto total = static_cast<std::size_t>(n) * a.itemsize();
+  const auto block = static_cast<std::size_t>(flat.nbytes());
+  for (std::size_t pos = 0; pos < total; pos += block) {
+    std::memcpy(out.data() + pos, flat.data(), std::min(block, total - pos));
+  }
+  return out;
+}
+
+NDArray resize_inplace_data(const NDArray& a, const Shape& shape) {
+  if (!a.is_c_contiguous() && !a.is_f_contiguous()) {
+    throw_error(ErrorKind::Value, "resize only works on single-segment arrays");
+  }
+  if (!a.owns_data()) {
+    throw_error(ErrorKind::Value, "cannot resize this array: it does not own its data");
+  }
+  a.check_writeable();
+  const Order order = (a.is_f_contiguous() && !a.is_c_contiguous()) ? Order::F : Order::C;
+  for (const auto d : shape) {
+    if (d < 0) throw_error(ErrorKind::Value, "negative dimensions not allowed");
+  }
+  NDArray out = empty_order(shape, a.dtype(), order, true);
+  const auto bytes = static_cast<std::size_t>(std::min(a.nbytes(), out.nbytes()));
+  if (bytes > 0) std::memcpy(out.data(), a.data(), bytes);
+  return out;
+}
+
+}  // namespace nativpy

@@ -88,3 +88,37 @@ TEST_CASE("p06: stack / split / unstack") {
   CHECK(u[0].shares_buffer(u[1]));
   CHECK_THROWS_KIND(unstack(iota({}), 0), ErrorKind::Value);
 }
+
+TEST_CASE("p06: tile / repeat / resize") {
+  const NDArray a = iota({3});
+  NDArray t = tile(a, {2, 2});
+  CHECK(t.shape() == Shape({2, 6}));
+  CHECK(values(t) == std::vector<std::int64_t>({0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2}));
+  CHECK(tile(iota({2, 2}), {2}).shape() == Shape({2, 4}));
+  CHECK(tile(iota({2}), {}).shape() == Shape({2}));
+  NDArray t1 = tile(a, {1});
+  CHECK(!t1.shares_buffer(a));
+  CHECK(tile(a, {0}).shape() == Shape({0}));
+  CHECK(tile(iota({}), {3}).shape() == Shape({3}));
+  CHECK_THROWS_KIND(tile(a, {-1}), ErrorKind::Value);
+  CHECK(values(repeat(a, {1, 0, 2}, 0)) == std::vector<std::int64_t>({0, 2, 2}));
+  CHECK(values(repeat(iota({2, 2}), {2}, std::nullopt)) ==
+        std::vector<std::int64_t>({0, 0, 1, 1, 2, 2, 3, 3}));
+  NDArray r1 = repeat(iota({2, 2}), {1, 2}, 1);
+  CHECK(values(r1) == std::vector<std::int64_t>({0, 1, 1, 2, 3, 3}));
+  NDArray rt = repeat(transpose(iota({2, 2}), {}), {2}, 0);
+  CHECK(values(rt) == std::vector<std::int64_t>({0, 2, 0, 2, 1, 3, 1, 3}));
+  CHECK(repeat(iota({}), {3}, std::nullopt).shape() == Shape({3}));
+  CHECK_THROWS_KIND(repeat(a, {1, 2}, 0), ErrorKind::Value);
+  CHECK_THROWS_KIND(repeat(a, {-1}, 0), ErrorKind::Value);
+  CHECK_THROWS_KIND(repeat(a, {1}, 1), ErrorKind::Index);
+  CHECK(values(resize(a, {2, 4})) == std::vector<std::int64_t>({0, 1, 2, 0, 1, 2, 0, 1}));
+  CHECK(values(resize(iota({0}), {2})) == std::vector<std::int64_t>({0, 0}));
+  CHECK_THROWS_KIND(resize(a, {-1}), ErrorKind::Value);
+  const NDArray f = copy_order(iota({2, 3}), DType::Int64, Order::F);
+  NDArray ri = resize_inplace_data(f, {3, 3});
+  CHECK(ri.strides() == Strides({8, 24}));
+  CHECK(values(ri) == std::vector<std::int64_t>({0, 4, 0, 3, 2, 0, 1, 5, 0}));
+  CHECK_THROWS_KIND(resize_inplace_data(slice_axis(a, 0, 0, 3, 2), {2}), ErrorKind::Value);
+  CHECK_THROWS_KIND(resize_inplace_data(a.reshape({3, 1}), {2}), ErrorKind::Value);
+}

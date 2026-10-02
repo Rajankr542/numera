@@ -47,6 +47,18 @@ void init_p06_binding(Napi::Env env, Napi::Object exports) {
   m.Set("unstack", fn(env, "unstack", [](Info i, Napi::Env e) -> Napi::Value {
           return wrap_all(e, unstack(arr(i, 0), arg_int(i[1], "axis")));
         }));
+  m.Set("tile", fn(env, "tile", [](Info i, Napi::Env e) {
+          return wrap(e, tile(arr(i, 0), arg_ints(i[1], "reps")));
+        }));
+  m.Set("repeat", fn(env, "repeat", [](Info i, Napi::Env e) {
+          return wrap(e, repeat(arr(i, 0), arg_ints(i[1], "repeats"), opt_int(i[2], "axis")));
+        }));
+  m.Set("resize", fn(env, "resize", [](Info i, Napi::Env e) {
+          return wrap(e, resize(arr(i, 0), arg_ints(i[1], "shape")));
+        }));
+  m.Set("resizeInplace", fn(env, "resizeInplace", [](Info i, Napi::Env e) {
+          return wrap(e, resize_inplace_data(arr(i, 0), arg_ints(i[1], "shape")));
+        }));
   exports.Set("p06", m);
 }
 

@@ -8,6 +8,10 @@ export interface P06Native {
   splitAt(a: N, indices: number[], axis: number): N[];
   splitSections(a: N, sections: number, axis: number, equal: boolean): N[];
   unstack(a: N, axis: number): N[];
+  tile(a: N, reps: number[]): N;
+  repeat(a: N, repeats: number[], axis: number | null): N;
+  resize(a: N, shape: number[]): N;
+  resizeInplace(a: N, shape: number[]): N;
 }
 
 export const native = nativeModule<P06Native>("p06");

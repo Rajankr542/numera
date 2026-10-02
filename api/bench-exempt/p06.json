@@ -1,4 +1,5 @@
 [
+ "ndarray.repeat [nativpy] [numpy]",
  "np.array_split [nativpy] [numpy]",
  "np.atleast_1d [nativpy] [numpy]",
  "np.atleast_2d [nativpy] [numpy]",
@@ -11,8 +12,10 @@
  "np.dstack [nativpy] [numpy]",
  "np.hsplit [nativpy] [numpy]",
  "np.hstack [nativpy] [numpy]",
+ "np.repeat [nativpy] [numpy]",
  "np.split [nativpy] [numpy]",
  "np.stack [nativpy] [numpy]",
+ "np.tile [nativpy] [numpy]",
  "np.unstack [nativpy] [numpy]",
  "np.vsplit [nativpy] [numpy]",
  "np.vstack [nativpy] [numpy]"
