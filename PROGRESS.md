@@ -1156,3 +1156,14 @@ Done:
 - Misc: `baseRepr binaryRepr`; native windows `bartlett blackman hamming hanning kaiser`; legacy polynomials `poly poly1d polyadd polyder polydiv polyfit polyint polymul polysub polyval roots` (native convolve/polydiv).
 - Tests: `tests/native/test_p14_*.cpp`, `packages/numera/test/p14_*.test.ts`, docs examples in `docs/site/parts/p14.mjs`. Verified: `pnpm build`, `test`, `test:native`, `api:check`, `test:asan`.
 - Remaining: datetime64/timedelta64 (P14-8..10, D-174/D-175; this needs a core DType enum change touching ~38 dispatch sites), str_/bytes_/np.strings/structured (P14-11), and NumPy differential cases and benchmarks (names are in `api/bench-exempt/p14.json`).
+
+## P16-D — datetime64/timedelta64/busday — 2026-10-02
+
+Implemented `datetime64`, `timedelta64`, `datetime_data`, `datetime_as_string`,
+`busdaycalendar`, `is_busday`, `busday_count`, `busday_offset` (D-220).
+All 8 names wired into `np` surface on the `p16d` branch. Pure TS implementation
+using `DatetimeArray`/`TimedeltaArray` subclasses wrapping int64 NDArray + unit
+string. Arithmetic, formatting, and busday logic in TypeScript.
+Build: ✅ pnpm build, pnpm test (45 files, 835 tests), pnpm test:native (100%),
+pnpm api:check (pass), pnpm test:asan (pass).
+Commit: 5de4602

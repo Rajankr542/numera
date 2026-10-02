@@ -256,3 +256,12 @@ listed in "Documented divergences" (D-140, D-141).
 | `kaiser` window | NumPy i0 | same Chebyshev coefficients, may differ by 1 ulp (libm) | D-172 |
 | poly1d operators | `p(x) p+q p*q p/q p**n p[k]` | methods `call add mul div pow get/set` | D-173 |
 | `polyfit` rank warning | `RankWarning` class | Node warning named `RankWarning` | D-173 |
+
+## P16-D datetime64/timedelta64/busday (D-220)
+| Feature | NumPy | numera | Decision |
+|---------|-------|--------|----------|
+| datetime64/timedelta64 dtype | C-level DType in the dtype enum, accepted by ufuncs | TS `DatetimeArray`/`TimedeltaArray` subclass wrapping int64 NDArray + unit string; rejected by all ufunc loops | D-220 |
+| Arithmetic on datetime arrays | `a + b`, `a - b` operator overloads | Not yet implemented (arithmetic must be done via explicit offset conversions) | D-220 |
+| `np.array(["2023-01-15"], dtype="datetime64[D]")` | Creates datetime64 array | Not wired into `array()`; use `datetime64()` directly | D-220 |
+| `busday_offset` NaT input | Returns NaT | Returns NaT sentinel (same) | D-220 |
+| `datetime_as_string` timezone offset output | Can display timezone offsets | All output is UTC (timezone parameter accepted but ignored) | D-220 |
