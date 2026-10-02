@@ -1052,3 +1052,19 @@ Done: `logspace`, `geomspace`, `tri`, `tril`, `triu`, `diag`, `diagflat`, `vande
 Verified: `pnpm build`, `pnpm test`, `pnpm test:native`, `pnpm api:check`, `pnpm test:asan`.
 Benchmarks are not written yet; the callables are listed in `api/bench-exempt/p07.json`.
 Divergences: see COMPATIBILITY.md "P7 creation and grids divergences".
+
+## P11 — Linear algebra completion (branch p11) — 2026-10-02
+- Native `native/linalg/p11_linalg.{hpp,cpp}` (binding `addon.p11`): cholesky
+  (Accelerate `?potrf` + portable fallback, D-142), slogdet, matrix_power, pinv,
+  matrix_rank, cond, and the einsum contraction core (D-141). TS `p11_linalg.ts`,
+  `p11_products.ts`, `p11_einsum.ts` (D-140, D-141).
+- `np.linalg`: `cholesky slogdet svdvals matrixPower pinv matrixRank cond
+  vectorNorm matrixNorm matrixTranspose diagonal trace outer tensorinv
+  tensorsolve cross tensordot multiDot vecdot`. `np`: `vdot kron cross tensordot
+  vecdot matvec vecmat einsum einsumPath`. NDArray `dot`.
+- Checks: `pnpm build`, `pnpm test` (420 tests, both linalg backends),
+  `pnpm test:native`, `pnpm test:asan` (ASan+UBSan clean), `pnpm typecheck`,
+  `pnpm api:check` pass. An ad-hoc einsum/einsumPath comparison against NumPy
+  2.5.3 (22 expressions, greedy and optimal) matched results, paths and reports.
+  Benchmarks and checked-in NumPy differential cases are deferred to the V phase
+  (`api/bench-exempt/p11.json`).
