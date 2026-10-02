@@ -12,7 +12,10 @@ describe("np.fft", () => {
   it("is exposed on the default export and as a named export", () => {
     expect(np.fft).toBe(fft);
     expect(Object.keys(np.fft).sort()).toEqual(
-      ["fft", "fft2", "fftfreq", "fftn", "ifft", "ifft2", "ifftn", "irfft", "rfft", "rfftfreq"],
+      [
+        "fft", "fft2", "fftfreq", "fftn", "fftshift", "hfft", "ifft", "ifft2", "ifftn", "ifftshift",
+        "ihfft", "irfft", "irfft2", "irfftn", "rfft", "rfft2", "rfftfreq", "rfftn",
+      ],
     );
   });
 

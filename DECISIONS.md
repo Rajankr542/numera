@@ -1728,9 +1728,19 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   irfft2 rfftn irfftn`) accepts `out` as a positional parameter after `norm`
   or in the trailing options object (`{ n|s, axis|axes, norm, out }`). With
   `out` the function writes into it and returns that same `NDArray` object.
-- Each 1-D step follows NumPy's `_raw_fft`: the result is computed as without
-  `out` (D-020 precision rule: float16/float32/complex64 inputs compute in float32,
-  the rest in float64), then written into `out`:
+- Compute precision (supersedes the D-020 "float16/float32/complex64 compute in
+  float32" rule for every transform, with or without `out`): numera now picks the
+  pocketfft loop the way NumPy's ufunc type resolution does (checked with
+  `_pocketfft_umath.*.resolve_dtypes`). The factor `fct` is 1 (a Python int) when
+  the effective norm is "backward" (after the inverse swap), otherwise it is
+  rounded to `result_type(a.real.dtype, 1.0)` (float16 / float32 / float64).
+  The float32 loop runs only when the input already has the loop's single dtype
+  (complex64 for `fft`/`ifft`/`irfft`, float32 for `rfft`) **and** `fct` is a
+  float32 scalar; everything else (float16, float32 real input to `fft`, `norm`
+  giving `fct = 1`, integers, bool) runs the float64 loop with the rounded `fct`.
+  The loop result is then cast to the result dtype (unchanged from D-020:
+  complex64/complex128; `irfft` float16/float32/float64) or to `out`.
+- Each 1-D step follows NumPy's `_raw_fft`, and with `out` writes into it:
   - `out.ndim` must equal the input's and `out.shape[axis]` the output length,
     otherwise `ValueError` "output array has wrong shape.".
   - The result dtype must cast to `out.dtype` under `same_kind`, otherwise
@@ -1746,12 +1756,12 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   that changes a non-final shape makes `out` fail the shape check, as in NumPy).
   `irfftn`/`irfft2` pass `out` only to the final `irfft` step. `fftn(a, {axes: []})`
   returns `a` and leaves `out` untouched.
-- NumPy picks the compute precision from its ufunc type resolution (for example
-  float32 *real* input to `fft` runs the float64 loop and is then rounded to
-  complex64). numera keeps the D-020 rule, so results can differ from NumPy
-  within float32 rounding; documented in COMPATIBILITY.md.
-- Implementation: `native/fft/p12_fft.{hpp,cpp}` builds on the public M10
-  functions in `native/fft/fft.hpp` and `copy_into` (`addon.p12`).
+- `s[i] = -1` resolves to the *original* input length along `axes[i]` (NumPy);
+  the M10 `fftn` used the current length, which differed for repeated axes.
+- Implementation: `native/fft/p12_fft.{hpp,cpp}` has its own pocketfft lane
+  kernels (ported from M10 with an explicit loop type), exposed as `addon.p12`.
+  `fft.ts` routes every transform through it; the M10 `addon.fft` transform
+  bindings stay in place but are no longer called from TS.
 
 ## D-151 — hfft/ihfft and real N-D transforms (P12-2) — Accepted — 2026-10-02
 - `hfft(a, n?, axis=-1, norm?, out?)` = `irfft(conj(a), n, axis, swap(norm))`, default
@@ -1776,6 +1786,6 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   shift is `shape[ax] // 2` (`ifftshift`: its negative). Any dtype; the result
   is a new C-contiguous array of the input dtype, computed by a native roll
   (`addon.p12.roll`).
-- 0-d input with default axes and an empty `axes` list raise `ValueError` (NumPy
-  fails in `np.roll` with "not enough values to unpack"). Out-of-range axes raise
-  `IndexError` (D-012).
+- An empty `axes` list returns a copy. 0-d input with default or empty axes raises
+  `ValueError` (NumPy fails in `np.roll` with "not enough values to unpack").
+  Out-of-range axes raise `IndexError` (D-012).
