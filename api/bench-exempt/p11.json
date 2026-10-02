@@ -1,6 +1,9 @@
 [
  "linalg.cholesky [nativpy] [numpy]",
+ "linalg.cond [nativpy] [numpy]",
  "linalg.matrix_power [nativpy] [numpy]",
+ "linalg.matrix_rank [nativpy] [numpy]",
+ "linalg.pinv [nativpy] [numpy]",
  "linalg.slogdet [nativpy] [numpy]",
  "linalg.svdvals [nativpy] [numpy]"
 ]

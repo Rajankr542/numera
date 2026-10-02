@@ -9,6 +9,14 @@ export interface P11Native {
   cholesky(a: NativeNDArray, upper: boolean): NativeNDArray;
   slogdet(a: NativeNDArray): { sign: NativeNDArray; logabsdet: NativeNDArray };
   matrixPower(a: NativeNDArray, n: number): NativeNDArray;
+  pinv(a: NativeNDArray, rcond: NativeNDArray, hermitian: boolean): NativeNDArray;
+  matrixRank(
+    a: NativeNDArray,
+    tol: NativeNDArray | null,
+    rtol: NativeNDArray | null,
+    hermitian: boolean,
+  ): NativeNDArray;
+  cond(a: NativeNDArray, p: number | string | null): NativeNDArray;
 }
 
 /** @internal */

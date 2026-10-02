@@ -48,6 +48,12 @@ bool all_near(const NDArray& a, std::initializer_list<double> v, double tol = 1e
   return true;
 }
 
+NDArray scal(double v) {
+  NDArray a = NDArray::empty({}, DType::Float64);
+  a.set_double(0, v);
+  return a;
+}
+
 template <typename Fn>
 void each_backend(Fn&& fn) {
   set_active_backend(&fallback_backend());
@@ -129,5 +135,42 @@ TEST_CASE("p11: matrix_power") {
     CHECK_THROWS_KIND(matrix_power(NDArray::zeros({2, 3}, DType::Float64), 2), ErrorKind::LinAlg);
     CHECK_THROWS_KIND(matrix_power(mat(2, 2, {1, 2, 2, 4}), -1), ErrorKind::LinAlg);
     CHECK(matrix_power(NDArray::zeros({3, 0, 0}, DType::Float64), 0).shape() == Shape({3, 0, 0}));
+  });
+}
+
+TEST_CASE("p11: pinv, matrix_rank, cond") {
+  each_backend([] {
+    const NDArray rc = scal(1e-15);
+    const NDArray p = pinv(mat(2, 2, {1, 2, 3, 4}), rc, false);
+    CHECK(all_near(p, {-2, 1, 1.5, -0.5}, 1e-9));
+    const NDArray ph = pinv(mat(2, 2, {2, 1, 1, 2}), rc, true);
+    CHECK(all_near(ph, {2.0 / 3, -1.0 / 3, -1.0 / 3, 2.0 / 3}, 1e-9));
+    const NDArray pr = pinv(mat(2, 3, {1, 0, 0, 0, 2, 0}), rc, false);
+    CHECK(pr.shape() == Shape({3, 2}));
+    CHECK(all_near(pr, {1, 0, 0, 0.5, 0, 0}, 1e-9));
+    const NDArray pc = pinv(cmat(1, 1, {{0, 2}}), rc, false);
+    CHECK(near(cat(pc, 0).imag(), -0.5));
+    CHECK(pinv(NDArray::zeros({2, 0, 3}, DType::Float32), rc, false).shape() == Shape({2, 3, 0}));
+    CHECK_THROWS_KIND(pinv(NDArray::zeros({3}, DType::Float64), rc, false), ErrorKind::LinAlg);
+
+    CHECK_EQ(matrix_rank(mat(2, 2, {1, 2, 2, 4}), std::nullopt, std::nullopt, false).get_int64(0), 1);
+    CHECK_EQ(matrix_rank(eye(3, 3, 0, DType::Float64), std::nullopt, std::nullopt, true).get_int64(0), 3);
+    CHECK_EQ(matrix_rank(mat(2, 2, {1, 0, 0, 1e-3}), scal(1e-2),
+                         std::nullopt, false).get_int64(0), 1);
+    CHECK_EQ(matrix_rank(mat(2, 2, {1, 0, 0, 1e-3}), std::nullopt,
+                         scal(1e-2), false).get_int64(0), 1);
+    CHECK_EQ(matrix_rank(NDArray::zeros({3}, DType::Float64), std::nullopt, std::nullopt, false).get_int64(0), 0);
+    CHECK_THROWS_KIND(matrix_rank(eye(2, 2, 0, DType::Float64), rc, rc, false), ErrorKind::Value);
+
+    CHECK(near(cond(mat(2, 2, {1, 0, 0, 2}), NormOrd{}).get_double(0), 2.0));
+    CHECK(near(cond(mat(2, 2, {1, 0, 0, 2}), NormOrd{"p", -2.0}).get_double(0), 0.5));
+    CHECK(near(cond(mat(2, 2, {1, 2, 3, 4}), NormOrd{"fro", 0}).get_double(0), 15.0));
+    CHECK(near(cond(mat(2, 2, {1, 2, 3, 4}), NormOrd{"p", 1.0}).get_double(0), 21.0));
+    CHECK(near(cond(mat(2, 2, {1, 2, 3, 4}),
+                    NormOrd{"p", std::numeric_limits<double>::infinity()}).get_double(0), 21.0));
+    CHECK(std::isinf(cond(mat(2, 2, {1, 2, 2, 4}), NormOrd{"p", 1.0}).get_double(0)));
+    CHECK(cond(mat(2, 2, {1, 0, 0, 2}, DType::Float32), NormOrd{}).dtype() == DType::Float32);
+    CHECK_THROWS_KIND(cond(NDArray::zeros({0, 0}, DType::Float64), NormOrd{}), ErrorKind::LinAlg);
+    CHECK_THROWS_KIND(cond(NDArray::zeros({2, 3}, DType::Float64), NormOrd{"p", 1.0}), ErrorKind::LinAlg);
   });
 }

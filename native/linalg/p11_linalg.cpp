@@ -1,7 +1,10 @@
 // P11 linear algebra completion (D-140..D-142).
 #include "p11_linalg.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <functional>
+#include <utility>
 #include <complex>
 #include <cstring>
 #include <limits>
@@ -10,6 +13,7 @@
 #include <vector>
 
 #include "backend.hpp"
+#include "broadcast.hpp"
 #include "creation.hpp"
 #include "error.hpp"
 #include "shape.hpp"
@@ -240,6 +244,221 @@ NDArray matrix_power(const NDArray& a, std::int64_t n) {
     if (bit) result = result ? matmul(*result, *z) : *z;
   }
   return *result;
+}
+
+namespace {
+
+// Element (flat C-order) of a real or complex array as complex<double>.
+C cget(const NDArray& a, idx i) {
+  if (!is_complex(a.dtype())) return {a.get_double(i), 0.0};
+  if (a.dtype() == DType::Complex64) {
+    const auto v = reinterpret_cast<const std::complex<float>*>(a.data())[i];
+    return {v.real(), v.imag()};
+  }
+  return reinterpret_cast<const C*>(a.data())[i];
+}
+
+double eps_of(DType dt) {
+  return dt == DType::Float32 || dt == DType::Complex64
+             ? static_cast<double>(std::numeric_limits<float>::epsilon())
+             : std::numeric_limits<double>::epsilon();
+}
+
+// Singular values (descending) of every matrix in `a`, as float64
+// (batch..., k), plus their native dtype; hermitian uses |eigvalsh|.
+std::pair<NDArray, DType> singular_values(const NDArray& a, bool hermitian) {
+  NDArray s = hermitian ? eigvalsh(a) : svd(a, false, false).s;
+  const DType sdt = s.dtype();
+  s = s.astype(DType::Float64);
+  if (hermitian) {
+    const idx k = s.ndim() == 0 ? 1 : s.shape().back();
+    double* p = ptr<double>(s);
+    for (idx t = 0; k > 0 && t < s.size() / k; ++t) {
+      std::vector<double> v(p + t * k, p + (t + 1) * k);
+      for (double& x : v) x = std::abs(x);
+      std::sort(v.begin(), v.end(), std::greater<>());
+      std::copy(v.begin(), v.end(), p + t * k);
+    }
+  }
+  return {s, sdt};
+}
+
+}  // namespace
+
+NDArray pinv(const NDArray& a, const NDArray& rcond, bool hermitian) {
+  if (a.ndim() < 2) {
+    throw_error(ErrorKind::LinAlg, std::to_string(a.ndim()) +
+                                       "-dimensional array given. Array must be at least "
+                                       "two-dimensional");
+  }
+  if (hermitian) require_square(a, "pinv");
+  const Shape& sh = a.shape();
+  const idx m = sh[sh.size() - 2];
+  const idx n = sh[sh.size() - 1];
+  const Shape batch = batch_of(sh, 2);
+  Shape out_shape = batch;
+  out_shape.push_back(n);
+  out_shape.push_back(m);
+  if (a.size() == 0) return NDArray::empty(out_shape, a.dtype());
+  const NDArray rc = broadcast_to(rcond.astype(DType::Float64), batch).astype(DType::Float64);
+  const idx nb = shape_size(batch);
+  const idx k = std::min(m, n);
+  // Factors: A = U diag(s) Vh (hermitian: U diag(lambda) Uᴴ, Vh = Uᴴ).
+  std::optional<NDArray> uo;
+  std::optional<NDArray> vho;
+  std::optional<NDArray> so;
+  if (hermitian) {
+    const EigResult e = eigh(a);
+    so = e.eigenvalues.astype(DType::Float64);
+    uo = e.eigenvectors;
+  } else {
+    SvdResult r = svd(a, false, true);
+    so = r.s.astype(DType::Float64);
+    uo = *r.u;
+    vho = *r.vh;
+  }
+  const NDArray& u = *uo;
+  const NDArray& s = *so;
+  const NDArray vh = vho ? *vho : u;
+  const DType dt = u.dtype();
+  const bool cplx = is_complex(dt);
+  NDArray out = NDArray::empty(out_shape, cplx ? DType::Complex128 : DType::Float64);
+  const double* sp = ptr<double>(s);
+  std::vector<double> inv_s(sz(k));
+  for (idx t = 0; t < nb; ++t) {
+    double smax = 0.0;
+    for (idx i = 0; i < k; ++i) smax = std::max(smax, std::abs(sp[t * k + i]));
+    const double cutoff = ptr<double>(rc)[t] * smax;
+    for (idx i = 0; i < k; ++i) {
+      const double v = sp[t * k + i];
+      inv_s[sz(i)] = std::abs(v) > cutoff ? 1.0 / v : 0.0;
+    }
+    // res[j, p] = sum_i conj(Vh[i, j]) / s_i * conj(U[p, i]).
+    for (idx j = 0; j < n; ++j) {
+      for (idx p = 0; p < m; ++p) {
+        C acc{};
+        for (idx i = 0; i < k; ++i) {
+          if (inv_s[sz(i)] == 0.0) continue;
+          const C v = hermitian ? std::conj(cget(u, t * m * m + j * m + i))
+                                : cget(vh, t * k * n + i * n + j);
+          acc += std::conj(v) * inv_s[sz(i)] * std::conj(cget(u, t * m * k + p * k + i));
+        }
+        if (cplx) ptr<C>(out)[t * n * m + j * m + p] = acc;
+        else ptr<double>(out)[t * n * m + j * m + p] = acc.real();
+      }
+    }
+  }
+  return out.astype(dt);
+}
+
+NDArray matrix_rank(const NDArray& a, const std::optional<NDArray>& tol,
+                    const std::optional<NDArray>& rtol, bool hermitian) {
+  if (tol && rtol) throw_error(ErrorKind::Value, "`tol` and `rtol` can't be both set.");
+  if (a.ndim() < 2) {
+    bool any = false;
+    for (idx i = 0; i < a.size() && !any; ++i) any = cget(a, i) != C{};
+    NDArray out = NDArray::empty({}, DType::Int64);
+    out.set_int64(0, any ? 1 : 0);
+    return out;
+  }
+  const auto [s, sdt] = singular_values(a, hermitian);
+  const Shape& sh = a.shape();
+  const idx m = sh[sh.size() - 2];
+  const idx n = sh[sh.size() - 1];
+  const idx k = s.shape().back();
+  const Shape batch = batch_of(s.shape(), 1);
+  const NDArray* thr = tol ? &*tol : (rtol ? &*rtol : nullptr);
+  const Shape out_shape = thr ? broadcast_shapes({batch, thr->shape()}) : batch;
+  NDArray th = thr ? broadcast_to(thr->astype(DType::Float64), out_shape).astype(DType::Float64)
+                   : NDArray::empty({}, DType::Float64);
+  if (!thr) th.set_double(0, static_cast<double>(std::max(m, n)) * eps_of(sdt));
+  const NDArray sb = broadcast_to(s, [&] {
+                       Shape x = out_shape;
+                       x.push_back(k);
+                       return x;
+                     }()).astype(DType::Float64);
+  NDArray out = NDArray::empty(out_shape, DType::Int64);
+  const double* sp = ptr<double>(sb);
+  for (idx t = 0; t < shape_size(out_shape); ++t) {
+    double smax = 0.0;
+    for (idx i = 0; i < k; ++i) smax = std::max(smax, sp[t * k + i]);
+    const double tv = ptr<double>(th)[thr ? t : 0];
+    const double cut = tol ? tv : smax * tv;
+    std::int64_t r = 0;
+    for (idx i = 0; i < k; ++i) r += sp[t * k + i] > cut ? 1 : 0;
+    out.set_int64(t, r);
+  }
+  return out;
+}
+
+NDArray cond(const NDArray& a, const NormOrd& p) {
+  if (a.ndim() >= 2 && a.size() == 0) {
+    const auto& sh = a.shape();
+    if (sh[sh.size() - 1] * sh[sh.size() - 2] == 0) {
+      throw_error(ErrorKind::LinAlg, "cond is not defined on empty arrays");
+    }
+  }
+  const DType rt = p11_result_dtype(a, "cond");
+  const DType real_t = rt == DType::Float32 || rt == DType::Complex64 ? DType::Float32 : DType::Float64;
+  std::optional<NDArray> ro;
+  const bool svd_path = p.kind == "default" || (p.kind == "p" && (p.p == 2.0 || p.p == -2.0));
+  if (svd_path) {
+    if (a.ndim() < 2) svd(a, false, false);  // raises the NumPy LinAlgError
+    const NDArray s = svd(a, false, false).s.astype(DType::Float64);
+    const idx k = s.shape().back();
+    const Shape batch = batch_of(s.shape(), 1);
+    ro = NDArray::empty(batch, DType::Float64);
+    NDArray& r = *ro;
+    for (idx t = 0; t < shape_size(batch); ++t) {
+      const double hi = s.get_double(t * k);
+      const double lo = s.get_double(t * k + k - 1);
+      r.set_double(t, p.kind == "p" && p.p == -2.0 ? lo / hi : hi / lo);
+    }
+  } else {
+    require_square(a, "cond");
+    const bool cplx = is_complex(rt);
+    const DType ct = cplx ? DType::Complex128 : DType::Float64;
+    const idx n = a.shape().back();
+    const NDArray ac = a.astype(ct);
+    NDArray invx = NDArray::empty(a.shape(), ct);
+    const idx nb = shape_size(batch_of(a.shape(), 2));
+    dispatch_rc(cplx, [&](auto tag) {
+      using E = decltype(tag);
+      std::vector<E> am(sz(n * n));
+      std::vector<E> bm(sz(n * n));
+      for (idx t = 0; t < nb; ++t) {
+        to_colmajor(ptr<E>(ac) + t * n * n, am.data(), n, n);
+        std::fill(bm.begin(), bm.end(), E{0.0});
+        for (idx i = 0; i < n; ++i) bm[sz(i + i * n)] = E{1.0};
+        int info = 0;
+        if constexpr (std::is_floating_point_v<E>) info = active_backend().f64().gesv(n, n, am.data(), bm.data());
+        else info = active_backend().f64().cgesv(n, n, am.data(), bm.data());
+        E* dst = ptr<E>(invx) + t * n * n;
+        for (idx i = 0; i < n; ++i)
+          for (idx j = 0; j < n; ++j)
+            dst[i * n + j] = info > 0 ? E{std::numeric_limits<double>::quiet_NaN()} : bm[sz(i + j * n)];
+      }
+    });
+    const std::vector<std::int64_t> axes{-2, -1};
+    const NDArray n1 = norm(a, p, axes, false).astype(DType::Float64);
+    const NDArray n2 = norm(invx, p, axes, false).astype(DType::Float64);
+    ro = NDArray::empty(n1.shape(), DType::Float64);
+    NDArray& r = *ro;
+    for (idx t = 0; t < r.size(); ++t) r.set_double(t, n1.get_double(t) * n2.get_double(t));
+  }
+  NDArray& r = *ro;
+  // NaN -> inf unless the matrix itself contains NaN.
+  const idx mn = r.size() == 0 ? 0 : a.size() / r.size();
+  for (idx t = 0; t < r.size(); ++t) {
+    if (!std::isnan(r.get_double(t))) continue;
+    bool has_nan = false;
+    for (idx i = 0; i < mn && !has_nan; ++i) {
+      const C v = cget(a, t * mn + i);
+      has_nan = std::isnan(v.real()) || std::isnan(v.imag());
+    }
+    if (!has_nan) r.set_double(t, std::numeric_limits<double>::infinity());
+  }
+  return real_t == DType::Float64 ? r : r.astype(real_t);
 }
 
 }  // namespace nativpy::linalg

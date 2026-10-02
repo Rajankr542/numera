@@ -49,3 +49,30 @@ for (const which of ["default", "fallback"] as const) {
     });
   });
 }
+
+for (const which of ["default", "fallback"] as const) {
+  describe(`P11-2 (${which} backend)`, () => {
+    afterAll(() => np.linalg._setBackend("default"));
+    it("pinv", () => {
+      np.linalg._setBackend(which);
+      close(np.linalg.pinv([[1, 2], [3, 4]]), [[-2, 1], [1.5, -0.5]], 1e-9);
+      close(np.linalg.pinv([[2, 1], [1, 2]], { hermitian: true }), [[2 / 3, -1 / 3], [-1 / 3, 2 / 3]], 1e-9);
+      close(np.linalg.pinv([[1, 0], [0, 1e-20]], { rtol: null }), [[1, 0], [0, 0]]);
+      expect(np.linalg.pinv(np.zeros([0, 3])).shape).toEqual([3, 0]);
+      expect(() => np.linalg.pinv([[1]], { rcond: 1e-3, rtol: 1e-3 })).toThrow(np.ValueError);
+    });
+    it("matrixRank / cond", () => {
+      np.linalg._setBackend(which);
+      expect(np.linalg.matrixRank([[1, 2], [2, 4]]).item()).toBe(1);
+      expect(np.linalg.matrixRank(np.eye(4)).item()).toBe(4);
+      expect(np.linalg.matrixRank([[1, 0], [0, 1e-3]], { tol: 1e-2 }).item()).toBe(1);
+      expect(np.linalg.matrixRank([0, 0]).item()).toBe(0);
+      expect(np.linalg.matrixRank([[2, 1], [1, 2]], { hermitian: true }).item()).toBe(2);
+      close(np.linalg.cond([[1, 0], [0, 2]]), 2);
+      close(np.linalg.cond([[1, 2], [3, 4]], "fro"), 15);
+      close(np.linalg.cond([[1, 2], [3, 4]], Infinity), 21);
+      expect(np.linalg.cond([[1, 2], [2, 4]], 1).item()).toBe(Infinity);
+      expect(() => np.linalg.cond(np.zeros([0, 0]))).toThrow(np.LinAlgError);
+    });
+  });
+}
