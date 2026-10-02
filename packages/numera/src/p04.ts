@@ -3,9 +3,12 @@
 // index.ts. Native kernels: rows in native/core/ufunc_math.cpp, multi-output
 // helpers in native/bindings/p04_binding.cpp (`addon.p04`).
 import * as trig from "./p04_trig.js";
+import * as explog from "./p04_explog.js";
 
 export * from "./p04_trig.js";
+export * from "./p04_explog.js";
 
 export const p04 = {
   ...trig,
+  ...explog,
 } as const;

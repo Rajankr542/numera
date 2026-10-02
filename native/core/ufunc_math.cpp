@@ -1,7 +1,11 @@
 #include <cmath>
 #include <complex>
+#include <limits>
+#include <type_traits>
 #include <numbers>
 
+#include "complex_kernels.hpp"
+#include "ufunc_kernels.hpp"
 #include "ufunc_loops.hpp"
 #include "ufunc_registry.hpp"
 
@@ -36,6 +40,83 @@ P04_STD_UN(ArccoshF, acosh)
 P04_STD_UN(ArctanhF, atanh)
 P04_STD_BIN(Arctan2F, atan2)
 P04_STD_BIN(HypotF, hypot)
+
+// P4-2 exp / log. Complex forms follow NumPy's nc_* helpers (funcs.inc.src).
+P04_STD_UN(Exp2F, exp2)
+P04_STD_UN(Expm1F, expm1)
+P04_STD_UN(Log2F, log2)
+P04_STD_UN(Log10F, log10)
+P04_STD_UN(Log1pF, log1p)
+P04_STD_UN(CbrtF, cbrt)
+struct CExp2F {
+  template <typename R> std::complex<R> operator()(std::complex<R> z) const noexcept {
+    return std::exp(z * std::numbers::ln2_v<R>);
+  }
+};
+struct CExpm1F {
+  template <typename R> std::complex<R> operator()(std::complex<R> z) const noexcept {
+    const R a = std::sin(z.imag() / 2);
+    return {std::expm1(z.real()) * std::cos(z.imag()) - 2 * a * a, std::exp(z.real()) * std::sin(z.imag())};
+  }
+};
+struct CLog2F {
+  template <typename R> std::complex<R> operator()(std::complex<R> z) const noexcept {
+    return kernels::clog<R>(z) / std::numbers::ln2_v<R>;
+  }
+};
+struct CLog10F {
+  template <typename R> std::complex<R> operator()(std::complex<R> z) const noexcept {
+    return kernels::clog<R>(z) / std::numbers::ln10_v<R>;
+  }
+};
+struct CLog1pF {
+  template <typename R> std::complex<R> operator()(std::complex<R> z) const noexcept {
+    const R x = z.real() + 1;
+    return {std::log(std::hypot(x, z.imag())), std::atan2(z.imag(), x)};
+  }
+};
+// npy_logaddexp / npy_logaddexp2.
+struct LogaddexpF {
+  template <typename T> T operator()(T x, T y) const noexcept {
+    if (x == y) return x + std::numbers::ln2_v<T>;  // also equal infinities
+    const T d = x - y;
+    if (d > 0) return x + std::log1p(std::exp(-d));
+    if (d <= 0) return y + std::log1p(std::exp(d));
+    return d;  // nan
+  }
+};
+struct Logaddexp2F {
+  template <typename T> T operator()(T x, T y) const noexcept {
+    if (x == y) return x + 1;
+    const T d = x - y;
+    if (d > 0) return x + std::numbers::log2e_v<T> * std::log1p(std::exp2(-d));
+    if (d <= 0) return y + std::numbers::log2e_v<T> * std::log1p(std::exp2(d));
+    return d;
+  }
+};
+// Integers multiply modularly; complex uses NumPy's complex multiply.
+struct SquareF {
+  template <typename T> T operator()(T v) const noexcept { return kernels::mul<T>(v, v); }
+};
+struct CSquareF {
+  template <typename R> std::complex<R> operator()(std::complex<R> z) const noexcept { return kernels::cmul<R>(z, z); }
+};
+// Integer reciprocal is NumPy's 1.0 / x cast back (so 1 / 0 saturates like
+// the float -> int cast, and raises divide-by-zero).
+struct ReciprocalF {
+  template <typename T> T operator()(T v) const noexcept {
+    if constexpr (std::is_integral_v<T>) {
+      return float_to_int<T>(1.0 / static_cast<double>(v));
+    } else {
+      return T{1} / v;
+    }
+  }
+};
+struct CReciprocalF {
+  template <typename R> std::complex<R> operator()(std::complex<R> z) const noexcept {
+    return kernels::cdiv<R>(std::complex<R>{1, 0}, z);
+  }
+};
 #undef P04_STD_UN
 #undef P04_STD_BIN
 
@@ -78,6 +159,14 @@ LoopTypes d_float(DType, DType d) {
   return same(d);
 }
 
+// Integer-preserving unary (square, reciprocal): bool -> int8 (no bool loop).
+LoopTypes r_no_bool(DType a, DType) { return same(a == DType::Bool ? DType::Int8 : a); }
+template <const char* Name>
+LoopTypes d_not_bool(DType, DType d) {
+  if (d == DType::Bool) no_loop(Name);
+  return same(d);
+}
+
 using V = void;  // no complex loop
 
 #define P04_NAME(id, str) constexpr char id[] = str;
@@ -99,13 +188,23 @@ P04_NAME(kDeg2rad, "deg2rad")
 P04_NAME(kRad2deg, "rad2deg")
 P04_NAME(kRadians, "radians")
 P04_NAME(kDegrees, "degrees")
+P04_NAME(kExp2, "exp2")
+P04_NAME(kExpm1, "expm1")
+P04_NAME(kLog2, "log2")
+P04_NAME(kLog10, "log10")
+P04_NAME(kLog1p, "log1p")
+P04_NAME(kLogaddexp, "logaddexp")
+P04_NAME(kLogaddexp2, "logaddexp2")
+P04_NAME(kCbrt, "cbrt")
+P04_NAME(kSquare, "square")
+P04_NAME(kReciprocal, "reciprocal")
 #undef P04_NAME
 
 // Unary float ufunc with a complex loop sharing the same functor.
-template <const char* Name, typename F>
+template <const char* Name, typename F, typename CF = F>
 constexpr Ufunc float_c_unary() {
   return {Name, 1, std::nullopt, r_float_c, d_inexact<Name>, nullptr, {},
-          unary_table<F, Avail::FloatOnly, F>()};
+          unary_table<F, Avail::FloatOnly, CF>()};
 }
 template <const char* Name, typename F>
 constexpr Ufunc float_unary() {
@@ -138,6 +237,19 @@ constexpr std::array kTable{
     float_unary<kRad2deg, Rad2degF>(),
     float_unary<kRadians, Deg2radF>(),
     float_unary<kDegrees, Rad2degF>(),
+    // P4-2 exp / log
+    float_c_unary<kExp2, Exp2F, CExp2F>(),
+    float_c_unary<kExpm1, Expm1F, CExpm1F>(),
+    float_c_unary<kLog2, Log2F, CLog2F>(),
+    float_c_unary<kLog10, Log10F, CLog10F>(),
+    float_c_unary<kLog1p, Log1pF, CLog1pF>(),
+    float_binary<kLogaddexp, LogaddexpF>(-std::numeric_limits<double>::infinity()),
+    float_binary<kLogaddexp2, Logaddexp2F>(-std::numeric_limits<double>::infinity()),
+    float_unary<kCbrt, CbrtF>(),
+    Ufunc{kSquare, 1, std::nullopt, r_no_bool, d_not_bool<kSquare>, nullptr, {},
+          unary_table<SquareF, Avail::NotBool, CSquareF>()},
+    Ufunc{kReciprocal, 1, std::nullopt, r_no_bool, d_not_bool<kReciprocal>, nullptr, {},
+          unary_table<ReciprocalF, Avail::NotBool, CReciprocalF>()},
 };
 
 }  // namespace
