@@ -142,6 +142,112 @@ struct CRintF {
 struct IdentityF {
   template <typename T> T operator()(T v) const noexcept { return v; }
 };
+// P4-4 arithmetic.
+// C fmod: sign follows the dividend; integer x % 0 -> 0 (+ divide-by-zero).
+struct FmodF {
+  template <typename T> T operator()(T a, T b) const noexcept {
+    if constexpr (std::is_same_v<T, bool>) {
+      return a && !b;  // unreachable: bool inputs use the int8 loop
+    } else if constexpr (std::is_integral_v<T>) {
+      if (b == 0) {
+        raise_fp_divbyzero();
+        return 0;
+      }
+      if constexpr (std::is_signed_v<T>) {
+        if (b == -1) return 0;
+      }
+      return static_cast<T>(a % b);
+    } else {
+      return std::fmod(a, b);
+    }
+  }
+};
+struct FloatPowerF {
+  template <typename T> T operator()(T a, T b) const noexcept { return std::pow(a, b); }
+};
+struct CFloatPowerF {
+  template <typename R> std::complex<R> operator()(std::complex<R> a, std::complex<R> b) const noexcept {
+    return kernels::cpow<R>(a, b);
+  }
+};
+// NumPy sign: -1/0/1, NaN stays NaN (and -0 gives +0).
+struct SignF {
+  template <typename T> T operator()(T v) const noexcept {
+    if constexpr (std::is_unsigned_v<T>) {
+      return v > 0 ? T{1} : T{0};
+    } else if constexpr (std::is_integral_v<T>) {
+      return v > 0 ? T{1} : (v < 0 ? T{-1} : T{0});
+    } else {
+      return v > 0 ? T{1} : (v < 0 ? T{-1} : (v == 0 ? T{0} : v));
+    }
+  }
+};
+// NumPy 2 complex sign: z / |z| with the CDOUBLE_sign special cases.
+struct CSignF {
+  template <typename R> std::complex<R> operator()(std::complex<R> z) const noexcept {
+    const R re = z.real(), im = z.imag();
+    const R a = std::hypot(re, im);
+    const R nan = std::numeric_limits<R>::quiet_NaN();
+    if (std::isnan(a)) return {nan, nan};
+    if (std::isinf(a)) {
+      if (std::isinf(re)) {
+        if (std::isinf(im)) return {nan, nan};
+        return {std::copysign(R{1}, re), R{0}};
+      }
+      return {R{0}, std::copysign(R{1}, im)};
+    }
+    if (a == R{0}) return {R{0}, R{0}};
+    return {re / a, im / a};
+  }
+};
+struct HeavisideF {
+  template <typename T> T operator()(T x, T h0) const noexcept {
+    if (std::isnan(x)) return x;
+    if (x == 0) return h0;
+    return x < 0 ? T{0} : T{1};
+  }
+};
+// maximum/minimum propagate NaN; fmax/fmin ignore it. Signed zeros: max
+// prefers +0, min prefers -0 (NumPy's SIMD loops).
+template <bool Max, bool PropagateNan>
+struct ExtremumF {
+  template <typename T> T operator()(T a, T b) const noexcept {
+    if constexpr (std::is_same_v<T, bool>) {
+      return Max ? (a || b) : (a && b);
+    } else if constexpr (std::is_integral_v<T>) {
+      return Max ? (a >= b ? a : b) : (a <= b ? a : b);
+    } else {
+      if (std::isnan(a)) return PropagateNan ? a : b;
+      if (std::isnan(b)) return PropagateNan ? b : a;
+      if (a == b) return (std::signbit(a) == Max) ? b : a;
+      return Max ? (a > b ? a : b) : (a < b ? a : b);
+    }
+  }
+};
+// Complex: lexicographic order (NumPy CGE/CLE), NaN rules as for floats.
+template <bool Max, bool PropagateNan>
+struct CExtremumF {
+  template <typename R> std::complex<R> operator()(std::complex<R> a, std::complex<R> b) const noexcept {
+    const auto has_nan = [](std::complex<R> z) { return std::isnan(z.real()) || std::isnan(z.imag()); };
+    const auto ge = [](std::complex<R> x, std::complex<R> y) {
+      return (x.real() > y.real() && !std::isnan(x.imag()) && !std::isnan(y.imag())) ||
+             (x.real() == y.real() && x.imag() >= y.imag());
+    };
+    const auto le = [](std::complex<R> x, std::complex<R> y) {
+      return (x.real() < y.real() && !std::isnan(x.imag()) && !std::isnan(y.imag())) ||
+             (x.real() == y.real() && x.imag() <= y.imag());
+    };
+    const bool keep_a = Max ? ge(a, b) : le(a, b);
+    if constexpr (PropagateNan) {
+      return (has_nan(a) || keep_a) ? a : b;
+    } else {
+      return (has_nan(b) || keep_a) ? a : b;
+    }
+  }
+};
+struct FabsF {
+  template <typename T> T operator()(T v) const noexcept { return std::fabs(v); }
+};
 #undef P04_STD_UN
 #undef P04_STD_BIN
 
@@ -210,6 +316,31 @@ LoopTypes d_real(DType, DType d) {
   return same(d);
 }
 
+// fmod: NumPy loops are integer and float (bool -> int8), no complex.
+template <const char* Name>
+LoopTypes r_int_float(DType a, DType b) {
+  const DType p = promote_types(a, b);
+  if (is_complex(p)) bad_loop(Name, p);
+  return same(p == DType::Bool ? DType::Int8 : p);
+}
+template <const char* Name>
+LoopTypes d_int_float(DType, DType d) {
+  if (d == DType::Bool || is_complex(d)) no_loop(Name);
+  return same(d);
+}
+// float_power: only float64 and complex128 loops.
+LoopTypes r_float_power(DType a, DType b) {
+  return same(is_complex(promote_types(a, b)) ? DType::Complex128 : DType::Float64);
+}
+template <const char* Name>
+LoopTypes d_float_power(DType, DType d) {
+  if (d != DType::Float64 && d != DType::Complex128) no_loop(Name);
+  return same(d);
+}
+// maximum/minimum/fmax/fmin: every dtype, plain promotion.
+LoopTypes r_promote(DType a, DType b) { return same(promote_types(a, b)); }
+LoopTypes d_any(DType, DType d) { return same(d); }
+
 using V = void;  // no complex loop
 
 #define P04_NAME(id, str) constexpr char id[] = str;
@@ -246,6 +377,15 @@ P04_NAME(kCeil, "ceil")
 P04_NAME(kTrunc, "trunc")
 P04_NAME(kRint, "rint")
 P04_NAME(kPositive, "positive")
+P04_NAME(kFmod, "fmod")
+P04_NAME(kFloatPower, "float_power")
+P04_NAME(kSign, "sign")
+P04_NAME(kHeaviside, "heaviside")
+P04_NAME(kMaximum, "maximum")
+P04_NAME(kMinimum, "minimum")
+P04_NAME(kFmax, "fmax")
+P04_NAME(kFmin, "fmin")
+P04_NAME(kFabs, "fabs")
 #undef P04_NAME
 
 // Unary float ufunc with a complex loop sharing the same functor.
@@ -311,6 +451,22 @@ constexpr std::array kTable{
     // P4-4 arithmetic
     Ufunc{kPositive, 1, std::nullopt, r_no_bool_strict<kPositive>, d_not_bool<kPositive>, nullptr, {},
           unary_table<IdentityF, Avail::NotBool, IdentityF>()},
+    Ufunc{kSign, 1, std::nullopt, r_no_bool_strict<kSign>, d_not_bool<kSign>, nullptr, {},
+          unary_table<SignF, Avail::NotBool, CSignF>()},
+    float_unary<kFabs, FabsF>(),
+    Ufunc{kFmod, 2, std::nullopt, r_int_float<kFmod>, d_int_float<kFmod>, nullptr,
+          binary_table<FmodF, Avail::NotBool, V>(), {}},
+    Ufunc{kFloatPower, 2, std::nullopt, r_float_power, d_float_power<kFloatPower>, nullptr,
+          binary_table<FloatPowerF, Avail::FloatOnly, CFloatPowerF>(), {}},
+    float_binary<kHeaviside, HeavisideF>(),
+    Ufunc{kMaximum, 2, std::nullopt, r_promote, d_any, nullptr,
+          binary_table<ExtremumF<true, true>, Avail::All, CExtremumF<true, true>>(), {}},
+    Ufunc{kMinimum, 2, std::nullopt, r_promote, d_any, nullptr,
+          binary_table<ExtremumF<false, true>, Avail::All, CExtremumF<false, true>>(), {}},
+    Ufunc{kFmax, 2, std::nullopt, r_promote, d_any, nullptr,
+          binary_table<ExtremumF<true, false>, Avail::All, CExtremumF<true, false>>(), {}},
+    Ufunc{kFmin, 2, std::nullopt, r_promote, d_any, nullptr,
+          binary_table<ExtremumF<false, false>, Avail::All, CExtremumF<false, false>>(), {}},
 };
 
 }  // namespace

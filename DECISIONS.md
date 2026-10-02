@@ -1563,3 +1563,21 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `np.fix` is `np.trunc` (NumPy 2.5 deprecates `fix` in favour of `trunc` and
   returns the same values and dtypes).
 - `positive` has no bool loop (NumPy raises `UFuncTypeError`; numera `DTypeError`).
+
+## D-072 — P4 arithmetic: aliases, clip, extrema — Accepted — 2026-10-02
+- `remainder`, `trueDivide`, `pow`, `absolute` are the existing `mod`,
+  `divide`, `power`, `abs` objects (NumPy aliases), so `np.remainder === np.mod`.
+- New registry rows: `fmod` (C remainder; integer `x % 0` → 0 with the
+  divide-by-zero FP flag, `MIN % -1` → 0), `float_power` (float64/complex128
+  loops only), `sign` (NaN → NaN; complex `z/|z|` with NumPy 2's special
+  cases; no bool loop), `heaviside`, `fabs`, `maximum minimum fmax fmin`
+  (all dtypes incl. bool and complex lexicographic order; `maximum`/`minimum`
+  propagate NaN, `f*` ignore it; signed zeros: max → +0, min → −0).
+  NumPy gives `maximum`/`minimum` no identity, so their `.reduce` on empty
+  input raises, as in NumPy.
+- `np.clip(a, min?, max?, { out })` and `a.clip` compose `minimum(maximum(a,
+  min), max)` like NumPy's `_clip` (NaN propagates; `min > max` → `max`;
+  both bounds omitted → `positive(a)`, which raises for bool like NumPy).
+  NumPy's dedicated `clip` ufunc (and its `out`/`where` keywords beyond `out`)
+  is not exposed as a ufunc object.
+- `a.conjugate()` is added by declaration merging (same as `a.conj()`).

@@ -116,6 +116,58 @@ np.array([3.14159]).round(3); // => [3.142]`,
         returns: "NDArray",
         example: `np.positive([-3, 2]); // => [-3, 2]`,
       },
+      {
+        name: "fmod",
+        sig: "np.fmod(a, b, opts?) · np.remainder (alias of np.mod) · np.trueDivide (alias of np.divide) · np.pow (alias of np.power) · np.absolute (alias of np.abs)",
+        desc: "`fmod` is the C remainder: the result takes the sign of the dividend (unlike `mod`/`remainder`, which follow the divisor). Integer `x % 0` is 0. The aliases are the same objects as the original ufuncs.",
+        args: [arrayArg("a"), arrayArg("b"), ufuncOpts],
+        returns: "NDArray",
+        example: `np.fmod([-7, 7], 3);       // => [-1, 1]
+np.remainder([-7, 7], 3);  // => [2, 1]
+np.pow === np.power;       // => true`,
+      },
+      {
+        name: "floatPower",
+        sig: "np.floatPower(a, b, opts?)",
+        desc: "Element-wise `a ** b` computed in `float64` (or `complex128`), so integer inputs can take negative exponents.",
+        args: [arrayArg("a"), arrayArg("b"), ufuncOpts],
+        returns: "NDArray",
+        example: `np.floatPower([2, 3], 2);  // => [4, 9]
+np.floatPower([2], -1);    // => [0.5]`,
+      },
+      {
+        name: "sign",
+        sig: "np.sign(x, opts?) · np.heaviside(x, h0, opts?) · np.fabs(x, opts?)",
+        desc: "`sign` gives -1, 0 or 1 (NaN stays NaN; complex `z/|z|`). `heaviside` is 0 for `x < 0`, `h0` at 0 and 1 for `x > 0`. `fabs` is the float-only absolute value.",
+        args: [arrayArg("x"), ufuncOpts],
+        returns: "NDArray",
+        example: `np.sign([-2, 0, 3]);            // => [-1, 0, 1]
+np.heaviside([-1, 0, 2], 0.5);  // => [0, 0.5, 1]
+np.fabs([-1.5]);                // => [1.5]`,
+      },
+      {
+        name: "maximum",
+        sig: "np.maximum(a, b, opts?) · np.minimum · np.fmax · np.fmin",
+        desc: "Element-wise maximum/minimum. `maximum`/`minimum` propagate NaN; `fmax`/`fmin` return the non-NaN operand. Use `.reduce` for an axis-wise max without an identity.",
+        args: [arrayArg("a"), arrayArg("b"), ufuncOpts],
+        returns: "NDArray",
+        example: `np.maximum([1, 5], [3, 2]);      // => [3, 5]
+np.minimum([NaN, 1], [0, 0]).toArray()[1]; // => 0
+np.fmax([NaN, 1], [0, 0]);       // => [0, 1]
+np.fmin([NaN, 1], [0, 0]);       // => [0, 0]
+np.maximum.reduce([3, 9, 2]).toArray(); // => 9`,
+      },
+      {
+        name: "clip",
+        sig: "np.clip(a, min?, max?, { out? }) · a.clip(min?, max?)",
+        desc: "Limit values to `[min, max]`; `null` skips a side. Computed as `minimum(maximum(a, min), max)` like NumPy, so NaN propagates and `min > max` gives `max`. Also adds `a.conjugate()` (complex conjugate).",
+        args: [arrayArg(), arrayArg("min"), arrayArg("max")],
+        returns: "NDArray",
+        example: `np.clip([1, 5, 9], 2, 6);        // => [2, 5, 6]
+np.clip([1, 5, 9], null, 4);     // => [1, 4, 4]
+np.array([1, 5, 9]).clip(4);     // => [4, 5, 9]
+np.array([1, 2]).conjugate();    // => [1, 2]`,
+      },
     ],
   },
 ];

@@ -156,3 +156,56 @@ TEST_CASE("p04 rounding: floor ceil trunc rint") {
   CHECK_EQ(un("positive", vec_i({-3}, DType::Int8)).get_int64(0), std::int64_t{-3});
   CHECK_THROWS_KIND(un("positive", vec_i({1}, DType::Bool)), ErrorKind::DType);
 }
+
+TEST_CASE("p04 arithmetic: fmod, float_power, sign, heaviside") {
+  const NDArray f = bin("fmod", vec_i({-7, 7, -128, 5}, DType::Int8), vec_i({3, -3, -1, 0}, DType::Int8));
+  CHECK(f.dtype() == DType::Int8);
+  const std::int64_t ef[] = {-1, 1, 0, 0};
+  for (int i = 0; i < 4; ++i) CHECK_EQ(f.get_int64(i), ef[i]);
+  const NDArray ff = bin("fmod", vec_d({-7.5, 7.5}), vec_d({2.0, -2.0}));
+  CHECK_EQ(ff.get_double(0), -1.5);
+  CHECK_EQ(ff.get_double(1), 1.5);
+  CHECK(bin("fmod", vec_i({1}, DType::Bool), vec_i({1}, DType::Bool)).dtype() == DType::Int8);
+  CHECK(bin("float_power", vec_i({2}, DType::Int8), vec_i({3}, DType::Int8)).dtype() == DType::Float64);
+  CHECK(bin("float_power", vec_d({2}, DType::Float32), vec_d({3}, DType::Float32)).dtype() == DType::Float64);
+  CHECK(bin("float_power", NDArray::empty({1}, DType::Complex64), vec_d({1})).dtype() == DType::Complex128);
+  const NDArray s = un("sign", vec_d({-2.0, -0.0, 3.0, std::nan("")}));
+  CHECK_EQ(s.get_double(0), -1.0);
+  CHECK(s.get_double(1) == 0.0 && !std::signbit(s.get_double(1)));
+  CHECK_EQ(s.get_double(2), 1.0);
+  CHECK(std::isnan(s.get_double(3)));
+  CHECK_EQ(un("sign", vec_i({-5}, DType::Int16)).get_int64(0), std::int64_t{-1});
+  CHECK_THROWS_KIND(un("sign", vec_i({1}, DType::Bool)), ErrorKind::DType);
+  NDArray z = NDArray::empty({1}, DType::Complex128);
+  store(z.data(), std::complex<double>(3.0, 4.0));
+  const auto sz = load<std::complex<double>>(un("sign", z).data());
+  CHECK(near(sz.real(), 0.6) && near(sz.imag(), 0.8));
+  const NDArray h = bin("heaviside", vec_d({-1.0, 0.0, 2.0}), vec_d({0.5}));
+  CHECK_EQ(h.get_double(0), 0.0);
+  CHECK_EQ(h.get_double(1), 0.5);
+  CHECK_EQ(h.get_double(2), 1.0);
+  CHECK(un("fabs", vec_i({-1}, DType::Int8)).dtype() == DType::Float16);
+}
+
+TEST_CASE("p04 arithmetic: maximum minimum fmax fmin") {
+  const double nan = std::nan("");
+  const NDArray a = vec_d({nan, 1.0, -0.0, 0.0});
+  const NDArray b = vec_d({1.0, nan, 0.0, -0.0});
+  const NDArray mx = bin("maximum", a, b), mn = bin("minimum", a, b);
+  const NDArray fx = bin("fmax", a, b), fn_ = bin("fmin", a, b);
+  CHECK(std::isnan(mx.get_double(0)) && std::isnan(mx.get_double(1)));
+  CHECK(std::isnan(mn.get_double(0)) && std::isnan(mn.get_double(1)));
+  CHECK_EQ(fx.get_double(0), 1.0);
+  CHECK_EQ(fn_.get_double(1), 1.0);
+  CHECK(!std::signbit(mx.get_double(2)) && !std::signbit(mx.get_double(3)));
+  CHECK(std::signbit(mn.get_double(2)) && std::signbit(mn.get_double(3)));
+  const NDArray bi = bin("maximum", vec_i({1, 0}, DType::Bool), vec_i({0, 0}, DType::Bool));
+  CHECK(bi.dtype() == DType::Bool);
+  CHECK_EQ(bi.get_int64(0), std::int64_t{1});
+  CHECK(bin("minimum", vec_i({1}, DType::Int8), vec_i({1}, DType::UInt8)).dtype() == DType::Int16);
+  NDArray z = NDArray::empty({1}, DType::Complex128), w = NDArray::empty({1}, DType::Complex128);
+  store(z.data(), std::complex<double>(1.0, 2.0));
+  store(w.data(), std::complex<double>(1.0, 3.0));
+  CHECK(load<std::complex<double>>(bin("maximum", z, w).data()) == std::complex<double>(1.0, 3.0));
+  CHECK(load<std::complex<double>>(bin("fmin", z, w).data()) == std::complex<double>(1.0, 2.0));
+}
