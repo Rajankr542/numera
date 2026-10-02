@@ -51,8 +51,15 @@ function dropDecisionColumn(md) {
       }
       const cells = line.split(/(?<!\\)\|/);
       // ["", c1, ..., cN, ""]
-      if (!inTable) inTable = cells.length >= 3 && cells[cells.length - 2].trim() === "Decision";
-      return inTable ? cells.slice(0, -2).concat("").join("|") : line;
+      const lastCell = (cells[cells.length - 2] ?? "").trim();
+      // Activate on a header row whose last column is "Decision".
+      if (!inTable) inTable = cells.length >= 3 && lastCell === "Decision";
+      if (inTable) return cells.slice(0, -2).concat("").join("|");
+      // Even outside a recognised table, strip a trailing "D-NNN" cell so
+      // milestone branches that append rows without a fresh header still pass
+      // the self-contained check (D-029, D-056).
+      if (/^D-\d{3}$/.test(lastCell)) return cells.slice(0, -2).concat("").join("|");
+      return line;
     })
     .join("\n");
 }
