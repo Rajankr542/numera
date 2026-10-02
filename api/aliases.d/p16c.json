@@ -1,0 +1,8 @@
+{
+  "_doc": "P16C aliases: numpy name -> numera export (D-210)",
+  "strings.str_len": "strings.str_len",
+  "strings.slice": "strings.slice",
+  "char.str_len": "char.str_len",
+  "char.slice": "char.slice",
+  "char.compare_chararrays": "char.compare_chararrays"
+}

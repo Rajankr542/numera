@@ -2397,3 +2397,61 @@ File ownership: each branch owns `packages/numera/src/p16[abcde]*.ts`,
 `api/aliases.d/p16[abcde].json`, `api/exclusions.d/p16[abcde].json`,
 `docs/plan/slices/p16[abcde].md`. P16-B also owns `packages/numera/src/ma.ts`.
 Append-only: DECISIONS.md, PROGRESS.md, COMPATIBILITY.md.
+
+## D-210 — P16-C StringArray: JS-string object-array representation — Accepted — 2026-10-02
+
+`np.strings` and `np.char` operate on arrays of strings. Rather than adding a
+new C++ DType (which would require touching the native dtype registry, all
+ufunc loops, `toArray`, `toTypedArray`, etc.), P16-C uses a pure-TypeScript
+`StringArray` class that holds strings in a flat JS `string[]` plus a `shape`
+number array. This is intentionally analogous to how NDArray holds numeric data
+in a native buffer.
+
+- `StringArray` is the public return type for all string-valued `np.strings`
+  operations. It is not an `NDArray` subclass; it does not participate in the
+  numeric ufunc machinery.
+- `StringArray` implements: `shape`, `ndim`, `size`, `dtype` (returns
+  `"str_"` or `"bytes_"` string), `flat` (iterator over elements),
+  `toArray()` (returns nested JS string arrays matching shape), `toString()`,
+  and all string operation methods.
+- Module-level functions in `np.strings` accept `StringArray | string[] |
+  readonly string[]` (treated as 1-D) or nested string arrays as input.
+  They return `StringArray` for string results and `NDArray` (bool or int64)
+  for comparisons and numeric results.
+- `np.char` is an alias namespace exposing the same functions (NumPy `np.char`
+  is deprecated but widely used). `np.char.array(data)` constructs a
+  `StringArray` from a nested JS string array.
+- Performance: string operations are inherently O(string-length × array-size)
+  and JS string primitives are already fast enough for typical workloads
+  (benchmarks deferred to V phase per build-first policy).
+
+## D-211 — P16-C np.strings surface (46 names) — Accepted — 2026-10-02
+
+All 46 `np.strings` names are implemented in `packages/numera/src/p16c.ts`.
+The `strings` sub-object is exposed as `np.strings` (not spread into `np`
+itself, matching NumPy's `np.strings.add(...)` calling convention).
+
+## D-212 — P16-C np.char surface (52 names) — Accepted — 2026-10-02
+
+`np.char` mirrors `np.strings` for the 46 shared names and adds `array`,
+`asarray`, `join`, `slice`, and `compare_chararrays`. The names `bytes_`,
+`str_`, `character`, `chararray`, `ndarray`, `narray`, `asnarray`,
+`array_function_dispatch`, `set_module`, and `strings_multiply/partition/
+rpartition` are excluded (implementation internals or class objects not
+meaningful in JS — see `api/exclusions.d/p16c.json`).
+
+## D-213 — P16-C divergences — Accepted — 2026-10-02
+
+- `encode` / `decode`: NumPy encodes/decodes bytes_ arrays using Python codec
+  names. In JS there is no equivalent bytes_ DType; `encode` and `decode` are
+  implemented as identity stubs that return the input StringArray unchanged and
+  emit a runtime warning. This is recorded in COMPATIBILITY.md.
+- `mod` (`%`-formatting): NumPy's `np.strings.mod` applies Python `%`-style
+  formatting. numera implements it with JS template-literal-style `%s/%d/%f`
+  substitution (sufficient for the common case). Differences for `%r`, `%c`,
+  `%x`, etc. are documented.
+- `translate`: NumPy's `str.translate(table)` takes a mapping of Unicode
+  ordinals. numera implements it with a JS Map<string, string> (character →
+  replacement); `null` values delete characters. This is compatible for the
+  common ASCII subset but not for 32-bit code-point mappings. Documented
+  divergence.

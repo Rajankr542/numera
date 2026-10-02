@@ -256,3 +256,7 @@ listed in "Documented divergences" (D-140, D-141).
 | `kaiser` window | NumPy i0 | same Chebyshev coefficients, may differ by 1 ulp (libm) | D-172 |
 | poly1d operators | `p(x) p+q p*q p/q p**n p[k]` | methods `call add mul div pow get/set` | D-173 |
 | `polyfit` rank warning | `RankWarning` class | Node warning named `RankWarning` | D-173 |
+| `np.strings.encode(a, encoding)` | encodes str_ to bytes_ with given codec | identity stub — no bytes_ DType in JS; returns input unchanged | D-213 |
+| `np.strings.decode(a, encoding)` | decodes bytes_ to str_ with given codec | identity stub — returns input unchanged | D-213 |
+| `np.strings.mod(a, values)` | full Python `%`-format (all conversion types) | subset only: `%s %d %i %o %u %x %X %e %E %f %F %g %G %%` | D-213 |
+| `np.strings.translate(a, table)` | `table` is dict keyed by ordinal (`int`) | `table` is `Map<string, string\|null>` (char→char/null) — ASCII-compatible only | D-213 |
