@@ -1,9 +1,9 @@
 {
  "numpy_version": "2.5.3",
  "totals": {
-  "implemented": 338,
+  "implemented": 346,
   "total": 1060,
-  "coverage": 31.9
+  "coverage": 32.6
  },
  "surfaces": {
   "Generator": {
@@ -174,19 +174,10 @@
   },
   "fft": {
    "total": 18,
-   "implemented": 10,
-   "coverage": 55.6,
+   "implemented": 18,
+   "coverage": 100,
    "excluded": 1,
-   "missing": [
-    "fftshift",
-    "hfft",
-    "ifftshift",
-    "ihfft",
-    "irfft2",
-    "irfftn",
-    "rfft2",
-    "rfftn"
-   ]
+   "missing": []
   },
   "linalg": {
    "total": 32,
@@ -843,6 +834,14 @@
  },
  "aliasErrors": [],
  "unbenchmarked": [
+  "fft.fftshift [nativpy] [numpy]",
+  "fft.hfft [nativpy] [numpy]",
+  "fft.ifftshift [nativpy] [numpy]",
+  "fft.ihfft [nativpy] [numpy]",
+  "fft.irfft2 [nativpy] [numpy]",
+  "fft.irfftn [nativpy] [numpy]",
+  "fft.rfft2 [nativpy] [numpy]",
+  "fft.rfftn [nativpy] [numpy]",
   "ndarray.all [nativpy] [numpy]",
   "ndarray.any [nativpy] [numpy]",
   "ndarray.argpartition [nativpy] [numpy]",
