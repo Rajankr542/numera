@@ -129,3 +129,25 @@ cases come in the V phase.
 | `putAlongAxis(..., axis=null)` on a non-contiguous array | raises (writes to a read-only copy) | writes through in flat C order | D-110 |
 | `piecewise` callbacks | Python callables | JS callbacks on `x[cond]` | D-110 |
 | `nested_iters` | iterator objects | excluded (api/exclusions.json) | D-110 |
+
+## P10 statistics & NaN-reductions (build-first, not yet differential-verified)
+Implemented natively: `median`, `percentile`, `quantile`,
+`nanmedian`, `nanpercentile`, `nanquantile`, `cumsum`, `cumprod`,
+`cumulativeSum`, `cumulativeProd`, `nancumsum`, `nancumprod`, `diff`, `ptp`,
+`nansum`, `nanprod`, `nanmean`, `nanvar`, `nanstd`, `nanmin`, `nanmax`,
+`nanargmin`, `nanargmax`, `average`, `cov`, `corrcoef`, `gradient`,
+`trapezoid`, `histogram`, `histogramBinEdges`, `histogram2d`, `histogramdd`,
+`bincount`, `digitize`, `interp`, `correlate`, `convolve`, and `where=`/`out=`
+for `np.sum/prod/min/max/mean/var/std`. NumPy differential cases and benchmarks
+come in the V phase.
+
+| Feature | NumPy | numera | Decision |
+|---------|-------|--------|----------|
+| `histogram` rightmost bin | half-open `[edge, +∞)` → closed on right | closed on both sides for the last bin; matches NumPy exactly | D-138 |
+| `bincount([])` | `zeros(0, int64)` | `zeros(0, int64)` (empty input is safe; no error) | D-138 |
+| `histogram` with identical range endpoints (`range=[v,v]`) | `RuntimeWarning`, all counts 0 | `ValueError` (zero-width range is never meaningful) | D-138 |
+| `convolve([], [])` | `array([], dtype=float64)` | `array([], dtype=float64)` — matches | D-135 |
+| `np.min/max` with `where=` and no `initial=` | `ValueError` | `ValueError` (same) | D-136 |
+| `where=` masked-out elements in reduction output | uninitialized | zero | D-136 |
+| `nanargmin`/`nanargmax` on all-NaN slice | `ValueError` | `ValueError` (same) | D-133 |
+| `quantile` `method='inverted_cdf'` with `weights=` | supported in NumPy ≥ 2.0 | supported | D-130 |
