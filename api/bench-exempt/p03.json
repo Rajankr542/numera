@@ -4,5 +4,11 @@
  "ndarray.setflags [nativpy] [numpy]",
  "ndarray.tobytes [nativpy]",
  "ndarray.tolist [nativpy]",
- "ndarray.view [nativpy] [numpy]"
+ "ndarray.view [nativpy] [numpy]",
+ "np.common_type [nativpy] [numpy]",
+ "np.isdtype [nativpy] [numpy]",
+ "np.issubdtype [nativpy] [numpy]",
+ "np.min_scalar_type [nativpy] [numpy]",
+ "np.mintypecode [nativpy] [numpy]",
+ "np.result_type [nativpy] [numpy]"
 ]

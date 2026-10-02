@@ -125,4 +125,138 @@ const it = np.nditer([np.array([[1], [2]]), np.array([10, 20])]);
       },
     ],
   },
+  {
+    id: "dtype",
+    entries: [
+      {
+        name: "finfo",
+        sig: "np.finfo(dtype | array)",
+        desc: "Machine limits of a float dtype (complex: of its component). Fields as NumPy in camelCase: `bits, eps, epsneg, max, min, tiny, smallestNormal, smallestSubnormal, resolution, precision, iexp, nexp, nmant, machep, negep, minexp, maxexp, dtype`. Values are JS numbers holding the dtype's value. Non-float dtypes raise `ValueError`.",
+        returns: "FInfo",
+        example: `np.finfo("float16").max;  // => 65504
+np.finfo("float32").nmant; // => 23
+np.finfo("float64").eps;   // => 2.220446049250313e-16`,
+      },
+      {
+        name: "iinfo",
+        sig: "np.iinfo(dtype | array)",
+        desc: "Limits of an integer dtype: `bits, min, max, dtype, kind`; `min`/`max` are numbers (lossy beyond 2^53) and `minExact`/`maxExact` exact bigints. Non-integer dtypes raise `ValueError`.",
+        returns: "IInfo",
+        example: `np.iinfo("int8").min;   // => -128
+np.iinfo("uint16").max; // => 65535
+np.iinfo("uint64").maxExact === 18446744073709551615n; // => true`,
+      },
+      {
+        name: "resultType",
+        sig: "np.resultType(...arraysAndDtypes)",
+        desc: "The dtype NumPy's type promotion gives. DTypes, dtype names and arrays are promoted with `promoteTypes`; JS scalars are weak (NEP 50): they can raise the kind (int → float → complex) but not the size.",
+        returns: "DType",
+        example: `np.resultType("int8", 300).name;          // => "int8"
+np.resultType("int8", 1.5).name;          // => "float64"
+np.resultType("float32", np.complex(0, 1)).name; // => "complex64"
+np.resultType("int8", "uint8").name;      // => "int16"`,
+      },
+      {
+        name: "minScalarType",
+        sig: "np.minScalarType(x)",
+        desc: "The smallest dtype that holds the value of a JS scalar or a 0-d array (unsigned integers preferred for non-negative values; floats sized by NumPy's thresholds). Arrays with `ndim > 0` return their dtype. JS numbers count as integers only when they are safe integers; use a bigint beyond 2^53.",
+        returns: "DType",
+        example: `np.minScalarType(10).name;   // => "uint8"
+np.minScalarType(-129).name; // => "int16"
+np.minScalarType(3.1).name;  // => "float16"
+np.minScalarType(1e50).name; // => "float64"`,
+      },
+      {
+        name: "issubdtype",
+        sig: "np.issubdtype(a, b)",
+        desc: "Whether `a` is `b` (concrete dtype) or descends from the abstract dtype `b` (`np.generic`, `np.number`, `np.integer`, `np.signedinteger`, `np.unsignedinteger`, `np.inexact`, `np.floating`, `np.complexfloating`).",
+        returns: "boolean",
+        example: `np.issubdtype("float32", np.floating); // => true
+np.issubdtype("bool", np.integer);     // => false
+np.issubdtype("int8", "int16");        // => false`,
+      },
+      {
+        name: "isdtype",
+        sig: "np.isdtype(dtype, kind)",
+        desc: "Array API dtype test. `kind` is a DType, one of `\"bool\"`, `\"signed integer\"`, `\"unsigned integer\"`, `\"integral\"`, `\"real floating\"`, `\"complex floating\"`, `\"numeric\"`, or an array of these. `dtype` must be a DType object.",
+        returns: "boolean",
+        example: `np.isdtype(np.float64, "real floating");          // => true
+np.isdtype(np.int8, ["bool", "unsigned integer"]); // => false
+np.isdtype(np.bool, "numeric");                    // => false`,
+      },
+      {
+        name: "commonType",
+        sig: "np.commonType(...arrays)",
+        desc: "The float or complex dtype all inputs convert to (integers count as float64; bool raises `DTypeError`). NumPy returns a scalar type; this returns a DType.",
+        returns: "DType",
+        example: `np.commonType(np.arange(3)).name; // => "float64"
+np.commonType(np.zeros([1], { dtype: "float32" }), np.zeros([1], { dtype: "complex64" })).name; // => "complex64"`,
+      },
+      {
+        name: "mintypecode",
+        sig: "np.mintypecode(typechars, typeset = \"GDFgdf\", default = \"d\")",
+        desc: "NumPy's smallest-size type character from `typeset` among `typechars` (a string of type characters or a list of characters, DTypes or arrays). `F` with `d` gives `D`.",
+        returns: "string",
+        example: `np.mintypecode(["d", "f"]); // => "d"
+np.mintypecode("dF");       // => "D"
+np.mintypecode("i");        // => "d"`,
+      },
+      {
+        name: "generic",
+        sig: "np.generic",
+        desc: "Abstract dtype (NumPy's scalar type hierarchy, parent: `null`), for `issubdtype`. Not usable as an array dtype.",
+        returns: "AbstractDType",
+        example: `np.issubdtype("float32", np.generic); // => true`,
+      },
+      {
+        name: "number",
+        sig: "np.number",
+        desc: "Abstract dtype (NumPy's scalar type hierarchy, parent: `generic`), for `issubdtype`. Not usable as an array dtype.",
+        returns: "AbstractDType",
+        example: `np.issubdtype("float32", np.number); // => true`,
+      },
+      {
+        name: "integer",
+        sig: "np.integer",
+        desc: "Abstract dtype (NumPy's scalar type hierarchy, parent: `number`), for `issubdtype`. Not usable as an array dtype.",
+        returns: "AbstractDType",
+        example: `np.issubdtype("float32", np.integer); // => false`,
+      },
+      {
+        name: "signedinteger",
+        sig: "np.signedinteger",
+        desc: "Abstract dtype (NumPy's scalar type hierarchy, parent: `integer`), for `issubdtype`. Not usable as an array dtype.",
+        returns: "AbstractDType",
+        example: `np.issubdtype("float32", np.signedinteger); // => false`,
+      },
+      {
+        name: "unsignedinteger",
+        sig: "np.unsignedinteger",
+        desc: "Abstract dtype (NumPy's scalar type hierarchy, parent: `integer`), for `issubdtype`. Not usable as an array dtype.",
+        returns: "AbstractDType",
+        example: `np.issubdtype("float32", np.unsignedinteger); // => false`,
+      },
+      {
+        name: "inexact",
+        sig: "np.inexact",
+        desc: "Abstract dtype (NumPy's scalar type hierarchy, parent: `number`), for `issubdtype`. Not usable as an array dtype.",
+        returns: "AbstractDType",
+        example: `np.issubdtype("float32", np.inexact); // => true`,
+      },
+      {
+        name: "floating",
+        sig: "np.floating",
+        desc: "Abstract dtype (NumPy's scalar type hierarchy, parent: `inexact`), for `issubdtype`. Not usable as an array dtype.",
+        returns: "AbstractDType",
+        example: `np.issubdtype("float32", np.floating); // => true`,
+      },
+      {
+        name: "complexfloating",
+        sig: "np.complexfloating",
+        desc: "Abstract dtype (NumPy's scalar type hierarchy, parent: `inexact`), for `issubdtype`. Not usable as an array dtype.",
+        returns: "AbstractDType",
+        example: `np.issubdtype("float32", np.complexfloating); // => false`,
+      },
+    ],
+  },
 ];

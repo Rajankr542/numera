@@ -2,6 +2,7 @@
 
 #include "binding_utils.hpp"
 #include "milestone_bindings.hpp"
+#include "p03_dtypes.hpp"
 #include "p03_iter.hpp"
 #include "p03_methods.hpp"
 #include "shape_ops.hpp"
@@ -64,6 +65,42 @@ void init_p03_binding(Napi::Env env, Napi::Object exports) {
           out.Set("axes", axes);
           out.Set("flipped", flipped);
           return out;
+        }));
+
+  // ---- P3-4 dtype introspection (D-062) ----
+  m.Set("finfo", fn(env, "finfo", [](Info i, Napi::Env e) -> Napi::Value {
+          const FloatInfo f = float_info(parse_dtype(i[0]));
+          Napi::Object o = Napi::Object::New(e);
+          const auto num = [&](const char* k, double v) { o.Set(k, Napi::Number::New(e, v)); };
+          o.Set("dtype", Napi::String::New(e, std::string(dtype_name(f.dtype))));
+          num("bits", f.bits);
+          num("precision", f.precision);
+          num("iexp", f.iexp);
+          num("nexp", f.nexp);
+          num("nmant", f.nmant);
+          num("machep", f.machep);
+          num("negep", f.negep);
+          num("minexp", f.minexp);
+          num("maxexp", f.maxexp);
+          num("eps", f.eps);
+          num("epsneg", f.epsneg);
+          num("max", f.max);
+          num("min", f.min);
+          num("tiny", f.tiny);
+          num("smallestSubnormal", f.smallest_subnormal);
+          num("resolution", f.resolution);
+          return o;
+        }));
+  m.Set("iinfo", fn(env, "iinfo", [](Info i, Napi::Env e) -> Napi::Value {
+          const IntInfo n = int_info(parse_dtype(i[0]));
+          Napi::Object o = Napi::Object::New(e);
+          o.Set("bits", Napi::Number::New(e, n.bits));
+          o.Set("min", Napi::BigInt::New(e, n.min));
+          o.Set("max", Napi::BigInt::New(e, n.max));
+          return o;
+        }));
+  m.Set("minScalarType", fn(env, "minScalarType", [](Info i, Napi::Env e) -> Napi::Value {
+          return Napi::String::New(e, std::string(dtype_name(min_scalar_type(arr(i, 0)))));
         }));
 
   exports.Set("p03", m);

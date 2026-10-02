@@ -21,6 +21,10 @@ export interface P03Native {
   flatAssign(a: N, positions: N | null, values: N): undefined;
   // P3-3 (D-061)
   iterPlan(ops: N[], order: string | undefined): { shape: number[]; axes: number[]; flipped: boolean[] };
+  // P3-4 (D-062)
+  finfo(dtype: string): Record<string, number> & { dtype: string };
+  iinfo(dtype: string): { bits: number; min: bigint; max: bigint };
+  minScalarType(a: N): string;
 }
 
 export const p03native = nativeModule<P03Native>("p03");

@@ -123,3 +123,8 @@ P3 NDArray methods and core API (build-first; NumPy differential checks pending)
 | `a.astype(dt, casting=)` disallowed | `TypeError` | `DTypeError` | D-060 |
 | `np.nditer` | full iterator (buffering, writable operands, context manager) | read-only `NDIter`, flags `multi_index`/`c_index`/`f_index`/`zerosize_ok`; others raise `NotImplementedError` | D-061 |
 | `np.ndenumerate` values | NumPy scalars | JS scalars | D-061 |
+| `np.finfo`/`np.iinfo` fields | NumPy scalars of the dtype; snake_case | JS numbers (camelCase); `iinfo` also has exact bigint `minExact`/`maxExact` | D-062 |
+| `np.minScalarType(1e5)` | `float32` (Python float) | `uint32`: JS cannot tell `1e5` from `100000`, so safe integers count as integers | D-062 |
+| `np.minScalarType` for integers beyond 64 bits | `object` | `ValueError` | D-062 |
+| `np.commonType` | returns a scalar type | returns a `DType` | D-062 |
+| abstract dtypes (`np.floating`, ...) | scalar type classes | frozen `AbstractDType` objects, only for `issubdtype` | D-062 |

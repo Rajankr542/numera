@@ -1597,3 +1597,43 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
 - `np.ndindex(...shape)` (numbers or one shape array) and `np.ndenumerate(a)` are
   generators of `number[]` / `[number[], scalar]` in C order (scalars are JS values,
   D-005).
+
+## D-062 — dtype introspection: finfo, iinfo, resultType, minScalarType, issubdtype, isdtype, commonType, mintypecode, abstract dtypes (P3-4) — Accepted — 2026-10-02
+- `np.finfo(dt | array)` / `np.iinfo(dt | array)` return frozen `FInfo` / `IInfo`
+  objects computed natively (`native/core/p03_dtypes.cpp`, `std::numeric_limits`
+  plus binary16 constants). `FInfo` has NumPy's fields in camelCase (`bits, eps,
+  epsneg, max, min, tiny, smallestNormal, smallestSubnormal, resolution,
+  precision, iexp, nexp, nmant, machep, negep, minexp, maxexp, dtype`); float
+  values are JS numbers holding the dtype-rounded value (e.g. float32
+  `resolution` is `float32(1e-6)`). Complex dtypes report their component
+  dtype. `IInfo` has `bits, min, max, dtype, kind`; `min`/`max` are numbers
+  (lossy above 2^53, D-005) and `minExact`/`maxExact` are exact bigints.
+  Wrong kinds raise `ValueError` with NumPy's messages.
+- `np.resultType(...args)`: DTypes, dtype names and arrays (0-d included) are
+  strong and promoted with `promoteTypes`; JS scalars are weak (NEP 50, the same
+  rules as ufunc operands, D-014): the strongest scalar kind (bool < int < float
+  < complex) only raises the result's kind (int → int64, float → float64,
+  complex → complex64 for float16/float32, complex128 otherwise), never its size.
+  No argument raises `ValueError("at least one array or dtype is required")`.
+- `np.minScalarType(x)`: arrays with ndim > 0 return their dtype. 0-d arrays and
+  JS scalars (converted like `np.array(x)`) are value-based, natively: smallest
+  unsigned integer for values ≥ 0, smallest signed for negative ones; floats
+  → float16 when non-finite or in (−65000, 65000), float32 in (−3.4e38, 3.4e38),
+  else float64; complex → complex64 when both parts are in (−3.4e38, 3.4e38).
+  JS numbers count as integers only when they are safe integers (|x| < 2^53);
+  other numbers are floats (use a bigint for larger integers). Bigints that fit
+  no integer dtype (NumPy `object`) raise `ValueError`.
+- Abstract dtypes `np.generic, number, integer, signedinteger, unsignedinteger,
+  inexact, floating, complexfloating` are frozen `AbstractDType` objects
+  (`name`, `parent`); NumPy's scalar-type hierarchy, with `bool` directly under
+  `generic`. They are only meaningful for `issubdtype`.
+- `np.issubdtype(a, b)`: `a`, `b` are DTypeLike or AbstractDType. Concrete `b` →
+  equality; abstract `b` → `a` (or its kind's abstract type) descends from `b`.
+- `np.isdtype(dtype, kind)`: `dtype` must be a `DType` (strings raise
+  `DTypeError`, as NumPy's TypeError); `kind` is a DType, one of NumPy's kind
+  names, or an array of them. AbstractDType kinds raise `DTypeError`.
+- `np.commonType(...arrays)` returns a `DType` (NumPy returns a scalar type):
+  integers count as float64; bool raises `DTypeError`; no argument → float16.
+- `np.mintypecode(typechars, typeset = "GDFgdf", default = "d")`: NumPy's
+  algorithm with its type characters (int64 = `l`, uint64 = `L`). Strings are
+  iterated per character; array entries use their dtype's character.
