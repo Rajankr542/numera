@@ -1033,4 +1033,4 @@ function mergeParts(base, parts) {
 }
 
 /** @type {Category[]} */
-export const categories = mergeParts(baseCategories, [p03, p04, p05, p06, p07, p08, p09, p10, p11, p12, p13, p14, p15, p16a, p16b, p16c, p16d, p16e]);
+export const categories = mergeParts(baseCategories, [p03, p04, p05, p06, p07, p08, p09, p10, p11, p12, p13, p14, p15, p16a, p16c, p16d]);
