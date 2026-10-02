@@ -8,17 +8,19 @@
 
 ![numpy api coverage](https://img.shields.io/badge/numpy_api_coverage-99.1%25-brightgreen)
 
-<picture>
-  <source
-    media="(prefers-color-scheme: dark)"
-    srcset="https://raw.githubusercontent.com/Rajankr542/numera/main/docs/images/cyfora-logo-dark.png"
-  />
-  <img
-    src="https://raw.githubusercontent.com/Rajankr542/numera/main/docs/images/cyfora-logo-light.png"
-    alt="Cyfora"
-    width="400"
-  />
-</picture>
+<a href="https://cyfora.in">
+  <picture>
+    <source
+      media="(prefers-color-scheme: dark)"
+      srcset="https://raw.githubusercontent.com/Rajankr542/numera/main/docs/images/cyfora-logo-dark.png"
+    />
+    <img
+      src="https://raw.githubusercontent.com/Rajankr542/numera/main/docs/images/cyfora-logo-light.png"
+      alt="Cyfora"
+      width="400"
+    />
+  </picture>
+</a>
 
 NumPy for JavaScript and TypeScript, backed by a native C++ core.
 
