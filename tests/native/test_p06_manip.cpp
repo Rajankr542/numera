@@ -207,3 +207,21 @@ TEST_CASE("p06: insert_along / delete_along / trim_zeros") {
   CHECK(trim_zeros(z2, true, true, {true, true}).shape() == Shape({1, 3}));
   CHECK(trim_zeros(z2, true, true, {false, true}).shape() == Shape({3, 3}));
 }
+
+TEST_CASE("p06: flip / roll") {
+  const NDArray a = iota({2, 3});
+  NDArray f = flip(a, {1}, false);
+  CHECK(f.shares_buffer(a));
+  CHECK(values(f) == std::vector<std::int64_t>({2, 1, 0, 5, 4, 3}));
+  CHECK(values(flip(a, {}, true)) == std::vector<std::int64_t>({5, 4, 3, 2, 1, 0}));
+  CHECK(values(flip(flip(a, {0, -1}, false), {}, true)) == values(a));
+  CHECK(flip(iota({0, 2}), {0}, false).shape() == Shape({0, 2}));
+  CHECK_THROWS_KIND(flip(a, {0, 0}, false), ErrorKind::Value);
+  CHECK_THROWS_KIND(flip(a, {2}, false), ErrorKind::Index);
+  CHECK(values(roll(a, {1, 1})) == std::vector<std::int64_t>({5, 3, 4, 2, 0, 1}));
+  CHECK(values(roll(a, {0, -1})) == std::vector<std::int64_t>({1, 2, 0, 4, 5, 3}));
+  CHECK(values(roll(a, {4, 0})) == values(a));
+  const NDArray F = copy_order(a, DType::Int64, Order::F);
+  CHECK(roll(F, {1, 0}).strides() == Strides({8, 16}));
+  CHECK(roll(iota({0}), {3}).shape() == Shape({0}));
+}

@@ -181,6 +181,42 @@ x.toArray();                                       // => [1, 2, 3, 0, 0]`,
 np.trimZeros([0, 0, 1, 0, 2, 0], "b");   // => [0, 0, 1, 0, 2]
 np.trimZeros([[0, 0], [0, 3]]);          // => [[3]]`,
       },
+      {
+        name: "flip",
+        sig: "np.flip(m, [axis])",
+        desc: "Reverses element order along `axis` (an integer or list; all axes when omitted). `fliplr` reverses axis 1 and `flipud` axis 0. Views with negative strides.",
+        returns: "NDArray",
+        example: `np.flip([[1, 2], [3, 4]]);       // => [[4, 3], [2, 1]]
+np.flip([[1, 2], [3, 4]], 1);    // => [[2, 1], [4, 3]]
+np.fliplr([[1, 2], [3, 4]]);     // => [[2, 1], [4, 3]]
+np.flipud([[1, 2], [3, 4]]);     // => [[3, 4], [1, 2]]`,
+      },
+      {
+        name: "roll",
+        sig: "np.roll(a, shift, [axis])",
+        desc: "Shifts elements cyclically. Without `axis` the flattened array is rolled and the shape restored; `shift` and `axis` may be lists (broadcast against each other, shifts on the same axis add up). Returns a copy.",
+        returns: "NDArray",
+        example: `np.roll([1, 2, 3, 4], 1);                    // => [4, 1, 2, 3]
+np.roll([[1, 2], [3, 4]], 1);                // => [[4, 1], [2, 3]]
+np.roll([[1, 2], [3, 4]], [1, 1], [0, 1]);   // => [[4, 3], [2, 1]]`,
+      },
+      {
+        name: "rot90",
+        sig: "np.rot90(m, [k], [axes])",
+        desc: "Rotates by 90° `k` times (default 1) in the plane of `axes` (default `[0, 1]`), from the first axis towards the second. A view.",
+        returns: "NDArray",
+        example: `np.rot90([[1, 2], [3, 4]]);       // => [[2, 4], [1, 3]]
+np.rot90([[1, 2], [3, 4]], 2);    // => [[4, 3], [2, 1]]`,
+      },
+      {
+        name: "rollaxis",
+        sig: "np.rollaxis(a, axis, [start])",
+        desc: "Moves `axis` so that it lies before position `start` (default 0). Prefer `moveAxis`. `permuteDims(a, axes)` permutes axes (array API transpose) and `matrixTranspose(x)` swaps the last two axes. All return views.",
+        returns: "NDArray",
+        example: `np.rollaxis(np.zeros([3, 4, 5]), 2).shape;          // => [5, 3, 4]
+np.permuteDims(np.zeros([2, 3, 4]), [2, 0, 1]).shape; // => [4, 2, 3]
+np.matrixTranspose(np.zeros([2, 3, 4])).shape;       // => [2, 4, 3]`,
+      },
     ],
   },
 ];

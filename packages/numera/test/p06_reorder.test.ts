@@ -1,0 +1,62 @@
+import { describe, expect, it } from "vitest";
+import np, { IndexError, ValueError } from "../src/index.js";
+
+describe("P6 flip / roll / rot90 / axis permutations (D-090)", () => {
+  const m = np.arange(6).reshape(2, 3);
+  it("flip family (views)", () => {
+    expect(np.flip(m).toArray()).toEqual([[5, 4, 3], [2, 1, 0]]);
+    expect(np.flip(m, 1).toArray()).toEqual([[2, 1, 0], [5, 4, 3]]);
+    expect(np.flip(m, [0, -1]).toArray()).toEqual([[5, 4, 3], [2, 1, 0]]);
+    expect(np.flip(np.array(3)).toArray()).toEqual(3);
+    expect(np.flip(np.zeros([0, 2]), 0).shape).toEqual([0, 2]);
+    expect(np.fliplr(m).toArray()).toEqual([[2, 1, 0], [5, 4, 3]]);
+    expect(np.flipud(m).toArray()).toEqual([[3, 4, 5], [0, 1, 2]]);
+    expect(np.flip([NaN, Infinity]).toArray()).toEqual([Infinity, NaN]);
+    const f = np.flip(m, 0);
+    expect(np.mayShareMemory(f, m)).toBe(true);
+    expect(f.strides).toEqual([-24, 8]);
+    expect(() => np.flip(m, [0, 0])).toThrow(/repeated axis/);
+    expect(() => np.flip(m, 2)).toThrow(IndexError);
+    expect(() => np.fliplr([1, 2])).toThrow(/>= 2-d/);
+    expect(() => np.flipud(np.array(1))).toThrow(/>= 1-d/);
+  });
+  it("roll", () => {
+    expect(np.roll(np.arange(5), 2).toArray()).toEqual([3, 4, 0, 1, 2]);
+    expect(np.roll(np.arange(5), -7).toArray()).toEqual([2, 3, 4, 0, 1]);
+    expect(np.roll(m, 1).toArray()).toEqual([[5, 0, 1], [2, 3, 4]]);
+    expect(np.roll(m, -1, 1).toArray()).toEqual([[1, 2, 0], [4, 5, 3]]);
+    expect(np.roll(m, [1, 1], [0, 1]).toArray()).toEqual([[5, 3, 4], [2, 0, 1]]);
+    expect(np.roll(np.arange(5), [1, 2], [0, 0]).toArray()).toEqual([2, 3, 4, 0, 1]);
+    expect(np.roll(m, 1, [0, 1]).toArray()).toEqual([[5, 3, 4], [2, 0, 1]]);
+    expect(np.roll(np.zeros([0]), 3).shape).toEqual([0]);
+    expect(np.roll(np.array(4), 1).toArray()).toEqual(4);
+    expect(np.roll(np.zeros([2, 3], { order: "F" }), 1, 0).strides).toEqual([8, 16]);
+    const r = np.roll(m, 0);
+    expect(np.mayShareMemory(r, m)).toBe(false);
+    expect(() => np.roll(np.arange(5), [1, 2], [0, 0, 0])).toThrow(/shape mismatch/);
+    expect(() => np.roll(m, 1, 2)).toThrow(IndexError);
+  });
+  it("rollaxis / rot90 / permuteDims / matrixTranspose", () => {
+    const z = np.zeros([3, 4, 5, 6]);
+    expect(np.rollaxis(z, 3, 1).shape).toEqual([3, 6, 4, 5]);
+    expect(np.rollaxis(z, 2).shape).toEqual([5, 3, 4, 6]);
+    expect(np.rollaxis(z, 1, 4).shape).toEqual([3, 5, 6, 4]);
+    expect(np.rollaxis(z, 1, 2).shape).toEqual([3, 4, 5, 6]);
+    expect(() => np.rollaxis(z, 0, 5)).toThrow(/'start' arg requires -4 <= start < 5/);
+    expect(np.rot90(m).toArray()).toEqual([[2, 5], [1, 4], [0, 3]]);
+    expect(np.rot90(m, 2).toArray()).toEqual([[5, 4, 3], [2, 1, 0]]);
+    expect(np.rot90(m, -1).toArray()).toEqual([[3, 0], [4, 1], [5, 2]]);
+    expect(np.rot90(m, 4).toArray()).toEqual(m.toArray());
+    expect(np.rot90(np.arange(8).reshape(2, 2, 2), 1, [1, 2]).toArray()).toEqual([[[1, 3], [0, 2]], [[5, 7], [4, 6]]]);
+    expect(np.mayShareMemory(np.rot90(m), m)).toBe(true);
+    expect(() => np.rot90(m, 1, [0])).toThrow(/len\(axes\) must be 2/);
+    expect(() => np.rot90(m, 1, [0, -2])).toThrow(/Axes must be different/);
+    expect(() => np.rot90(m, 1, [0, 3])).toThrow(/out of range for array of ndim=2/);
+    expect(np.permuteDims(np.zeros([2, 3, 4]), [2, 0, 1]).shape).toEqual([4, 2, 3]);
+    expect(np.permuteDims(np.zeros([2, 3])).shape).toEqual([3, 2]);
+    expect(() => np.permuteDims(m, [0, 0])).toThrow(ValueError);
+    expect(np.matrixTranspose(np.zeros([2, 3, 4])).shape).toEqual([2, 4, 3]);
+    expect(np.matrixTranspose(m).toArray()).toEqual([[0, 3], [1, 4], [2, 5]]);
+    expect(() => np.matrixTranspose([1, 2])).toThrow(/at least 2-dimensional, but it is 1/);
+  });
+});

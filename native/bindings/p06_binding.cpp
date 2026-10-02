@@ -110,6 +110,13 @@ void init_p06_binding(Napi::Env env, Napi::Object exports) {
   m.Set("bufferRefs", fn(env, "bufferRefs", [](Info i, Napi::Env e) -> Napi::Value {
           return Napi::Number::New(e, static_cast<double>(arr(i, 0).buffer().use_count()));
         }));
+  m.Set("flip", fn(env, "flip", [](Info i, Napi::Env e) {
+          const bool all = is_nullish(i[1]);
+          return wrap(e, flip(arr(i, 0), all ? std::vector<std::int64_t>{} : arg_ints(i[1], "axis"), all));
+        }));
+  m.Set("roll", fn(env, "roll", [](Info i, Napi::Env e) {
+          return wrap(e, roll(arr(i, 0), arg_ints(i[1], "shift")));
+        }));
   exports.Set("p06", m);
 }
 

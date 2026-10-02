@@ -804,3 +804,65 @@ NDArray trim_zeros(const NDArray& a, bool front, bool back, const std::vector<bo
 }
 
 }  // namespace nativpy
+
+// ---- flip / roll (D-090) ----
+
+namespace nativpy {
+
+NDArray flip(const NDArray& a, const std::vector<std::int64_t>& axes, bool all) {
+  const auto nd = static_cast<std::int64_t>(a.ndim());
+  std::vector<bool> sel(a.ndim(), all);
+  for (const auto ax : axes) {
+    const auto d = static_cast<std::size_t>(normalize_axis(ax, nd));
+    if (sel[d] && !all) throw_error(ErrorKind::Value, "repeated axis");
+    sel[d] = true;
+  }
+  Strides strides = a.strides();
+  std::int64_t offset = a.offset();
+  for (std::size_t d = 0; d < a.ndim(); ++d) {
+    if (!sel[d]) continue;
+    if (a.shape()[d] > 0) offset += (a.shape()[d] - 1) * strides[d];
+    strides[d] = -strides[d];
+  }
+  if (a.size() == 0) offset = a.offset();
+  return a.view(a.shape(), std::move(strides), offset);
+}
+
+NDArray roll(const NDArray& a, const std::vector<std::int64_t>& shifts) {
+  const std::size_t nd = a.ndim();
+  if (shifts.size() != nd) throw_error(ErrorKind::Value, "roll needs one shift per axis");
+  NDArray out = NDArray::empty_strided(a.shape(), copy_layout(a, a.itemsize(), Order::K), a.dtype());
+  if (a.size() == 0) return out;
+  std::vector<std::int64_t> off(nd);
+  for (std::size_t d = 0; d < nd; ++d) {
+    const std::int64_t n = a.shape()[d];
+    off[d] = ((shifts[d] % n) + n) % n;
+  }
+  // Every combination of (head, tail) piece per rolled axis.
+  const std::size_t combos = std::size_t{1} << nd;
+  for (std::size_t c = 0; c < combos; ++c) {
+    NDArray src = a;
+    NDArray dst = out;
+    bool skip = false;
+    for (std::size_t d = 0; d < nd && !skip; ++d) {
+      const std::int64_t n = a.shape()[d];
+      const std::int64_t k = off[d];
+      const bool tail = ((c >> d) & 1U) != 0;
+      if (k == 0) {
+        skip = tail;  // unrolled axis: only the "head" combination, whole axis
+        continue;
+      }
+      if (!tail) {
+        src = slice_axis(src, d, 0, n - k, 1);
+        dst = slice_axis(dst, d, k, n, 1);
+      } else {
+        src = slice_axis(src, d, n - k, n, 1);
+        dst = slice_axis(dst, d, 0, k, 1);
+      }
+    }
+    if (!skip && dst.size() > 0) copy_into(dst, src);
+  }
+  return out;
+}
+
+}  // namespace nativpy

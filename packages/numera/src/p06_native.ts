@@ -16,6 +16,8 @@ export interface P06Native {
   deleteAlong(a: N, axis: number, keep: boolean[]): N;
   trimZeros(a: N, front: boolean, back: boolean, axes: boolean[]): N;
   bufferRefs(a: N): number;
+  flip(a: N, axes: number[] | null): N;
+  roll(a: N, shifts: number[]): N;
   pad(a: N, mode: string, width: number[], values: N | null, statLength: number[] | null, odd: boolean): N;
 }
 

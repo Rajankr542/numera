@@ -23,12 +23,14 @@ import {
 
 import { append, del, insert, resize, trimZeros } from "./p06_edit.js";
 import { pad } from "./p06_pad.js";
+import { flip, fliplr, flipud, matrixTranspose, permuteDims, roll, rollaxis, rot90 } from "./p06_reorder.js";
 import { repeat, tile } from "./p06_tile.js";
 
 export * from "./p06_join.js";
 export * from "./p06_tile.js";
 export * from "./p06_pad.js";
 export * from "./p06_edit.js";
+export * from "./p06_reorder.js";
 
 export const p06 = {
   concatenate,
@@ -56,4 +58,12 @@ export const p06 = {
   delete: del,
   resize,
   trimZeros,
+  flip,
+  fliplr,
+  flipud,
+  roll,
+  rollaxis,
+  rot90,
+  permuteDims,
+  matrixTranspose,
 } as const;
