@@ -1964,3 +1964,19 @@ per-dtype kernels and input checks. P2-8/P2-9 (`reduce`/`accumulate`/
   `NDArray.tofile(file, {sep, format})` writes raw C-order bytes, or text
   items joined by `sep` using Python-scalar formatting (float repr, complex
   repr), `format` applied with `%`. `file` may be `null` to return a Buffer.
+
+## D-172 — P14 baseRepr/binaryRepr and window functions (P14) — Accepted — 2026-10-02
+- `baseRepr(number, base = 2, padding = 0)` and `binaryRepr(num, {width})`
+  follow NumPy's pure-Python algorithms exactly (including the gh-8679
+  two's-complement boundary rule and the "Insufficient bit width" error).
+  They are string utilities, so they are implemented in TS on `bigint`.
+  `number`/`bigint` integers are accepted, and so is a 0-d integer NDArray;
+  a non-integral number raises `TypeError` (Python `operator.index`).
+  NumPy's `base_repr` truncates a float with `int()`; numera raises
+  `TypeError` instead.
+- `bartlett blackman hamming hanning kaiser(M[, beta])` are native
+  (`native/core/p14_window.cpp`) and evaluate NumPy's formulas in the same
+  operation order: `n = arange(1-M, M, 2)` (or `arange(0, M)` for kaiser),
+  `M` may be any real number, results are float64. `kaiser` uses NumPy's
+  Chebyshev `i0` coefficients, so the results match NumPy to the last bit
+  except where libm `cos`/`exp` differ by an ulp.

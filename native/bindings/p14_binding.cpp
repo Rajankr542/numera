@@ -6,6 +6,7 @@
 #include "layout.hpp"
 #include "p14_npy.hpp"
 #include "p14_text.hpp"
+#include "p14_window.hpp"
 
 namespace nativpy::bindings {
 
@@ -82,6 +83,17 @@ void init_p14_binding(Napi::Env env, Napi::Object exports) {
           const NDArray c = a.is_c_contiguous() ? a : copy_order(a, a.dtype(), Order::C);
           return Napi::Buffer<std::uint8_t>::Copy(e, reinterpret_cast<const std::uint8_t*>(c.data()),
                                                   static_cast<std::size_t>(c.nbytes()));
+        }));
+  m.Set("window", fn(env, "window", [](Info i, Napi::Env e) {
+          const std::string k = arg_string(i[0], "kind");
+          const p14::Window w = k == "bartlett" ? p14::Window::Bartlett
+                                : k == "blackman" ? p14::Window::Blackman
+                                : k == "hamming"  ? p14::Window::Hamming
+                                                  : p14::Window::Hanning;
+          return wrap(e, p14::window(w, arg_double(i[1], "M")));
+        }));
+  m.Set("kaiser", fn(env, "kaiser", [](Info i, Napi::Env e) {
+          return wrap(e, p14::kaiser(arg_double(i[0], "M"), arg_double(i[1], "beta")));
         }));
   m.Set("floatStr", fn(env, "floatStr", [](Info i, Napi::Env e) {
           return Napi::String::New(e, p14::float_str(arg_double(i[0], "x"), parse_dtype(i[1])));

@@ -167,4 +167,87 @@ np.arange(3).astype("uint8").tofile(null).length; // => 3`,
       },
     ],
   },
+  {
+    id: "utilities",
+    title: "Utilities",
+    entries: [
+      {
+        name: "baseRepr",
+        sig: "np.baseRepr(number, [base], [padding])",
+        desc: "String of an integer in `base` (2 to 36, default 2), with `padding` zeros added on the left. Negative numbers get a minus sign. Accepts `number`, `bigint` or a 0-d integer array.",
+        args: [
+          { name: "number", type: "number | bigint | NDArray", desc: "Integer to convert." },
+          { name: "[base]", type: "number", desc: "Base, 2 to 36 (default 2)." },
+          { name: "[padding]", type: "number", desc: "Zeros to prepend (default 0)." },
+        ],
+        returns: "string",
+        example: `np.baseRepr(255, 16); // => "FF"
+np.baseRepr(-7, 2, 3); // => "-000111"`,
+      },
+      {
+        name: "binaryRepr",
+        sig: "np.binaryRepr(num, [options])",
+        desc: "Binary string of an integer. Without `width`, negative numbers get a minus sign; with `width`, they are written in two's complement. A `width` that is too small raises `ValueError`.",
+        args: [
+          { name: "num", type: "number | bigint | NDArray", desc: "Integer to convert." },
+          { name: "[options.width]", type: "number", desc: "Output length (zero-padded, or two's complement for negatives)." },
+        ],
+        returns: "string",
+        example: `np.binaryRepr(5); // => "101"
+np.binaryRepr(-5); // => "-101"
+np.binaryRepr(-5, { width: 8 }); // => "11111011"`,
+      },
+    ],
+  },
+  {
+    id: "windows",
+    title: "Window functions",
+    intro: "Tapering windows used in signal processing, as in NumPy. They are computed natively in float64 with NumPy's formulas.",
+    entries: [
+      {
+        name: "bartlett",
+        sig: "np.bartlett(M)",
+        desc: "Triangular (Bartlett) window. Returns `M` float64 values; an empty array when `M < 1` and `[1]` when `M = 1`.",
+        args: [{ name: "M", type: "number", desc: "Number of points." }],
+        returns: "NDArray",
+        example: `np.bartlett(5); // => [0, 0.5, 1, 0.5, 0]`,
+      },
+      {
+        name: "blackman",
+        sig: "np.blackman(M)",
+        desc: "Blackman window: `0.42 + 0.5 cos(πn/(M-1)) + 0.08 cos(2πn/(M-1))`. Returns `M` float64 values; an empty array when `M < 1` and `[1]` when `M = 1`.",
+        args: [{ name: "M", type: "number", desc: "Number of points." }],
+        returns: "NDArray",
+        example: `np.blackman(3); // => [-1.3877787807814457e-17, 1, -1.3877787807814457e-17]`,
+      },
+      {
+        name: "hamming",
+        sig: "np.hamming(M)",
+        desc: "Hamming window: `0.54 + 0.46 cos(πn/(M-1))`. Returns `M` float64 values; an empty array when `M < 1` and `[1]` when `M = 1`.",
+        args: [{ name: "M", type: "number", desc: "Number of points." }],
+        returns: "NDArray",
+        example: `np.hamming(3); // => [0.08000000000000002, 1, 0.08000000000000002]`,
+      },
+      {
+        name: "hanning",
+        sig: "np.hanning(M)",
+        desc: "Hann window: `0.5 + 0.5 cos(πn/(M-1))`. Returns `M` float64 values; an empty array when `M < 1` and `[1]` when `M = 1`.",
+        args: [{ name: "M", type: "number", desc: "Number of points." }],
+        returns: "NDArray",
+        example: `np.hanning(5); // => [0, 0.5, 1, 0.5, 0]`,
+      },
+      {
+        name: "kaiser",
+        sig: "np.kaiser(M, beta)",
+        desc: "Kaiser window: `i0(beta·sqrt(1 - ((n - α)/α)²)) / i0(beta)` with `α = (M-1)/2`, using NumPy's Chebyshev approximation of the Bessel function `i0`. `beta = 0` gives a rectangular window.",
+        args: [
+          { name: "M", type: "number", desc: "Number of points." },
+          { name: "beta", type: "number", desc: "Shape parameter." },
+        ],
+        returns: "NDArray",
+        example: `np.kaiser(3, 0); // => [1, 1, 1]
+np.kaiser(4, 5); // => [0.036710892271286676, 0.7753221044454067, 0.7753221044454067, 0.036710892271286676]`,
+      },
+    ],
+  },
 ];
