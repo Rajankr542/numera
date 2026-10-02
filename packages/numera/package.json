@@ -1,6 +1,6 @@
 {
   "name": "@cyfora/numera",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "NumPy for JavaScript/TypeScript: n-dimensional arrays, broadcasting, linear algebra, random and FFT backed by a native C++ core.",
   "license": "MIT",
   "author": "Rajan Kumar",
