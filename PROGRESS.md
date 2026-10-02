@@ -1076,3 +1076,15 @@ Done (D-080–D-084):
   (`python/generators/generate_cases.py`) is a shared file; benchmarks (all
   P5 names are listed in `api/bench-exempt/p05.json`); array-valued
   `rtol`/`atol` in `isclose`.
+
+## P12 — FFT completion (D-150..D-152) — 2026-10-02
+- `np.fft.hfft ihfft rfftn irfftn rfft2 irfft2 fftshift ifftshift` (`axes` as
+  number/list/null), and `out=` (positional or options) for all 14 transforms.
+  Native: `native/fft/p12_fft.{hpp,cpp}` (pocketfft lane kernels, NumPy loop
+  precision, `out` checks, roll), `addon.p12`; TS in `fft.ts` (`fftModule`).
+- Shared file touched (minimal): `packages/numera/test/fft.test.ts` (expected key list).
+- Checks (macOS arm64, NumPy 2.5.3): `pnpm build`, `pnpm test` (424), `pnpm test:native`,
+  `pnpm test:asan`, `pnpm test:diff` (10420), `pnpm typecheck`, `pnpm api:check`
+  all pass. An ad-hoc NumPy comparison (1530 cases) was bit-exact.
+- Not done: committed NumPy differential cases and benchmarks for the new names
+  (listed in `api/bench-exempt/p12.json`).
