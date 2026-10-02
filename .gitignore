@@ -3,6 +3,7 @@ dist/
 build/
 build-*/
 .venv/
+.venv-*/
 __pycache__/
 *.pyc
 tests/differential/cases/*.json
