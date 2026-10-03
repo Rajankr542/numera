@@ -5,6 +5,7 @@
 [![CI](https://github.com/Rajankr542/numera/actions/workflows/ci.yml/badge.svg)](https://github.com/Rajankr542/numera/actions/workflows/ci.yml)
 ![node](https://img.shields.io/badge/node-%E2%89%A518-339933?logo=node.js&logoColor=white)
 ![platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux-lightgrey)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/rajankr542)
 
 ![numpy api coverage](https://img.shields.io/badge/numpy_api_coverage-99.1%25-brightgreen)
 
@@ -209,6 +210,14 @@ Issues and PRs are welcome: https://github.com/Rajankr542/numera
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development setup, test
 suites and release process.
+
+## Support
+
+If numera has been useful to you, consider buying me a coffee — it helps fund continued development!
+
+<a href="https://www.buymeacoffee.com/rajankr542" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60" width="217">
+</a>
 
 ## License
 
