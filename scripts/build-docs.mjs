@@ -117,9 +117,6 @@ ${c.entries.map(renderEntry).join("\n")}</section>`,
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${DOCS_URL}/">
 <style>${css}</style>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-H8X56EQGVV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-H8X56EQGVV');</script>
 </head>
 <body>
 <button class="menu" type="button">☰ Menu</button>
