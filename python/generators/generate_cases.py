@@ -1522,6 +1522,282 @@ def complex_fft_cases() -> list[dict]:
     return cases
 
 
+FLOAT_DTYPES = ["float16", "float32", "float64"]
+COMPLEX_DTYPES = ["complex64", "complex128"]
+TRIG_DTYPES = FLOAT_DTYPES + COMPLEX_DTYPES
+INT_DTYPES = ["int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"]
+
+
+def _math_float_vals(dt: str) -> list:
+    """Representative float values safe for trig/exp/log families."""
+    if dt in COMPLEX_DTYPES:
+        # Avoid real-axis inputs (im=0) to sidestep signed-zero divergences in cos/sin.
+        # Non-finite complex edge cases are covered by complex_ufunc_cases.
+        return [0.5 + 0.3j, -1.2 + 0.7j, 0.1 + 0.1j, 2.0 - 1.5j, 1.0 + 0.2j, -0.5 + 0.5j]
+    return [0.0, 0.5, -0.5, 1.0, -1.0, float("nan"), float("inf"), -float("inf"), -0.0]
+
+
+def _math_float_vals_small(dt: str) -> list:
+    """Small-domain float values for arcsin/arccos/arctanh etc."""
+    if dt in COMPLEX_DTYPES:
+        return [0.5 + 0.3j, -0.5 + 0.1j, 0.1 + 0.1j, 0.9 - 0.4j, 0.2 + 0.2j]
+    return [0.0, 0.5, -0.5, 0.9, -0.9, float("nan"), -0.0]
+
+
+def _math_real_all(dt: str) -> list:
+    """Values usable for rounding ufuncs across all real dtypes."""
+    if dt == "bool":
+        return [True, False, True, True, False, True]
+    kind = np.dtype(dt).kind
+    if kind == "u":
+        return [0, 1, 2, 5, 10, 3]
+    if kind == "i":
+        return [-3, 0, 2, 5, -7, 1]
+    return [-1.7, -0.5, 0.0, 0.5, 1.5, float("nan")]
+
+
+def math_ufunc_cases() -> list[dict]:
+    """P4 math ufuncs differential test cases (V-P4).
+
+    Covers: trig, exp/log, rounding, arithmetic, float-bits, special.
+    Group name: "math_ufuncs" (separate from the existing "ufuncs" group).
+    """
+    cases = []
+
+    def add(op, vals, dt, approx=True, expected=None, error=None, **extra):
+        a = np.array(vals, dtype=dt)
+        if error is None and expected is None:
+            r, err = _run(getattr(np, op), a)
+            if err:
+                cases.append({"op": op, "a_data": enc(vals), "a_dtype": dt,
+                               "approx": approx, "error": err, **extra})
+            else:
+                cases.append({"op": op, "a_data": enc(vals), "a_dtype": dt,
+                               "approx": approx, "expected": describe(r), **extra})
+        elif error is not None:
+            cases.append({"op": op, "a_data": enc(vals), "a_dtype": dt,
+                           "approx": approx, "error": error, **extra})
+        else:
+            cases.append({"op": op, "a_data": enc(vals), "a_dtype": dt,
+                           "approx": approx, "expected": expected, **extra})
+
+    def add2(op, av, ad, bv, bd, approx=True, **extra):
+        a = np.array(av, dtype=ad)
+        b = np.array(bv, dtype=bd)
+        r, err = _run(getattr(np, op), a, b)
+        base = {"op": op, "a_data": enc(av), "a_dtype": ad,
+                "b_data": enc(bv), "b_dtype": bd, "approx": approx}
+        if err:
+            cases.append({**base, "error": err, **extra})
+        else:
+            cases.append({**base, "expected": describe(r), **extra})
+
+    # ---- trig unary (float + complex) ----
+    for dt in TRIG_DTYPES:
+        fv = _math_float_vals(dt)
+        sv = _math_float_vals_small(dt)
+        for op in ("sin", "cos", "tan"):
+            add(op, fv, dt)
+        for op in ("arcsin", "arccos"):
+            add(op, sv, dt)
+        add("arctan", fv, dt)
+        for op in ("sinh", "cosh", "tanh"):
+            add(op, fv, dt)
+        add("arcsinh", fv, dt)
+        add("arccosh", fv, dt)  # <1 -> NaN for float; for complex it's fine
+        add("arctanh", sv, dt)
+
+    # ---- trig binary ----
+    for dt in FLOAT_DTYPES:
+        fv = [0.0, 1.0, -1.0, 0.5, float("nan"), float("inf")]
+        add2("arctan2", fv, dt, [1.0, 0.0, 1.0, -1.0, 0.5, 1.0], dt)
+        add2("hypot", fv, dt, [1.0, 2.0, -3.0, 4.0, 5.0, 6.0], dt)
+
+    # ---- angle conversion (float only) ----
+    for dt in FLOAT_DTYPES:
+        av = [0.0, 1.5708, 3.14159, -1.5708, float("nan")]
+        add("deg2rad", av, dt)
+        add("rad2deg", av, dt)
+        add("radians", av, dt)
+        add("degrees", av, dt)
+
+    # ---- exp/log family ----
+    for dt in TRIG_DTYPES:
+        fv = _math_float_vals(dt)
+        add("exp2", fv, dt)
+        add("expm1", fv, dt)
+        add("log2", fv, dt)
+        add("log10", fv, dt)
+        add("log1p", fv, dt)
+
+    for dt in FLOAT_DTYPES:
+        fv = [0.0, 0.5, -0.5, 1.0, 2.0, float("nan"), float("inf")]
+        add2("logaddexp", fv, dt, [1.0, 0.5, -0.5, 2.0, 1.0, 1.0, 0.0], dt)
+        add2("logaddexp2", fv, dt, [1.0, 0.5, -0.5, 2.0, 1.0, 1.0, 0.0], dt)
+        add("cbrt", fv + [-float("inf")], dt)
+        add("square", fv, dt)
+        add("reciprocal", [1.0, 2.0, -0.5, 0.0, float("nan"), float("inf")], dt)
+
+    # ---- rounding (all real dtypes) ----
+    for dt in REAL_DTYPES:
+        rv = _math_real_all(dt)
+        for op in ("floor", "ceil", "trunc", "rint"):
+            add(op, rv, dt, approx=False)
+        add("positive", rv, dt, approx=False)
+
+    # ---- arithmetic: fmod, floatPower, sign, heaviside, maximum, minimum, fmax, fmin ----
+    for dt in FLOAT_DTYPES:
+        fv = [1.5, -2.5, 0.0, 3.0, float("nan"), float("inf")]
+        bv = [0.5, 1.5, 1.0, -1.0, 2.0, 3.0]
+        add2("fmod", fv, dt, bv, dt)
+        add2("float_power", [1.0, 2.0, 0.5, 4.0, float("nan")], dt,
+             [2.0, 3.0, 0.5, -1.0, 1.0], dt)
+        add("sign", fv + [-0.0], dt, approx=False)
+        add("fabs", fv, dt, approx=False)
+        add2("maximum", fv, dt, bv, dt)
+        add2("minimum", fv, dt, bv, dt)
+        add2("fmax", fv, dt, bv, dt)
+        add2("fmin", fv, dt, bv, dt)
+
+        # heaviside: second arg is same-dtype scalar value
+        hv = [-1.5, 0.0, 1.5, float("nan"), float("inf"), -0.0]
+        for h2 in [0.0, 0.5, 1.0, float("nan")]:
+            add2("heaviside", hv, dt, [h2] * len(hv), dt)
+
+    for dt in REAL_DTYPES:
+        sv = _math_real_all(dt)
+        add("sign", sv, dt, approx=False)
+        add("fabs", sv if np.dtype(dt).kind == "f" else [abs(x) if isinstance(x, (int, bool)) else x for x in sv], dt, approx=False)
+
+    # ---- gcd / lcm (integer only) ----
+    for dt in INT_DTYPES:
+        kind = np.dtype(dt).kind
+        if kind == "u":
+            av = [0, 6, 12, 15, 100]
+            bv = [0, 4, 8, 10, 60]
+        else:
+            av = [-6, 0, 12, 15, -100]
+            bv = [4, 0, -8, 10, 60]
+        # uint8/int8 gcd/lcm: clamp to safe range
+        if dt in ("int8", "uint8"):
+            av = [0, 6, 12, 4, 8]
+            bv = [6, 0, 4, 4, 2]
+        add2("gcd", av, dt, bv, dt, approx=False)
+        add2("lcm", av, dt, bv, dt, approx=False)
+
+    # ---- float-bits: signbit, spacing, nextafter, copysign, ldexp ----
+    for dt in FLOAT_DTYPES:
+        fv = [0.0, 1.0, -1.0, float("nan"), float("inf"), -float("inf"), -0.0]
+        add("signbit", fv, dt, approx=False)
+        add("spacing", [0.5, 1.0, 2.0, 4.0, float("inf")], dt, approx=False)
+        add2("nextafter", fv, dt, [1.0, 2.0, 0.0, 1.0, 0.0, 0.0, 0.0], dt)
+        add2("copysign", fv, dt, [1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0], dt, approx=False)
+
+    # ldexp: float x int32
+    for ft in FLOAT_DTYPES:
+        fv = [1.0, 0.5, -2.0, 0.0, float("nan"), float("inf")]
+        add2("ldexp", fv, ft, [0, 1, -1, 5, 0, 0], "int32", approx=False)
+
+    # ---- multi-output ufuncs: divmod, modf, frexp ----
+    # These use a special case format with op="divmod", "modf", "frexp"
+    # and expected as a list of two describe() dicts.
+    for dt in FLOAT_DTYPES:
+        fv_dm = [5.0, -7.0, 2.5, 0.0, float("nan"), float("inf")]
+        bv_dm = [2.0, 3.0, 1.5, 1.0, 1.0, 2.0]
+        a_dm = np.array(fv_dm, dtype=dt)
+        b_dm = np.array(bv_dm, dtype=dt)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            q, r = np.divmod(a_dm, b_dm)
+        cases.append({
+            "op": "divmod", "a_data": enc(fv_dm), "a_dtype": dt,
+            "b_data": enc(bv_dm), "b_dtype": dt, "approx": True,
+            "expected": [describe(q), describe(r)],
+        })
+
+        fv_m = [3.7, -2.3, 0.0, float("nan"), float("inf"), -0.0]
+        a_m = np.array(fv_m, dtype=dt)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            frac, intg = np.modf(a_m)
+        cases.append({
+            "op": "modf", "a_data": enc(fv_m), "a_dtype": dt, "approx": True,
+            "expected": [describe(frac), describe(intg)],
+        })
+
+        fv_f = [1.5, -0.75, 0.0, float("nan"), float("inf"), -float("inf")]
+        a_f = np.array(fv_f, dtype=dt)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            mant, exp_ = np.frexp(a_f)
+        cases.append({
+            "op": "frexp", "a_data": enc(fv_f), "a_dtype": dt, "approx": True,
+            "expected": [describe(mant), describe(exp_)],
+        })
+
+    # ---- clip (3-arg function) ----
+    for dt in FLOAT_DTYPES + ["int32", "int64"]:
+        cv = [-2.0, -0.5, 0.5, 1.5, float("nan")] if dt.startswith("f") else [-3, -1, 0, 1, 2]
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            ac = np.array(cv, dtype=dt)
+            r = np.clip(ac, -1 if dt.startswith("f") else -1, 1)
+        cases.append({
+            "op": "clip", "a_data": enc(cv), "a_dtype": dt,
+            "clip_min": -1.0, "clip_max": 1.0, "approx": False,
+            "expected": describe(r),
+        })
+
+    # ---- nanToNum ----
+    nan, inf = float("nan"), float("inf")
+    for dt in FLOAT_DTYPES:
+        fv = [nan, inf, -inf, 0.0, 1.0, -0.0]
+        a_n = np.array(fv, dtype=dt)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            r = np.nan_to_num(a_n)
+        cases.append({
+            "op": "nanToNum", "a_data": enc(fv), "a_dtype": dt, "approx": False,
+            "expected": describe(r),
+        })
+
+    # ---- sinc ----
+    for dt in ["float32", "float64"]:  # float16 has too much accumulated error for sinc
+        sv = [0.0, 0.5, 1.0, -1.0, 2.0, float("nan")]
+        add("sinc", sv, dt)
+
+    # ---- i0 ----
+    for dt in FLOAT_DTYPES:
+        iv = [0.0, 1.0, 2.0, -2.0, 3.5, float("nan")]
+        add("i0", iv, dt)
+
+    # ---- unwrap ----
+    for dt in FLOAT_DTYPES:
+        uv = [0.0, 0.5, 1.0, 5.5, 6.0, 6.5, 1.0]  # jumps > pi will be unwrapped
+        a_u = np.array(uv, dtype=dt)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            r = np.unwrap(a_u)
+        cases.append({
+            "op": "unwrap", "a_data": enc(uv), "a_dtype": dt, "approx": True,
+            "expected": describe(r),
+        })
+
+    # ---- realIfClose ----
+    for dt in COMPLEX_DTYPES:
+        rv = [1 + 0j, 2 + 1e-10j, 3 + 1j, 0 + 0j]
+        a_r = np.array(rv, dtype=dt)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            r = np.real_if_close(a_r)
+        cases.append({
+            "op": "realIfClose", "a_data": enc(rv), "a_dtype": dt, "approx": True,
+            "expected": describe(r),
+        })
+
+    return cases
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -1533,6 +1809,7 @@ def main() -> None:
         "ranges": range_cases(),
         "shape_ops": shape_op_cases(),
         "ufuncs": ufunc_cases(),
+        "math_ufuncs": math_ufunc_cases(),
         "promotion": promotion_cases(),
         "casting": casting_cases(),
         "ufunc_out": ufunc_out_cases(enc, describe),

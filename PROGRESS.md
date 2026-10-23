@@ -1,5 +1,12 @@
 # PROGRESS
 
+## 2026-10-23 — V-P4: P4 math ufuncs differential tests + benchmarks (D-244)
+- `python/generators/generate_cases.py`: added `math_ufunc_cases()` (~296 cases) covering trig / exp-log / rounding / arithmetic / float-bits / special ufuncs across all applicable dtypes. Wired into `main()` as the `"math_ufuncs"` group.
+- `tests/differential/numpy.diff.test.ts`: new `describe("differential: P4 math ufuncs", …)` block. Handles multi-output ops (divmod, modf, frexp), 3-arg clip, nanToNum, unwrap, realIfClose, and all generic unary/binary P4 ufuncs. Complex outputs handled via `Complex` instanceof checks.
+- `benchmarks/nativpy/suite.bench.mjs` + `benchmarks/numpy/suite_bench.py`: ~64 `"math"` category bench cases covering all distinct P4 ufuncs at VEC sizes.
+- `api/bench-exempt/p04.json`: trimmed to 12 pure aliases (acos/asin/atan/etc.) with no separate bench needed.
+- Verified: `pnpm test` (1336 passed), `test:diff` (10716 passed), `pnpm api:check` passed.
+
 ## 2026-10-02 — P2-8: ufunc.reduce / ufunc.accumulate, build-first (D-052)
 - Native: new `native/core/ufunc_methods.{hpp,cpp}` with `ufunc_reduce` / `ufunc_accumulate`. Both run only through the D-051 registry record (loops, identity, resolvers, power check), with no per-op code apart from the add/multiply sum/prod dtype rule.
 - Binding: `ufuncMethod(method, name, a, out | null, opts)`.

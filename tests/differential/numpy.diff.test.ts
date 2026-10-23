@@ -339,6 +339,137 @@ describe("differential: ufuncs + broadcasting", () => {
   });
 });
 
+describe("differential: P4 math ufuncs", () => {
+  const { numpy_version, cases } = load("math_ufuncs");
+  type Fn = (...xs: (NDArray | number)[]) => NDArray;
+  type MultiOutFn = (...xs: (NDArray | number)[]) => [NDArray, NDArray];
+  const fns = np as unknown as Record<string, Fn>;
+  const multiOut = np as unknown as Record<string, MultiOutFn>;
+  const errorClass = (e: string): typeof np.ValueError =>
+    e === "TypeError" || e === "UFuncTypeError" ? np.DTypeError : np.ValueError;
+  /** Elementwise closeness covering real scalars and Complex objects. */
+  const close = (got: unknown, exp: unknown, rtol: number): void => {
+    if (Array.isArray(exp)) {
+      expect(Array.isArray(got)).toBe(true);
+      (exp as unknown[]).forEach((e, i) => close((got as unknown[])[i], e, rtol));
+      return;
+    }
+    if (exp instanceof Complex) {
+      expect(got).toBeInstanceOf(Complex);
+      close((got as Complex).re, exp.re, rtol);
+      close((got as Complex).im, exp.im, rtol);
+      return;
+    }
+    const g = got as number;
+    const e = exp as number;
+    if (Number.isNaN(e) || !Number.isFinite(e) || Number.isInteger(e) || e === 0) {
+      expect(g).toEqual(e);
+    } else {
+      expect(Math.abs(g - e)).toBeLessThanOrEqual(rtol * Math.abs(e));
+    }
+  };
+  // sinc/unwrap involve multiple float ops so use a coarser float16 tolerance.
+  const rtolFor = (dt: string, op = ""): number => {
+    if (dt === "float16" && (op === "sinc" || op === "unwrap")) return 0.02;
+    return dt === "float16" ? 1e-3 : dt === "float32" || dt === "complex64" ? 1e-5 : 1e-13;
+  };
+
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+
+    // Multi-output ufuncs: divmod, modf, frexp
+    if (c.op === "divmod" || c.op === "modf" || c.op === "frexp") {
+      const expPair = c.expected as unknown as Described[];
+      let r: [NDArray, NDArray];
+      if (c.op === "divmod") {
+        const b = np.array(decodeInput(c.b_data!) as NestedArray, { dtype: c.b_dtype! });
+        r = multiOut[c.op]!(a, b);
+      } else {
+        r = multiOut[c.op]!(a);
+      }
+      r.forEach((arr, i) => {
+        const exp = expPair[i]!;
+        expect(arr.dtype.name).toBe(exp.dtype);
+        expect(arr.shape).toEqual(exp.shape);
+        if (c.approx) {
+          close(arr.toArray(), decodeExpected(exp.values!), rtolFor(exp.dtype));
+        } else {
+          expect(arr.toArray()).toEqual(decodeExpected(exp.values!));
+        }
+      });
+      return;
+    }
+
+    // clip: 3-arg
+    if (c.op === "clip") {
+      const caseExt = c as Case & { clip_min?: number; clip_max?: number };
+      const r = np.clip(a, caseExt.clip_min, caseExt.clip_max);
+      const exp = c.expected as Described;
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      expect(r.toArray()).toEqual(decodeExpected(exp.values!));
+      return;
+    }
+
+    // nanToNum: special — uses np.nanToNum
+    if (c.op === "nanToNum") {
+      const r = np.nanToNum(a);
+      const exp = c.expected as Described;
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      expect(r.toArray()).toEqual(decodeExpected(exp.values!));
+      return;
+    }
+
+    // unwrap
+    if (c.op === "unwrap") {
+      const r = np.unwrap(a);
+      const exp = c.expected as Described;
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      close(r.toArray(), decodeExpected(exp.values!), rtolFor(exp.dtype, "unwrap"));
+      return;
+    }
+
+    // realIfClose
+    if (c.op === "realIfClose") {
+      const r = np.realIfClose(a);
+      const exp = c.expected as Described;
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      close(r.toArray(), decodeExpected(exp.values!), rtolFor(exp.dtype));
+      return;
+    }
+
+    // Generic unary / binary dispatch (covers all remaining P4 ufuncs)
+    let make: () => NDArray;
+    if (c.b_data !== undefined) {
+      const b = np.array(decodeInput(c.b_data) as NestedArray, { dtype: c.b_dtype! });
+      // float_power is exported as floatPower in nativpy
+      const opName = c.op === "float_power" ? "floatPower" : c.op;
+      make = () => fns[opName]!(a, b);
+    } else {
+      const opName = c.op === "float_power" ? "floatPower" : c.op;
+      make = () => fns[opName]!(a);
+    }
+
+    if (c.error !== undefined) {
+      expect(make).toThrow(errorClass(c.error));
+      return;
+    }
+
+    const r = make();
+    const exp = c.expected as Described;
+    if (c.approx) {
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      close(r.toArray(), decodeExpected(exp.values!), rtolFor(exp.dtype, c.op));
+    } else {
+      checkArray(r, exp);
+    }
+  });
+});
+
 describe("differential: promote_types", () => {
   const { numpy_version, cases } = load("promotion");
   it.each(cases.map((c) => [`${c.a} + ${c.b}`, c] as const))(
