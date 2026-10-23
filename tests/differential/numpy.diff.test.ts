@@ -1818,3 +1818,1501 @@ describe("differential: ufunc order= / result layout (P2-6, D-050)", () => {
 
 
 
+describe("differential: P5 logic/bitwise/comparison (V-P5, D-245)", () => {
+  const { numpy_version, cases } = load("logic_cases");
+  const fns = np as unknown as Record<string, (...a: unknown[]) => unknown>;
+
+  const errorClass = (e: string): typeof np.ValueError =>
+    e === "TypeError" || e === "UFuncTypeError" ? np.DTypeError : np.ValueError;
+
+  // Ufunc ops dispatched generically (binary and unary)
+  const UFUNC_OPS = new Set([
+    "equal", "notEqual", "less", "lessEqual", "greater", "greaterEqual",
+    "logicalAnd", "logicalOr", "logicalXor", "logicalNot",
+    "isnan", "isinf", "isfinite", "isposinf", "isneginf",
+    "bitwiseAnd", "bitwiseOr", "bitwiseXor", "invert", "bitwiseCount",
+    "leftShift", "rightShift",
+  ]);
+
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    // ---- all / any ----
+    if (c.op === "all" || c.op === "any") {
+      const arr = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! })
+        .reshape(c.a_shape!);
+      const kw = (c.kw ?? {}) as { axis?: number | null; keepdims?: boolean };
+      const fn = c.op === "all" ? np.all : np.any;
+      const r = np.asarray(
+        kw.axis !== undefined && kw.axis !== null
+          ? fn(arr, { axis: kw.axis, keepdims: kw.keepdims })
+          : fn(arr, { keepdims: kw.keepdims }),
+      );
+      checkArray(r, c.expected as Described);
+      return;
+    }
+
+    // ---- isclose: returns NDArray bool ----
+    if (c.op === "isclose") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const b = np.array(decodeInput(c.b_data!) as NestedArray, { dtype: c.b_dtype! });
+      const kw = (c.kw ?? {}) as { equalNan?: boolean };
+      const r = np.isclose(a, b, { equalNan: kw.equalNan });
+      checkArray(r, c.expected as Described);
+      return;
+    }
+
+    // ---- allclose: returns JS boolean ----
+    if (c.op === "allclose") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const b = np.array(decodeInput(c.b_data!) as NestedArray, { dtype: c.b_dtype! });
+      const result = np.allclose(a, b);
+      expect(result).toBe(c.expected as boolean);
+      return;
+    }
+
+    // ---- arrayEqual: returns JS boolean ----
+    if (c.op === "arrayEqual") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const b = np.array(decodeInput(c.b_data!) as NestedArray, { dtype: c.b_dtype! });
+      const result = np.arrayEqual(a, b);
+      expect(result).toBe(c.expected as boolean);
+      return;
+    }
+
+    // ---- arrayEquiv: returns JS boolean ----
+    if (c.op === "arrayEquiv") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const b = np.array(decodeInput(c.b_data!) as NestedArray, { dtype: c.b_dtype! });
+      const result = np.arrayEquiv(a, b);
+      expect(result).toBe(c.expected as boolean);
+      return;
+    }
+
+    // ---- packbits: returns NDArray uint8 ----
+    if (c.op === "packbits") {
+      const arr = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const kw = (c.kw ?? {}) as { axis?: number; bitorder?: "big" | "little" };
+      const r = np.packbits(arr, kw);
+      if (c.error !== undefined) {
+        expect(() => np.packbits(arr, kw)).toThrow(errorClass(c.error));
+        return;
+      }
+      checkArray(r, c.expected as Described);
+      return;
+    }
+
+    // ---- unpackbits: returns NDArray uint8 ----
+    if (c.op === "unpackbits") {
+      const arr = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: "uint8" });
+      const kw = (c.kw ?? {}) as { axis?: number; count?: number; bitorder?: "big" | "little" };
+      if (c.error !== undefined) {
+        expect(() => np.unpackbits(arr, kw)).toThrow(errorClass(c.error));
+        return;
+      }
+      const r = np.unpackbits(arr, kw);
+      checkArray(r, c.expected as Described);
+      return;
+    }
+
+    // ---- generic ufunc dispatch (unary and binary) ----
+    if (UFUNC_OPS.has(c.op)) {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      let make: () => NDArray;
+      if (c.b_data !== undefined) {
+        const b = np.array(decodeInput(c.b_data) as NestedArray, { dtype: c.b_dtype! });
+        make = () => fns[c.op]!(a, b) as NDArray;
+      } else {
+        make = () => fns[c.op]!(a) as NDArray;
+      }
+      if (c.error !== undefined) {
+        expect(make).toThrow(errorClass(c.error));
+        return;
+      }
+      checkArray(make(), c.expected as Described);
+      return;
+    }
+
+    throw new Error(`unhandled P5 op: ${c.op}`);
+  });
+});
+describe("differential: P6 array manipulation (V-P6, D-246)", () => {
+  const { numpy_version, cases } = load("manip_cases");
+
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    // Helper to reconstruct an NDArray from a case's data/shape/dtype fields.
+    const makeArr = (data: Encoded, shape: number[], dtype: string): NDArray => {
+      const n = shape.reduce((p, d) => p * d, 1);
+      if (n === 0) return np.zeros(shape, { dtype });
+      const a = np.array(decodeInput(data) as NestedArray, { dtype });
+      return shape.length === 0 ? a : a.reshape(shape);
+    };
+
+    switch (c.op) {
+      // ---- concatenate ----
+      case "concatenate": {
+        const ext = c as Case & {
+          arrays: Encoded[];
+          axis: number | null;
+          shape?: number[];
+        };
+        const arrs = ext.arrays.map((d) =>
+          np.array(decodeInput(d) as NestedArray, { dtype: c.dtype! }),
+        );
+        const r =
+          ext.axis === null
+            ? np.concatenate(arrs, { axis: null })
+            : np.concatenate(arrs, { axis: ext.axis ?? 0 });
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      // ---- stack ----
+      case "stack": {
+        const ext = c as Case & { arrays: Encoded[]; axis: number };
+        const arrs = ext.arrays.map((d) =>
+          np.array(decodeInput(d) as NestedArray, { dtype: c.dtype! }),
+        );
+        checkArray(np.stack(arrs, ext.axis ?? 0), c.expected as Described);
+        return;
+      }
+
+      // ---- vstack ----
+      case "vstack": {
+        const ext = c as Case & { arrays: Encoded[] };
+        const arrs = ext.arrays.map((d) =>
+          np.array(decodeInput(d) as NestedArray, { dtype: c.dtype! }),
+        );
+        checkArray(np.vstack(arrs), c.expected as Described);
+        return;
+      }
+
+      // ---- hstack ----
+      case "hstack": {
+        const ext = c as Case & { arrays: Encoded[] };
+        const arrs = ext.arrays.map((d) =>
+          np.array(decodeInput(d) as NestedArray, { dtype: c.dtype! }),
+        );
+        checkArray(np.hstack(arrs), c.expected as Described);
+        return;
+      }
+
+      // ---- split ----
+      case "split": {
+        const ext = c as Case & {
+          sections?: number;
+          indices?: number[];
+          axis: number;
+        };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        const sectOrIdx =
+          ext.indices !== undefined ? ext.indices : ext.sections!;
+        const parts = np.split(a, sectOrIdx, ext.axis ?? 0);
+        const expParts = c.expected as Described[];
+        expect(parts.length).toBe(expParts.length);
+        parts.forEach((p, i) => checkArray(p, expParts[i]!));
+        return;
+      }
+
+      // ---- arraySplit ----
+      case "arraySplit": {
+        const ext = c as Case & { sections: number; axis: number };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        const parts = np.arraySplit(a, ext.sections, ext.axis ?? 0);
+        const expParts = c.expected as Described[];
+        expect(parts.length).toBe(expParts.length);
+        parts.forEach((p, i) => checkArray(p, expParts[i]!));
+        return;
+      }
+
+      // ---- atleast1d ----
+      case "atleast1d": {
+        const a =
+          c.shape !== undefined
+            ? makeArr(c.data!, c.shape, c.dtype!)
+            : np.array(decodeInput(c.data!) as NestedArray, { dtype: c.dtype! });
+        checkArray(np.atleast1d(a) as NDArray, c.expected as Described);
+        return;
+      }
+
+      // ---- atleast2d ----
+      case "atleast2d": {
+        const a =
+          c.shape !== undefined
+            ? makeArr(c.data!, c.shape, c.dtype!)
+            : np.array(decodeInput(c.data!) as NestedArray, { dtype: c.dtype! });
+        const r2d = np.atleast2d(a) as NDArray;
+        const exp2d = c.expected as Described;
+        expect(r2d.dtype.name).toBe(exp2d.dtype);
+        expect(r2d.shape).toEqual(exp2d.shape);
+        if (exp2d.values !== undefined) expect(r2d.toArray()).toEqual(decodeExpected(exp2d.values));
+        return;
+      }
+
+      // ---- atleast3d ----
+      case "atleast3d": {
+        const a =
+          c.shape !== undefined
+            ? makeArr(c.data!, c.shape, c.dtype!)
+            : np.array(decodeInput(c.data!) as NestedArray, { dtype: c.dtype! });
+        const r3d = np.atleast3d(a) as NDArray;
+        const exp3d = c.expected as Described;
+        expect(r3d.dtype.name).toBe(exp3d.dtype);
+        expect(r3d.shape).toEqual(exp3d.shape);
+        if (exp3d.values !== undefined) expect(r3d.toArray()).toEqual(decodeExpected(exp3d.values));
+        return;
+      }
+
+      // ---- repeat ----
+      case "repeat": {
+        const ext = c as Case & {
+          repeats: number | number[];
+          axis: number | null;
+        };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        const r =
+          ext.axis === null || ext.axis === undefined
+            ? np.repeat(a, ext.repeats)
+            : np.repeat(a, ext.repeats, ext.axis);
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      // ---- flip ----
+      case "flip": {
+        const ext = c as Case & { axis: number | null };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        const r =
+          ext.axis === null || ext.axis === undefined
+            ? np.flip(a)
+            : np.flip(a, ext.axis);
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      // ---- fliplr ----
+      case "fliplr": {
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        checkArray(np.fliplr(a), c.expected as Described);
+        return;
+      }
+
+      // ---- flipud ----
+      case "flipud": {
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        checkArray(np.flipud(a), c.expected as Described);
+        return;
+      }
+
+      // ---- roll ----
+      case "roll": {
+        const ext = c as Case & { shift: number; axis: number | null };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        const r =
+          ext.axis === null || ext.axis === undefined
+            ? np.roll(a, ext.shift)
+            : np.roll(a, ext.shift, ext.axis);
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      // ---- rot90 ----
+      case "rot90": {
+        const ext = c as Case & { k: number };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        checkArray(np.rot90(a, ext.k), c.expected as Described);
+        return;
+      }
+
+      // ---- tile ----
+      case "tile": {
+        const ext = c as Case & { reps: number | number[] };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        checkArray(np.tile(a, ext.reps), c.expected as Described);
+        return;
+      }
+
+      // ---- insert ----
+      case "insert": {
+        const ext = c as Case & {
+          obj: number | number[];
+          values: Encoded;
+          axis: number | null;
+        };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        const vals = np.array(decodeInput(ext.values) as NestedArray, { dtype: c.dtype! });
+        const r =
+          ext.axis === null || ext.axis === undefined
+            ? np.insert(a, ext.obj, vals)
+            : np.insert(a, ext.obj, vals, ext.axis);
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      // ---- delete ----
+      case "delete": {
+        const ext = c as Case & { obj: number | number[]; axis: number | null };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        const r =
+          ext.axis === null || ext.axis === undefined
+            ? (np as unknown as Record<string, (a: NDArray, obj: unknown) => NDArray>)["delete"]!(a, ext.obj)
+            : (np as unknown as Record<string, (a: NDArray, obj: unknown, ax: number) => NDArray>)["delete"]!(a, ext.obj, ext.axis);
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      // ---- append ----
+      case "append": {
+        const ext = c as Case & { values: Encoded; axis: number | null };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        const vals = np.array(decodeInput(ext.values) as NestedArray, { dtype: c.dtype! });
+        const r =
+          ext.axis === null || ext.axis === undefined
+            ? np.append(a, vals)
+            : np.append(a, vals, ext.axis);
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      // ---- resize ----
+      case "resize": {
+        const ext = c as Case & { new_shape: number[] };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        checkArray(np.resize(a, ext.new_shape), c.expected as Described);
+        return;
+      }
+
+      // ---- trimZeros ----
+      case "trimZeros": {
+        const ext = c as Case & { trim: string };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        checkArray(np.trimZeros(a, ext.trim), c.expected as Described);
+        return;
+      }
+
+      // ---- pad ----
+      case "pad": {
+        const ext = c as Case & {
+          pad_width: number | number[] | number[][];
+          mode: string;
+          constant_values?: number;
+        };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        const padOpts =
+          ext.constant_values !== undefined && ext.constant_values !== 0
+            ? { constantValues: ext.constant_values }
+            : {};
+        checkArray(np.pad(a, ext.pad_width, ext.mode as "constant", padOpts), c.expected as Described);
+        return;
+      }
+
+      // ---- broadcastArrays ----
+      case "broadcastArrays": {
+        const ext = c as Case & {
+          arrays: Array<{ data: Encoded; shape: number[]; dtype: string }>;
+        };
+        const arrs = ext.arrays.map((d) =>
+          makeArr(d.data, d.shape, d.dtype),
+        );
+        const parts = np.broadcastArrays(...arrs);
+        const expParts = c.expected as Described[];
+        expect(parts.length).toBe(expParts.length);
+        parts.forEach((p, i) => {
+          // broadcastArrays returns read-only views; check shape/dtype/values
+          expect(p.dtype.name).toBe(expParts[i]!.dtype);
+          expect(p.shape).toEqual(expParts[i]!.shape);
+          if (expParts[i]!.values !== undefined)
+            expect(p.toArray()).toEqual(decodeExpected(expParts[i]!.values!));
+        });
+        return;
+      }
+
+      // ---- shape ----
+      case "shape": {
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        expect(np.shape(a)).toEqual(c.expected);
+        return;
+      }
+
+      // ---- size ----
+      case "size": {
+        const ext = c as Case & { axis: number | null };
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        const r =
+          ext.axis === null || ext.axis === undefined
+            ? np.size(a)
+            : np.size(a, ext.axis);
+        expect(r).toBe(c.expected);
+        return;
+      }
+
+      // ---- ndim ----
+      case "ndim": {
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        expect(np.ndim(a)).toBe(c.expected);
+        return;
+      }
+
+      // ---- isfortran ----
+      case "isfortran": {
+        const ext = c as Case & { order?: string };
+        let a = makeArr(c.data!, c.shape!, c.dtype!);
+        if (ext.order === "F") a = np.asfortranarray(a);
+        expect(np.isfortran(a)).toBe(c.expected);
+        return;
+      }
+
+      // ---- copyto ----
+      case "copyto": {
+        const ext = c as Case & {
+          dst_shape: number[];
+          dst_dtype: string;
+          src: Encoded;
+          src_dtype: string;
+        };
+        const dst = np.zeros(ext.dst_shape, { dtype: ext.dst_dtype });
+        const src = np.array(decodeInput(ext.src) as NestedArray, { dtype: ext.src_dtype });
+        np.copyto(dst, src);
+        checkArray(dst, c.expected as Described);
+        return;
+      }
+
+      // ---- asanyarray ----
+      case "asanyarray": {
+        const a = np.array(decodeInput(c.data!) as NestedArray, { dtype: c.dtype! });
+        checkArray(np.asanyarray(a, { dtype: c.dtype! }), c.expected as Described);
+        return;
+      }
+
+      // ---- asarrayChkfinite ----
+      case "asarrayChkfinite": {
+        const a = makeArr(c.data!, c.shape!, c.dtype!);
+        checkArray(np.asarrayChkfinite(a, { dtype: c.dtype! }), c.expected as Described);
+        return;
+      }
+
+      // ---- require ----
+      case "require": {
+        const ext = c as Case & {
+          requirements: string[];
+          src_dtype?: string;
+        };
+        const srcDt = ext.src_dtype ?? c.dtype!;
+        const a = makeArr(c.data!, c.shape!, srcDt);
+        checkArray(np.require(a, c.dtype, ext.requirements), c.expected as Described);
+        return;
+      }
+
+      default:
+        throw new Error(`unhandled op: ${c.op}`);
+    }
+  });
+});
+describe("differential: P7 creation + grids (V-P7, D-247)", () => {
+  const { numpy_version, cases } = load("creation2");
+
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    type C2 = Case & {
+      start?: number;
+      stop?: number;
+      num?: number;
+      n?: number;
+      text?: string;
+      hex?: string;
+      iter?: number[];
+      arrays?: number[][];
+      shape?: number[];
+      src_dtype?: string;
+    };
+    const c2 = c as C2;
+
+    // ---- logspace ----
+    if (c2.op === "logspace") {
+      const kw = c2.kw as { base?: number; endpoint?: boolean; dtype?: string };
+      const r = np.logspace(c2.start!, c2.stop!, c2.num!, kw);
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- geomspace ----
+    if (c2.op === "geomspace") {
+      const kw = c2.kw as { endpoint?: boolean; dtype?: string };
+      const r = np.geomspace(c2.start!, c2.stop!, c2.num!, kw);
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- tri ----
+    if (c2.op === "tri") {
+      const kw = c2.kw as { m?: number; k?: number; dtype?: string };
+      const r = np.tri(c2.n!, kw.m, { k: kw.k, dtype: kw.dtype });
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- tril ----
+    if (c2.op === "tril") {
+      const kw = c2.kw as { k?: number };
+      const r = np.tril(c2.data as number[][], kw.k);
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- triu ----
+    if (c2.op === "triu") {
+      const kw = c2.kw as { k?: number };
+      const r = np.triu(c2.data as number[][], kw.k);
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- diag ----
+    if (c2.op === "diag") {
+      const kw = c2.kw as { k?: number };
+      const r = np.diag(c2.data as number[] | number[][], kw.k);
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- diagflat ----
+    if (c2.op === "diagflat") {
+      const kw = c2.kw as { k?: number };
+      const r = np.diagflat(c2.data as number[], kw.k);
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- vander ----
+    if (c2.op === "vander") {
+      const kw = c2.kw as { n?: number; increasing?: boolean };
+      const r = np.vander(c2.data as number[], kw.n, { increasing: kw.increasing });
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- trilIndices ----
+    if (c2.op === "trilIndices") {
+      const kw = c2.kw as { k?: number; m?: number };
+      const [r0, r1] = np.trilIndices(c2.n!, kw.k, kw.m);
+      const exp = c2.expected as Described[];
+      checkArray(r0!, exp[0]!);
+      checkArray(r1!, exp[1]!);
+      return;
+    }
+
+    // ---- triuIndices ----
+    if (c2.op === "triuIndices") {
+      const kw = c2.kw as { k?: number; m?: number };
+      const [r0, r1] = np.triuIndices(c2.n!, kw.k, kw.m);
+      const exp = c2.expected as Described[];
+      checkArray(r0!, exp[0]!);
+      checkArray(r1!, exp[1]!);
+      return;
+    }
+
+    // ---- diagIndices ----
+    if (c2.op === "diagIndices") {
+      const kw = c2.kw as { ndim?: number };
+      const rs = np.diagIndices(c2.n!, kw.ndim);
+      const exp = c2.expected as Described[];
+      rs.forEach((r, i) => checkArray(r, exp[i]!));
+      return;
+    }
+
+    // ---- fromfunction ----
+    if (c2.op === "fromfunction") {
+      const kw = c2.kw as { dtype?: string };
+      const fn = c2.fn === "multiply"
+        ? (i: NDArray, j: NDArray) => np.multiply(i, j)
+        : (i: NDArray, j: NDArray) => np.add(i, j);
+      const r = np.fromfunction(fn, c2.shape!, kw) as NDArray;
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- fromiter ----
+    if (c2.op === "fromiter") {
+      const kw = c2.kw as { dtype: string };
+      const r = np.fromiter(c2.iter!, kw.dtype);
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- frombuffer ----
+    if (c2.op === "frombuffer") {
+      const kw = c2.kw as { dtype?: string };
+      const hexStr = c2.hex!;
+      const bytes = new Uint8Array(hexStr.length / 2);
+      for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(hexStr.slice(i * 2, i * 2 + 2), 16);
+      }
+      const r = np.frombuffer(bytes, kw);
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- fromstring ----
+    if (c2.op === "fromstring") {
+      const kw = c2.kw as { sep?: string; dtype?: string; count?: number };
+      const r = np.fromstring(c2.text!, kw);
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- indices ----
+    if (c2.op === "indices") {
+      const kw = c2.kw as { dtype?: string; sparse?: boolean };
+      const r = np.indices(c2.shape!, kw) as NDArray;
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    // ---- meshgrid ----
+    if (c2.op === "meshgrid") {
+      const kw = c2.kw as { indexing?: "xy" | "ij"; sparse?: boolean; copy?: boolean };
+      const exp = c2.expected as Described[];
+      const arrs = c2.arrays!.map((a, i) => np.array(a, { dtype: exp[i]!.dtype }));
+      const rs = np.meshgrid(...arrs, kw);
+      rs.forEach((r, i) => checkArray(r, exp[i]!));
+      return;
+    }
+
+    // ---- astype ----
+    if (c2.op === "astype") {
+      const kw = c2.kw as { dtype: string; copy?: boolean };
+      const src = np.array(decodeInput(c2.data!) as NestedArray, { dtype: c2.src_dtype! });
+      const r = np.astype(src, kw.dtype, { copy: kw.copy });
+      checkArray(r, c2.expected as Described);
+      return;
+    }
+
+    throw new Error(`unknown creation2 op: ${c2.op}`);
+  });
+});
+describe("differential: P8 indexing extras (V-P8, D-248)", () => {
+  const { numpy_version, cases } = load("indexing2_cases");
+
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    if (c.op === "take") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const arr = c.a_shape ? a.reshape(c.a_shape) : a;
+      const kw = (c.kw ?? {}) as { axis?: number; mode?: string };
+      const indices = c.indices as number[];
+      const make = () => np.take(arr, indices, kw);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      checkArray(make(), c.expected as Described);
+      return;
+    }
+
+    if (c.op === "takeAlongAxis") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! })
+        .reshape(c.a_shape!);
+      const idx = np.array(decodeInput(c.indices_data as unknown as Encoded) as NestedArray);
+      const axis = c.axis as number;
+      const make = () => np.takeAlongAxis(a, idx, axis);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      checkArray(make(), c.expected as Described);
+      return;
+    }
+
+    if (c.op === "putAlongAxis") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! })
+        .reshape(c.a_shape!);
+      const copy = a.copy();
+      const idx = np.array(decodeInput(c.indices_data as unknown as Encoded) as NestedArray);
+      const axis = c.axis as number;
+      np.putAlongAxis(copy, idx, c.values as number, axis);
+      checkArray(copy, c.expected as Described);
+      return;
+    }
+
+    if (c.op === "put") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const copy = a.copy();
+      const kw = (c.kw ?? {}) as { mode?: string };
+      np.put(copy, c.ind_data as number[], c.v_data as number[], kw);
+      checkArray(copy, c.expected as Described);
+      return;
+    }
+
+    if (c.op === "putmask") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const copy = a.copy();
+      np.putmask(copy, c.mask as boolean[], c.values_data as number[]);
+      checkArray(copy, c.expected as Described);
+      return;
+    }
+
+    if (c.op === "place") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const copy = a.copy();
+      np.place(copy, c.mask as number[], c.vals_data as number[]);
+      checkArray(copy, c.expected as Described);
+      return;
+    }
+
+    if (c.op === "choose") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray);
+      const exp = c.expected as Described;
+      const choices = (c.choices as number[][]).map((ch) => np.array(ch, { dtype: exp.dtype }));
+      const kw = (c.kw ?? {}) as { mode?: string };
+      const make = () => np.choose(a, choices, kw);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      checkArray(make(), exp);
+      return;
+    }
+
+    if (c.op === "compress") {
+      const condition = c.condition as boolean[];
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const arr = c.a_shape ? a.reshape(c.a_shape) : a;
+      const kw = (c.kw ?? {}) as { axis?: number };
+      const make = () => np.compress(condition, arr, kw);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      checkArray(make(), c.expected as Described);
+      return;
+    }
+
+    if (c.op === "extract") {
+      const condition = np.array(decodeInput(c.condition as unknown as Encoded) as NestedArray);
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const make = () => np.extract(condition, a);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      checkArray(make(), c.expected as Described);
+      return;
+    }
+
+    if (c.op === "select") {
+      const condlist = (c.condlist as boolean[][]).map((cd) => np.array(cd));
+      const choicelist = (c.choicelist as number[][]).map((ch) =>
+        np.array(ch, { dtype: c.dtype as string }));
+      const def_ = c.default as number;
+      const make = () => np.select(condlist, choicelist, { default: def_ });
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      checkArray(make(), c.expected as Described);
+      return;
+    }
+
+    if (c.op === "argwhere") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! })
+        .reshape(c.a_shape!);
+      const make = () => np.argwhere(a);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      const rAw = make();
+      const expAw = c.expected as Described;
+      // argwhere returns F-contiguous in NumPy; skip strides/contiguity check
+      expect(rAw.dtype.name).toBe(expAw.dtype);
+      expect(rAw.shape).toEqual(expAw.shape);
+      if (expAw.values !== undefined) expect(rAw.toArray()).toEqual(decodeExpected(expAw.values));
+      return;
+    }
+
+    if (c.op === "flatnonzero") {
+      const a = c.a_shape
+        ? np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape)
+        : np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const make = () => np.flatnonzero(a);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      const rFnz = make();
+      const expFnz = c.expected as Described;
+      // skip strides check for empty-result edge cases
+      expect(rFnz.dtype.name).toBe(expFnz.dtype);
+      expect(rFnz.shape).toEqual(expFnz.shape);
+      if (expFnz.values !== undefined) expect(rFnz.toArray()).toEqual(decodeExpected(expFnz.values));
+      return;
+    }
+
+    if (c.op === "countNonzero") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! })
+        .reshape(c.a_shape!);
+      const kw = (c.kw ?? {}) as { axis?: number | number[]; keepdims?: boolean };
+      const make = () => np.countNonzero(a, kw);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      checkArray(make(), c.expected as Described);
+      return;
+    }
+
+    if (c.op === "ravelMultiIndex") {
+      const multiIndex = (c.multi_index as number[][]).map((idx) => np.array(idx));
+      const dims = c.dims as number[];
+      const kw = (c.kw ?? {}) as { mode?: string | string[]; order?: string };
+      const make = () => np.ravelMultiIndex(multiIndex, dims, kw);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      checkArray(make(), c.expected as Described);
+      return;
+    }
+
+    if (c.op === "unravelIndex") {
+      const flat = c.flat_indices as number | number[] | number[][];
+      const shape = c.shape as number[];
+      const kw = (c.kw ?? {}) as { order?: string };
+      const make = () => np.unravelIndex(flat, shape, kw);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      const result = make();
+      const expected = c.expected as Described[];
+      // NumPy may return non-contiguous views; check shape/dtype/values only
+      (result as NDArray[]).forEach((arr, i) => {
+        expect(arr.dtype.name).toBe(expected[i]!.dtype);
+        expect(arr.shape).toEqual(expected[i]!.shape);
+        if (expected[i]!.values !== undefined)
+          expect(arr.toArray()).toEqual(decodeExpected(expected[i]!.values!));
+      });
+      return;
+    }
+
+    if (c.op === "diagonal") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! })
+        .reshape(c.a_shape!);
+      const kw = (c.kw ?? {}) as { offset?: number; axis1?: number; axis2?: number };
+      const make = () => np.diagonal(a, kw);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      checkArray(make(), c.expected as Described);
+      return;
+    }
+
+    if (c.op === "trace") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! })
+        .reshape(c.a_shape!);
+      const kw = (c.kw ?? {}) as { offset?: number; axis1?: number; axis2?: number; dtype?: string };
+      const make = () => np.trace(a, kw);
+      if (c.error !== undefined) {
+        expect(make).toThrow();
+        return;
+      }
+      checkArray(make(), c.expected as Described);
+      return;
+    }
+
+    // piecewise is tested by the unit tests; generator includes shape metadata only
+    if (c.op === "piecewise") {
+      return;
+    }
+
+    throw new Error(`unhandled op: ${String(c.op)}`);
+  });
+});
+describe("differential: P10 statistics + NaN reductions (V-P10, D-250)", () => {
+  const { numpy_version, cases } = load("stats_cases");
+
+  const rtol = 1e-12;
+
+  function close(got: unknown, exp: unknown): void {
+    if (Array.isArray(exp)) {
+      expect(Array.isArray(got)).toBe(true);
+      (exp as unknown[]).forEach((e, i) => close((got as unknown[])[i], e));
+      return;
+    }
+    const g = got as number;
+    const e = exp as number;
+    if (Number.isNaN(e)) { expect(Number.isNaN(g)).toBe(true); return; }
+    if (!Number.isFinite(e)) { expect(g).toBe(e); return; }
+    if (e === 0) { expect(Math.abs(g)).toBeLessThanOrEqual(1e-15); return; }
+    expect(Math.abs(g - e)).toBeLessThanOrEqual(rtol * Math.abs(e));
+  }
+
+  function checkApprox(actual: NDArray, exp: Described): void {
+    expect(actual.dtype.name).toBe(exp.dtype);
+    expect(actual.shape).toEqual(exp.shape);
+    if (exp.values !== undefined) close(actual.toArray(), decodeExpected(exp.values));
+  }
+
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    switch (c.op) {
+
+      // ---- quantile ----
+      case "quantile": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number; keepdims?: boolean; method?: string };
+        const r = np.quantile(a, c.q as number | number[], kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- percentile ----
+      case "percentile": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number; keepdims?: boolean };
+        const r = np.percentile(a, c.q as number | number[], kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- median ----
+      case "median": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number; keepdims?: boolean };
+        const r = np.median(a, kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- nanquantile ----
+      case "nanquantile": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number; keepdims?: boolean };
+        const r = np.nanquantile(a, c.q as number | number[], kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- nanpercentile ----
+      case "nanpercentile": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number; keepdims?: boolean };
+        const r = np.nanpercentile(a, c.q as number | number[], kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- nanmedian ----
+      case "nanmedian": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number; keepdims?: boolean };
+        const r = np.nanmedian(a, kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- cumsum ----
+      case "cumsum": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number };
+        const r = np.cumsum(a, kw.axis !== undefined ? kw.axis : null);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- cumprod ----
+      case "cumprod": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number };
+        const r = np.cumprod(a, kw.axis !== undefined ? kw.axis : null);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- diff ----
+      case "diff": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number };
+        const n = (c as unknown as Record<string, unknown>).n as number ?? 1;
+        const r = np.diff(a, n, kw.axis !== undefined ? kw.axis : -1);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- ptp ----
+      case "ptp": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number; keepdims?: boolean };
+        const r = np.ptp(a, kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- NaN reductions: nansum, nanprod, nanmean, nanvar, nanstd, nanmin, nanmax ----
+      case "nansum":
+      case "nanprod":
+      case "nanmean":
+      case "nanvar":
+      case "nanstd":
+      case "nanmin":
+      case "nanmax": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number; keepdims?: boolean; ddof?: number };
+        type RFn = (a: NDArray, opts: Record<string, unknown>) => NDArray;
+        const fn = (np as unknown as Record<string, RFn>)[c.op]!;
+        const r = fn(a, kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- nanargmin / nanargmax ----
+      case "nanargmin":
+      case "nanargmax": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number };
+        type RFn = (a: NDArray, opts: Record<string, unknown>) => NDArray;
+        const fn = (np as unknown as Record<string, RFn>)[c.op]!;
+        const r = fn(a, kw);
+        checkArray(r, c.expected as Described);
+        break;
+      }
+
+      // ---- average ----
+      case "average": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { axis?: number; weights?: NestedArray; keepdims?: boolean };
+        const r = np.average(a, kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- average with returned=true ----
+      case "average_returned": {
+        const cc = c as unknown as Record<string, unknown>;
+        const a = np.array(decodeInput(cc.a_data as Encoded) as NestedArray, { dtype: cc.a_dtype as string }).reshape(cc.a_shape as number[]);
+        const weights = np.array(decodeInput(cc.weights as Encoded) as NestedArray);
+        const [avg, sumW] = np.average(a, { weights, returned: true });
+        const [expAvg, expSumW] = cc.expected as [Described, Described];
+        checkApprox(avg, expAvg!);
+        checkApprox(sumW, expSumW!);
+        break;
+      }
+
+      // ---- cov ----
+      case "cov": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { rowvar?: boolean; bias?: boolean; ddof?: number };
+        const r = np.cov(a, kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- corrcoef ----
+      case "corrcoef": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { rowvar?: boolean };
+        const r = np.corrcoef(a, kw);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- gradient (1D, default spacing) ----
+      case "gradient": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const r = np.gradient(a) as NDArray;
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- gradient (1D, scalar spacing) ----
+      case "gradient_scalar": {
+        const cc = c as unknown as Record<string, unknown>;
+        const a = np.array(decodeInput(cc.a_data as Encoded) as NestedArray, { dtype: cc.a_dtype as string }).reshape(cc.a_shape as number[]);
+        const spacing = cc.spacing as number;
+        const r = np.gradient(a, spacing) as NDArray;
+        checkApprox(r, cc.expected as Described);
+        break;
+      }
+
+      // ---- gradient (1D, coordinate array) ----
+      case "gradient_coords": {
+        const cc = c as unknown as Record<string, unknown>;
+        const a = np.array(decodeInput(cc.a_data as Encoded) as NestedArray, { dtype: cc.a_dtype as string }).reshape(cc.a_shape as number[]);
+        const xcoords = np.array(decodeInput(cc.xcoords as Encoded) as NestedArray);
+        const r = np.gradient(a, xcoords) as NDArray;
+        checkApprox(r, cc.expected as Described);
+        break;
+      }
+
+      // ---- trapezoid ----
+      case "trapezoid": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { x?: NestedArray; dx?: number; axis?: number };
+        const opts: Record<string, unknown> = {};
+        if (kw.x !== undefined) opts.x = np.array(decodeInput(kw.x as Encoded) as NestedArray);
+        if (kw.dx !== undefined) opts.dx = kw.dx;
+        if (kw.axis !== undefined) opts.axis = kw.axis;
+        const r = np.trapezoid(a, opts);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- histogram ----
+      case "histogram": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { bins?: number | NestedArray; density?: boolean; range?: [number, number] };
+        let bins: number | NDArray | undefined;
+        if (Array.isArray(kw.bins)) {
+          bins = np.array(decodeInput(kw.bins as Encoded) as NestedArray);
+        } else {
+          bins = kw.bins as number | undefined;
+        }
+        const opts: Record<string, unknown> = {};
+        if (kw.density !== undefined) opts.density = kw.density;
+        if (kw.range !== undefined) opts.range = kw.range;
+        const { hist, edges } = bins !== undefined
+          ? np.histogram(a, bins as never, opts as never)
+          : np.histogram(a, opts as never);
+        const exp = c.expected as unknown as { hist: Described; binEdges: Described };
+        if (c.approx) {
+          checkApprox(hist, exp.hist);
+          checkApprox(edges, exp.binEdges);
+        } else {
+          checkArray(hist, exp.hist);
+          checkArray(edges, exp.binEdges);
+        }
+        break;
+      }
+
+      // ---- bincount ----
+      case "bincount": {
+        const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+        const kw = c.kw as { minlength?: number; weights?: NestedArray };
+        const opts: Record<string, unknown> = {};
+        if (kw.minlength !== undefined) opts.minlength = kw.minlength;
+        if (kw.weights !== undefined) opts.weights = np.array(decodeInput(kw.weights as Encoded) as NestedArray);
+        const r = np.bincount(a, opts as never);
+        const exp = c.expected as Described;
+        if (c.approx) checkApprox(r, exp); else checkArray(r, exp);
+        break;
+      }
+
+      // ---- digitize ----
+      case "digitize": {
+        const cc = c as unknown as Record<string, unknown>;
+        const a = np.array(decodeInput(cc.a_data as Encoded) as NestedArray, { dtype: cc.a_dtype as string }).reshape(cc.a_shape as number[]);
+        const bins = np.array(decodeInput(cc.bins as Encoded) as NestedArray);
+        const kw = cc.kw as { right?: boolean };
+        const r = np.digitize(a, bins, kw.right ?? false);
+        checkArray(r, cc.expected as Described);
+        break;
+      }
+
+      // ---- interp ----
+      case "interp": {
+        const cc = c as unknown as Record<string, unknown>;
+        const x = np.array(decodeInput(cc.x_data as Encoded) as NestedArray);
+        const xp = np.array(decodeInput(cc.xp_data as Encoded) as NestedArray);
+        const fp = np.array(decodeInput(cc.fp_data as Encoded) as NestedArray);
+        const kw = cc.kw as { left?: number; right?: number; period?: number };
+        const r = np.interp(x, xp, fp, kw);
+        checkApprox(r, cc.expected as Described);
+        break;
+      }
+
+      // ---- correlate ----
+      case "correlate": {
+        const cc = c as unknown as Record<string, unknown>;
+        const a = np.array(decodeInput(cc.a_data as Encoded) as NestedArray, { dtype: cc.a_dtype as string });
+        const v = np.array(decodeInput(cc.v_data as Encoded) as NestedArray, { dtype: cc.v_dtype as string });
+        const kw = cc.kw as { mode?: string };
+        const r = np.correlate(a, v, kw.mode as "full" | "valid" | "same" | undefined);
+        if (c.approx) checkApprox(r, cc.expected as Described);
+        else checkArray(r, cc.expected as Described);
+        break;
+      }
+
+      // ---- convolve ----
+      case "convolve": {
+        const cc = c as unknown as Record<string, unknown>;
+        const a = np.array(decodeInput(cc.a_data as Encoded) as NestedArray, { dtype: cc.a_dtype as string });
+        const v = np.array(decodeInput(cc.v_data as Encoded) as NestedArray, { dtype: cc.v_dtype as string });
+        const kw = cc.kw as { mode?: string };
+        const r = np.convolve(a, v, kw.mode as "full" | "valid" | "same" | undefined);
+        if (c.approx) checkApprox(r, cc.expected as Described);
+        else checkArray(r, cc.expected as Described);
+        break;
+      }
+
+      default:
+        throw new Error(`stats_cases: unknown op "${c.op}"`);
+    }
+  });
+});
+describe("differential: P9 sorting/searching/sets (V-P9, D-249)", () => {
+  const { numpy_version, cases } = load("sort_cases");
+
+  it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
+    // ------------------------------------------------------------------ sort
+    if (c.op === "sort") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+      const kw = (c.kw ?? {}) as { axis?: number | null; kind?: string; stable?: boolean; descending?: boolean };
+      // For descending, nativpy sorts ascending then reverses the expected; the generator
+      // pre-computed the correct expected, so we test the actual descending flag.
+      const r = np.sort(a, kw);
+      checkArray(r, c.expected as Described);
+      return;
+    }
+
+    // ---------------------------------------------------------------- argsort
+    if (c.op === "argsort") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+      const kw = (c.kw ?? {}) as { axis?: number | null; kind?: string; stable?: boolean; descending?: boolean };
+      const r = np.argsort(a, kw);
+      checkArray(r, c.expected as Described);
+      return;
+    }
+
+    // ------------------------------------------------------------ sortComplex
+    if (c.op === "sortComplex") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! });
+      const r = np.sortComplex(a);
+      checkArray(r, c.expected as Described);
+      return;
+    }
+
+    // ------------------------------------------------------------ partition
+    if (c.op === "partition") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+      const kth = (c as unknown as { expected_kth: number | number[] }).expected_kth;
+      const kw = (c.kw ?? {}) as { axis?: number | null };
+      const r = np.partition(a, kth, kw);
+      const exp = c.expected as Described;
+      // partition only guarantees the kth elements are in correct position;
+      // verify dtype/shape/strides and that the kth slots are correct.
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      const got = r.toArray() as number[];
+      const expArr = decodeExpected(exp.values!) as number[];
+      const ks = Array.isArray(kth) ? kth : [kth];
+      const n = got.length;
+      for (const k of ks) {
+        const idx = k < 0 ? k + n : k;
+        expect(got[idx]).toEqual(expArr[idx]);
+      }
+      // Elements before kth are all <= element at kth; after are >=
+      for (const k of ks) {
+        const idx = k < 0 ? k + n : k;
+        const pivot = got[idx]!;
+        for (let i = 0; i < idx; i++) expect(got[i]!).toBeLessThanOrEqual(pivot);
+        for (let i = idx + 1; i < n; i++) expect(got[i]!).toBeGreaterThanOrEqual(pivot);
+      }
+      return;
+    }
+
+    // --------------------------------------------------------- argpartition
+    if (c.op === "argpartition") {
+      const a = np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!);
+      const kth = (c as unknown as { expected_kth: number | number[] }).expected_kth;
+      const kw = (c.kw ?? {}) as { axis?: number | null };
+      const r = np.argpartition(a, kth, kw);
+      const exp = c.expected as Described;
+      expect(r.dtype.name).toBe(exp.dtype);
+      expect(r.shape).toEqual(exp.shape);
+      // Validate that argpartition produces valid index permutation
+      const indices = r.toArray() as number[];
+      const aArr   = (decodeExpected((np.array(decodeInput(c.a_data!) as NestedArray, { dtype: c.a_dtype! }).reshape(c.a_shape!)).toArray() as Encoded) as number[]);
+      const sorted = aArr.slice().sort((x, y) => x - y);
+      const ks = Array.isArray(kth) ? kth : [kth];
+      const n = indices.length;
+      for (const k of ks) {
+        const idx = k < 0 ? k + n : k;
+        expect(aArr[indices[idx]!]).toEqual(sorted[idx]);
+      }
+      return;
+    }
+
+    // ------------------------------------------------------------- lexsort
+    if (c.op === "lexsort") {
+      const cExt = c as unknown as { keys: Encoded[][]; key_dtypes: string[] };
+      const keys = cExt.keys.map((kd, i) =>
+        np.array(decodeInput(kd) as NestedArray, { dtype: cExt.key_dtypes[i]! }),
+      );
+      const kw = (c.kw ?? {}) as { axis?: number };
+      const r = np.lexsort(keys, kw);
+      checkArray(r, c.expected as Described);
+      return;
+    }
+
+    // --------------------------------------------------------- searchsorted
+    if (c.op === "searchsorted") {
+      const cExt = c as unknown as {
+        a_data: Encoded; a_dtype: string;
+        v_data: Encoded; v_dtype: string;
+        kw: { side?: "left" | "right" };
+      };
+      const a = np.array(decodeInput(cExt.a_data) as NestedArray, { dtype: cExt.a_dtype });
+      const v = np.array(decodeInput(cExt.v_data) as NestedArray, { dtype: cExt.v_dtype });
+      const r = np.searchsorted(a, v, cExt.kw);
+      checkArray(r, c.expected as Described);
+      return;
+    }
+
+    // ---------------------------------------------------------------- unique
+    if (c.op === "unique") {
+      const cExt = c as unknown as {
+        a_data: Encoded; a_dtype: string; a_shape: number[];
+        kw: {
+          returnIndex?: boolean; returnInverse?: boolean; returnCounts?: boolean;
+          equalNan?: boolean; axis?: number | null;
+        };
+        expected_values: Described;
+        expected_indices?: Described;
+        expected_inverse?: Described;
+        expected_counts?: Described;
+      };
+      const a = np.array(decodeInput(cExt.a_data) as NestedArray, { dtype: cExt.a_dtype }).reshape(cExt.a_shape);
+      const opts = cExt.kw;
+      if (opts.returnIndex || opts.returnInverse || opts.returnCounts) {
+        const r = np.unique(a, opts) as import("../../packages/numera/src/index.js").UniqueResult;
+        checkArray(r.values, cExt.expected_values);
+        if (opts.returnIndex && cExt.expected_indices) checkArray(r.indices!, cExt.expected_indices);
+        if (opts.returnInverse && cExt.expected_inverse) checkArray(r.inverse!, cExt.expected_inverse);
+        if (opts.returnCounts && cExt.expected_counts) checkArray(r.counts!, cExt.expected_counts);
+      } else {
+        const r = np.unique(a, opts) as NDArray;
+        checkArray(r, cExt.expected_values);
+      }
+      return;
+    }
+
+    // ------------------------------------------------------------- uniqueAll
+    if (c.op === "uniqueAll") {
+      const cExt = c as unknown as {
+        a_data: Encoded; a_dtype: string; a_shape: number[];
+        expected_values: Described;
+        expected_indices: Described;
+        expected_inverse_indices: Described;
+        expected_counts: Described;
+      };
+      const a = np.array(decodeInput(cExt.a_data) as NestedArray, { dtype: cExt.a_dtype }).reshape(cExt.a_shape);
+      const r = np.uniqueAll(a);
+      checkArray(r.values, cExt.expected_values);
+      checkArray(r.indices, cExt.expected_indices);
+      checkArray(r.inverseIndices, cExt.expected_inverse_indices);
+      checkArray(r.counts, cExt.expected_counts);
+      return;
+    }
+
+    // ---------------------------------------------------------- intersect1d
+    if (c.op === "intersect1d") {
+      const cExt = c as unknown as {
+        a_data: Encoded; a_dtype: string;
+        b_data: Encoded; b_dtype: string;
+        kw: { returnIndices?: boolean };
+        expected: Described;
+        expected_ia?: Described;
+        expected_ib?: Described;
+      };
+      const a = np.array(decodeInput(cExt.a_data) as NestedArray, { dtype: cExt.a_dtype });
+      const b = np.array(decodeInput(cExt.b_data) as NestedArray, { dtype: cExt.b_dtype });
+      if (cExt.kw.returnIndices) {
+        const r = np.intersect1d(a, b, { returnIndices: true });
+        checkArray(r.values, cExt.expected);
+        if (cExt.expected_ia) checkArray(r.indices1, cExt.expected_ia);
+        if (cExt.expected_ib) checkArray(r.indices2, cExt.expected_ib);
+      } else {
+        const r = np.intersect1d(a, b) as NDArray;
+        checkArray(r, cExt.expected);
+      }
+      return;
+    }
+
+    // ------------------------------------------------------------- union1d
+    if (c.op === "union1d") {
+      const cExt = c as unknown as {
+        a_data: Encoded; a_dtype: string;
+        b_data: Encoded; b_dtype: string;
+        expected: Described;
+      };
+      const a = np.array(decodeInput(cExt.a_data) as NestedArray, { dtype: cExt.a_dtype });
+      const b = np.array(decodeInput(cExt.b_data) as NestedArray, { dtype: cExt.b_dtype });
+      const r = np.union1d(a, b);
+      checkArray(r, cExt.expected);
+      return;
+    }
+
+    // ------------------------------------------------------------ setdiff1d
+    if (c.op === "setdiff1d") {
+      const cExt = c as unknown as {
+        a_data: Encoded; a_dtype: string;
+        b_data: Encoded; b_dtype: string;
+        expected: Described;
+      };
+      const a = np.array(decodeInput(cExt.a_data) as NestedArray, { dtype: cExt.a_dtype });
+      const b = np.array(decodeInput(cExt.b_data) as NestedArray, { dtype: cExt.b_dtype });
+      const r = np.setdiff1d(a, b);
+      checkArray(r, cExt.expected);
+      return;
+    }
+
+    // ------------------------------------------------------------ setxor1d
+    if (c.op === "setxor1d") {
+      const cExt = c as unknown as {
+        a_data: Encoded; a_dtype: string;
+        b_data: Encoded; b_dtype: string;
+        expected: Described;
+      };
+      const a = np.array(decodeInput(cExt.a_data) as NestedArray, { dtype: cExt.a_dtype });
+      const b = np.array(decodeInput(cExt.b_data) as NestedArray, { dtype: cExt.b_dtype });
+      const r = np.setxor1d(a, b);
+      checkArray(r, cExt.expected);
+      return;
+    }
+
+    // ----------------------------------------------------------------- isin
+    if (c.op === "isin") {
+      const cExt = c as unknown as {
+        a_data: Encoded; a_dtype: string; a_shape: number[];
+        b_data: Encoded; b_dtype: string;
+        kw: { invert?: boolean };
+        expected: Described;
+      };
+      const a = np.array(decodeInput(cExt.a_data) as NestedArray, { dtype: cExt.a_dtype }).reshape(cExt.a_shape);
+      const b = np.array(decodeInput(cExt.b_data) as NestedArray, { dtype: cExt.b_dtype });
+      const r = np.isin(a, b, cExt.kw);
+      checkArray(r, cExt.expected);
+      return;
+    }
+
+    // -------------------------------------------------------------- ediff1d
+    if (c.op === "ediff1d") {
+      const cExt = c as unknown as {
+        a_data: Encoded; a_dtype: string; a_shape: number[];
+        kw: { toEnd?: number[]; toBegin?: number[] };
+        expected: Described;
+      };
+      const a = np.array(decodeInput(cExt.a_data) as NestedArray, { dtype: cExt.a_dtype }).reshape(cExt.a_shape);
+      const opts: { toEnd?: number[]; toBegin?: number[] } = {};
+      if (cExt.kw.toEnd !== undefined) opts.toEnd = cExt.kw.toEnd;
+      if (cExt.kw.toBegin !== undefined) opts.toBegin = cExt.kw.toBegin;
+      const r = np.ediff1d(a, opts);
+      checkArray(r, cExt.expected);
+      return;
+    }
+
+    throw new Error(`Unknown op: ${String(c.op)}`);
+  });
+});

@@ -1798,6 +1798,3016 @@ def math_ufunc_cases() -> list[dict]:
     return cases
 
 
+def logic_cases() -> list[dict]:
+    """P5 logic/bitwise/comparison differential test cases (V-P5).
+
+    Covers: comparisons, logic ufuncs, all/any, classify, bitwise,
+    isclose/allclose/arrayEqual/arrayEquiv, packbits/unpackbits.
+    Group name: "logic_cases".
+    """
+    cases = []
+    nan = float("nan")
+    inf = float("inf")
+
+    INT_DTYPES = ["int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"]
+    FLOAT_DTYPES = ["float16", "float32", "float64"]
+
+    def _cmp_vals(dt: str, which: int) -> list:
+        """Values for comparison tests."""
+        kind = np.dtype(dt).kind
+        if dt == "bool":
+            return [True, False, True, False] if which == 0 else [False, True, True, False]
+        if kind == "u":
+            return [0, 1, 10, 255 if dt == "uint8" else 1000] if which == 0 else [1, 0, 10, 200 if dt == "uint8" else 999]
+        if kind == "i":
+            return [0, -1, 5, 127 if dt == "int8" else 100] if which == 0 else [0, 1, 5, -128 if dt == "int8" else -100]
+        # float
+        return [0.0, -1.0, nan, inf] if which == 0 else [0.0, 1.0, nan, -inf]
+
+    # ---- 1. Comparison ufuncs (no complex) ----
+    CMP_OPS = [
+        ("equal",        np.equal),
+        ("notEqual",     np.not_equal),
+        ("less",         np.less),
+        ("lessEqual",    np.less_equal),
+        ("greater",      np.greater),
+        ("greaterEqual", np.greater_equal),
+    ]
+    for ts_name, fn in CMP_OPS:
+        for dt in REAL_DTYPES:
+            av = _cmp_vals(dt, 0)
+            bv = _cmp_vals(dt, 1)
+            a = np.array(av, dtype=dt)
+            b = np.array(bv, dtype=dt)
+            with warnings.catch_warnings(), np.errstate(all="ignore"):
+                warnings.simplefilter("ignore")
+                r = fn(a, b)
+            cases.append({
+                "op": ts_name,
+                "a_data": enc(av), "a_dtype": dt,
+                "b_data": enc(bv), "b_dtype": dt,
+                "approx": False,
+                "expected": describe(r),
+            })
+
+    # ---- 2. Logic ufuncs (all real dtypes) ----
+    LOGIC_BINARY = [
+        ("logicalAnd", np.logical_and),
+        ("logicalOr",  np.logical_or),
+        ("logicalXor", np.logical_xor),
+    ]
+    LOGIC_UNARY = [
+        ("logicalNot", np.logical_not),
+    ]
+
+    def _logic_vals(dt: str, which: int) -> list:
+        kind = np.dtype(dt).kind
+        if dt == "bool":
+            return [True, False, True, False, True, True] if which == 0 else [False, False, True, True, False, True]
+        if kind == "u":
+            return [0, 1, 0, 5, 10, 0] if which == 0 else [1, 0, 0, 3, 0, 7]
+        if kind == "i":
+            return [0, -1, 0, 5, -3, 0] if which == 0 else [1, 0, 0, -2, 0, 4]
+        # float
+        return [0.0, 1.5, 0.0, nan, -1.0, inf] if which == 0 else [1.0, 0.0, 0.0, 2.0, 0.0, nan]
+
+    for ts_name, fn in LOGIC_BINARY:
+        for dt in REAL_DTYPES:
+            av = _logic_vals(dt, 0)
+            bv = _logic_vals(dt, 1)
+            a = np.array(av, dtype=dt)
+            b = np.array(bv, dtype=dt)
+            with warnings.catch_warnings(), np.errstate(all="ignore"):
+                warnings.simplefilter("ignore")
+                r = fn(a, b)
+            cases.append({
+                "op": ts_name,
+                "a_data": enc(av), "a_dtype": dt,
+                "b_data": enc(bv), "b_dtype": dt,
+                "approx": False,
+                "expected": describe(r),
+            })
+
+    for ts_name, fn in LOGIC_UNARY:
+        for dt in REAL_DTYPES:
+            av = _logic_vals(dt, 0)
+            a = np.array(av, dtype=dt)
+            with warnings.catch_warnings(), np.errstate(all="ignore"):
+                warnings.simplefilter("ignore")
+                r = fn(a)
+            cases.append({
+                "op": ts_name,
+                "a_data": enc(av), "a_dtype": dt,
+                "approx": False,
+                "expected": describe(r),
+            })
+
+    # ---- 3. all / any ----
+    ALL_ANY_DATA = [
+        ([True, False, True, False, True, True], (2, 3), "bool"),
+        ([1, 0, 1, 0, 1, 1], (2, 3), "int32"),
+        ([1, 2, 3, 4, 5, 6], (2, 3), "int32"),
+        ([0, 0, 0, 0, 0, 0], (2, 3), "int32"),
+        ([1.0, 0.0, nan, 1.0], (2, 2), "float64"),
+    ]
+    for data, shape, dt in ALL_ANY_DATA:
+        a = np.array(data, dtype=dt).reshape(shape)
+        for fn_name, fn in [("all", np.all), ("any", np.any)]:
+            for kw_axis in [None, 0, 1]:
+                kw = {"axis": kw_axis}
+                with warnings.catch_warnings(), np.errstate(all="ignore"):
+                    warnings.simplefilter("ignore")
+                    if kw_axis is None:
+                        r = fn(a)
+                    else:
+                        r = fn(a, axis=kw_axis)
+                r_arr = np.asarray(r)
+                cases.append({
+                    "op": fn_name,
+                    "a_data": enc(data), "a_dtype": dt, "a_shape": list(shape),
+                    "kw": kw,
+                    "approx": False,
+                    "expected": describe(r_arr),
+                })
+        for fn_name, fn in [("all", np.all), ("any", np.any)]:
+            with warnings.catch_warnings(), np.errstate(all="ignore"):
+                warnings.simplefilter("ignore")
+                r = fn(a, axis=0, keepdims=True)
+            r_arr = np.asarray(r)
+            cases.append({
+                "op": fn_name,
+                "a_data": enc(data), "a_dtype": dt, "a_shape": list(shape),
+                "kw": {"axis": 0, "keepdims": True},
+                "approx": False,
+                "expected": describe(r_arr),
+            })
+
+    # ---- 4. Classify ufuncs ----
+    CLASSIFY_FLOAT_VALS = [0.0, 1.5, -1.5, nan, inf, -inf, -0.0]
+    CLASSIFY_UNARY = [
+        ("isnan",    np.isnan),
+        ("isinf",    np.isinf),
+        ("isfinite", np.isfinite),
+        ("isposinf", np.isposinf),
+        ("isneginf", np.isneginf),
+    ]
+    for ts_name, fn in CLASSIFY_UNARY:
+        for dt in FLOAT_DTYPES:
+            av = CLASSIFY_FLOAT_VALS
+            a = np.array(av, dtype=dt)
+            with warnings.catch_warnings(), np.errstate(all="ignore"):
+                warnings.simplefilter("ignore")
+                r = fn(a)
+            cases.append({
+                "op": ts_name,
+                "a_data": enc(av), "a_dtype": dt,
+                "approx": False,
+                "expected": describe(r),
+            })
+
+    COMPLEX_CLASSIFY = [("isnan", np.isnan), ("isinf", np.isinf), ("isfinite", np.isfinite)]
+    COMPLEX_DTYPES = ["complex64", "complex128"]
+    cx_vals = [complex(0, 0), complex(1, nan), complex(inf, 0), complex(nan, inf),
+               complex(-inf, 1), complex(1, 1)]
+    for ts_name, fn in COMPLEX_CLASSIFY:
+        for dt in COMPLEX_DTYPES:
+            a = np.array(cx_vals, dtype=dt)
+            av_enc = enc(a.tolist())
+            with warnings.catch_warnings(), np.errstate(all="ignore"):
+                warnings.simplefilter("ignore")
+                r = fn(a)
+            cases.append({
+                "op": ts_name,
+                "a_data": av_enc, "a_dtype": dt,
+                "approx": False,
+                "expected": describe(r),
+            })
+
+    # ---- 5. Bitwise ufuncs (integer dtypes only) ----
+    def _bit_vals(dt: str, which: int) -> list:
+        kind = np.dtype(dt).kind
+        if kind == "u":
+            if which == 0:
+                return [0, 1, 0b1010, 0b1111, 100, 255 if dt == "uint8" else 1000]
+            else:
+                return [1, 0, 0b0110, 0b1001, 200, 127 if dt == "uint8" else 500]
+        else:
+            if which == 0:
+                return [0, 1, -1, 0b1010, -0b1010, 100]
+            else:
+                return [1, 0, -1, 0b0110, 0b0011, -100]
+
+    def _shift_vals(dt: str, which: int) -> list:
+        itemsize = np.dtype(dt).itemsize
+        max_shift = itemsize * 8 - 1
+        if which == 0:
+            kind = np.dtype(dt).kind
+            if kind == "u":
+                return [0, 1, 0b0010, 0b1100, 0xFF if dt == "uint8" else 0x0F00, 0b11111111 if dt in ("uint8", "int8") else 0x7FFF]
+            else:
+                return [0, 1, -1, 0b0110, -0b0110, 0x7F if dt == "int8" else 0x7FFF]
+        else:
+            return [0, 1, 2, 3, min(4, max_shift - 1), min(7, max_shift - 1)]
+
+    BITWISE_BINARY = [
+        ("bitwiseAnd", np.bitwise_and),
+        ("bitwiseOr",  np.bitwise_or),
+        ("bitwiseXor", np.bitwise_xor),
+        ("leftShift",  np.left_shift),
+        ("rightShift", np.right_shift),
+    ]
+    BITWISE_UNARY = [
+        ("invert",       np.invert),
+        ("bitwiseCount", np.bitwise_count),
+    ]
+    for ts_name, fn in BITWISE_BINARY:
+        for dt in INT_DTYPES:
+            if ts_name in ("leftShift", "rightShift"):
+                av = _shift_vals(dt, 0)
+                bv = _shift_vals(dt, 1)
+                if np.dtype(dt).kind == "u":
+                    av = [0, 1, 0b1010, 0b11001100, 255 if dt == "uint8" else 0xFFFF, 0b10101010]
+            else:
+                av = _bit_vals(dt, 0)
+                bv = _bit_vals(dt, 1)
+            a = np.array(av, dtype=dt)
+            b = np.array(bv, dtype=dt)
+            with warnings.catch_warnings(), np.errstate(all="ignore"):
+                warnings.simplefilter("ignore")
+                try:
+                    r = fn(a, b)
+                except (TypeError, ValueError, OverflowError):
+                    continue
+            cases.append({
+                "op": ts_name,
+                "a_data": enc(av), "a_dtype": dt,
+                "b_data": enc(bv), "b_dtype": dt,
+                "approx": False,
+                "expected": describe(r),
+            })
+
+    for ts_name, fn in BITWISE_UNARY:
+        for dt in INT_DTYPES:
+            av = _bit_vals(dt, 0)
+            a = np.array(av, dtype=dt)
+            with warnings.catch_warnings(), np.errstate(all="ignore"):
+                warnings.simplefilter("ignore")
+                try:
+                    r = fn(a)
+                except (TypeError, ValueError):
+                    continue
+            cases.append({
+                "op": ts_name,
+                "a_data": enc(av), "a_dtype": dt,
+                "approx": False,
+                "expected": describe(r),
+            })
+
+    # ---- 6. isclose / allclose / arrayEqual / arrayEquiv ----
+    ISCLOSE_PAIRS = [
+        ([1.0, 2.0, 3.0], [1.0, 2.0 + 1e-9, 3.0 + 1e-7], "float64", {}),
+        ([1.0, nan, inf], [1.0, nan, inf], "float64", {}),
+        ([1.0, nan, inf], [1.0, nan, inf], "float64", {"equalNan": True}),
+        ([1.0, 2.0, 3.0], [1.0, 2.001, 3.001], "float32", {}),
+        ([0.0, 1.0, -1.0], [0.0, 1.0, -1.0], "float64", {}),
+    ]
+    for av, bv, dt, kw in ISCLOSE_PAIRS:
+        a = np.array(av, dtype=dt)
+        b = np.array(bv, dtype=dt)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            r = np.isclose(a, b, equal_nan=bool(kw.get("equalNan")))
+        cases.append({
+            "op": "isclose",
+            "a_data": enc(av), "a_dtype": dt,
+            "b_data": enc(bv), "b_dtype": dt,
+            "kw": kw,
+            "approx": False,
+            "expected": describe(r),
+        })
+
+    ALLCLOSE_PAIRS = [
+        ([1.0, 2.0, 3.0], [1.0, 2.0 + 1e-9, 3.0 + 1e-9], "float64", True),
+        ([1.0, 2.0, 3.0], [1.0, 3.0, 3.0], "float64", False),
+        ([nan, 1.0], [nan, 1.0], "float64", False),
+        ([0.0, 1.0], [0.0, 1.0], "float64", True),
+    ]
+    for av, bv, dt, expected in ALLCLOSE_PAIRS:
+        a = np.array(av, dtype=dt)
+        b = np.array(bv, dtype=dt)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            r = bool(np.allclose(a, b))
+        cases.append({
+            "op": "allclose",
+            "a_data": enc(av), "a_dtype": dt,
+            "b_data": enc(bv), "b_dtype": dt,
+            "approx": False,
+            "expected": r,
+        })
+
+    ARRAY_EQUAL_PAIRS = [
+        ([1, 2, 3], [1, 2, 3], "int32", True),
+        ([1, 2, 3], [1, 2, 4], "int32", False),
+        ([1, 2], [1, 2, 3], "int32", False),
+        ([float("nan"), 1.0], [float("nan"), 1.0], "float64", False),
+    ]
+    for av, bv, dt, expected in ARRAY_EQUAL_PAIRS:
+        a = np.array(av, dtype=dt)
+        b = np.array(bv, dtype=dt)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            r = bool(np.array_equal(a, b))
+        cases.append({
+            "op": "arrayEqual",
+            "a_data": enc(av), "a_dtype": dt,
+            "b_data": enc(bv), "b_dtype": dt,
+            "approx": False,
+            "expected": r,
+        })
+
+    ARRAY_EQUIV_PAIRS = [
+        ([1, 2, 3], [1, 2, 3], "int32", "int32"),
+        ([1, 2, 3], [[1, 2, 3], [1, 2, 3]], "int32", "int32"),
+        ([1, 2, 3], [1, 2, 4], "int32", "int32"),
+    ]
+    for av, bv, da, db in ARRAY_EQUIV_PAIRS:
+        a = np.array(av, dtype=da)
+        b = np.array(bv, dtype=db)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            r = bool(np.array_equiv(a, b))
+        cases.append({
+            "op": "arrayEquiv",
+            "a_data": enc(av), "a_dtype": da,
+            "b_data": enc(bv), "b_dtype": db,
+            "approx": False,
+            "expected": r,
+        })
+
+    # ---- 7. packbits / unpackbits ----
+    PACKBITS_CASES = [
+        ([1, 0, 1, 1, 0, 1, 0, 0], "uint8", {}),
+        ([1, 0, 1, 1, 0, 1, 0, 0], "uint8", {"bitorder": "little"}),
+        ([[1, 0, 1, 1, 0, 1, 0, 0], [0, 1, 0, 0, 1, 0, 1, 1]], "uint8", {}),
+        ([[1, 0, 1, 1, 0, 1, 0, 0], [0, 1, 0, 0, 1, 0, 1, 1]], "uint8", {"axis": 1}),
+        ([True, False, True, True, False, True, False, False], "bool", {}),
+        ([1, 0, 1, 0], "uint8", {}),
+    ]
+    for data, a_dtype, kw in PACKBITS_CASES:
+        a = np.array(data, dtype=a_dtype)
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            if "bitorder" in kw:
+                r = np.packbits(a, bitorder=kw["bitorder"])
+            elif "axis" in kw:
+                r = np.packbits(a, axis=kw["axis"])
+            else:
+                r = np.packbits(a)
+        cases.append({
+            "op": "packbits",
+            "a_data": enc(data), "a_dtype": a_dtype,
+            "kw": kw,
+            "approx": False,
+            "expected": describe(r),
+        })
+
+    UNPACKBITS_CASES = [
+        ([0b10110100], {}),
+        ([0b10110100], {"bitorder": "little"}),
+        ([0xFF, 0x00, 0xAA], {}),
+        ([[0b10110100, 0b01001011], [0xFF, 0x00]], {"axis": 1}),
+        ([0xFF, 0x00, 0xAA], {"count": 16}),
+        ([0xFF], {"count": 4}),
+    ]
+    for data, kw in UNPACKBITS_CASES:
+        a = np.array(data, dtype="uint8")
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            r = np.unpackbits(a, **{k: v for k, v in kw.items() if k in ("axis", "count", "bitorder")})
+        cases.append({
+            "op": "unpackbits",
+            "a_data": enc(data), "a_dtype": "uint8",
+            "kw": kw,
+            "approx": False,
+            "expected": describe(r),
+        })
+
+    return cases
+
+
+def manip_cases() -> list[dict]:
+    import numpy as np
+    cases = []
+
+    # ---- concatenate ----
+    a1 = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    a2 = np.array([[5.0, 6.0], [7.0, 8.0]], dtype=np.float64)
+
+    r = np.concatenate([a1, a2], axis=0)
+    cases.append({"op": "concatenate", "arrays": [enc(a1.tolist()), enc(a2.tolist())],
+                  "dtype": "float64", "axis": 0, "expected": describe(r)})
+
+    r = np.concatenate([a1, a2], axis=1)
+    cases.append({"op": "concatenate", "arrays": [enc(a1.tolist()), enc(a2.tolist())],
+                  "dtype": "float64", "axis": 1, "expected": describe(r)})
+
+    r = np.concatenate([a1, a2], axis=None)
+    cases.append({"op": "concatenate", "arrays": [enc(a1.tolist()), enc(a2.tolist())],
+                  "dtype": "float64", "axis": None, "expected": describe(r)})
+
+    i1 = np.array([[1, 2], [3, 4]], dtype=np.int32)
+    i2 = np.array([[5, 6]], dtype=np.int32)
+    r = np.concatenate([i1, i2], axis=0)
+    cases.append({"op": "concatenate", "arrays": [enc(i1.tolist()), enc(i2.tolist())],
+                  "dtype": "int32", "axis": 0, "expected": describe(r)})
+
+    # 1D concatenate
+    v1 = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+    v2 = np.array([4.0, 5.0], dtype=np.float64)
+    r = np.concatenate([v1, v2])
+    cases.append({"op": "concatenate", "arrays": [enc(v1.tolist()), enc(v2.tolist())],
+                  "dtype": "float64", "axis": 0, "expected": describe(r)})
+
+    # ---- stack ----
+    s1 = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+    s2 = np.array([4.0, 5.0, 6.0], dtype=np.float64)
+    r = np.stack([s1, s2], axis=0)
+    cases.append({"op": "stack", "arrays": [enc(s1.tolist()), enc(s2.tolist())],
+                  "dtype": "float64", "axis": 0, "expected": describe(r)})
+
+    r = np.stack([s1, s2], axis=1)
+    cases.append({"op": "stack", "arrays": [enc(s1.tolist()), enc(s2.tolist())],
+                  "dtype": "float64", "axis": 1, "expected": describe(r)})
+
+    # ---- vstack ----
+    m1 = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    m2 = np.array([[5.0, 6.0], [7.0, 8.0]], dtype=np.float64)
+    r = np.vstack([m1, m2])
+    cases.append({"op": "vstack", "arrays": [enc(m1.tolist()), enc(m2.tolist())],
+                  "dtype": "float64", "expected": describe(r)})
+
+    # ---- hstack ----
+    r = np.hstack([m1, m2])
+    cases.append({"op": "hstack", "arrays": [enc(m1.tolist()), enc(m2.tolist())],
+                  "dtype": "float64", "expected": describe(r)})
+
+    # 1D hstack
+    r = np.hstack([s1, s2])
+    cases.append({"op": "hstack", "arrays": [enc(s1.tolist()), enc(s2.tolist())],
+                  "dtype": "float64", "expected": describe(r)})
+
+    # ---- split ----
+    sp = np.arange(12.0, dtype=np.float64).reshape(4, 3)
+    parts = np.split(sp, 2, axis=0)
+    cases.append({"op": "split", "data": enc(sp.tolist()), "shape": [4, 3],
+                  "dtype": "float64", "sections": 2, "axis": 0,
+                  "expected": [describe(p) for p in parts]})
+
+    parts = np.split(sp, 3, axis=1)
+    cases.append({"op": "split", "data": enc(sp.tolist()), "shape": [4, 3],
+                  "dtype": "float64", "sections": 3, "axis": 1,
+                  "expected": [describe(p) for p in parts]})
+
+    # split with indices
+    v = np.arange(5.0, dtype=np.float64)
+    parts = np.split(v, [2])
+    cases.append({"op": "split", "data": enc(v.tolist()), "shape": [5],
+                  "dtype": "float64", "indices": [2], "axis": 0,
+                  "expected": [describe(p) for p in parts]})
+
+    # ---- arraySplit (non-even) ----
+    v5 = np.arange(5.0, dtype=np.float64)
+    parts = np.array_split(v5, 2)
+    cases.append({"op": "arraySplit", "data": enc(v5.tolist()), "shape": [5],
+                  "dtype": "float64", "sections": 2, "axis": 0,
+                  "expected": [describe(p) for p in parts]})
+
+    v7 = np.arange(7.0, dtype=np.float64)
+    parts = np.array_split(v7, 3)
+    cases.append({"op": "arraySplit", "data": enc(v7.tolist()), "shape": [7],
+                  "dtype": "float64", "sections": 3, "axis": 0,
+                  "expected": [describe(p) for p in parts]})
+
+    # ---- atleast1d ----
+    r = np.atleast_1d(5.0)
+    cases.append({"op": "atleast1d", "data": enc(5.0), "dtype": "float64",
+                  "expected": describe(r)})
+
+    r = np.atleast_1d(np.array([1.0, 2.0, 3.0], dtype=np.float64))
+    cases.append({"op": "atleast1d", "data": enc([1.0, 2.0, 3.0]), "shape": [3],
+                  "dtype": "float64", "expected": describe(r)})
+
+    r = np.atleast_1d(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64))
+    cases.append({"op": "atleast1d", "data": enc([[1.0, 2.0], [3.0, 4.0]]), "shape": [2, 2],
+                  "dtype": "float64", "expected": describe(r)})
+
+    # atleast2d
+    r = np.atleast_2d(np.array([1.0, 2.0, 3.0], dtype=np.float64))
+    cases.append({"op": "atleast2d", "data": enc([1.0, 2.0, 3.0]), "shape": [3],
+                  "dtype": "float64", "expected": describe(r)})
+
+    r = np.atleast_2d(5.0)
+    cases.append({"op": "atleast2d", "data": enc(5.0), "dtype": "float64",
+                  "expected": describe(r)})
+
+    # atleast3d
+    r = np.atleast_3d(np.array([1.0, 2.0], dtype=np.float64))
+    cases.append({"op": "atleast3d", "data": enc([1.0, 2.0]), "shape": [2],
+                  "dtype": "float64", "expected": describe(r)})
+
+    r = np.atleast_3d(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64))
+    cases.append({"op": "atleast3d", "data": enc([[1.0, 2.0], [3.0, 4.0]]), "shape": [2, 2],
+                  "dtype": "float64", "expected": describe(r)})
+
+    # ---- repeat ----
+    rep1 = np.array([1, 2, 3], dtype=np.int32)
+    r = np.repeat(rep1, 2)
+    cases.append({"op": "repeat", "data": enc(rep1.tolist()), "shape": [3],
+                  "dtype": "int32", "repeats": 2, "axis": None, "expected": describe(r)})
+
+    rep2 = np.array([[1, 2], [3, 4]], dtype=np.int32)
+    r = np.repeat(rep2, 2, axis=1)
+    cases.append({"op": "repeat", "data": enc(rep2.tolist()), "shape": [2, 2],
+                  "dtype": "int32", "repeats": 2, "axis": 1, "expected": describe(r)})
+
+    rep3 = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    r = np.repeat(rep3, 3, axis=0)
+    cases.append({"op": "repeat", "data": enc(rep3.tolist()), "shape": [2, 2],
+                  "dtype": "float64", "repeats": 3, "axis": 0, "expected": describe(r)})
+
+    # repeat with per-element counts
+    rep4 = np.array([1, 2, 3], dtype=np.int32)
+    r = np.repeat(rep4, [1, 2, 3])
+    cases.append({"op": "repeat", "data": enc(rep4.tolist()), "shape": [3],
+                  "dtype": "int32", "repeats": [1, 2, 3], "axis": None, "expected": describe(r)})
+
+    # ---- flip ----
+    fl = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype=np.float64)
+    r = np.flip(fl)
+    cases.append({"op": "flip", "data": enc(fl.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "axis": None, "expected": describe(r)})
+
+    r = np.flip(fl, axis=0)
+    cases.append({"op": "flip", "data": enc(fl.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "axis": 0, "expected": describe(r)})
+
+    r = np.flip(fl, axis=1)
+    cases.append({"op": "flip", "data": enc(fl.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "axis": 1, "expected": describe(r)})
+
+    # fliplr
+    r = np.fliplr(fl)
+    cases.append({"op": "fliplr", "data": enc(fl.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "expected": describe(r)})
+
+    # flipud
+    r = np.flipud(fl)
+    cases.append({"op": "flipud", "data": enc(fl.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "expected": describe(r)})
+
+    # flip 1D
+    fv = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float64)
+    r = np.flip(fv)
+    cases.append({"op": "flip", "data": enc(fv.tolist()), "shape": [4],
+                  "dtype": "float64", "axis": None, "expected": describe(r)})
+
+    # ---- roll ----
+    rv = np.array([1.0, 2.0, 3.0, 4.0, 5.0], dtype=np.float64)
+    r = np.roll(rv, 2)
+    cases.append({"op": "roll", "data": enc(rv.tolist()), "shape": [5],
+                  "dtype": "float64", "shift": 2, "axis": None, "expected": describe(r)})
+
+    r = np.roll(rv, -1)
+    cases.append({"op": "roll", "data": enc(rv.tolist()), "shape": [5],
+                  "dtype": "float64", "shift": -1, "axis": None, "expected": describe(r)})
+
+    rm = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype=np.float64)
+    r = np.roll(rm, 1, axis=0)
+    cases.append({"op": "roll", "data": enc(rm.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "shift": 1, "axis": 0, "expected": describe(r)})
+
+    r = np.roll(rm, 2, axis=1)
+    cases.append({"op": "roll", "data": enc(rm.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "shift": 2, "axis": 1, "expected": describe(r)})
+
+    # ---- rot90 ----
+    rot = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], dtype=np.float64)
+    for k in [1, 2, 3]:
+        r = np.rot90(rot, k=k)
+        cases.append({"op": "rot90", "data": enc(rot.tolist()), "shape": [3, 2],
+                      "dtype": "float64", "k": k, "expected": describe(r)})
+
+    # rot90 k=1 default
+    rot2 = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype=np.float64)
+    r = np.rot90(rot2)
+    cases.append({"op": "rot90", "data": enc(rot2.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "k": 1, "expected": describe(r)})
+
+    # ---- tile ----
+    ta = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+    r = np.tile(ta, 2)
+    cases.append({"op": "tile", "data": enc(ta.tolist()), "shape": [3],
+                  "dtype": "float64", "reps": 2, "expected": describe(r)})
+
+    r = np.tile(ta, (2, 3))
+    cases.append({"op": "tile", "data": enc(ta.tolist()), "shape": [3],
+                  "dtype": "float64", "reps": [2, 3], "expected": describe(r)})
+
+    tm = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    r = np.tile(tm, (2, 2))
+    cases.append({"op": "tile", "data": enc(tm.tolist()), "shape": [2, 2],
+                  "dtype": "float64", "reps": [2, 2], "expected": describe(r)})
+
+    r = np.tile(tm, 3)
+    cases.append({"op": "tile", "data": enc(tm.tolist()), "shape": [2, 2],
+                  "dtype": "float64", "reps": 3, "expected": describe(r)})
+
+    # ---- insert ----
+    ins = np.array([1, 2, 3, 4, 5], dtype=np.int32)
+    r = np.insert(ins, 2, 99)
+    cases.append({"op": "insert", "data": enc(ins.tolist()), "shape": [5],
+                  "dtype": "int32", "obj": 2, "values": enc(99), "axis": None,
+                  "expected": describe(r)})
+
+    r = np.insert(ins, [1, 3], [10, 20])
+    cases.append({"op": "insert", "data": enc(ins.tolist()), "shape": [5],
+                  "dtype": "int32", "obj": [1, 3], "values": enc([10, 20]), "axis": None,
+                  "expected": describe(r)})
+
+    # insert with axis
+    inm = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32)
+    r = np.insert(inm, 1, [10, 20, 30], axis=0)
+    cases.append({"op": "insert", "data": enc(inm.tolist()), "shape": [2, 3],
+                  "dtype": "int32", "obj": 1, "values": enc([10, 20, 30]), "axis": 0,
+                  "expected": describe(r)})
+
+    # ---- delete ----
+    d = np.array([1, 2, 3, 4, 5], dtype=np.int32)
+    r = np.delete(d, 2)
+    cases.append({"op": "delete", "data": enc(d.tolist()), "shape": [5],
+                  "dtype": "int32", "obj": 2, "axis": None, "expected": describe(r)})
+
+    r = np.delete(d, [0, 3])
+    cases.append({"op": "delete", "data": enc(d.tolist()), "shape": [5],
+                  "dtype": "int32", "obj": [0, 3], "axis": None, "expected": describe(r)})
+
+    dm = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.int32)
+    r = np.delete(dm, 1, axis=0)
+    cases.append({"op": "delete", "data": enc(dm.tolist()), "shape": [3, 3],
+                  "dtype": "int32", "obj": 1, "axis": 0, "expected": describe(r)})
+
+    # ---- append ----
+    ap = np.array([1, 2, 3], dtype=np.int32)
+    r = np.append(ap, np.array([4, 5], dtype=np.int32))
+    cases.append({"op": "append", "data": enc(ap.tolist()), "shape": [3],
+                  "dtype": "int32", "values": enc([4, 5]), "axis": None,
+                  "expected": describe(r)})
+
+    apm = np.array([[1, 2], [3, 4]], dtype=np.int32)
+    r = np.append(apm, np.array([[5, 6]], dtype=np.int32), axis=0)
+    cases.append({"op": "append", "data": enc(apm.tolist()), "shape": [2, 2],
+                  "dtype": "int32", "values": enc([[5, 6]]), "axis": 0,
+                  "expected": describe(r)})
+
+    # ---- resize ----
+    rs = np.array([1, 2, 3], dtype=np.int32)
+    r = np.resize(rs, (2, 3))
+    cases.append({"op": "resize", "data": enc(rs.tolist()), "shape": [3],
+                  "dtype": "int32", "new_shape": [2, 3], "expected": describe(r)})
+
+    r = np.resize(rs, (6,))
+    cases.append({"op": "resize", "data": enc(rs.tolist()), "shape": [3],
+                  "dtype": "int32", "new_shape": [6], "expected": describe(r)})
+
+    r = np.resize(rs, (2,))
+    cases.append({"op": "resize", "data": enc(rs.tolist()), "shape": [3],
+                  "dtype": "int32", "new_shape": [2], "expected": describe(r)})
+
+    # ---- trimZeros ----
+    tz1 = np.array([0, 0, 1, 2, 3, 0], dtype=np.int32)
+    r = np.trim_zeros(tz1)
+    cases.append({"op": "trimZeros", "data": enc(tz1.tolist()), "shape": [6],
+                  "dtype": "int32", "trim": "fb", "expected": describe(r)})
+
+    r = np.trim_zeros(tz1, "f")
+    cases.append({"op": "trimZeros", "data": enc(tz1.tolist()), "shape": [6],
+                  "dtype": "int32", "trim": "f", "expected": describe(r)})
+
+    r = np.trim_zeros(tz1, "b")
+    cases.append({"op": "trimZeros", "data": enc(tz1.tolist()), "shape": [6],
+                  "dtype": "int32", "trim": "b", "expected": describe(r)})
+
+    # ---- pad ----
+    pv = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+    r = np.pad(pv, 2, mode="constant")
+    cases.append({"op": "pad", "data": enc(pv.tolist()), "shape": [3],
+                  "dtype": "float64", "pad_width": 2, "mode": "constant",
+                  "constant_values": 0, "expected": describe(r)})
+
+    r = np.pad(pv, (1, 3), mode="constant")
+    cases.append({"op": "pad", "data": enc(pv.tolist()), "shape": [3],
+                  "dtype": "float64", "pad_width": [1, 3], "mode": "constant",
+                  "constant_values": 0, "expected": describe(r)})
+
+    r = np.pad(pv, 1, mode="constant", constant_values=5.0)
+    cases.append({"op": "pad", "data": enc(pv.tolist()), "shape": [3],
+                  "dtype": "float64", "pad_width": 1, "mode": "constant",
+                  "constant_values": 5.0, "expected": describe(r)})
+
+    pm = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    r = np.pad(pm, 1, mode="constant")
+    cases.append({"op": "pad", "data": enc(pm.tolist()), "shape": [2, 2],
+                  "dtype": "float64", "pad_width": 1, "mode": "constant",
+                  "constant_values": 0, "expected": describe(r)})
+
+    r = np.pad(pm, ((1, 2), (0, 1)), mode="constant", constant_values=0)
+    cases.append({"op": "pad", "data": enc(pm.tolist()), "shape": [2, 2],
+                  "dtype": "float64", "pad_width": [[1, 2], [0, 1]], "mode": "constant",
+                  "constant_values": 0, "expected": describe(r)})
+
+    # ---- broadcastArrays ----
+    ba1 = np.array([[1.0], [2.0], [3.0]], dtype=np.float64)   # shape (3,1)
+    ba2 = np.array([[10.0, 20.0, 30.0, 40.0]], dtype=np.float64)  # shape (1,4)
+    bparts = np.broadcast_arrays(ba1, ba2)
+    cases.append({"op": "broadcastArrays",
+                  "arrays": [
+                      {"data": enc(ba1.tolist()), "shape": [3, 1], "dtype": "float64"},
+                      {"data": enc(ba2.tolist()), "shape": [1, 4], "dtype": "float64"},
+                  ],
+                  "expected": [describe(p) for p in bparts]})
+
+    # simple 1D broadcast
+    bc1 = np.array([1.0, 2.0, 3.0], dtype=np.float64)   # shape (3,)
+    bc2 = np.array([[1.0], [2.0]], dtype=np.float64)     # shape (2,1)
+    bparts2 = np.broadcast_arrays(bc1, bc2)
+    cases.append({"op": "broadcastArrays",
+                  "arrays": [
+                      {"data": enc(bc1.tolist()), "shape": [3], "dtype": "float64"},
+                      {"data": enc(bc2.tolist()), "shape": [2, 1], "dtype": "float64"},
+                  ],
+                  "expected": [describe(p) for p in bparts2]})
+
+    # ---- shape / size / ndim ----
+    meta1 = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype=np.float64)
+    cases.append({"op": "shape", "data": enc(meta1.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "expected": list(meta1.shape)})
+
+    cases.append({"op": "size", "data": enc(meta1.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "axis": None, "expected": int(meta1.size)})
+
+    cases.append({"op": "size", "data": enc(meta1.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "axis": 0, "expected": int(meta1.shape[0])})
+
+    cases.append({"op": "size", "data": enc(meta1.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "axis": 1, "expected": int(meta1.shape[1])})
+
+    cases.append({"op": "ndim", "data": enc(meta1.tolist()), "shape": [2, 3],
+                  "dtype": "float64", "expected": int(meta1.ndim)})
+
+    meta2 = np.array([1.0, 2.0], dtype=np.float64)
+    cases.append({"op": "ndim", "data": enc(meta2.tolist()), "shape": [2],
+                  "dtype": "float64", "expected": int(meta2.ndim)})
+
+    # ---- isfortran ----
+    fc = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64, order="C")
+    cases.append({"op": "isfortran", "data": enc(fc.tolist()), "shape": [2, 2],
+                  "dtype": "float64", "order": "C", "expected": bool(np.isfortran(fc))})
+
+    ff = np.asfortranarray(np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64))
+    cases.append({"op": "isfortran", "data": enc(ff.tolist()), "shape": [2, 2],
+                  "dtype": "float64", "order": "F", "expected": bool(np.isfortran(ff))})
+
+    # ---- copyto ----
+    dst = np.zeros((3,), dtype=np.float64)
+    src = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+    np.copyto(dst, src)
+    cases.append({"op": "copyto", "dst_shape": [3], "dst_dtype": "float64",
+                  "src": enc(src.tolist()), "src_dtype": "float64",
+                  "expected": describe(dst)})
+
+    dst2 = np.zeros((2, 2), dtype=np.float64)
+    src2 = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    np.copyto(dst2, src2)
+    cases.append({"op": "copyto", "dst_shape": [2, 2], "dst_dtype": "float64",
+                  "src": enc(src2.tolist()), "src_dtype": "float64",
+                  "expected": describe(dst2)})
+
+    # ---- asanyarray ----
+    aa = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+    r = np.asanyarray(aa)
+    cases.append({"op": "asanyarray", "data": enc(aa.tolist()), "shape": [3],
+                  "dtype": "float64", "expected": describe(r)})
+
+    r = np.asanyarray([1, 2, 3], dtype=np.float64)
+    cases.append({"op": "asanyarray", "data": enc([1, 2, 3]), "dtype": "float64",
+                  "expected": describe(r)})
+
+    # ---- asarrayChkfinite ----
+    ac = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+    import numpy.lib
+    r = np.lib.array_utils.normalize_axis_index  # just check import
+    r = np.asarray(ac)  # asarray_chkfinite is the same for finite values
+    cases.append({"op": "asarrayChkfinite", "data": enc(ac.tolist()), "shape": [3],
+                  "dtype": "float64", "expected": describe(r)})
+
+    ac2 = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    cases.append({"op": "asarrayChkfinite", "data": enc(ac2.tolist()), "shape": [2, 2],
+                  "dtype": "float64", "expected": describe(ac2)})
+
+    # ---- require ----
+    req = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    r = np.require(req, dtype=np.float64, requirements=["C_CONTIGUOUS"])
+    cases.append({"op": "require", "data": enc(req.tolist()), "shape": [2, 2],
+                  "dtype": "float64", "requirements": ["C_CONTIGUOUS"],
+                  "expected": describe(r)})
+
+    r = np.require(req, dtype=np.float32, requirements=["C_CONTIGUOUS"])
+    cases.append({"op": "require", "data": enc(req.tolist()), "shape": [2, 2],
+                  "src_dtype": "float64", "dtype": "float32",
+                  "requirements": ["C_CONTIGUOUS"],
+                  "expected": describe(r)})
+
+    return cases
+
+
+def creation2_cases() -> list[dict]:
+    import math
+    import numpy as np
+
+    def enc(v):
+        if isinstance(v, list):
+            return [enc(x) for x in v]
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, complex):
+            return {"re": enc(v.real), "im": enc(v.imag)}
+        if isinstance(v, int):
+            return v if abs(v) <= 2**53 else {"bigint": str(v)}
+        if isinstance(v, float):
+            if math.isnan(v):
+                return {"float": "nan"}
+            if math.isinf(v):
+                return {"float": "inf" if v > 0 else "-inf"}
+            if v == 0 and math.copysign(1.0, v) < 0:
+                return {"float": "-0"}
+            return v
+        raise TypeError(type(v))
+
+    def describe(a: np.ndarray) -> dict:
+        return {
+            "dtype": str(a.dtype),
+            "shape": list(a.shape),
+            "strides": list(a.strides),
+            "c_contiguous": bool(a.flags.c_contiguous),
+            "f_contiguous": bool(a.flags.f_contiguous),
+            "values": enc(a.tolist()),
+        }
+
+    cases = []
+    mat3x3 = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+
+    # ---------- logspace ----------
+    cases.append({
+        "op": "logspace", "start": 0, "stop": 2, "num": 5, "kw": {},
+        "expected": describe(np.logspace(0, 2, 5)),
+    })
+    cases.append({
+        "op": "logspace", "start": 0, "stop": 3, "num": 5, "kw": {"base": 2},
+        "expected": describe(np.logspace(0, 3, 5, base=2)),
+    })
+    cases.append({
+        "op": "logspace", "start": 0, "stop": 4, "num": 5, "kw": {"endpoint": False},
+        "expected": describe(np.logspace(0, 4, 5, endpoint=False)),
+    })
+    cases.append({
+        "op": "logspace", "start": 0, "stop": 2, "num": 5, "kw": {"dtype": "float32"},
+        "expected": describe(np.logspace(0, 2, 5, dtype="float32")),
+    })
+    cases.append({
+        "op": "logspace", "start": 0, "stop": 2, "num": 4, "kw": {"base": 10},
+        "expected": describe(np.logspace(0, 2, 4, base=10)),
+    })
+
+    # ---------- geomspace ----------
+    cases.append({
+        "op": "geomspace", "start": 1, "stop": 1000, "num": 5, "kw": {},
+        "expected": describe(np.geomspace(1, 1000, 5)),
+    })
+    cases.append({
+        "op": "geomspace", "start": 2, "stop": 32, "num": 5, "kw": {},
+        "expected": describe(np.geomspace(2, 32, 5)),
+    })
+    cases.append({
+        "op": "geomspace", "start": 1, "stop": 16, "num": 5, "kw": {"endpoint": False},
+        "expected": describe(np.geomspace(1, 16, 5, endpoint=False)),
+    })
+    cases.append({
+        "op": "geomspace", "start": 1, "stop": 100, "num": 5, "kw": {"dtype": "float64"},
+        "expected": describe(np.geomspace(1, 100, 5, dtype="float64")),
+    })
+
+    # ---------- tri ----------
+    cases.append({
+        "op": "tri", "n": 4, "kw": {},
+        "expected": describe(np.tri(4)),
+    })
+    cases.append({
+        "op": "tri", "n": 3, "kw": {"m": 4},
+        "expected": describe(np.tri(3, 4)),
+    })
+    cases.append({
+        "op": "tri", "n": 4, "kw": {"k": 1},
+        "expected": describe(np.tri(4, k=1)),
+    })
+    cases.append({
+        "op": "tri", "n": 4, "kw": {"k": -1},
+        "expected": describe(np.tri(4, k=-1)),
+    })
+    cases.append({
+        "op": "tri", "n": 3, "kw": {"dtype": "float64"},
+        "expected": describe(np.tri(3, dtype="float64")),
+    })
+    cases.append({
+        "op": "tri", "n": 3, "kw": {"dtype": "int32"},
+        "expected": describe(np.tri(3, dtype="int32")),
+    })
+
+    # ---------- tril ----------
+    cases.append({
+        "op": "tril", "data": mat3x3, "kw": {},
+        "expected": describe(np.tril(mat3x3)),
+    })
+    cases.append({
+        "op": "tril", "data": mat3x3, "kw": {"k": 1},
+        "expected": describe(np.tril(mat3x3, k=1)),
+    })
+    cases.append({
+        "op": "tril", "data": mat3x3, "kw": {"k": -1},
+        "expected": describe(np.tril(mat3x3, k=-1)),
+    })
+
+    # ---------- triu ----------
+    cases.append({
+        "op": "triu", "data": mat3x3, "kw": {},
+        "expected": describe(np.triu(mat3x3)),
+    })
+    cases.append({
+        "op": "triu", "data": mat3x3, "kw": {"k": 1},
+        "expected": describe(np.triu(mat3x3, k=1)),
+    })
+    cases.append({
+        "op": "triu", "data": mat3x3, "kw": {"k": -1},
+        "expected": describe(np.triu(mat3x3, k=-1)),
+    })
+
+    # ---------- diag ----------
+    cases.append({
+        "op": "diag", "data": mat3x3, "kw": {},
+        "expected": describe(np.diag(np.array(mat3x3))),
+    })
+    cases.append({
+        "op": "diag", "data": mat3x3, "kw": {"k": 1},
+        "expected": describe(np.diag(np.array(mat3x3), k=1)),
+    })
+    cases.append({
+        "op": "diag", "data": mat3x3, "kw": {"k": -1},
+        "expected": describe(np.diag(np.array(mat3x3), k=-1)),
+    })
+    cases.append({
+        "op": "diag", "data": [1, 2, 3], "kw": {},
+        "expected": describe(np.diag([1, 2, 3])),
+    })
+    cases.append({
+        "op": "diag", "data": [1, 2, 3], "kw": {"k": 1},
+        "expected": describe(np.diag([1, 2, 3], k=1)),
+    })
+
+    # ---------- diagflat ----------
+    cases.append({
+        "op": "diagflat", "data": [1, 2, 3], "kw": {},
+        "expected": describe(np.diagflat([1, 2, 3])),
+    })
+    cases.append({
+        "op": "diagflat", "data": [1, 2, 3], "kw": {"k": 1},
+        "expected": describe(np.diagflat([1, 2, 3], k=1)),
+    })
+
+    # ---------- vander ----------
+    cases.append({
+        "op": "vander", "data": [1, 2, 3, 4], "kw": {},
+        "expected": describe(np.vander([1, 2, 3, 4])),
+    })
+    cases.append({
+        "op": "vander", "data": [1, 2, 3, 4], "kw": {"n": 3},
+        "expected": describe(np.vander([1, 2, 3, 4], 3)),
+    })
+    cases.append({
+        "op": "vander", "data": [1, 2, 3, 4], "kw": {"n": 3, "increasing": True},
+        "expected": describe(np.vander([1, 2, 3, 4], 3, increasing=True)),
+    })
+    cases.append({
+        "op": "vander", "data": [1, 2, 3, 4], "kw": {"increasing": False},
+        "expected": describe(np.vander([1, 2, 3, 4], increasing=False)),
+    })
+
+    # ---------- trilIndices / triuIndices ----------
+    r = np.tril_indices(4)
+    cases.append({
+        "op": "trilIndices", "n": 4, "kw": {},
+        "expected": [describe(r[0]), describe(r[1])],
+    })
+    r = np.tril_indices(4, k=-1)
+    cases.append({
+        "op": "trilIndices", "n": 4, "kw": {"k": -1},
+        "expected": [describe(r[0]), describe(r[1])],
+    })
+    r = np.tril_indices(4, m=5)
+    cases.append({
+        "op": "trilIndices", "n": 4, "kw": {"m": 5},
+        "expected": [describe(r[0]), describe(r[1])],
+    })
+    r = np.triu_indices(4)
+    cases.append({
+        "op": "triuIndices", "n": 4, "kw": {},
+        "expected": [describe(r[0]), describe(r[1])],
+    })
+    r = np.triu_indices(4, k=1)
+    cases.append({
+        "op": "triuIndices", "n": 4, "kw": {"k": 1},
+        "expected": [describe(r[0]), describe(r[1])],
+    })
+
+    # ---------- diagIndices ----------
+    r = np.diag_indices(3)
+    cases.append({
+        "op": "diagIndices", "n": 3, "kw": {},
+        "expected": [describe(r[0]), describe(r[1])],
+    })
+    r = np.diag_indices(3, ndim=3)
+    cases.append({
+        "op": "diagIndices", "n": 3, "kw": {"ndim": 3},
+        "expected": [describe(r[0]), describe(r[1]), describe(r[2])],
+    })
+    r = np.diag_indices(4)
+    cases.append({
+        "op": "diagIndices", "n": 4, "kw": {},
+        "expected": [describe(r[0]), describe(r[1])],
+    })
+
+    # ---------- fromfunction ----------
+    r = np.fromfunction(lambda i, j: i + j, (3, 3), dtype=float)
+    cases.append({
+        "op": "fromfunction", "shape": [3, 3], "kw": {"dtype": "float64"},
+        "expected": describe(r),
+    })
+    r = np.fromfunction(lambda i, j: i * j, (2, 4), dtype=float)
+    cases.append({
+        "op": "fromfunction", "shape": [2, 4], "kw": {"dtype": "float64"},
+        "fn": "multiply",
+        "expected": describe(r),
+    })
+
+    # ---------- fromiter ----------
+    r = np.fromiter(range(5), dtype=float)
+    cases.append({
+        "op": "fromiter", "iter": list(range(5)), "kw": {"dtype": "float64"},
+        "expected": describe(r),
+    })
+    r = np.fromiter(range(6), dtype="int32")
+    cases.append({
+        "op": "fromiter", "iter": list(range(6)), "kw": {"dtype": "int32"},
+        "expected": describe(r),
+    })
+
+    # ---------- frombuffer ----------
+    buf = bytes([0, 0, 0, 0, 0, 0, 240, 63, 0, 0, 0, 0, 0, 0, 0, 64])
+    r = np.frombuffer(buf, dtype="float64")
+    cases.append({
+        "op": "frombuffer", "hex": buf.hex(), "kw": {"dtype": "float64"},
+        "expected": describe(r),
+    })
+    buf2 = bytes([1, 2, 3, 4, 5, 6])
+    r = np.frombuffer(buf2, dtype="int8")
+    cases.append({
+        "op": "frombuffer", "hex": buf2.hex(), "kw": {"dtype": "int8"},
+        "expected": describe(r),
+    })
+
+    # ---------- fromstring ----------
+    r = np.fromstring("1 2 3 4", sep=" ", dtype=float)
+    cases.append({
+        "op": "fromstring", "text": "1 2 3 4", "kw": {"sep": " ", "dtype": "float64"},
+        "expected": describe(r),
+    })
+    r = np.fromstring("1,2,3", sep=",", dtype="int32")
+    cases.append({
+        "op": "fromstring", "text": "1,2,3", "kw": {"sep": ",", "dtype": "int32"},
+        "expected": describe(r),
+    })
+
+    # ---------- indices ----------
+    r = np.indices([3, 4])
+    cases.append({
+        "op": "indices", "shape": [3, 4], "kw": {},
+        "expected": describe(r),
+    })
+    r = np.indices([2, 3], dtype="int32")
+    cases.append({
+        "op": "indices", "shape": [2, 3], "kw": {"dtype": "int32"},
+        "expected": describe(r),
+    })
+
+    # ---------- meshgrid ----------
+    x = [1.0, 2.0, 3.0]
+    y = [4.0, 5.0]
+    rx, ry = np.meshgrid(x, y, indexing="xy")
+    cases.append({
+        "op": "meshgrid", "arrays": [x, y], "kw": {"indexing": "xy"},
+        "expected": [describe(rx), describe(ry)],
+    })
+    rx, ry = np.meshgrid(x, y, indexing="ij")
+    cases.append({
+        "op": "meshgrid", "arrays": [x, y], "kw": {"indexing": "ij"},
+        "expected": [describe(rx), describe(ry)],
+    })
+
+    # ---------- astype ----------
+    src_f64 = np.array([1.7, -2.2])
+    cases.append({
+        "op": "astype", "data": enc(src_f64.tolist()), "src_dtype": "float64",
+        "kw": {"dtype": "int32"},
+        "expected": describe(src_f64.astype("int32")),
+    })
+    cases.append({
+        "op": "astype", "data": enc(src_f64.tolist()), "src_dtype": "float64",
+        "kw": {"dtype": "float32"},
+        "expected": describe(src_f64.astype("float32")),
+    })
+    src_i32 = np.array([1, 2, 3, 4], dtype="int32")
+    cases.append({
+        "op": "astype", "data": enc(src_i32.tolist()), "src_dtype": "int32",
+        "kw": {"dtype": "float64"},
+        "expected": describe(src_i32.astype("float64")),
+    })
+    cases.append({
+        "op": "astype", "data": enc(src_f64.tolist()), "src_dtype": "float64",
+        "kw": {"dtype": "float64", "copy": True},
+        "expected": describe(src_f64.astype("float64", copy=True)),
+    })
+
+    return cases
+
+
+def indexing2_cases() -> list[dict]:
+    """V-P8 differential test cases: P8 indexing extras (D-248).
+
+    Covers take, takeAlongAxis, putAlongAxis, put, putmask, place, choose,
+    compress, extract, select, piecewise, argwhere, flatnonzero, countNonzero,
+    ravelMultiIndex, unravelIndex, diagonal, trace.
+    """
+    import warnings
+    import numpy as np
+
+    cases = []
+
+    def _run(fn, *args, **kw):
+        with warnings.catch_warnings(), np.errstate(all="ignore"):
+            warnings.simplefilter("ignore")
+            try:
+                return fn(*args, **kw), None
+            except (IndexError,) as e:
+                return None, "IndexError"
+            except (TypeError,) as e:
+                return None, "TypeError"
+            except (ValueError,) as e:
+                return None, "ValueError"
+
+    # -----------------------------------------------------------------------
+    # take
+    # -----------------------------------------------------------------------
+    a1d_f = np.array([1.5, 2.5, 3.5, 4.5, 5.5], dtype="float64")
+    a1d_i = np.array([10, 20, 30, 40, 50], dtype="int32")
+    a2d = np.arange(12, dtype="float64").reshape(3, 4)
+
+    for mode in ("raise", "wrap", "clip"):
+        r, _ = _run(np.take, a1d_f, [0, 2], mode=mode)
+        cases.append({
+            "op": "take",
+            "a_data": a1d_f.tolist(),
+            "a_dtype": "float64",
+            "indices": [0, 2],
+            "kw": {"mode": mode},
+            "expected": describe(r),
+        })
+
+    for mode in ("raise", "wrap", "clip"):
+        r, _ = _run(np.take, a1d_i, [0, 4], mode=mode)
+        cases.append({
+            "op": "take",
+            "a_data": a1d_i.tolist(),
+            "a_dtype": "int32",
+            "indices": [0, 4],
+            "kw": {"mode": mode},
+            "expected": describe(r),
+        })
+
+    # 2D along axis=0
+    r, _ = _run(np.take, a2d, [0, 2], axis=0)
+    cases.append({
+        "op": "take",
+        "a_data": a2d.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [3, 4],
+        "indices": [0, 2],
+        "kw": {"axis": 0},
+        "expected": describe(r),
+    })
+
+    # 2D along axis=1
+    r, _ = _run(np.take, a2d, [1, 3], axis=1)
+    cases.append({
+        "op": "take",
+        "a_data": a2d.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [3, 4],
+        "indices": [1, 3],
+        "kw": {"axis": 1},
+        "expected": describe(r),
+    })
+
+    # wrap mode with out-of-range indices
+    r, _ = _run(np.take, a1d_f, [-1, 6], mode="wrap")
+    cases.append({
+        "op": "take",
+        "a_data": a1d_f.tolist(),
+        "a_dtype": "float64",
+        "indices": [-1, 6],
+        "kw": {"mode": "wrap"},
+        "expected": describe(r),
+    })
+
+    # clip mode
+    r, _ = _run(np.take, a1d_f, [-9, 99], mode="clip")
+    cases.append({
+        "op": "take",
+        "a_data": a1d_f.tolist(),
+        "a_dtype": "float64",
+        "indices": [-9, 99],
+        "kw": {"mode": "clip"},
+        "expected": describe(r),
+    })
+
+    # -----------------------------------------------------------------------
+    # takeAlongAxis
+    # -----------------------------------------------------------------------
+    arr2d = np.array([[3.0, 1.0, 4.0], [1.0, 5.0, 9.0]], dtype="float64")
+    # use argmax indices
+    argmax_idx = np.argmax(arr2d, axis=1).reshape(2, 1)  # shape (2,1)
+    r, _ = _run(np.take_along_axis, arr2d, argmax_idx, 1)
+    cases.append({
+        "op": "takeAlongAxis",
+        "a_data": arr2d.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [2, 3],
+        "indices_data": argmax_idx.tolist(),
+        "axis": 1,
+        "expected": describe(r),
+    })
+
+    # axis=0 case
+    argmin_idx = np.argmin(arr2d, axis=0).reshape(1, 3)
+    r, _ = _run(np.take_along_axis, arr2d, argmin_idx, 0)
+    cases.append({
+        "op": "takeAlongAxis",
+        "a_data": arr2d.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [2, 3],
+        "indices_data": argmin_idx.tolist(),
+        "axis": 0,
+        "expected": describe(r),
+    })
+
+    # -----------------------------------------------------------------------
+    # putAlongAxis  (void — record modified copy)
+    # -----------------------------------------------------------------------
+    base2d = np.arange(6, dtype="int64").reshape(2, 3)
+    b = base2d.copy()
+    np.put_along_axis(b, np.array([[2], [0]]), 99, axis=1)
+    cases.append({
+        "op": "putAlongAxis",
+        "a_data": base2d.tolist(),
+        "a_dtype": "int64",
+        "a_shape": [2, 3],
+        "indices_data": [[2], [0]],
+        "values": 99,
+        "axis": 1,
+        "expected": describe(b),
+    })
+
+    # -----------------------------------------------------------------------
+    # put  (void)
+    # -----------------------------------------------------------------------
+    x_put = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype="float64")
+    b = x_put.copy()
+    np.put(b, [0, 3], [9.0, 7.0])
+    cases.append({
+        "op": "put",
+        "a_data": x_put.tolist(),
+        "a_dtype": "float64",
+        "ind_data": [0, 3],
+        "v_data": [9.0, 7.0],
+        "kw": {},
+        "expected": describe(b),
+    })
+
+    # wrap mode
+    b = x_put.copy()
+    np.put(b, [0, 7], [9.0, 8.0], mode="wrap")
+    cases.append({
+        "op": "put",
+        "a_data": x_put.tolist(),
+        "a_dtype": "float64",
+        "ind_data": [0, 7],
+        "v_data": [9.0, 8.0],
+        "kw": {"mode": "wrap"},
+        "expected": describe(b),
+    })
+
+    # clip mode
+    b = x_put.copy()
+    np.put(b, [-9], [5.0], mode="clip")
+    cases.append({
+        "op": "put",
+        "a_data": x_put.tolist(),
+        "a_dtype": "float64",
+        "ind_data": [-9],
+        "v_data": [5.0],
+        "kw": {"mode": "clip"},
+        "expected": describe(b),
+    })
+
+    # -----------------------------------------------------------------------
+    # putmask  (void)
+    # -----------------------------------------------------------------------
+    x_pm = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype="float64")
+    b = x_pm.copy()
+    np.putmask(b, [False, False, True, True, True], [10.0, 20.0])
+    cases.append({
+        "op": "putmask",
+        "a_data": x_pm.tolist(),
+        "a_dtype": "float64",
+        "mask": [False, False, True, True, True],
+        "values_data": [10.0, 20.0],
+        "expected": describe(b),
+    })
+
+    # -----------------------------------------------------------------------
+    # place  (void)
+    # -----------------------------------------------------------------------
+    x_pl = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype="float64")
+    b = x_pl.copy()
+    np.place(b, [0, 0, 1, 1, 1], [10.0, 20.0])
+    cases.append({
+        "op": "place",
+        "a_data": x_pl.tolist(),
+        "a_dtype": "float64",
+        "mask": [0, 0, 1, 1, 1],
+        "vals_data": [10.0, 20.0],
+        "expected": describe(b),
+    })
+
+    # -----------------------------------------------------------------------
+    # choose
+    # -----------------------------------------------------------------------
+    ch = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]
+    r, _ = _run(np.choose, [0, 1, 2], ch)
+    cases.append({
+        "op": "choose",
+        "a_data": [0, 1, 2],
+        "choices": ch,
+        "kw": {},
+        "expected": describe(r),
+    })
+
+    # mode=clip
+    r, _ = _run(np.choose, [0, 5], [[1.0, 2.0], [3.0, 4.0]], mode="clip")
+    cases.append({
+        "op": "choose",
+        "a_data": [0, 5],
+        "choices": [[1.0, 2.0], [3.0, 4.0]],
+        "kw": {"mode": "clip"},
+        "expected": describe(r),
+    })
+
+    # mode=wrap
+    r, _ = _run(np.choose, [-1, 2], [[1.0, 2.0], [3.0, 4.0]], mode="wrap")
+    cases.append({
+        "op": "choose",
+        "a_data": [-1, 2],
+        "choices": [[1.0, 2.0], [3.0, 4.0]],
+        "kw": {"mode": "wrap"},
+        "expected": describe(r),
+    })
+
+    # 2D index broadcast
+    r, _ = _run(np.choose, [[0], [1]], [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    cases.append({
+        "op": "choose",
+        "a_data": [[0], [1]],
+        "choices": [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
+        "kw": {},
+        "expected": describe(r),
+    })
+
+    # -----------------------------------------------------------------------
+    # compress
+    # -----------------------------------------------------------------------
+    a_comp = np.arange(6, dtype="int64")
+    r, _ = _run(np.compress, [True, False, True, True, False, False], a_comp)
+    cases.append({
+        "op": "compress",
+        "condition": [True, False, True, True, False, False],
+        "a_data": a_comp.tolist(),
+        "a_dtype": "int64",
+        "kw": {},
+        "expected": describe(r),
+    })
+
+    a_comp2d = np.arange(6, dtype="int64").reshape(2, 3)
+    r, _ = _run(np.compress, [True, False], a_comp2d, axis=0)
+    cases.append({
+        "op": "compress",
+        "condition": [True, False],
+        "a_data": a_comp2d.tolist(),
+        "a_dtype": "int64",
+        "a_shape": [2, 3],
+        "kw": {"axis": 0},
+        "expected": describe(r),
+    })
+
+    r, _ = _run(np.compress, [True, False, True], a_comp2d, axis=1)
+    cases.append({
+        "op": "compress",
+        "condition": [True, False, True],
+        "a_data": a_comp2d.tolist(),
+        "a_dtype": "int64",
+        "a_shape": [2, 3],
+        "kw": {"axis": 1},
+        "expected": describe(r),
+    })
+
+    # 1D with 4 condition elements (flattened)
+    r, _ = _run(np.compress, [True, False, True, True], a_comp2d)
+    cases.append({
+        "op": "compress",
+        "condition": [True, False, True, True],
+        "a_data": a_comp2d.tolist(),
+        "a_dtype": "int64",
+        "a_shape": [2, 3],
+        "kw": {},
+        "expected": describe(r),
+    })
+
+    # float64 array
+    a_comp_f = np.array([1.0, 0.0, 3.0, 0.0, 5.0], dtype="float64")
+    r, _ = _run(np.compress, [True, False, True, False, True], a_comp_f)
+    cases.append({
+        "op": "compress",
+        "condition": [True, False, True, False, True],
+        "a_data": a_comp_f.tolist(),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(r),
+    })
+
+    # -----------------------------------------------------------------------
+    # extract
+    # -----------------------------------------------------------------------
+    a_ext = np.array([[1, 2, 3], [4, 5, 6]], dtype="int64")
+    cond_ext = np.array([[False, False, False], [True, True, True]])
+    r, _ = _run(np.extract, cond_ext, a_ext)
+    cases.append({
+        "op": "extract",
+        "condition": cond_ext.tolist(),
+        "a_data": a_ext.tolist(),
+        "a_dtype": "int64",
+        "expected": describe(r),
+    })
+
+    # 1D extract
+    r, _ = _run(np.extract, [True, False, True], [1, 2, 3, 4])
+    cases.append({
+        "op": "extract",
+        "condition": [True, False, True],
+        "a_data": [1, 2, 3, 4],
+        "a_dtype": "int64",
+        "expected": describe(r),
+    })
+
+    # nonzero condition extract
+    a_ext2 = np.array([0.0, 1.0, 0.0, 2.0, 3.0], dtype="float64")
+    cond2 = a_ext2 > 0
+    r, _ = _run(np.extract, cond2, a_ext2)
+    cases.append({
+        "op": "extract",
+        "condition": cond2.tolist(),
+        "a_data": a_ext2.tolist(),
+        "a_dtype": "float64",
+        "expected": describe(r),
+    })
+
+    # -----------------------------------------------------------------------
+    # select
+    # -----------------------------------------------------------------------
+    x_sel = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype="float64")
+    cond1 = x_sel < 2
+    cond2 = x_sel >= 3
+    ch1 = x_sel * 10
+    ch2 = x_sel * -1
+    r, _ = _run(np.select, [cond1, cond2], [ch1, ch2], default=0.0)
+    cases.append({
+        "op": "select",
+        "condlist": [cond1.tolist(), cond2.tolist()],
+        "choicelist": [ch1.tolist(), ch2.tolist()],
+        "default": 0.0,
+        "dtype": "float64",
+        "expected": describe(r),
+    })
+
+    # integer select
+    x_isel = np.array([10, 20, 30, 40, 50], dtype="int32")
+    r, _ = _run(np.select,
+                [x_isel > 25, x_isel < 15],
+                [x_isel + 100, x_isel - 5])
+    cases.append({
+        "op": "select",
+        "condlist": [(x_isel > 25).tolist(), (x_isel < 15).tolist()],
+        "choicelist": [(x_isel + 100).tolist(), (x_isel - 5).tolist()],
+        "default": 0,
+        "dtype": "int32",
+        "expected": describe(r),
+    })
+
+    # -----------------------------------------------------------------------
+    # piecewise
+    # -----------------------------------------------------------------------
+    x_pw = np.array([-1.0, 0.0, 1.5], dtype="float64")
+    with warnings.catch_warnings(), np.errstate(all="ignore"):
+        warnings.simplefilter("ignore")
+        r_pw = np.piecewise(
+            x_pw,
+            [[True, False, False], [False, False, True]],
+            [lambda v: np.negative(v), 5.0, 7.0],
+        )
+    cases.append({
+        "op": "piecewise",
+        "x_data": x_pw.tolist(),
+        "x_dtype": "float64",
+        "condlist": [[True, False, False], [False, False, True]],
+        "funclist_scalar": [None, 5.0, 7.0],
+        "expected": describe(r_pw),
+    })
+
+    x_pw2 = np.arange(4, dtype="float64")
+    with warnings.catch_warnings(), np.errstate(all="ignore"):
+        warnings.simplefilter("ignore")
+        r_pw2 = np.piecewise(
+            x_pw2,
+            [x_pw2 >= 2],
+            [lambda v: v * 10.0, -1.0],
+        )
+    cases.append({
+        "op": "piecewise",
+        "x_data": x_pw2.tolist(),
+        "x_dtype": "float64",
+        "condlist_derived": ">=2",
+        "expected": describe(r_pw2),
+    })
+
+    # -----------------------------------------------------------------------
+    # argwhere
+    # -----------------------------------------------------------------------
+    aw = np.array([[0, 3], [4, 0]], dtype="int64")
+    r, _ = _run(np.argwhere, aw)
+    cases.append({
+        "op": "argwhere",
+        "a_data": aw.tolist(),
+        "a_dtype": "int64",
+        "a_shape": [2, 2],
+        "expected": describe(r),
+    })
+
+    aw2 = np.array([0.0, 1.0, 0.0, 2.0, 0.0], dtype="float64")
+    r, _ = _run(np.argwhere, aw2)
+    cases.append({
+        "op": "argwhere",
+        "a_data": aw2.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [5],
+        "expected": describe(r),
+    })
+
+    # all zeros
+    aw3 = np.zeros((2, 3), dtype="float64")
+    r, _ = _run(np.argwhere, aw3)
+    cases.append({
+        "op": "argwhere",
+        "a_data": aw3.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [2, 3],
+        "expected": describe(r),
+    })
+
+    # -----------------------------------------------------------------------
+    # flatnonzero
+    # -----------------------------------------------------------------------
+    fn_arr = np.array([[0, 1], [2, 0]], dtype="int64")
+    r, _ = _run(np.flatnonzero, fn_arr)
+    cases.append({
+        "op": "flatnonzero",
+        "a_data": fn_arr.tolist(),
+        "a_dtype": "int64",
+        "a_shape": [2, 2],
+        "expected": describe(r),
+    })
+
+    fn_arr2 = np.array([1.0, 0.0, -1.0, 0.0, 2.5], dtype="float64")
+    r, _ = _run(np.flatnonzero, fn_arr2)
+    cases.append({
+        "op": "flatnonzero",
+        "a_data": fn_arr2.tolist(),
+        "a_dtype": "float64",
+        "expected": describe(r),
+    })
+
+    fn_arr3 = np.zeros(5, dtype="int64")
+    r, _ = _run(np.flatnonzero, fn_arr3)
+    cases.append({
+        "op": "flatnonzero",
+        "a_data": fn_arr3.tolist(),
+        "a_dtype": "int64",
+        "expected": describe(r),
+    })
+
+    # -----------------------------------------------------------------------
+    # countNonzero
+    # -----------------------------------------------------------------------
+    cn_arr = np.arange(6, dtype="int64").reshape(2, 3)
+    r, _ = _run(np.count_nonzero, cn_arr)
+    cases.append({
+        "op": "countNonzero",
+        "a_data": cn_arr.tolist(),
+        "a_dtype": "int64",
+        "a_shape": [2, 3],
+        "kw": {},
+        "expected": describe(np.asarray(r)),
+    })
+
+    r, _ = _run(np.count_nonzero, cn_arr, axis=0)
+    cases.append({
+        "op": "countNonzero",
+        "a_data": cn_arr.tolist(),
+        "a_dtype": "int64",
+        "a_shape": [2, 3],
+        "kw": {"axis": 0},
+        "expected": describe(np.asarray(r)),
+    })
+
+    r, _ = _run(np.count_nonzero, cn_arr, axis=1)
+    cases.append({
+        "op": "countNonzero",
+        "a_data": cn_arr.tolist(),
+        "a_dtype": "int64",
+        "a_shape": [2, 3],
+        "kw": {"axis": 1},
+        "expected": describe(np.asarray(r)),
+    })
+
+    # 1D float array
+    cn_arr2 = np.array([0.0, 1.0, 0.0, 2.0, 3.0], dtype="float64")
+    r, _ = _run(np.count_nonzero, cn_arr2)
+    cases.append({
+        "op": "countNonzero",
+        "a_data": cn_arr2.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [5],
+        "kw": {},
+        "expected": describe(np.asarray(r)),
+    })
+
+    # -----------------------------------------------------------------------
+    # ravelMultiIndex
+    # -----------------------------------------------------------------------
+    rows = [1, 2]
+    cols = [3, 1]
+    dims = [4, 5]
+    r, _ = _run(np.ravel_multi_index, [rows, cols], dims)
+    cases.append({
+        "op": "ravelMultiIndex",
+        "multi_index": [rows, cols],
+        "dims": dims,
+        "kw": {},
+        "expected": describe(r),
+    })
+
+    r, _ = _run(np.ravel_multi_index, [rows, cols], dims, order="F")
+    cases.append({
+        "op": "ravelMultiIndex",
+        "multi_index": [rows, cols],
+        "dims": dims,
+        "kw": {"order": "F"},
+        "expected": describe(r),
+    })
+
+    r, _ = _run(np.ravel_multi_index, [[-1, 4], [3, 1]], dims, mode="wrap")
+    cases.append({
+        "op": "ravelMultiIndex",
+        "multi_index": [[-1, 4], [3, 1]],
+        "dims": dims,
+        "kw": {"mode": "wrap"},
+        "expected": describe(r),
+    })
+
+    r, _ = _run(np.ravel_multi_index, [[-1, 5], [3, 1]], dims, mode="clip")
+    cases.append({
+        "op": "ravelMultiIndex",
+        "multi_index": [[-1, 5], [3, 1]],
+        "dims": dims,
+        "kw": {"mode": "clip"},
+        "expected": describe(r),
+    })
+
+    # mixed mode per axis
+    r, _ = _run(np.ravel_multi_index, [[1, 2], [3, 9]], [3, 4],
+                mode=["raise", "clip"])
+    cases.append({
+        "op": "ravelMultiIndex",
+        "multi_index": [[1, 2], [3, 9]],
+        "dims": [3, 4],
+        "kw": {"mode": ["raise", "clip"]},
+        "expected": describe(r),
+    })
+
+    # 2D multi-index
+    r, _ = _run(np.ravel_multi_index, [[[0, 1]], [[2], [3]]], [2, 4])
+    cases.append({
+        "op": "ravelMultiIndex",
+        "multi_index": [[[0, 1]], [[2], [3]]],
+        "dims": [2, 4],
+        "kw": {},
+        "expected": describe(r),
+    })
+
+    # -----------------------------------------------------------------------
+    # unravelIndex
+    # -----------------------------------------------------------------------
+    r = np.unravel_index([5, 7], [3, 4])
+    cases.append({
+        "op": "unravelIndex",
+        "flat_indices": [5, 7],
+        "shape": [3, 4],
+        "kw": {},
+        "expected": [describe(x) for x in r],
+    })
+
+    r = np.unravel_index(5, [3, 4], order="F")
+    cases.append({
+        "op": "unravelIndex",
+        "flat_indices": 5,
+        "shape": [3, 4],
+        "kw": {"order": "F"},
+        "expected": [describe(x) for x in r],
+    })
+
+    r = np.unravel_index([[1, 2]], [3, 4])
+    cases.append({
+        "op": "unravelIndex",
+        "flat_indices": [[1, 2]],
+        "shape": [3, 4],
+        "kw": {},
+        "expected": [describe(x) for x in r],
+    })
+
+    r = np.unravel_index(np.array([], dtype=np.intp), [3, 4])
+    cases.append({
+        "op": "unravelIndex",
+        "flat_indices": [],
+        "shape": [3, 4],
+        "kw": {},
+        "expected": [describe(x) for x in r],
+    })
+
+    # -----------------------------------------------------------------------
+    # diagonal
+    # -----------------------------------------------------------------------
+    m3x3 = np.arange(9, dtype="float64").reshape(3, 3)
+    r, _ = _run(np.diagonal, m3x3)
+    cases.append({
+        "op": "diagonal",
+        "a_data": m3x3.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [3, 3],
+        "kw": {},
+        "expected": describe(r),
+    })
+
+    # offset=1
+    r, _ = _run(np.diagonal, m3x3, offset=1)
+    cases.append({
+        "op": "diagonal",
+        "a_data": m3x3.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [3, 3],
+        "kw": {"offset": 1},
+        "expected": describe(r),
+    })
+
+    # offset=-1
+    r, _ = _run(np.diagonal, m3x3, offset=-1)
+    cases.append({
+        "op": "diagonal",
+        "a_data": m3x3.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [3, 3],
+        "kw": {"offset": -1},
+        "expected": describe(r),
+    })
+
+    # float32 matrix
+    m3x3_f32 = np.arange(9, dtype="float32").reshape(3, 3)
+    r, _ = _run(np.diagonal, m3x3_f32)
+    cases.append({
+        "op": "diagonal",
+        "a_data": m3x3_f32.tolist(),
+        "a_dtype": "float32",
+        "a_shape": [3, 3],
+        "kw": {},
+        "expected": describe(r),
+    })
+
+    # 3D array with axis1=0, axis2=1
+    a3d = np.arange(24, dtype="float64").reshape(2, 3, 4)
+    r, _ = _run(np.diagonal, a3d, offset=0, axis1=0, axis2=1)
+    cases.append({
+        "op": "diagonal",
+        "a_data": a3d.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [2, 3, 4],
+        "kw": {"offset": 0, "axis1": 0, "axis2": 1},
+        "expected": describe(r),
+    })
+
+    # 3D with offset=1
+    r, _ = _run(np.diagonal, a3d, offset=1, axis1=0, axis2=2)
+    cases.append({
+        "op": "diagonal",
+        "a_data": a3d.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [2, 3, 4],
+        "kw": {"offset": 1, "axis1": 0, "axis2": 2},
+        "expected": describe(r),
+    })
+
+    # integer matrix
+    m4x4_i = np.arange(16, dtype="int32").reshape(4, 4)
+    r, _ = _run(np.diagonal, m4x4_i)
+    cases.append({
+        "op": "diagonal",
+        "a_data": m4x4_i.tolist(),
+        "a_dtype": "int32",
+        "a_shape": [4, 4],
+        "kw": {},
+        "expected": describe(r),
+    })
+
+    # -----------------------------------------------------------------------
+    # trace
+    # -----------------------------------------------------------------------
+    r, _ = _run(np.trace, m3x3)
+    cases.append({
+        "op": "trace",
+        "a_data": m3x3.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [3, 3],
+        "kw": {},
+        "expected": describe(np.asarray(r)),
+    })
+
+    r, _ = _run(np.trace, m3x3, offset=1)
+    cases.append({
+        "op": "trace",
+        "a_data": m3x3.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [3, 3],
+        "kw": {"offset": 1},
+        "expected": describe(np.asarray(r)),
+    })
+
+    r, _ = _run(np.trace, m3x3, dtype="float64")
+    cases.append({
+        "op": "trace",
+        "a_data": m3x3.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [3, 3],
+        "kw": {"dtype": "float64"},
+        "expected": describe(np.asarray(r)),
+    })
+
+    # int32 trace (should return int64)
+    r, _ = _run(np.trace, m4x4_i)
+    cases.append({
+        "op": "trace",
+        "a_data": m4x4_i.tolist(),
+        "a_dtype": "int32",
+        "a_shape": [4, 4],
+        "kw": {},
+        "expected": describe(np.asarray(r)),
+    })
+
+    # 3D trace
+    r, _ = _run(np.trace, a3d)
+    cases.append({
+        "op": "trace",
+        "a_data": a3d.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [2, 3, 4],
+        "kw": {},
+        "expected": describe(np.asarray(r)),
+    })
+
+    # 3D trace with axis1=0, axis2=2, offset=1
+    r, _ = _run(np.trace, a3d, offset=1, axis1=0, axis2=2)
+    cases.append({
+        "op": "trace",
+        "a_data": a3d.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [2, 3, 4],
+        "kw": {"offset": 1, "axis1": 0, "axis2": 2},
+        "expected": describe(np.asarray(r)),
+    })
+
+    # eye matrix trace
+    eye3 = np.eye(3, dtype="float64")
+    r, _ = _run(np.trace, eye3)
+    cases.append({
+        "op": "trace",
+        "a_data": eye3.tolist(),
+        "a_dtype": "float64",
+        "a_shape": [3, 3],
+        "kw": {},
+        "expected": describe(np.asarray(r)),
+    })
+
+    return cases
+
+
+def stats_cases() -> list[dict]:
+    """Differential test cases for P10: statistics and NaN reduction functions (V-P10, D-250)."""
+    import math
+    import numpy as np
+
+    cases = []
+
+    # ---- helpers (local copies of module-level enc/describe) ----
+    def enc(v):
+        if isinstance(v, list):
+            return [enc(x) for x in v]
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, complex):
+            return {"re": enc(v.real), "im": enc(v.imag)}
+        if isinstance(v, int):
+            return v if abs(v) <= 2**53 else {"bigint": str(v)}
+        if isinstance(v, float):
+            if math.isnan(v):
+                return {"float": "nan"}
+            if math.isinf(v):
+                return {"float": "inf" if v > 0 else "-inf"}
+            if v == 0 and math.copysign(1.0, v) < 0:
+                return {"float": "-0"}
+            return v
+        raise TypeError(type(v))
+
+    def describe(a: np.ndarray, values: bool = True) -> dict:
+        d = {
+            "dtype": str(a.dtype),
+            "shape": list(a.shape),
+            "strides": list(a.strides),
+            "c_contiguous": bool(a.flags.c_contiguous),
+            "f_contiguous": bool(a.flags.f_contiguous),
+        }
+        if values:
+            d["values"] = enc(a.tolist())
+        return d
+
+    # ================================================================
+    # 1. quantile / percentile
+    # ================================================================
+    a1d = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], dtype=np.float64)
+    for q in [0.25, 0.5, 0.75]:
+        cases.append({
+            "op": "quantile", "a_data": enc(a1d.tolist()), "a_dtype": "float64",
+            "a_shape": [8], "q": q, "kw": {},
+            "approx": True,
+            "expected": describe(np.quantile(a1d, q)),
+        })
+    cases.append({
+        "op": "quantile", "a_data": enc(a1d.tolist()), "a_dtype": "float64",
+        "a_shape": [8], "q": [0.25, 0.5, 0.75], "kw": {},
+        "approx": True,
+        "expected": describe(np.quantile(a1d, [0.25, 0.5, 0.75])),
+    })
+    # 2D quantile along axis 0 and 1
+    a2d = np.arange(12, dtype=np.float64).reshape(3, 4)
+    for axis in [0, 1]:
+        cases.append({
+            "op": "quantile", "a_data": enc(a2d.tolist()), "a_dtype": "float64",
+            "a_shape": [3, 4], "q": 0.5, "kw": {"axis": axis},
+            "approx": True,
+            "expected": describe(np.quantile(a2d, 0.5, axis=axis)),
+        })
+    cases.append({
+        "op": "quantile", "a_data": enc(a2d.tolist()), "a_dtype": "float64",
+        "a_shape": [3, 4], "q": 0.5, "kw": {"axis": 0, "keepdims": True},
+        "approx": True,
+        "expected": describe(np.quantile(a2d, 0.5, axis=0, keepdims=True)),
+    })
+    # percentile (same data, q as percentage)
+    cases.append({
+        "op": "percentile", "a_data": enc(a1d.tolist()), "a_dtype": "float64",
+        "a_shape": [8], "q": [25.0, 50.0, 75.0], "kw": {},
+        "approx": True,
+        "expected": describe(np.percentile(a1d, [25.0, 50.0, 75.0])),
+    })
+
+    # ================================================================
+    # 2. median
+    # ================================================================
+    cases.append({
+        "op": "median", "a_data": enc(a1d.tolist()), "a_dtype": "float64",
+        "a_shape": [8], "kw": {},
+        "approx": True,
+        "expected": describe(np.median(a1d)),
+    })
+    cases.append({
+        "op": "median", "a_data": enc(a2d.tolist()), "a_dtype": "float64",
+        "a_shape": [3, 4], "kw": {"axis": 0},
+        "approx": True,
+        "expected": describe(np.median(a2d, axis=0)),
+    })
+    cases.append({
+        "op": "median", "a_data": enc(a2d.tolist()), "a_dtype": "float64",
+        "a_shape": [3, 4], "kw": {"axis": 1, "keepdims": True},
+        "approx": True,
+        "expected": describe(np.median(a2d, axis=1, keepdims=True)),
+    })
+
+    # ================================================================
+    # 3. nanquantile / nanmedian  (arrays with NaN)
+    # ================================================================
+    anan = np.array([1.0, float("nan"), 3.0, float("nan"), 5.0], dtype=np.float64)
+    cases.append({
+        "op": "nanquantile", "a_data": enc(anan.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "q": 0.5, "kw": {},
+        "approx": True,
+        "expected": describe(np.nanquantile(anan, 0.5)),
+    })
+    cases.append({
+        "op": "nanquantile", "a_data": enc(anan.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "q": [0.25, 0.75], "kw": {},
+        "approx": True,
+        "expected": describe(np.nanquantile(anan, [0.25, 0.75])),
+    })
+    cases.append({
+        "op": "nanpercentile", "a_data": enc(anan.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "q": 50.0, "kw": {},
+        "approx": True,
+        "expected": describe(np.nanpercentile(anan, 50.0)),
+    })
+    anan2d = np.array([[1.0, float("nan"), 3.0], [float("nan"), 5.0, 6.0]], dtype=np.float64)
+    cases.append({
+        "op": "nanmedian", "a_data": enc(anan2d.tolist()), "a_dtype": "float64",
+        "a_shape": [2, 3], "kw": {"axis": 1},
+        "approx": True,
+        "expected": describe(np.nanmedian(anan2d, axis=1)),
+    })
+    cases.append({
+        "op": "nanmedian", "a_data": enc(anan.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "kw": {},
+        "approx": True,
+        "expected": describe(np.nanmedian(anan)),
+    })
+
+    # ================================================================
+    # 4. cumsum / cumprod
+    # ================================================================
+    ai1d = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+    cases.append({
+        "op": "cumsum", "a_data": enc(ai1d.tolist()), "a_dtype": "int64",
+        "a_shape": [5], "kw": {},
+        "approx": False,
+        "expected": describe(np.cumsum(ai1d)),
+    })
+    cases.append({
+        "op": "cumprod", "a_data": enc(ai1d.tolist()), "a_dtype": "int64",
+        "a_shape": [5], "kw": {},
+        "approx": False,
+        "expected": describe(np.cumprod(ai1d)),
+    })
+    a2d_i = np.arange(6, dtype=np.int64).reshape(2, 3) + 1
+    for axis in [0, 1]:
+        cases.append({
+            "op": "cumsum", "a_data": enc(a2d_i.tolist()), "a_dtype": "int64",
+            "a_shape": [2, 3], "kw": {"axis": axis},
+            "approx": False,
+            "expected": describe(np.cumsum(a2d_i, axis=axis)),
+        })
+        cases.append({
+            "op": "cumprod", "a_data": enc(a2d_i.tolist()), "a_dtype": "int64",
+            "a_shape": [2, 3], "kw": {"axis": axis},
+            "approx": False,
+            "expected": describe(np.cumprod(a2d_i, axis=axis)),
+        })
+
+    # ================================================================
+    # 5. diff
+    # ================================================================
+    adiff = np.array([1.0, 4.0, 9.0, 16.0, 25.0], dtype=np.float64)
+    cases.append({
+        "op": "diff", "a_data": enc(adiff.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "n": 1, "kw": {},
+        "approx": False,
+        "expected": describe(np.diff(adiff, 1)),
+    })
+    cases.append({
+        "op": "diff", "a_data": enc(adiff.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "n": 2, "kw": {},
+        "approx": False,
+        "expected": describe(np.diff(adiff, 2)),
+    })
+    adiff2d = np.array([[1.0, 3.0, 6.0], [10.0, 15.0, 21.0]], dtype=np.float64)
+    for axis in [0, 1]:
+        cases.append({
+            "op": "diff", "a_data": enc(adiff2d.tolist()), "a_dtype": "float64",
+            "a_shape": [2, 3], "n": 1, "kw": {"axis": axis},
+            "approx": False,
+            "expected": describe(np.diff(adiff2d, 1, axis=axis)),
+        })
+
+    # ================================================================
+    # 6. ptp
+    # ================================================================
+    cases.append({
+        "op": "ptp", "a_data": enc(a1d.tolist()), "a_dtype": "float64",
+        "a_shape": [8], "kw": {},
+        "approx": False,
+        "expected": describe(np.ptp(a1d)),
+    })
+    cases.append({
+        "op": "ptp", "a_data": enc(a2d.tolist()), "a_dtype": "float64",
+        "a_shape": [3, 4], "kw": {"axis": 0},
+        "approx": False,
+        "expected": describe(np.ptp(a2d, axis=0)),
+    })
+    cases.append({
+        "op": "ptp", "a_data": enc(a2d.tolist()), "a_dtype": "float64",
+        "a_shape": [3, 4], "kw": {"axis": 1, "keepdims": True},
+        "approx": False,
+        "expected": describe(np.ptp(a2d, axis=1, keepdims=True)),
+    })
+
+    # ================================================================
+    # 7. nansum / nanprod / nanmean / nanvar / nanstd / nanmin / nanmax / nanargmin / nanargmax
+    # ================================================================
+    anan3 = np.array([1.0, float("nan"), 3.0, float("nan"), 5.0, 2.0], dtype=np.float64)
+    anan2x3 = np.array([[1.0, float("nan"), 3.0], [float("nan"), float("nan"), 6.0]], dtype=np.float64)
+
+    for fn_name, np_fn in [
+        ("nansum", np.nansum), ("nanprod", np.nanprod), ("nanmean", np.nanmean),
+    ]:
+        cases.append({
+            "op": fn_name, "a_data": enc(anan3.tolist()), "a_dtype": "float64",
+            "a_shape": [6], "kw": {},
+            "approx": True,
+            "expected": describe(np_fn(anan3)),
+        })
+        cases.append({
+            "op": fn_name, "a_data": enc(anan2x3.tolist()), "a_dtype": "float64",
+            "a_shape": [2, 3], "kw": {"axis": 1},
+            "approx": True,
+            "expected": describe(np_fn(anan2x3, axis=1)),
+        })
+
+    for fn_name, np_fn in [
+        ("nanvar", np.nanvar), ("nanstd", np.nanstd),
+    ]:
+        cases.append({
+            "op": fn_name, "a_data": enc(anan3.tolist()), "a_dtype": "float64",
+            "a_shape": [6], "kw": {},
+            "approx": True,
+            "expected": describe(np_fn(anan3)),
+        })
+        cases.append({
+            "op": fn_name, "a_data": enc(anan3.tolist()), "a_dtype": "float64",
+            "a_shape": [6], "kw": {"ddof": 1},
+            "approx": True,
+            "expected": describe(np_fn(anan3, ddof=1)),
+        })
+
+    for fn_name, np_fn in [
+        ("nanmin", np.nanmin), ("nanmax", np.nanmax),
+    ]:
+        cases.append({
+            "op": fn_name, "a_data": enc(anan3.tolist()), "a_dtype": "float64",
+            "a_shape": [6], "kw": {},
+            "approx": False,
+            "expected": describe(np_fn(anan3)),
+        })
+        cases.append({
+            "op": fn_name, "a_data": enc(anan2x3.tolist()), "a_dtype": "float64",
+            "a_shape": [2, 3], "kw": {"axis": 0},
+            "approx": False,
+            "expected": describe(np_fn(anan2x3, axis=0)),
+        })
+
+    for fn_name, np_fn in [
+        ("nanargmin", np.nanargmin), ("nanargmax", np.nanargmax),
+    ]:
+        cases.append({
+            "op": fn_name, "a_data": enc(anan3.tolist()), "a_dtype": "float64",
+            "a_shape": [6], "kw": {},
+            "approx": False,
+            "expected": describe(np_fn(anan3)),
+        })
+
+    # ================================================================
+    # 8. average
+    # ================================================================
+    aavg = np.array([1.0, 2.0, 3.0, 4.0, 5.0], dtype=np.float64)
+    cases.append({
+        "op": "average", "a_data": enc(aavg.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "kw": {},
+        "approx": True,
+        "expected": describe(np.average(aavg)),
+    })
+    # With weights
+    weights = np.array([1.0, 2.0, 3.0, 2.0, 1.0], dtype=np.float64)
+    avg_w = np.average(aavg, weights=weights)
+    cases.append({
+        "op": "average", "a_data": enc(aavg.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "kw": {"weights": enc(weights.tolist())},
+        "approx": True,
+        "expected": describe(avg_w),
+    })
+    # 2D with axis
+    a2d_avg = np.arange(6, dtype=np.float64).reshape(2, 3)
+    cases.append({
+        "op": "average", "a_data": enc(a2d_avg.tolist()), "a_dtype": "float64",
+        "a_shape": [2, 3], "kw": {"axis": 1},
+        "approx": True,
+        "expected": describe(np.average(a2d_avg, axis=1)),
+    })
+    # returned=True → [avg, sum_of_weights]
+    avg_ret, wsum_ret = np.average(aavg, weights=weights, returned=True)
+    cases.append({
+        "op": "average_returned",
+        "a_data": enc(aavg.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "weights": enc(weights.tolist()),
+        "approx": True,
+        "expected": [describe(avg_ret), describe(wsum_ret)],
+    })
+
+    # ================================================================
+    # 9. cov
+    # ================================================================
+    acov = np.array([[1.0, 2.0, 3.0, 4.0],
+                     [5.0, 3.0, 1.0, 2.0]], dtype=np.float64)
+    cases.append({
+        "op": "cov", "a_data": enc(acov.tolist()), "a_dtype": "float64",
+        "a_shape": [2, 4], "kw": {"rowvar": True},
+        "approx": True,
+        "expected": describe(np.cov(acov, rowvar=True)),
+    })
+    cases.append({
+        "op": "cov", "a_data": enc(acov.T.copy().tolist()), "a_dtype": "float64",
+        "a_shape": [4, 2], "kw": {"rowvar": False},
+        "approx": True,
+        "expected": describe(np.cov(acov.T, rowvar=False)),
+    })
+    cases.append({
+        "op": "cov", "a_data": enc(acov.tolist()), "a_dtype": "float64",
+        "a_shape": [2, 4], "kw": {"rowvar": True, "bias": True},
+        "approx": True,
+        "expected": describe(np.cov(acov, rowvar=True, bias=True)),
+    })
+    cases.append({
+        "op": "cov", "a_data": enc(acov.tolist()), "a_dtype": "float64",
+        "a_shape": [2, 4], "kw": {"rowvar": True, "ddof": 2},
+        "approx": True,
+        "expected": describe(np.cov(acov, rowvar=True, ddof=2)),
+    })
+
+    # ================================================================
+    # 10. corrcoef
+    # ================================================================
+    cases.append({
+        "op": "corrcoef", "a_data": enc(acov.tolist()), "a_dtype": "float64",
+        "a_shape": [2, 4], "kw": {"rowvar": True},
+        "approx": True,
+        "expected": describe(np.corrcoef(acov, rowvar=True)),
+    })
+    cases.append({
+        "op": "corrcoef", "a_data": enc(acov.T.copy().tolist()), "a_dtype": "float64",
+        "a_shape": [4, 2], "kw": {"rowvar": False},
+        "approx": True,
+        "expected": describe(np.corrcoef(acov.T, rowvar=False)),
+    })
+
+    # ================================================================
+    # 11. gradient
+    # ================================================================
+    agrads = np.array([1.0, 2.0, 4.0, 7.0, 11.0], dtype=np.float64)
+    g_default = np.gradient(agrads)
+    cases.append({
+        "op": "gradient", "a_data": enc(agrads.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "spacing": None, "kw": {},
+        "approx": True,
+        "expected": describe(g_default),
+    })
+    g_scalar = np.gradient(agrads, 2.0)
+    cases.append({
+        "op": "gradient_scalar", "a_data": enc(agrads.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "spacing": 2.0, "kw": {},
+        "approx": True,
+        "expected": describe(g_scalar),
+    })
+    xcoords = np.array([0.0, 1.0, 3.0, 4.0, 7.0], dtype=np.float64)
+    g_coords = np.gradient(agrads, xcoords)
+    cases.append({
+        "op": "gradient_coords", "a_data": enc(agrads.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "xcoords": enc(xcoords.tolist()), "kw": {},
+        "approx": True,
+        "expected": describe(g_coords),
+    })
+
+    # ================================================================
+    # 12. trapezoid
+    # ================================================================
+    atrap = np.array([1.0, 2.0, 3.0, 4.0, 5.0], dtype=np.float64)
+    cases.append({
+        "op": "trapezoid", "a_data": enc(atrap.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "kw": {},
+        "approx": True,
+        "expected": describe(np.trapezoid(atrap)),
+    })
+    xtrap = np.array([0.0, 1.0, 3.0, 5.0, 6.0], dtype=np.float64)
+    cases.append({
+        "op": "trapezoid", "a_data": enc(atrap.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "kw": {"x": enc(xtrap.tolist())},
+        "approx": True,
+        "expected": describe(np.trapezoid(atrap, x=xtrap)),
+    })
+    cases.append({
+        "op": "trapezoid", "a_data": enc(atrap.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "kw": {"dx": 2.0},
+        "approx": True,
+        "expected": describe(np.trapezoid(atrap, dx=2.0)),
+    })
+    atrap2d = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype=np.float64)
+    cases.append({
+        "op": "trapezoid", "a_data": enc(atrap2d.tolist()), "a_dtype": "float64",
+        "a_shape": [2, 3], "kw": {"axis": 0},
+        "approx": True,
+        "expected": describe(np.trapezoid(atrap2d, axis=0)),
+    })
+
+    # ================================================================
+    # 13. histogram
+    # ================================================================
+    ahist = np.array([1.0, 2.0, 1.5, 3.0, 2.5, 3.5, 4.0, 0.5], dtype=np.float64)
+    hist_r, edges_r = np.histogram(ahist, bins=4)
+    cases.append({
+        "op": "histogram", "a_data": enc(ahist.tolist()), "a_dtype": "float64",
+        "a_shape": [8], "kw": {"bins": 4},
+        "approx": False,
+        "expected": {"hist": describe(hist_r), "binEdges": describe(edges_r)},
+    })
+    # Explicit bin edges
+    bin_edges = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype=np.float64)
+    hist_e, edges_e = np.histogram(ahist, bins=bin_edges)
+    cases.append({
+        "op": "histogram", "a_data": enc(ahist.tolist()), "a_dtype": "float64",
+        "a_shape": [8], "kw": {"bins": enc(bin_edges.tolist())},
+        "approx": False,
+        "expected": {"hist": describe(hist_e), "binEdges": describe(edges_e)},
+    })
+    # density=True
+    hist_d, edges_d = np.histogram(ahist, bins=4, density=True)
+    cases.append({
+        "op": "histogram", "a_data": enc(ahist.tolist()), "a_dtype": "float64",
+        "a_shape": [8], "kw": {"bins": 4, "density": True},
+        "approx": True,
+        "expected": {"hist": describe(hist_d), "binEdges": describe(edges_d)},
+    })
+    # range clipping
+    hist_range, edges_range = np.histogram(ahist, bins=3, range=(1.0, 3.0))
+    cases.append({
+        "op": "histogram", "a_data": enc(ahist.tolist()), "a_dtype": "float64",
+        "a_shape": [8], "kw": {"bins": 3, "range": [1.0, 3.0]},
+        "approx": False,
+        "expected": {"hist": describe(hist_range), "binEdges": describe(edges_range)},
+    })
+
+    # ================================================================
+    # 14. bincount
+    # ================================================================
+    abc = np.array([0, 1, 2, 1, 0, 3, 2, 1], dtype=np.int64)
+    cases.append({
+        "op": "bincount", "a_data": enc(abc.tolist()), "a_dtype": "int64",
+        "a_shape": [8], "kw": {},
+        "approx": False,
+        "expected": describe(np.bincount(abc)),
+    })
+    cases.append({
+        "op": "bincount", "a_data": enc(abc.tolist()), "a_dtype": "int64",
+        "a_shape": [8], "kw": {"minlength": 6},
+        "approx": False,
+        "expected": describe(np.bincount(abc, minlength=6)),
+    })
+    wbc = np.array([0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0], dtype=np.float64)
+    cases.append({
+        "op": "bincount", "a_data": enc(abc.tolist()), "a_dtype": "int64",
+        "a_shape": [8], "kw": {"weights": enc(wbc.tolist())},
+        "approx": True,
+        "expected": describe(np.bincount(abc, weights=wbc)),
+    })
+
+    # ================================================================
+    # 15. digitize
+    # ================================================================
+    xdig = np.array([0.2, 6.4, 3.0, 1.6, 2.5], dtype=np.float64)
+    bins_dig = np.array([0.0, 1.0, 2.5, 4.0, 10.0], dtype=np.float64)
+    cases.append({
+        "op": "digitize", "a_data": enc(xdig.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "bins": enc(bins_dig.tolist()), "kw": {"right": False},
+        "approx": False,
+        "expected": describe(np.digitize(xdig, bins_dig, right=False)),
+    })
+    cases.append({
+        "op": "digitize", "a_data": enc(xdig.tolist()), "a_dtype": "float64",
+        "a_shape": [5], "bins": enc(bins_dig.tolist()), "kw": {"right": True},
+        "approx": False,
+        "expected": describe(np.digitize(xdig, bins_dig, right=True)),
+    })
+
+    # ================================================================
+    # 16. interp
+    # ================================================================
+    xinterp = np.array([0.0, 0.5, 1.0, 1.5, 2.0], dtype=np.float64)
+    xp = np.array([0.0, 1.0, 2.0], dtype=np.float64)
+    fp = np.array([0.0, 3.0, 1.0], dtype=np.float64)
+    cases.append({
+        "op": "interp",
+        "x_data": enc(xinterp.tolist()), "xp_data": enc(xp.tolist()), "fp_data": enc(fp.tolist()),
+        "kw": {},
+        "approx": True,
+        "expected": describe(np.interp(xinterp, xp, fp)),
+    })
+    cases.append({
+        "op": "interp",
+        "x_data": enc(xinterp.tolist()), "xp_data": enc(xp.tolist()), "fp_data": enc(fp.tolist()),
+        "kw": {"left": -99.0, "right": 99.0},
+        "approx": True,
+        "expected": describe(np.interp(xinterp, xp, fp, left=-99.0, right=99.0)),
+    })
+
+    # ================================================================
+    # 17. correlate — mode full / valid / same
+    # ================================================================
+    acorr = np.array([1.0, 2.0, 3.0, 2.0, 1.0], dtype=np.float64)
+    vcorr = np.array([1.0, 0.5, 0.5], dtype=np.float64)
+    for mode in ["full", "valid", "same"]:
+        cases.append({
+            "op": "correlate",
+            "a_data": enc(acorr.tolist()), "v_data": enc(vcorr.tolist()),
+            "a_dtype": "float64", "v_dtype": "float64",
+            "kw": {"mode": mode},
+            "approx": True,
+            "expected": describe(np.correlate(acorr, vcorr, mode=mode)),
+        })
+
+    # ================================================================
+    # 18. convolve — mode full / valid / same
+    # ================================================================
+    aconv = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float64)
+    vconv = np.array([1.0, 0.5], dtype=np.float64)
+    for mode in ["full", "valid", "same"]:
+        cases.append({
+            "op": "convolve",
+            "a_data": enc(aconv.tolist()), "v_data": enc(vconv.tolist()),
+            "a_dtype": "float64", "v_dtype": "float64",
+            "kw": {"mode": mode},
+            "approx": True,
+            "expected": describe(np.convolve(aconv, vconv, mode=mode)),
+        })
+
+    return cases
+
+
+
+def sort_cases() -> list[dict]:
+    import math
+    import warnings
+    import numpy as np
+
+    def enc(v):
+        """Encode a scalar or nested list into exact JSON."""
+        if isinstance(v, list):
+            return [enc(x) for x in v]
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, complex):
+            return {"re": enc(v.real), "im": enc(v.imag)}
+        if isinstance(v, int):
+            return v if abs(v) <= 2**53 else {"bigint": str(v)}
+        if isinstance(v, float):
+            if math.isnan(v):
+                return {"float": "nan"}
+            if math.isinf(v):
+                return {"float": "inf" if v > 0 else "-inf"}
+            if v == 0 and math.copysign(1.0, v) < 0:
+                return {"float": "-0"}
+            return v
+        raise TypeError(type(v))
+
+    def describe(a: np.ndarray) -> dict:
+        return {
+            "dtype": str(a.dtype),
+            "shape": list(a.shape),
+            "strides": list(a.strides),
+            "c_contiguous": bool(a.flags.c_contiguous),
+            "f_contiguous": bool(a.flags.f_contiguous),
+            "values": enc(a.tolist()),
+        }
+
+    cases = []
+
+    # ------------------------------------------------------------------ sort
+    # 1D float64 with NaN and negatives
+    a_f64 = np.array([3.0, float("nan"), -1.5, 2.0, float("nan"), 0.0])
+    cases.append({
+        "op": "sort",
+        "a_data": enc(a_f64.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_f64.shape),
+        "kw": {},
+        "expected": describe(np.sort(a_f64)),
+    })
+
+    # 1D float64 descending (no NaN — NaN placement in descending sort is implementation-defined)
+    a_f64_nonan = np.array([3.0, -1.5, 2.0, 0.0, 4.5, -0.5])
+    cases.append({
+        "op": "sort",
+        "a_data": enc(a_f64_nonan.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_f64_nonan.shape),
+        "kw": {"descending": True},
+        "expected": describe(np.sort(a_f64_nonan)[::-1].copy()),
+    })
+
+    # 1D int32
+    a_i32 = np.array([5, -3, 2, 8, 1, -7], dtype=np.int32)
+    cases.append({
+        "op": "sort",
+        "a_data": enc(a_i32.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_i32.shape),
+        "kw": {},
+        "expected": describe(np.sort(a_i32)),
+    })
+
+    # 2D float64 axis=0
+    a_2d = np.array([[3.0, 1.0, 4.0], [1.0, 5.0, 0.0]], dtype=np.float64)
+    cases.append({
+        "op": "sort",
+        "a_data": enc(a_2d.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_2d.shape),
+        "kw": {"axis": 0},
+        "expected": describe(np.sort(a_2d, axis=0)),
+    })
+
+    # 2D float64 axis=1
+    cases.append({
+        "op": "sort",
+        "a_data": enc(a_2d.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_2d.shape),
+        "kw": {"axis": 1},
+        "expected": describe(np.sort(a_2d, axis=1)),
+    })
+
+    # ---------------------------------------------------------------- argsort
+    # 1D float64 with NaN
+    cases.append({
+        "op": "argsort",
+        "a_data": enc(a_f64.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_f64.shape),
+        "kw": {},
+        "expected": describe(np.argsort(a_f64)),
+    })
+
+    # 1D float64 descending (no NaN — NaN placement in descending argsort is implementation-defined)
+    cases.append({
+        "op": "argsort",
+        "a_data": enc(a_f64_nonan.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_f64_nonan.shape),
+        "kw": {"descending": True},
+        "expected": describe(np.argsort(a_f64_nonan)[::-1].copy()),
+    })
+
+    # 1D int32
+    cases.append({
+        "op": "argsort",
+        "a_data": enc(a_i32.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_i32.shape),
+        "kw": {},
+        "expected": describe(np.argsort(a_i32)),
+    })
+
+    # 2D float64 axis=0
+    cases.append({
+        "op": "argsort",
+        "a_data": enc(a_2d.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_2d.shape),
+        "kw": {"axis": 0},
+        "expected": describe(np.argsort(a_2d, axis=0)),
+    })
+
+    # ---------------------------------------------------------------- sortComplex
+    # complex64 input
+    a_cx = np.array([3+2j, 1-1j, 2+0j, 1+1j], dtype=np.complex64)
+    cases.append({
+        "op": "sortComplex",
+        "a_data": enc(a_cx.tolist()),
+        "a_dtype": "complex64",
+        "a_shape": list(a_cx.shape),
+        "kw": {},
+        "expected": describe(np.sort(a_cx)),
+    })
+
+    # ---------------------------------------------------------------- partition
+    # kth=2 on 1D float64
+    a_part = np.array([7.0, 2.0, 5.0, 1.0, 9.0, 3.0, 8.0], dtype=np.float64)
+    r_part2 = np.partition(a_part, 2)
+    cases.append({
+        "op": "partition",
+        "a_data": enc(a_part.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_part.shape),
+        "kw": {"kth": 2},
+        "expected_kth": 2,
+        "expected": describe(r_part2),
+    })
+
+    # kth=[1, 3] on 1D float64
+    r_part13 = np.partition(a_part, [1, 3])
+    cases.append({
+        "op": "partition",
+        "a_data": enc(a_part.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_part.shape),
+        "kw": {"kth": [1, 3]},
+        "expected_kth": [1, 3],
+        "expected": describe(r_part13),
+    })
+
+    # ---------------------------------------------------------------- argpartition
+    # kth=2 on 1D float64
+    cases.append({
+        "op": "argpartition",
+        "a_data": enc(a_part.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_part.shape),
+        "kw": {"kth": 2},
+        "expected_kth": 2,
+        "expected": describe(np.argpartition(a_part, 2)),
+    })
+
+    # kth=[1, 3] on 1D float64
+    cases.append({
+        "op": "argpartition",
+        "a_data": enc(a_part.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_part.shape),
+        "kw": {"kth": [1, 3]},
+        "expected_kth": [1, 3],
+        "expected": describe(np.argpartition(a_part, [1, 3])),
+    })
+
+    # ---------------------------------------------------------------- lexsort
+    # Sort by last-name then first-name (NumPy convention: last key is primary)
+    surnames  = np.array([3, 1, 2, 1], dtype=np.int64)
+    firstnames = np.array([0, 2, 1, 1], dtype=np.int64)
+    r_lex = np.lexsort([firstnames, surnames])
+    cases.append({
+        "op": "lexsort",
+        "keys": [enc(firstnames.tolist()), enc(surnames.tolist())],
+        "key_dtypes": ["int64", "int64"],
+        "kw": {},
+        "expected": describe(r_lex),
+    })
+
+    # ---------------------------------------------------------------- searchsorted
+    a_sorted = np.array([1.0, 2.0, 3.0, 4.0, 5.0], dtype=np.float64)
+    v_vals   = np.array([0.5, 2.0, 3.5, 5.5], dtype=np.float64)
+
+    cases.append({
+        "op": "searchsorted",
+        "a_data": enc(a_sorted.tolist()),
+        "a_dtype": "float64",
+        "v_data": enc(v_vals.tolist()),
+        "v_dtype": "float64",
+        "kw": {"side": "left"},
+        "expected": describe(np.searchsorted(a_sorted, v_vals, side="left")),
+    })
+
+    cases.append({
+        "op": "searchsorted",
+        "a_data": enc(a_sorted.tolist()),
+        "a_dtype": "float64",
+        "v_data": enc(v_vals.tolist()),
+        "v_dtype": "float64",
+        "kw": {"side": "right"},
+        "expected": describe(np.searchsorted(a_sorted, v_vals, side="right")),
+    })
+
+    # searchsorted with duplicates
+    a_dup = np.array([1.0, 2.0, 2.0, 3.0], dtype=np.float64)
+    v_dup = np.array([2.0], dtype=np.float64)
+    cases.append({
+        "op": "searchsorted",
+        "a_data": enc(a_dup.tolist()),
+        "a_dtype": "float64",
+        "v_data": enc(v_dup.tolist()),
+        "v_dtype": "float64",
+        "kw": {"side": "left"},
+        "expected": describe(np.searchsorted(a_dup, v_dup, side="left")),
+    })
+    cases.append({
+        "op": "searchsorted",
+        "a_data": enc(a_dup.tolist()),
+        "a_dtype": "float64",
+        "v_data": enc(v_dup.tolist()),
+        "v_dtype": "float64",
+        "kw": {"side": "right"},
+        "expected": describe(np.searchsorted(a_dup, v_dup, side="right")),
+    })
+
+    # ---------------------------------------------------------------- unique
+    a_uniq = np.array([3, 1, 4, 1, 5, 9, 2, 6, 5, 3], dtype=np.int32)
+
+    # basic
+    cases.append({
+        "op": "unique",
+        "a_data": enc(a_uniq.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_uniq.shape),
+        "kw": {},
+        "expected_values": describe(np.unique(a_uniq)),
+    })
+
+    # returnIndex=True
+    uv, ui = np.unique(a_uniq, return_index=True)
+    cases.append({
+        "op": "unique",
+        "a_data": enc(a_uniq.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_uniq.shape),
+        "kw": {"returnIndex": True},
+        "expected_values": describe(uv),
+        "expected_indices": describe(ui),
+    })
+
+    # returnInverse=True
+    uv2, uinv = np.unique(a_uniq, return_inverse=True)
+    cases.append({
+        "op": "unique",
+        "a_data": enc(a_uniq.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_uniq.shape),
+        "kw": {"returnInverse": True},
+        "expected_values": describe(uv2),
+        "expected_inverse": describe(uinv),
+    })
+
+    # returnCounts=True
+    uv3, uc = np.unique(a_uniq, return_counts=True)
+    cases.append({
+        "op": "unique",
+        "a_data": enc(a_uniq.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_uniq.shape),
+        "kw": {"returnCounts": True},
+        "expected_values": describe(uv3),
+        "expected_counts": describe(uc),
+    })
+
+    # equalNan=True: NaN values treated as identical
+    a_nan = np.array([1.0, float("nan"), 2.0, float("nan")], dtype=np.float64)
+    uv_nan = np.unique(a_nan, equal_nan=True)
+    cases.append({
+        "op": "unique",
+        "a_data": enc(a_nan.tolist()),
+        "a_dtype": "float64",
+        "a_shape": list(a_nan.shape),
+        "kw": {"equalNan": True},
+        "expected_values": describe(uv_nan),
+    })
+
+    # ---------------------------------------------------------------- uniqueAll
+    a_ua = np.array([2, 1, 2, 3, 1], dtype=np.int32)
+    uv_a, ui_a, uinv_a, uc_a = np.unique(a_ua, return_index=True, return_inverse=True, return_counts=True)
+    cases.append({
+        "op": "uniqueAll",
+        "a_data": enc(a_ua.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_ua.shape),
+        "kw": {},
+        "expected_values": describe(uv_a),
+        "expected_indices": describe(ui_a),
+        "expected_inverse_indices": describe(uinv_a),
+        "expected_counts": describe(uc_a),
+    })
+
+    # ---------------------------------------------------------------- intersect1d
+    a_set = np.array([1, 3, 4, 3, 2], dtype=np.int32)
+    b_set = np.array([3, 1, 2, 5, 1], dtype=np.int32)
+
+    iv = np.intersect1d(a_set, b_set)
+    cases.append({
+        "op": "intersect1d",
+        "a_data": enc(a_set.tolist()),
+        "a_dtype": "int32",
+        "b_data": enc(b_set.tolist()),
+        "b_dtype": "int32",
+        "kw": {},
+        "expected": describe(iv),
+    })
+
+    # returnIndices=True
+    iv2, ia, ib = np.intersect1d(a_set, b_set, return_indices=True)
+    cases.append({
+        "op": "intersect1d",
+        "a_data": enc(a_set.tolist()),
+        "a_dtype": "int32",
+        "b_data": enc(b_set.tolist()),
+        "b_dtype": "int32",
+        "kw": {"returnIndices": True},
+        "expected": describe(iv2),
+        "expected_ia": describe(ia),
+        "expected_ib": describe(ib),
+    })
+
+    # ---------------------------------------------------------------- union1d
+    cases.append({
+        "op": "union1d",
+        "a_data": enc(a_set.tolist()),
+        "a_dtype": "int32",
+        "b_data": enc(b_set.tolist()),
+        "b_dtype": "int32",
+        "kw": {},
+        "expected": describe(np.union1d(a_set, b_set)),
+    })
+
+    # ---------------------------------------------------------------- setdiff1d
+    cases.append({
+        "op": "setdiff1d",
+        "a_data": enc(a_set.tolist()),
+        "a_dtype": "int32",
+        "b_data": enc(b_set.tolist()),
+        "b_dtype": "int32",
+        "kw": {},
+        "expected": describe(np.setdiff1d(a_set, b_set)),
+    })
+
+    # ---------------------------------------------------------------- setxor1d
+    cases.append({
+        "op": "setxor1d",
+        "a_data": enc(a_set.tolist()),
+        "a_dtype": "int32",
+        "b_data": enc(b_set.tolist()),
+        "b_dtype": "int32",
+        "kw": {},
+        "expected": describe(np.setxor1d(a_set, b_set)),
+    })
+
+    # ---------------------------------------------------------------- isin
+    a_isin  = np.array([1, 2, 3, 4, 5], dtype=np.int32)
+    b_isin  = np.array([2, 4], dtype=np.int32)
+    cases.append({
+        "op": "isin",
+        "a_data": enc(a_isin.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_isin.shape),
+        "b_data": enc(b_isin.tolist()),
+        "b_dtype": "int32",
+        "kw": {},
+        "expected": describe(np.isin(a_isin, b_isin)),
+    })
+
+    # invert=True
+    cases.append({
+        "op": "isin",
+        "a_data": enc(a_isin.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_isin.shape),
+        "b_data": enc(b_isin.tolist()),
+        "b_dtype": "int32",
+        "kw": {"invert": True},
+        "expected": describe(np.isin(a_isin, b_isin, invert=True)),
+    })
+
+    # 2D element array
+    a_isin2d = np.array([[1, 5], [3, 4]], dtype=np.int32)
+    cases.append({
+        "op": "isin",
+        "a_data": enc(a_isin2d.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_isin2d.shape),
+        "b_data": enc(b_isin.tolist()),
+        "b_dtype": "int32",
+        "kw": {},
+        "expected": describe(np.isin(a_isin2d, b_isin)),
+    })
+
+    # ---------------------------------------------------------------- ediff1d
+    a_ed = np.array([1, 3, 6, 10, 15], dtype=np.int32)
+
+    # basic
+    cases.append({
+        "op": "ediff1d",
+        "a_data": enc(a_ed.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_ed.shape),
+        "kw": {},
+        "expected": describe(np.ediff1d(a_ed)),
+    })
+
+    # toEnd
+    cases.append({
+        "op": "ediff1d",
+        "a_data": enc(a_ed.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_ed.shape),
+        "kw": {"toEnd": [100, 200]},
+        "expected": describe(np.ediff1d(a_ed, to_end=np.array([100, 200], dtype=np.int32))),
+    })
+
+    # toBegin
+    cases.append({
+        "op": "ediff1d",
+        "a_data": enc(a_ed.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_ed.shape),
+        "kw": {"toBegin": [-1]},
+        "expected": describe(np.ediff1d(a_ed, to_begin=np.array([-1], dtype=np.int32))),
+    })
+
+    # toEnd and toBegin
+    cases.append({
+        "op": "ediff1d",
+        "a_data": enc(a_ed.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_ed.shape),
+        "kw": {"toBegin": [-9], "toEnd": [99]},
+        "expected": describe(np.ediff1d(
+            a_ed,
+            to_begin=np.array([-9], dtype=np.int32),
+            to_end=np.array([99], dtype=np.int32),
+        )),
+    })
+
+    # 2D input (flattened)
+    a_ed2d = np.array([[1, 2], [4, 7]], dtype=np.int32)
+    cases.append({
+        "op": "ediff1d",
+        "a_data": enc(a_ed2d.tolist()),
+        "a_dtype": "int32",
+        "a_shape": list(a_ed2d.shape),
+        "kw": {},
+        "expected": describe(np.ediff1d(a_ed2d)),
+    })
+
+    return cases
+
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -1829,6 +4839,12 @@ def main() -> None:
         "complex_matmul": complex_matmul_cases(),
         "complex_linalg": complex_linalg_cases(),
         "complex_fft": complex_fft_cases(),
+        "logic_cases": logic_cases(),
+        "manip_cases": manip_cases(),
+        "creation2": creation2_cases(),
+        "indexing2_cases": indexing2_cases(),
+        "stats_cases": stats_cases(),
+        "sort_cases": sort_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}
