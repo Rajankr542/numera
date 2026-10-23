@@ -1329,3 +1329,14 @@ Done (P13-2, P13-4, P13-5, P13-6, P13-7 — D-161..D-163):
   start, feature tour); development and release docs moved to CONTRIBUTING.md.
 - `scripts/stage-package.mjs` cuts the package README at `## Contributing`
   and rewrites image links to raw GitHub URLs.
+
+## 2026-10-23 — V-phase planning (D-242…D-260 reserved)
+- Documented the full V-phase slice plan in `docs/plan/TASK_SLICES.md`: 20 slices
+  (V-P2 through V-P16E) covering ~821 bench-exempt callables that need NumPy
+  differential test groups and benchmark entries.
+- Updated `ROADMAP.md`: P3–P16E rows now correctly show "built, unverified"
+  instead of ⬜; overall status (99.1% coverage, 821 unverified) is recorded.
+- Remaining build work (P3-2…P3-5, P14-8…P14-11, multivariateNormal, 6 ma gaps)
+  listed under "Remaining build work" in TASK_SLICES.md.
+- D-numbers D-242–D-260 reserved for V-phase fixes; D-242 is V-P2, D-243 is
+  V-P3, … D-260 is V-P16E.

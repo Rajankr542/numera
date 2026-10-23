@@ -95,3 +95,74 @@ listed in the bench-exemption list until V adds their bench cases.
 Slice each milestone just before it starts, using the same rules. As a rule of
 thumb, one ufunc family, one function group, or one kwarg (`out=`, `where=`, …)
 per slice.
+
+---
+
+## V phase — verification, NumPy differential tests, and benchmarks
+
+All P2-9…P16E builds are **unverified**: they pass `pnpm test` (vitest) but have
+no NumPy comparison cases and no benchmark entries. The V phase adds both.
+**No NumPy-compatibility or performance claim covers a slice until its V slice is
+green.**
+
+### V-phase rules
+- Each V slice adds differential generator cases to
+  `python/generators/generate_cases.py` **and** a `main()` entry in that file,
+  then runs `pnpm test:diff` and fixes any mismatches found.
+- Each V slice also adds matching cases to `benchmarks/nativpy/suite.bench.mjs`
+  **and** `benchmarks/numpy/suite_bench.py`, then removes those names from the
+  relevant `api/bench-exempt/pNN.json` file.
+- A V slice may fix bugs found during comparison; every fix gets its own commit
+  with a D-number recorded in `DECISIONS.md` (range D-242+).
+- After both checks are green the slice gets a single commit
+  `test(verify): <area> differential + bench (V-PNN, D-24x)`.
+- `PROGRESS.md` is updated at the end of each V slice.
+
+### V-phase order (highest-value first)
+
+| Slice | Area | Bench-exempt entries to clear | D-numbers |
+|-------|------|-------------------------------|-----------|
+| V-P2  | Ufunc machinery: `reduce`/`accumulate`/`outer`/`reduceat`/`at`, `errstate`/`seterr`; bench for every ufunc kwarg added in P2 (P2-8v + P2-11) | bench-exempt entries in `p03.json` that cover P2 ufunc kwargs | D-242 |
+| V-P3  | Core array API: `fill`, `tolist`, `tobytes`, `view`, `byteswap`, `ndindex`, `ndenumerate`, `nditer`, `finfo`/`iinfo`/`resultType`, printing; `order=` creation paths | `api/bench-exempt/p03.json` (20 entries) | D-243 |
+| V-P4  | Math ufuncs: all 75 trig/exp/round/arithmetic/float-bit/special functions (sin, cos, exp2, floor, heaviside, sinc, …) | `api/bench-exempt/p04.json` (75 entries) | D-244 |
+| V-P5  | Comparison, logic, bitwise: equal/less/logicalAnd/isnan/bitwiseAnd/isclose/packbits (38 entries) | `api/bench-exempt/p05.json` (38 entries) | D-245 |
+| V-P6  | Array manipulation: concatenate/stack/split/pad/insert/roll/applyAlongAxis/… (46 entries) | `api/bench-exempt/p06.json` (46 entries) | D-246 |
+| V-P7  | Creation/grids: logspace/geomspace/tri/meshgrid/indices/fromfunction/r\_/… (24 entries) | `api/bench-exempt/p07.json` (24 entries) | D-247 |
+| V-P8  | Indexing extras: take/put/choose/compress/piecewise/ravelMultiIndex/diagonal/… (24 entries) | `api/bench-exempt/p08.json` (24 entries) | D-248 |
+| V-P9  | Sorting/searching/sets: sort/argsort/partition/lexsort/unique/isin/… (23 entries) | `api/bench-exempt/p09.json` (23 entries) | D-249 |
+| V-P10 | Statistics/NaN reductions: median/quantile/cumsum/nansum/average/histogram/correlate/… (39 entries) | `api/bench-exempt/p10.json` (39 entries) | D-250 |
+| V-P11 | Linalg completion: cholesky/pinv/cond/vdot/kron/cross/tensordot/einsum/vecdot/… (29 entries) | `api/bench-exempt/p11.json` (29 entries) | D-251 |
+| V-P12 | FFT completion: hfft/rfftn/rfft2/fftshift/out= (8 entries) | `api/bench-exempt/p12.json` (8 entries) | D-252 |
+| V-P13 | Random completion: all distributions for Generator/RandomState/module-level (115 entries) | `api/bench-exempt/p13.json` (115 entries) | D-253 |
+| V-P14 | I/O + extras: save/load/loadtxt/genfromtxt/poly/windows (28 entries) | `api/bench-exempt/p14.json` (28 entries) | D-254 |
+| V-P15 | Submodules: emath/testing/polynomial/ma (23 entries) | `api/bench-exempt/p15.json` (23 entries) | D-255 |
+| V-P16A | Constants, vectorize, cumsum/cumprod methods (7 entries) | `api/bench-exempt/p16a.json` (7 entries) | D-256 |
+| V-P16B | np.ma full surface (206 entries) | `api/bench-exempt/p16b.json` (206 entries) | D-257 |
+| V-P16C | np.strings + np.char (99 entries) | `api/bench-exempt/p16c.json` (99 entries) | D-258 |
+| V-P16D | datetime64/timedelta64/busday (8 entries) | `api/bench-exempt/p16d.json` (8 entries) | D-259 |
+| V-P16E | np.rec + cleanup (5 entries) | `api/bench-exempt/p16e.json` (5 entries) | D-260 |
+
+**Total bench-exempt entries to clear: ~821 across all V slices.**
+
+### After V phase
+Once all V slices are green:
+1. Run the full benchmark suite (`pnpm bench:suite && pnpm bench:suite:numpy && pnpm bench:compare`) and update `PERFORMANCE.md`.
+2. Update `ROADMAP.md` milestones P3–P15 from ⬜ to ✅.
+3. Drop any unneeded parallel milestone branches (`pNN`) with `git branch -d`.
+4. Begin M11 performance work (per-call overhead, `zeros` regression, `max` NEON, Node 18/20 profile — see `ROADMAP.md` "Next steps").
+
+### Remaining build work (not yet started)
+These slices were deferred from the build-first pass and still need implementation:
+
+| Slice | Work |
+|-------|------|
+| P3-2 | NDArray methods: `fill`, `tolist`, `tobytes({order})`, `view(dtype)`, `byteswap`, `setflags({write})`, `base`, `mT`, `flat`, `astype({copy})` |
+| P3-3 | Iteration helpers: `ndindex`, `ndenumerate`, `nditer` (read-only) |
+| P3-4 | Dtype introspection: `finfo`, `iinfo`, `resultType`, `minScalarType`, `issubdtype`, `isdtype`, `commonType`, `mintypecode` |
+| P3-5 | Printing: `array2string`, `arrayRepr`, `arrayStr`, `setPrintoptions`/`getPrintoptions`/`printoptions`, `toString()` |
+| P14-8 | datetime64/timedelta64 dtype in the C++ core enum; all `dispatch_dtype` sites raise `DTypeError` for new dtypes |
+| P14-9 | datetime arithmetic/comparison, `datetimeAsString`, `datetimeData` |
+| P14-10 | `busdayCount`, `busdayOffset`, `isBusday` |
+| P14-11 | `str_`/`bytes_` dtypes, `np.strings`, structured/void, `np.rec` full C++ path |
+| multivariate_normal | `Generator.multivariateNormal`, `RandomState.multivariateNormal`, `np.random.multivariateNormal` (uses existing linalg Cholesky/SVD) |
+| ma gaps | `ma.applyAlongAxis`, `ma.applyOverAxes`, `ma.compressed`, `ma.frombuffer`, `ma.fromflex`, `ma.fromfunction` |

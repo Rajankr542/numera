@@ -26,21 +26,36 @@ and a benchmark case in both suites.
 |---|---|
 | P0 coverage tooling (`pnpm api:coverage` / `api:check` in CI) | ✅ API coverage is 16.0% (170/1060) after P1 (14.9%, 158/1060, at P0), and every implemented callable is benchmarked in both suites |
 | P1 complex numbers (D-008, D-033) | ✅ Complex64/complex128 work in every existing path: conversion, ufuncs plus `real`/`imag`/`conj`/`angle`/`iscomplex*`/`isreal*`, reductions (D-034), `matmul`/`dot`/`inner`/`outer` (D-035–D-037), all of `linalg` on both backends (D-038–D-044), and FFT with `np.Complex` input. Verified by the differential groups `complex_ufuncs`, `complex_reductions`, `complex_matmul`, `complex_linalg` and `complex_fft`; benchmarked in both suites. Complex `sort` waits for `sort` itself (P9); complex trig and comparisons wait for P4/P5. |
-| P2 ufunc machinery | 🟡 Sliced into P2-1…P2-11 (`TASK_SLICES.md`). P2-1 ✅: casting rules and `np.canCast` (D-045). P2-2 ✅: native `out=` for `binary`/`unary` (D-046). P2-3 ✅: TS `{ out }` on the 12 element-wise ufuncs (D-047). P2-4 ✅: `dtype=`/`casting=` (D-048). P2-5 ✅: `where=` mask (D-049). P2-6 ✅: `order=` and NumPy result layout (D-050). P2-7 ✅: table-driven native ufunc registry (D-051). P2-8 ✅ (build-first): `ufunc.reduce`/`accumulate` (D-052). P2-9 ✅ (build-first): `outer`/`reduceat`/`at` (D-053). P2-10 ✅: `seterr`/`geterr`/`errstate` (D-054). P3-1 ✅ (build-first): memory `order=` (D-055). API coverage 16.1% (171/1060) |
-| P3–P15 | ⬜ |
+| P2 ufunc machinery | 🟡 built, unverified | P2-1…P2-10 all built (D-045–D-054). P3-1 built (D-055). `reduce`/`accumulate`/`outer`/`reduceat`/`at` and `errstate`/`seterr` are build-first; V-P2 (NumPy differential + bench) not yet done. API coverage 16.1% (171/1060) |
+| P3 layout + core array API | 🟡 built, unverified | P3-1 ✅ (order= for creation/reshape/copy). P3-2…P3-5 (NDArray methods, iterators, dtype introspection, printing) not yet built — see "Remaining build work" in `TASK_SLICES.md`. |
+| P4 math ufuncs | 🟡 built, unverified | All 75 entries built (D-070–D-079). V-P4 (differential + bench) not yet done. |
+| P5 comparison/logic/bitwise | 🟡 built, unverified | All 38 entries built (D-080–D-089). V-P5 not yet done. |
+| P6 array manipulation | 🟡 built, unverified | All 46 entries built (D-090–D-099). V-P6 not yet done. |
+| P7 creation + grids | 🟡 built, unverified | All 24 entries built (D-100–D-109). V-P7 not yet done. |
+| P8 indexing extras | 🟡 built, unverified | All 24 entries built (D-110–D-119). V-P8 not yet done. |
+| P9 sorting/searching/sets | 🟡 built, unverified | All 23 entries built (D-120–D-129). V-P9 not yet done. |
+| P10 statistics + NaN reductions | 🟡 built, unverified | All 39 entries built (D-130–D-139). V-P10 not yet done. |
+| P11 linalg completion | 🟡 built, unverified | All 29 entries built (D-140–D-149). V-P11 not yet done. |
+| P12 FFT completion | 🟡 built, unverified | All 8 entries built (D-150–D-159). V-P12 not yet done. |
+| P13 random completion | 🟡 built, unverified | All 115 entries built (D-160–D-169). V-P13 not yet done. |
+| P14 I/O + extra dtypes | 🟡 built, unverified | P14-1…P14-7 built (D-170–D-173); P14-8…P14-11 (datetime, str_, structured, rec) not yet built. V-P14 not yet done. |
+| P15 submodules | 🟡 built, unverified | All 23 entries built (D-180–D-189). V-P15 not yet done. |
+| P16A constants/vectorize | 🟡 built, unverified | All 7 entries built (D-191–D-199). V-P16A not yet done. |
+| P16B np.ma | 🟡 built, unverified | 206 entries built (D-200–D-209); 6 names still missing (applyAlongAxis, applyOverAxes, compressed, frombuffer, fromflex, fromfunction). V-P16B not yet done. |
+| P16C np.strings + np.char | 🟡 built, unverified | 99 entries built (D-210–D-213). V-P16C not yet done. |
+| P16D datetime64 | 🟡 built, unverified | 8 entries built (D-220–D-229). V-P16D not yet done. |
+| P16E np.rec + cleanup | 🟡 built, unverified | 5 entries built (D-230–D-239). V-P16E not yet done. |
 
-Work is done in small slices, one per session (see `docs/plan/TASK_SLICES.md`). Next slice: **P3-2** (NDArray methods: `fill`, `tolist`, `tobytes`, `view(dtype)`, ...). P2-9 … P15 are built first; NumPy verification and benchmarks (P2-8v, P2-11, V-P3 … V-P15) follow as one V phase (`TASK_SLICES.md`).
+**Overall API coverage: 99.1% (1045/1054) built. ~821 callables still on bench-exempt lists (unverified against NumPy).**
+
+Work is done in small slices (see `docs/plan/TASK_SLICES.md`). **Current focus: V phase** — add NumPy differential tests and benchmarks for each built milestone, highest-value first (V-P4 → V-P5 → V-P9 → …).
 
 ## Next steps
-1. M11 per PLAN §86. Next targets, from PERFORMANCE.md findings:
-   - Per-call binding overhead: the construction-guard fix is done (D-024, about 13%). The remaining ~700 ns per result is ObjectWrap construction. Evaluate `napi_create_external` handles (needs a decision).
+1. **V phase** (see `TASK_SLICES.md`): add differential groups and benchmarks for P2-11 through P16E in priority order. Fix any correctness bugs found. Clear the 821 bench-exempt entries one V slice at a time.
+2. **Remaining build work** (P3-2…P3-5, P14-8…P14-11, `multivariateNormal`, 6 ma gaps) — see `TASK_SLICES.md`.
+3. **M11 performance** (after V phase establishes a full baseline):
+   - Per-call binding overhead: ~700 ns per result (ObjectWrap construction). Evaluate `napi_create_external` handles (needs a decision).
    - `zeros 1e6` regression after D-023 (calloc on reused memory).
-   - `max` at 2× NumPy (NEON would need a decision).
-   - Node 18/20 are slower than 22 in the release probe. Profile them before claiming anything.
-2. FFT follow-ups: `rfftn`/`irfftn`/`rfft2`/`irfft2`, `hfft`/`ihfft`, `fftshift`/`ifftshift` (D-020). Benchmark against NumPy before making any FFT performance claims.
-3. Random follow-ups: `choice(p=...)`, broadcast array parameters, more distributions (D-019).
-4. Complex element conversion (D-008). This unblocks complex ufuncs and complex linalg.
-5. Benchmark matmul/solve/svd across the Accelerate and fallback backends and NumPy before making any performance claims (PERFORMANCE.md).
-6. Profile ufunc and `copy` costs (destination allocation vs. loop, PERFORMANCE.md) before optimizing.
-7. Buffer pool for `copy`-heavy workloads (deferred, D-013). It needs its own decision entry.
-8. Pairwise summation for float16, cast (`dtype=`) and middle-axis reductions, if NumPy's buffered order is needed there too (D-021 covers contiguous f32/f64).
+   - `max f64` is 2× NumPy (NEON `fmax` kernel, needs a decision).
+   - Node 18/20 are ~2.5× slower than Node 22; profile before making version claims.
+4. **Branch cleanup**: all 18 `pNN` branches are merged (0 commits ahead of main). Delete them and their worktrees after confirming nothing is needed.
