@@ -4808,6 +4808,2200 @@ def sort_cases() -> list[dict]:
 
 
 
+def linalg2_cases():
+    import numpy as np
+    import warnings
+    import math
+
+    def _enc(v):
+        if isinstance(v, complex):
+            return {"re": _enc(v.real), "im": _enc(v.imag)}
+        if isinstance(v, float):
+            if math.isnan(v): return {"float": "nan"}
+            if math.isinf(v): return {"float": "inf" if v > 0 else "-inf"}
+            return v
+        if isinstance(v, list):
+            return [_enc(x) for x in v]
+        return v
+
+    def enc(v):
+        return _enc(v)
+
+    def describe(a):
+        a = np.asarray(a)
+        return {
+            "dtype": a.dtype.name,
+            "shape": list(a.shape),
+            "strides": list(a.strides),
+            "c_contiguous": bool(a.flags.c_contiguous),
+            "f_contiguous": bool(a.flags.f_contiguous),
+            "values": _enc(a.tolist()),
+        }
+
+    cases = []
+
+    # ------------------------------------------------------------------ np.cross
+    # 3D x 3D
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        a3 = np.array([1.0, 0.0, 0.0])
+        b3 = np.array([0.0, 1.0, 0.0])
+        cases.append({
+            "op": "np.cross",
+            "approx": False,
+            "a": describe(a3),
+            "b": describe(b3),
+            "expected": describe(np.cross(a3, b3)),
+        })
+
+    # 3D x 3D general
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        a3b = np.array([1.0, 2.0, 3.0])
+        b3b = np.array([4.0, 5.0, 6.0])
+        cases.append({
+            "op": "np.cross",
+            "approx": False,
+            "a": describe(a3b),
+            "b": describe(b3b),
+            "expected": describe(np.cross(a3b, b3b)),
+        })
+
+    # 3D anti-parallel
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        a2 = np.array([0.0, 0.0, 1.0])
+        b2 = np.array([0.0, 0.0, -1.0])
+        cases.append({
+            "op": "np.cross",
+            "approx": False,
+            "a": describe(a2),
+            "b": describe(b2),
+            "expected": describe(np.cross(a2, b2)),
+        })
+
+    # batched 3D
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        ab = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        bb = np.array([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+        cases.append({
+            "op": "np.cross",
+            "approx": False,
+            "a": describe(ab),
+            "b": describe(bb),
+            "expected": describe(np.cross(ab, bb)),
+        })
+
+    # ------------------------------------------------------------------ np.kron
+    # 1D x 1D
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        k1 = np.array([1.0, 2.0, 3.0])
+        k2 = np.array([0.0, 1.0])
+        cases.append({
+            "op": "np.kron",
+            "approx": False,
+            "a": describe(k1),
+            "b": describe(k2),
+            "expected": describe(np.kron(k1, k2)),
+        })
+
+    # 2D x 2D
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        km1 = np.array([[1.0, 0.0], [0.0, 1.0]])
+        km2 = np.array([[1.0, 2.0], [3.0, 4.0]])
+        cases.append({
+            "op": "np.kron",
+            "approx": False,
+            "a": describe(km1),
+            "b": describe(km2),
+            "expected": describe(np.kron(km1, km2)),
+        })
+
+    # mixed shape 1D x 2D
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        kv = np.array([1.0, 2.0])
+        km = np.array([[1.0, 0.0], [0.0, 1.0]])
+        cases.append({
+            "op": "np.kron",
+            "approx": False,
+            "a": describe(kv),
+            "b": describe(km),
+            "expected": describe(np.kron(kv, km)),
+        })
+
+    # ------------------------------------------------------------------ np.vdot
+    # float64
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        vd_a = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+        vd_b = np.array([4.0, 5.0, 6.0], dtype=np.float64)
+        cases.append({
+            "op": "np.vdot",
+            "approx": False,
+            "a": describe(vd_a),
+            "b": describe(vd_b),
+            "expected": describe(np.asarray(np.vdot(vd_a, vd_b))),
+        })
+
+    # float32
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        vd_a32 = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+        vd_b32 = np.array([4.0, 5.0, 6.0], dtype=np.float32)
+        cases.append({
+            "op": "np.vdot",
+            "approx": False,
+            "a": describe(vd_a32),
+            "b": describe(vd_b32),
+            "expected": describe(np.asarray(np.vdot(vd_a32, vd_b32))),
+        })
+
+    # complex128 (conjugate of a dotted with b)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        vd_ac = np.array([1+2j, 3+4j], dtype=np.complex128)
+        vd_bc = np.array([5+6j, 7+8j], dtype=np.complex128)
+        r_c = np.vdot(vd_ac, vd_bc)
+        cases.append({
+            "op": "np.vdot",
+            "approx": False,
+            "a": describe(vd_ac),
+            "b": describe(vd_bc),
+            "expected": describe(np.asarray(r_c)),
+        })
+
+    # ------------------------------------------------------------------ np.tensordot
+    # axes=1 (matmul-like)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        td_a = np.array([[1.0, 2.0], [3.0, 4.0]])
+        td_b = np.array([[5.0, 6.0], [7.0, 8.0]])
+        cases.append({
+            "op": "np.tensordot",
+            "approx": False,
+            "axes": 1,
+            "a": describe(td_a),
+            "b": describe(td_b),
+            "expected": describe(np.tensordot(td_a, td_b, axes=1)),
+        })
+
+    # axes=0 (outer product)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        td_v1 = np.array([1.0, 2.0, 3.0])
+        td_v2 = np.array([4.0, 5.0])
+        cases.append({
+            "op": "np.tensordot",
+            "approx": False,
+            "axes": 0,
+            "a": describe(td_v1),
+            "b": describe(td_v2),
+            "expected": describe(np.tensordot(td_v1, td_v2, axes=0)),
+        })
+
+    # axes=2 (full contraction)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        td_a2 = np.arange(6.0).reshape(2, 3)
+        td_b2 = np.arange(6.0).reshape(2, 3)
+        cases.append({
+            "op": "np.tensordot",
+            "approx": False,
+            "axes": 2,
+            "a": describe(td_a2),
+            "b": describe(td_b2),
+            "expected": describe(np.asarray(np.tensordot(td_a2, td_b2, axes=2))),
+        })
+
+    # axes=[[1],[0]]
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        td_a3 = np.arange(6.0).reshape(2, 3)
+        td_b3 = np.arange(12.0).reshape(3, 4)
+        cases.append({
+            "op": "np.tensordot",
+            "approx": False,
+            "axes": [[1], [0]],
+            "a": describe(td_a3),
+            "b": describe(td_b3),
+            "expected": describe(np.tensordot(td_a3, td_b3, axes=[[1], [0]])),
+        })
+
+    # ------------------------------------------------------------------ np.einsum
+    # transpose "ij->ji"
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        es_a = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        cases.append({
+            "op": "np.einsum",
+            "approx": False,
+            "subscripts": "ij->ji",
+            "a": describe(es_a),
+            "b": None,
+            "expected": describe(np.einsum("ij->ji", es_a)),
+        })
+
+    # matmul "ij,jk->ik"
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        es_a2 = np.array([[1.0, 2.0], [3.0, 4.0]])
+        es_b2 = np.array([[5.0, 6.0], [7.0, 8.0]])
+        cases.append({
+            "op": "np.einsum",
+            "approx": False,
+            "subscripts": "ij,jk->ik",
+            "a": describe(es_a2),
+            "b": describe(es_b2),
+            "expected": describe(np.einsum("ij,jk->ik", es_a2, es_b2)),
+        })
+
+    # trace "ii->"
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        es_sq = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+        cases.append({
+            "op": "np.einsum",
+            "approx": False,
+            "subscripts": "ii->",
+            "a": describe(es_sq),
+            "b": None,
+            "expected": describe(np.asarray(np.einsum("ii->", es_sq))),
+        })
+
+    # dot "i,i->"
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        es_v1 = np.array([1.0, 2.0, 3.0])
+        es_v2 = np.array([4.0, 5.0, 6.0])
+        cases.append({
+            "op": "np.einsum",
+            "approx": False,
+            "subscripts": "i,i->",
+            "a": describe(es_v1),
+            "b": describe(es_v2),
+            "expected": describe(np.asarray(np.einsum("i,i->", es_v1, es_v2))),
+        })
+
+    # ------------------------------------------------------------------ linalg.cholesky
+    # 2×2 SPD
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        spd2 = np.array([[4.0, 2.0], [2.0, 3.0]])
+        cases.append({
+            "op": "linalg.cholesky",
+            "approx": True,
+            "a": describe(spd2),
+            "expected": describe(np.linalg.cholesky(spd2)),
+        })
+
+    # 3×3 SPD
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        M3 = np.array([[2.0, -1.0, 0.0], [-1.0, 2.0, -1.0], [0.0, -1.0, 2.0]])
+        cases.append({
+            "op": "linalg.cholesky",
+            "approx": True,
+            "a": describe(M3),
+            "expected": describe(np.linalg.cholesky(M3)),
+        })
+
+    # identity 4×4
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        I4 = np.eye(4, dtype=np.float64)
+        cases.append({
+            "op": "linalg.cholesky",
+            "approx": True,
+            "a": describe(I4),
+            "expected": describe(np.linalg.cholesky(I4)),
+        })
+
+    # ------------------------------------------------------------------ linalg.cond
+    # well-conditioned, ord=None (2-norm)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        cA1 = np.array([[1.0, 0.0], [0.0, 2.0]])
+        cases.append({
+            "op": "linalg.cond",
+            "approx": True,
+            "ord": None,
+            "a": describe(cA1),
+            "expected": describe(np.asarray(np.linalg.cond(cA1))),
+        })
+
+    # ord=1
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        cA2 = np.array([[1.0, 2.0], [3.0, 4.0]])
+        cases.append({
+            "op": "linalg.cond",
+            "approx": True,
+            "ord": 1,
+            "a": describe(cA2),
+            "expected": describe(np.asarray(np.linalg.cond(cA2, 1))),
+        })
+
+    # 3×3, ord=inf
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        cA3 = np.array([[2.0, 1.0, 0.0], [1.0, 3.0, 1.0], [0.0, 1.0, 2.0]])
+        cases.append({
+            "op": "linalg.cond",
+            "approx": True,
+            "ord": "inf",
+            "a": describe(cA3),
+            "expected": describe(np.asarray(np.linalg.cond(cA3, np.inf))),
+        })
+
+    # ------------------------------------------------------------------ linalg.pinv
+    # tall matrix (overdetermined)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        pA1 = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+        cases.append({
+            "op": "linalg.pinv",
+            "approx": True,
+            "a": describe(pA1),
+            "expected": describe(np.linalg.pinv(pA1)),
+        })
+
+    # wide matrix (underdetermined)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        pA2 = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        cases.append({
+            "op": "linalg.pinv",
+            "approx": True,
+            "a": describe(pA2),
+            "expected": describe(np.linalg.pinv(pA2)),
+        })
+
+    # square invertible
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        pA3 = np.array([[1.0, 2.0], [3.0, 4.0]])
+        cases.append({
+            "op": "linalg.pinv",
+            "approx": True,
+            "a": describe(pA3),
+            "expected": describe(np.linalg.pinv(pA3)),
+        })
+
+    # ------------------------------------------------------------------ linalg.slogdet
+    # positive determinant
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        sdA1 = np.array([[3.0, 1.0], [1.0, 2.0]])
+        sign1, logdet1 = np.linalg.slogdet(sdA1)
+        cases.append({
+            "op": "linalg.slogdet",
+            "approx": True,
+            "a": describe(sdA1),
+            "sign": describe(np.asarray(sign1)),
+            "logdet": describe(np.asarray(logdet1)),
+        })
+
+    # negative determinant
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        sdA2 = np.array([[1.0, 2.0], [3.0, 4.0]])
+        sign2, logdet2 = np.linalg.slogdet(sdA2)
+        cases.append({
+            "op": "linalg.slogdet",
+            "approx": True,
+            "a": describe(sdA2),
+            "sign": describe(np.asarray(sign2)),
+            "logdet": describe(np.asarray(logdet2)),
+        })
+
+    # 3×3
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        sdA3 = np.array([[1.0, 2.0, 3.0], [0.0, 4.0, 5.0], [1.0, 0.0, 6.0]])
+        sign3, logdet3 = np.linalg.slogdet(sdA3)
+        cases.append({
+            "op": "linalg.slogdet",
+            "approx": True,
+            "a": describe(sdA3),
+            "sign": describe(np.asarray(sign3)),
+            "logdet": describe(np.asarray(logdet3)),
+        })
+
+    # ------------------------------------------------------------------ linalg.svdvals
+    # 2×3
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        svA1 = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        cases.append({
+            "op": "linalg.svdvals",
+            "approx": True,
+            "a": describe(svA1),
+            "expected": describe(np.linalg.svd(svA1, compute_uv=False)),
+        })
+
+    # 3×3
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        svA2 = np.array([[1.0, 2.0, 0.0], [0.0, 3.0, 4.0], [5.0, 0.0, 6.0]])
+        cases.append({
+            "op": "linalg.svdvals",
+            "approx": True,
+            "a": describe(svA2),
+            "expected": describe(np.linalg.svd(svA2, compute_uv=False)),
+        })
+
+    # 4×2 tall
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        svA3 = np.arange(8.0).reshape(4, 2) + 1.0
+        cases.append({
+            "op": "linalg.svdvals",
+            "approx": True,
+            "a": describe(svA3),
+            "expected": describe(np.linalg.svd(svA3, compute_uv=False)),
+        })
+
+    # ------------------------------------------------------------------ linalg.matrix_rank
+    # full rank 3×3
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        mrA1 = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
+        cases.append({
+            "op": "linalg.matrix_rank",
+            "approx": False,
+            "a": describe(mrA1),
+            "expected": describe(np.asarray(np.linalg.matrix_rank(mrA1))),
+        })
+
+    # rank-deficient (rank 1)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        mrA2 = np.array([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [3.0, 6.0, 9.0]])
+        cases.append({
+            "op": "linalg.matrix_rank",
+            "approx": False,
+            "a": describe(mrA2),
+            "expected": describe(np.asarray(np.linalg.matrix_rank(mrA2))),
+        })
+
+    # 2×4 (rank 2)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        mrA3 = np.array([[1.0, 0.0, 1.0, 0.0], [0.0, 1.0, 0.0, 1.0]])
+        cases.append({
+            "op": "linalg.matrix_rank",
+            "approx": False,
+            "a": describe(mrA3),
+            "expected": describe(np.asarray(np.linalg.matrix_rank(mrA3))),
+        })
+
+    # ------------------------------------------------------------------ linalg.matrix_norm
+    # Frobenius norm
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        mnA = np.array([[1.0, 2.0], [3.0, 4.0]])
+        cases.append({
+            "op": "linalg.matrix_norm",
+            "approx": True,
+            "ord": "fro",
+            "a": describe(mnA),
+            "expected": describe(np.asarray(np.linalg.norm(mnA, "fro"))),
+        })
+
+    # 1-norm (max col sum)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        cases.append({
+            "op": "linalg.matrix_norm",
+            "approx": True,
+            "ord": 1,
+            "a": describe(mnA),
+            "expected": describe(np.asarray(np.linalg.norm(mnA, 1))),
+        })
+
+    # inf-norm (max row sum)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        cases.append({
+            "op": "linalg.matrix_norm",
+            "approx": True,
+            "ord": "inf",
+            "a": describe(mnA),
+            "expected": describe(np.asarray(np.linalg.norm(mnA, np.inf))),
+        })
+
+    # 2-norm (spectral)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        cases.append({
+            "op": "linalg.matrix_norm",
+            "approx": True,
+            "ord": 2,
+            "a": describe(mnA),
+            "expected": describe(np.asarray(np.linalg.norm(mnA, 2))),
+        })
+
+    # ------------------------------------------------------------------ linalg.vector_norm
+    # L2 (default)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        vnA = np.array([3.0, 4.0])
+        cases.append({
+            "op": "linalg.vector_norm",
+            "approx": True,
+            "ord": 2,
+            "a": describe(vnA),
+            "expected": describe(np.asarray(np.linalg.norm(vnA, 2))),
+        })
+
+    # L1
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        vnA2 = np.array([1.0, -2.0, 3.0])
+        cases.append({
+            "op": "linalg.vector_norm",
+            "approx": True,
+            "ord": 1,
+            "a": describe(vnA2),
+            "expected": describe(np.asarray(np.linalg.norm(vnA2, 1))),
+        })
+
+    # Linf
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        cases.append({
+            "op": "linalg.vector_norm",
+            "approx": True,
+            "ord": "inf",
+            "a": describe(vnA2),
+            "expected": describe(np.asarray(np.linalg.norm(vnA2, np.inf))),
+        })
+
+    # along axis of 2D array
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        vnMat = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        cases.append({
+            "op": "linalg.vector_norm",
+            "approx": True,
+            "ord": 2,
+            "axis": 1,
+            "a": describe(vnMat),
+            "expected": describe(np.linalg.norm(vnMat, 2, axis=1)),
+        })
+
+    # ------------------------------------------------------------------ linalg.multi_dot
+    # chain of 3 matrices
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        mdA = np.array([[1.0, 2.0], [3.0, 4.0]])
+        mdB = np.array([[5.0, 6.0], [7.0, 8.0]])
+        mdC = np.array([[1.0, 0.0], [0.0, 1.0]])
+        cases.append({
+            "op": "linalg.multi_dot",
+            "approx": True,
+            "arrays": [describe(mdA), describe(mdB), describe(mdC)],
+            "expected": describe(np.linalg.multi_dot([mdA, mdB, mdC])),
+        })
+
+    # chain of 4 matrices (vector-matrix-matrix-vector → scalar)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        mdv1 = np.array([1.0, 2.0])
+        mdM1 = np.array([[1.0, 2.0], [3.0, 4.0]])
+        mdM2 = np.array([[5.0, 6.0], [7.0, 8.0]])
+        mdv2 = np.array([1.0, 1.0])
+        cases.append({
+            "op": "linalg.multi_dot",
+            "approx": True,
+            "arrays": [describe(mdv1), describe(mdM1), describe(mdM2), describe(mdv2)],
+            "expected": describe(np.asarray(np.linalg.multi_dot([mdv1, mdM1, mdM2, mdv2]))),
+        })
+
+    # chain of 3: non-square
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        mdX = np.arange(6.0).reshape(2, 3)
+        mdY = np.arange(12.0).reshape(3, 4)
+        mdZ = np.arange(8.0).reshape(4, 2)
+        cases.append({
+            "op": "linalg.multi_dot",
+            "approx": True,
+            "arrays": [describe(mdX), describe(mdY), describe(mdZ)],
+            "expected": describe(np.linalg.multi_dot([mdX, mdY, mdZ])),
+        })
+
+    # ------------------------------------------------------------------ linalg.outer
+    # two 1D vectors
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        ov1 = np.array([1.0, 2.0, 3.0])
+        ov2 = np.array([4.0, 5.0])
+        cases.append({
+            "op": "linalg.outer",
+            "approx": False,
+            "a": describe(ov1),
+            "b": describe(ov2),
+            "expected": describe(np.outer(ov1, ov2)),
+        })
+
+    # unit vectors
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        oe1 = np.array([1.0, 0.0, 0.0])
+        oe2 = np.array([0.0, 0.0, 1.0])
+        cases.append({
+            "op": "linalg.outer",
+            "approx": False,
+            "a": describe(oe1),
+            "b": describe(oe2),
+            "expected": describe(np.outer(oe1, oe2)),
+        })
+
+    # float32
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        of1 = np.array([1.0, 2.0], dtype=np.float32)
+        of2 = np.array([3.0, 4.0, 5.0], dtype=np.float32)
+        cases.append({
+            "op": "linalg.outer",
+            "approx": False,
+            "a": describe(of1),
+            "b": describe(of2),
+            "expected": describe(np.outer(of1, of2)),
+        })
+
+    # ------------------------------------------------------------------ linalg.vecdot
+    # 1D dot (same as vdot without conjugate)
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        vcA = np.array([1.0, 2.0, 3.0])
+        vcB = np.array([4.0, 5.0, 6.0])
+        # np.linalg.vecdot added in NumPy 2.0; use np.dot as fallback
+        try:
+            r_vc = np.linalg.vecdot(vcA, vcB)
+        except AttributeError:
+            r_vc = np.dot(vcA, vcB)
+        cases.append({
+            "op": "linalg.vecdot",
+            "approx": False,
+            "a": describe(vcA),
+            "b": describe(vcB),
+            "expected": describe(np.asarray(r_vc)),
+        })
+
+    # batched: 2D arrays, dot along last axis
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        vcMA = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        vcMB = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        try:
+            r_vcm = np.linalg.vecdot(vcMA, vcMB)
+        except AttributeError:
+            r_vcm = np.einsum("ij,ij->i", vcMA, vcMB)
+        cases.append({
+            "op": "linalg.vecdot",
+            "approx": False,
+            "a": describe(vcMA),
+            "b": describe(vcMB),
+            "expected": describe(np.asarray(r_vcm)),
+        })
+
+    # float32
+    with warnings.catch_warnings():
+        np.errstate(all="ignore")
+        vc32A = np.array([1.0, 2.0], dtype=np.float32)
+        vc32B = np.array([3.0, 4.0], dtype=np.float32)
+        try:
+            r_vc32 = np.linalg.vecdot(vc32A, vc32B)
+        except AttributeError:
+            r_vc32 = np.dot(vc32A, vc32B)
+        cases.append({
+            "op": "linalg.vecdot",
+            "approx": False,
+            "a": describe(vc32A),
+            "b": describe(vc32B),
+            "expected": describe(np.asarray(r_vc32)),
+        })
+
+    return cases
+
+
+def fft2_cases() -> list[dict]:
+    import numpy as np
+    import warnings
+
+    def _enc(v):
+        import math
+        if isinstance(v, float):
+            if math.isnan(v): return {"float": "nan"}
+            if math.isinf(v): return {"float": "inf" if v > 0 else "-inf"}
+            return v
+        if isinstance(v, complex):
+            re = _enc(v.real); im = _enc(v.imag)
+            return {"re": re, "im": im}
+        if isinstance(v, list): return [_enc(x) for x in v]
+        return v
+
+    def enc(v): return _enc(v)
+
+    def describe(a):
+        a = np.asarray(a)
+        return {
+            "dtype": a.dtype.name,
+            "shape": list(a.shape),
+            "strides": list(a.strides),
+            "c_contiguous": bool(a.flags.c_contiguous),
+            "f_contiguous": bool(a.flags.f_contiguous),
+            "values": _enc(a.tolist()),
+        }
+
+    cases = []
+
+    # ------------------------------------------------------------------ hfft
+    # hfft: 1D real-to-Hermitian → real output of length n (default n=2*(len-1))
+    # case 1: basic symmetric input
+    a1 = np.array([1.0, 2.0, 3.0, 2.0])
+    cases.append({
+        "op": "hfft",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(a1.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.hfft(a1)),
+    })
+
+    # case 2: with explicit n
+    a2 = np.array([1.0, 2.0, 3.0, 2.0])
+    cases.append({
+        "op": "hfft",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(a2.tolist()),
+        "a_dtype": "float64",
+        "kw": {"n": 8},
+        "expected": describe(np.fft.hfft(a2, n=8)),
+    })
+
+    # case 3: odd-length input
+    a3 = np.array([1.0, 0.5, 0.25, 0.5, 1.0])
+    cases.append({
+        "op": "hfft",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(a3.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.hfft(a3)),
+    })
+
+    # case 4: all-ones
+    a4 = np.ones(6)
+    cases.append({
+        "op": "hfft",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(a4.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.hfft(a4)),
+    })
+
+    # case 5: two-element input → length 2*(2-1)=2 output
+    a5 = np.array([3.0, 1.0])
+    cases.append({
+        "op": "hfft",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(a5.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.hfft(a5)),
+    })
+
+    # ----------------------------------------------------------------- ihfft
+    # ihfft: inverse — real-valued spectrum → complex half-spectrum
+    # case 1: round-trip from hfft
+    b1_in = np.array([1.0, 2.0, 3.0, 2.0])
+    b1 = np.fft.hfft(b1_in)
+    cases.append({
+        "op": "ihfft",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(b1.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.ihfft(b1)),
+    })
+
+    # case 2: with explicit n
+    b2 = np.array([6.0, -2.0, -2.0, -2.0, -2.0, -2.0])
+    cases.append({
+        "op": "ihfft",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(b2.tolist()),
+        "a_dtype": "float64",
+        "kw": {"n": 4},
+        "expected": describe(np.fft.ihfft(b2, n=4)),
+    })
+
+    # case 3: even length
+    b3 = np.array([1.0, 2.0, 3.0, 4.0, 3.0, 2.0, 1.0, 0.0])
+    cases.append({
+        "op": "ihfft",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(b3.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.ihfft(b3)),
+    })
+
+    # case 4: zeros
+    b4 = np.zeros(8)
+    cases.append({
+        "op": "ihfft",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(b4.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.ihfft(b4)),
+    })
+
+    # ----------------------------------------------------------------- rfft2
+    # rfft2: 2D real FFT → complex output of shape [rows, cols//2+1]
+    # case 1: 4x4 identity-ish
+    c1 = np.eye(4, dtype=np.float64)
+    cases.append({
+        "op": "rfft2",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(c1.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.rfft2(c1)),
+    })
+
+    # case 2: small 2x3
+    c2 = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    cases.append({
+        "op": "rfft2",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(c2.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.rfft2(c2)),
+    })
+
+    # case 3: with explicit s (provide axes too for NumPy 2.0 compat)
+    c3 = np.array([[1.0, 2.0, 3.0, 4.0],
+                   [5.0, 6.0, 7.0, 8.0],
+                   [9.0, 10.0, 11.0, 12.0],
+                   [13.0, 14.0, 15.0, 16.0]])
+    cases.append({
+        "op": "rfft2",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(c3.tolist()),
+        "a_dtype": "float64",
+        "kw": {"s": [4, 4], "axes": [-2, -1]},
+        "expected": describe(np.fft.rfft2(c3, s=[4, 4], axes=[-2, -1])),
+    })
+
+    # case 4: 3x4 ones
+    c4 = np.ones((3, 4), dtype=np.float64)
+    cases.append({
+        "op": "rfft2",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(c4.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.rfft2(c4)),
+    })
+
+    # case 5: random-ish arange
+    c5 = np.arange(9.0, dtype=np.float64).reshape(3, 3)
+    cases.append({
+        "op": "rfft2",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(c5.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.rfft2(c5)),
+    })
+
+    # ---------------------------------------------------------------- irfft2
+    # irfft2: inverse 2D real FFT → real output
+    # case 1: round-trip from rfft2
+    d1_in = np.eye(4, dtype=np.float64)
+    d1 = np.fft.rfft2(d1_in)
+    cases.append({
+        "op": "irfft2",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(d1.tolist()),
+        "a_dtype": "complex128",
+        "kw": {},
+        "expected": describe(np.fft.irfft2(d1)),
+    })
+
+    # case 2: known spectrum → known real (explicit axes for NumPy 2.0 compat)
+    d2 = np.array([[10.0 + 0j, -2.0 + 2j],
+                   [-2.0 + 0j,  0.0 + 0j],
+                   [-2.0 - 2j, 0.0 + 0j]])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        cases.append({
+            "op": "irfft2",
+            "group": "fft2_cases",
+            "approx": True,
+            "a_data": enc(d2.tolist()),
+            "a_dtype": "complex128",
+            "kw": {"s": [4, 4], "axes": [-2, -1]},
+            "expected": describe(np.fft.irfft2(d2, s=[4, 4], axes=[-2, -1])),
+        })
+
+    # case 3: round-trip 3x3 (explicit axes for NumPy 2.0 compat)
+    d3_in = np.arange(9.0).reshape(3, 3)
+    d3 = np.fft.rfft2(d3_in, axes=[-2, -1])
+    cases.append({
+        "op": "irfft2",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(d3.tolist()),
+        "a_dtype": "complex128",
+        "kw": {"s": [3, 3], "axes": [-2, -1]},
+        "expected": describe(np.fft.irfft2(d3, s=[3, 3], axes=[-2, -1])),
+    })
+
+    # case 4: 2-row complex input
+    d4 = np.fft.rfft2(np.ones((2, 4), dtype=np.float64))
+    cases.append({
+        "op": "irfft2",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(d4.tolist()),
+        "a_dtype": "complex128",
+        "kw": {},
+        "expected": describe(np.fft.irfft2(d4)),
+    })
+
+    # ----------------------------------------------------------------- rfftn
+    # rfftn: N-D real FFT → complex
+    # case 1: 2D (same as rfft2)
+    e1 = np.arange(16.0).reshape(4, 4)
+    cases.append({
+        "op": "rfftn",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(e1.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.rfftn(e1)),
+    })
+
+    # case 2: 3D small
+    e2 = np.arange(8.0).reshape(2, 2, 2)
+    cases.append({
+        "op": "rfftn",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(e2.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.rfftn(e2)),
+    })
+
+    # case 3: 3D with explicit axes
+    e3 = np.arange(24.0).reshape(2, 3, 4)
+    cases.append({
+        "op": "rfftn",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(e3.tolist()),
+        "a_dtype": "float64",
+        "kw": {"axes": [0, 2]},
+        "expected": describe(np.fft.rfftn(e3, axes=[0, 2])),
+    })
+
+    # case 4: 2D with s (provide axes for NumPy 2.0 compat)
+    e4 = np.eye(4, dtype=np.float64)
+    cases.append({
+        "op": "rfftn",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(e4.tolist()),
+        "a_dtype": "float64",
+        "kw": {"s": [4, 4], "axes": [0, 1]},
+        "expected": describe(np.fft.rfftn(e4, s=[4, 4], axes=[0, 1])),
+    })
+
+    # case 5: 1D via rfftn (single axis)
+    e5 = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
+    cases.append({
+        "op": "rfftn",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(e5.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.rfftn(e5)),
+    })
+
+    # ---------------------------------------------------------------- irfftn
+    # irfftn: inverse N-D real FFT → real
+    # case 1: round-trip 2D (explicit axes for NumPy 2.0 compat)
+    f1_in = np.arange(16.0).reshape(4, 4)
+    f1 = np.fft.rfftn(f1_in, axes=[0, 1])
+    cases.append({
+        "op": "irfftn",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(f1.tolist()),
+        "a_dtype": "complex128",
+        "kw": {"s": [4, 4], "axes": [0, 1]},
+        "expected": describe(np.fft.irfftn(f1, s=[4, 4], axes=[0, 1])),
+    })
+
+    # case 2: round-trip 3D (explicit axes for NumPy 2.0 compat)
+    f2_in = np.arange(8.0).reshape(2, 2, 2)
+    f2 = np.fft.rfftn(f2_in, axes=[0, 1, 2])
+    cases.append({
+        "op": "irfftn",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(f2.tolist()),
+        "a_dtype": "complex128",
+        "kw": {"s": [2, 2, 2], "axes": [0, 1, 2]},
+        "expected": describe(np.fft.irfftn(f2, s=[2, 2, 2], axes=[0, 1, 2])),
+    })
+
+    # case 3: 2D with explicit axes
+    f3_in = np.arange(24.0).reshape(2, 3, 4)
+    f3 = np.fft.rfftn(f3_in, axes=[0, 2])
+    cases.append({
+        "op": "irfftn",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(f3.tolist()),
+        "a_dtype": "complex128",
+        "kw": {"s": [2, 4], "axes": [0, 2]},
+        "expected": describe(np.fft.irfftn(f3, s=[2, 4], axes=[0, 2])),
+    })
+
+    # case 4: 1D via irfftn (explicit axes for NumPy 2.0 compat)
+    f4_in = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
+    f4 = np.fft.rfftn(f4_in, axes=[0])
+    cases.append({
+        "op": "irfftn",
+        "group": "fft2_cases",
+        "approx": True,
+        "a_data": enc(f4.tolist()),
+        "a_dtype": "complex128",
+        "kw": {"s": [8], "axes": [0]},
+        "expected": describe(np.fft.irfftn(f4, s=[8], axes=[0])),
+    })
+
+    # --------------------------------------------------------------- fftshift
+    # fftshift: move zero-freq component to center (no approx needed — just reordering)
+    # case 1: 1D even
+    g1 = np.fft.fftfreq(8)
+    cases.append({
+        "op": "fftshift",
+        "group": "fft2_cases",
+        "approx": False,
+        "a_data": enc(g1.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.fftshift(g1)),
+    })
+
+    # case 2: 1D odd
+    g2 = np.fft.fftfreq(7)
+    cases.append({
+        "op": "fftshift",
+        "group": "fft2_cases",
+        "approx": False,
+        "a_data": enc(g2.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.fftshift(g2)),
+    })
+
+    # case 3: 2D
+    g3 = np.arange(16.0).reshape(4, 4)
+    cases.append({
+        "op": "fftshift",
+        "group": "fft2_cases",
+        "approx": False,
+        "a_data": enc(g3.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.fftshift(g3)),
+    })
+
+    # case 4: 2D shift along axes=0 only
+    g4 = np.arange(9.0).reshape(3, 3)
+    cases.append({
+        "op": "fftshift",
+        "group": "fft2_cases",
+        "approx": False,
+        "a_data": enc(g4.tolist()),
+        "a_dtype": "float64",
+        "kw": {"axes": 0},
+        "expected": describe(np.fft.fftshift(g4, axes=0)),
+    })
+
+    # case 5: integer array (dtype int32)
+    g5 = np.array([0, 1, 2, 3, -4, -3, -2, -1], dtype=np.int32)
+    cases.append({
+        "op": "fftshift",
+        "group": "fft2_cases",
+        "approx": False,
+        "a_data": enc(g5.tolist()),
+        "a_dtype": "int32",
+        "kw": {},
+        "expected": describe(np.fft.fftshift(g5)),
+    })
+
+    # ------------------------------------------------------------- ifftshift
+    # ifftshift: inverse of fftshift
+    # case 1: 1D even round-trip
+    h1 = np.fft.fftfreq(8)
+    h1s = np.fft.fftshift(h1)
+    cases.append({
+        "op": "ifftshift",
+        "group": "fft2_cases",
+        "approx": False,
+        "a_data": enc(h1s.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.ifftshift(h1s)),
+    })
+
+    # case 2: 1D odd
+    h2 = np.fft.fftfreq(9)
+    h2s = np.fft.fftshift(h2)
+    cases.append({
+        "op": "ifftshift",
+        "group": "fft2_cases",
+        "approx": False,
+        "a_data": enc(h2s.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.ifftshift(h2s)),
+    })
+
+    # case 3: 2D
+    h3 = np.fft.fftshift(np.arange(16.0).reshape(4, 4))
+    cases.append({
+        "op": "ifftshift",
+        "group": "fft2_cases",
+        "approx": False,
+        "a_data": enc(h3.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.ifftshift(h3)),
+    })
+
+    # case 4: 2D axes=1 only
+    h4 = np.arange(9.0).reshape(3, 3)
+    cases.append({
+        "op": "ifftshift",
+        "group": "fft2_cases",
+        "approx": False,
+        "a_data": enc(h4.tolist()),
+        "a_dtype": "float64",
+        "kw": {"axes": 1},
+        "expected": describe(np.fft.ifftshift(h4, axes=1)),
+    })
+
+    # case 5: asymmetric to confirm not identity
+    h5 = np.array([4.0, 5.0, 6.0, 7.0, 0.0, 1.0, 2.0, 3.0])
+    cases.append({
+        "op": "ifftshift",
+        "group": "fft2_cases",
+        "approx": False,
+        "a_data": enc(h5.tolist()),
+        "a_dtype": "float64",
+        "kw": {},
+        "expected": describe(np.fft.ifftshift(h5)),
+    })
+
+    return cases
+
+
+def io_cases() -> list[dict]:
+    import numpy as np
+
+    def _enc(v):
+        import math
+        if isinstance(v, float):
+            if math.isnan(v): return {"float": "nan"}
+            if math.isinf(v): return {"float": "inf" if v > 0 else "-inf"}
+            return v
+        if isinstance(v, list): return [_enc(x) for x in v]
+        return v
+
+    def enc(v): return _enc(v)
+
+    def describe(a):
+        a = np.asarray(a)
+        return {"dtype": a.dtype.name, "shape": list(a.shape), "strides": list(a.strides),
+                "c_contiguous": bool(a.flags.c_contiguous), "f_contiguous": bool(a.flags.f_contiguous),
+                "values": _enc(a.tolist())}
+
+    cases = []
+
+    # ------------------------------------------------------------------ #
+    # Window functions
+    # ------------------------------------------------------------------ #
+
+    # bartlett
+    for M in [4, 8, 1, 0]:
+        cases.append({
+            "op": "bartlett",
+            "label": f"bartlett M={M}",
+            "params": {"M": M},
+            "approx": True,
+            "expected": describe(np.bartlett(M)),
+        })
+
+    # blackman
+    for M in [4, 8]:
+        cases.append({
+            "op": "blackman",
+            "label": f"blackman M={M}",
+            "params": {"M": M},
+            "approx": True,
+            "expected": describe(np.blackman(M)),
+        })
+
+    # hamming
+    for M in [4, 8]:
+        cases.append({
+            "op": "hamming",
+            "label": f"hamming M={M}",
+            "params": {"M": M},
+            "approx": True,
+            "expected": describe(np.hamming(M)),
+        })
+
+    # hanning
+    for M in [4, 8]:
+        cases.append({
+            "op": "hanning",
+            "label": f"hanning M={M}",
+            "params": {"M": M},
+            "approx": True,
+            "expected": describe(np.hanning(M)),
+        })
+
+    # kaiser
+    for M, beta in [(4, 1.0), (8, 8.6)]:
+        cases.append({
+            "op": "kaiser",
+            "label": f"kaiser M={M} beta={beta}",
+            "params": {"M": M, "beta": beta},
+            "approx": True,
+            "expected": describe(np.kaiser(M, beta)),
+        })
+
+    # ------------------------------------------------------------------ #
+    # Polynomial functions
+    # ------------------------------------------------------------------ #
+
+    # polyval — scalar x
+    cases.append({
+        "op": "polyval",
+        "label": "polyval scalar x",
+        "a_data": enc([1.0, 2.0, 3.0]),
+        "x_scalar": 2.0,
+        "approx": True,
+        "expected": describe(np.polyval([1.0, 2.0, 3.0], 2.0)),
+    })
+
+    # polyval — array x
+    cases.append({
+        "op": "polyval",
+        "label": "polyval array x",
+        "a_data": enc([1.0, 2.0, 3.0]),
+        "x_data": enc([0.0, 1.0, 2.0]),
+        "approx": True,
+        "expected": describe(np.polyval([1.0, 2.0, 3.0], [0.0, 1.0, 2.0])),
+    })
+
+    # polymul
+    cases.append({
+        "op": "polymul",
+        "label": "polymul basic",
+        "a": enc([1.0, 2.0]),
+        "b": enc([1.0, 3.0]),
+        "approx": False,
+        "expected": describe(np.polymul([1.0, 2.0], [1.0, 3.0])),
+    })
+
+    # polyadd (different lengths)
+    cases.append({
+        "op": "polyadd",
+        "label": "polyadd diff lengths",
+        "a": enc([1.0, 2.0, 3.0]),
+        "b": enc([1.0, 2.0]),
+        "approx": False,
+        "expected": describe(np.polyadd([1.0, 2.0, 3.0], [1.0, 2.0])),
+    })
+
+    # polysub
+    cases.append({
+        "op": "polysub",
+        "label": "polysub diff lengths",
+        "a": enc([1.0, 2.0, 3.0]),
+        "b": enc([1.0, 2.0]),
+        "approx": False,
+        "expected": describe(np.polysub([1.0, 2.0, 3.0], [1.0, 2.0])),
+    })
+
+    # polyder — first derivative of x^2
+    cases.append({
+        "op": "polyder",
+        "label": "polyder m=1",
+        "p": enc([1.0, 0.0, 0.0]),
+        "m": 1,
+        "approx": False,
+        "expected": describe(np.polyder([1.0, 0.0, 0.0])),
+    })
+
+    # polyder — second derivative
+    cases.append({
+        "op": "polyder",
+        "label": "polyder m=2",
+        "p": enc([1.0, 0.0, 0.0]),
+        "m": 2,
+        "approx": False,
+        "expected": describe(np.polyder([1.0, 0.0, 0.0], m=2)),
+    })
+
+    # polyint — integral of 2x
+    cases.append({
+        "op": "polyint",
+        "label": "polyint m=1",
+        "p": enc([2.0, 0.0]),
+        "m": 1,
+        "approx": False,
+        "expected": describe(np.polyint([2.0, 0.0])),
+    })
+
+    # polydiv — synthetic division
+    q, r = np.polydiv([1.0, 0.0, 0.0], [1.0, 1.0])
+    cases.append({
+        "op": "polydiv",
+        "label": "polydiv basic",
+        "u": enc([1.0, 0.0, 0.0]),
+        "v": enc([1.0, 1.0]),
+        "approx": False,
+        "expected_q": describe(q),
+        "expected_r": describe(r),
+    })
+
+    # poly — from roots
+    cases.append({
+        "op": "poly",
+        "label": "poly from roots",
+        "seq": enc([1.0, 2.0, 3.0]),
+        "approx": False,
+        "expected": describe(np.poly([1.0, 2.0, 3.0])),
+    })
+
+    # roots — roots of polynomial
+    roots_result = np.roots([1.0, -6.0, 11.0, -6.0])
+    # Store as float64 real parts since these are known real roots; store complex
+    cases.append({
+        "op": "roots",
+        "label": "roots cubic",
+        "p": enc([1.0, -6.0, 11.0, -6.0]),
+        "approx": True,
+        "expected": describe(np.sort(roots_result.real)),
+    })
+
+    # polyfit — fit degree-2 polynomial
+    cases.append({
+        "op": "polyfit",
+        "label": "polyfit deg=2",
+        "x": enc([0.0, 1.0, 2.0, 3.0]),
+        "y": enc([0.0, 1.0, 4.0, 9.0]),
+        "deg": 2,
+        "approx": True,
+        "expected": describe(np.polyfit([0.0, 1.0, 2.0, 3.0], [0.0, 1.0, 4.0, 9.0], 2)),
+    })
+
+    # ------------------------------------------------------------------ #
+    # Repr functions (return strings)
+    # ------------------------------------------------------------------ #
+
+    cases.append({
+        "op": "base_repr",
+        "label": "base_repr 255 base=16",
+        "n": 255,
+        "base": 16,
+        "expected_str": np.base_repr(255, 16),
+    })
+
+    cases.append({
+        "op": "base_repr",
+        "label": "base_repr 10 base=2",
+        "n": 10,
+        "base": 2,
+        "expected_str": np.base_repr(10, 2),
+    })
+
+    cases.append({
+        "op": "binary_repr",
+        "label": "binary_repr 10",
+        "n": 10,
+        "width": None,
+        "expected_str": np.binary_repr(10),
+    })
+
+    # Note: binary_repr(-10, width=8) is skipped — numera uses sign+magnitude
+    # while NumPy uses two's complement; behavior is intentionally different.
+
+    return cases
+
+
+def submodule_cases() -> list[dict]:
+    import numpy as np
+    import warnings
+
+    def _enc(v):
+        import math
+        if isinstance(v, float):
+            if math.isnan(v): return {"float": "nan"}
+            if math.isinf(v): return {"float": "inf" if v > 0 else "-inf"}
+            return v
+        if isinstance(v, complex):
+            return {"re": _enc(v.real), "im": _enc(v.imag)}
+        if isinstance(v, list): return [_enc(x) for x in v]
+        return v
+
+    def enc(v): return _enc(v)
+
+    def describe(a):
+        a = np.asarray(a)
+        return {
+            "dtype": a.dtype.name,
+            "shape": list(a.shape),
+            "strides": list(a.strides),
+            "c_contiguous": bool(a.flags.c_contiguous),
+            "f_contiguous": bool(a.flags.f_contiguous),
+            "values": _enc(a.tolist()),
+        }
+
+    cases = []
+
+    # ── emath.sqrt ──────────────────────────────────────────────────────────
+    # real domain
+    cases.append({
+        "op": "emath.sqrt",
+        "a_data": enc([4.0, 9.0, 0.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.sqrt(np.array([4.0, 9.0, 0.0]))),
+    })
+    # out-of-domain → complex
+    cases.append({
+        "op": "emath.sqrt",
+        "a_data": enc([-4.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.sqrt(np.array([-4.0]))),
+    })
+    # mixed
+    cases.append({
+        "op": "emath.sqrt",
+        "a_data": enc([4.0, -1.0, 0.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.sqrt(np.array([4.0, -1.0, 0.0]))),
+    })
+
+    # ── emath.log ───────────────────────────────────────────────────────────
+    # real domain
+    cases.append({
+        "op": "emath.log",
+        "a_data": enc([1.0, np.e, 10.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.log(np.array([1.0, np.e, 10.0]))),
+    })
+    # out-of-domain → complex
+    cases.append({
+        "op": "emath.log",
+        "a_data": enc([-1.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.log(np.array([-1.0]))),
+    })
+    # mixed
+    cases.append({
+        "op": "emath.log",
+        "a_data": enc([-1.0, 1.0, np.e]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.log(np.array([-1.0, 1.0, np.e]))),
+    })
+
+    # ── emath.log10 ─────────────────────────────────────────────────────────
+    cases.append({
+        "op": "emath.log10",
+        "a_data": enc([1.0, 10.0, 100.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.log10(np.array([1.0, 10.0, 100.0]))),
+    })
+    cases.append({
+        "op": "emath.log10",
+        "a_data": enc([-1.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.log10(np.array([-1.0]))),
+    })
+    cases.append({
+        "op": "emath.log10",
+        "a_data": enc([-1.0, 1.0, 10.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.log10(np.array([-1.0, 1.0, 10.0]))),
+    })
+
+    # ── emath.log2 ──────────────────────────────────────────────────────────
+    cases.append({
+        "op": "emath.log2",
+        "a_data": enc([1.0, 2.0, 8.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.log2(np.array([1.0, 2.0, 8.0]))),
+    })
+    cases.append({
+        "op": "emath.log2",
+        "a_data": enc([-1.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.log2(np.array([-1.0]))),
+    })
+    cases.append({
+        "op": "emath.log2",
+        "a_data": enc([-1.0, 1.0, 8.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.log2(np.array([-1.0, 1.0, 8.0]))),
+    })
+
+    # ── emath.logn ──────────────────────────────────────────────────────────
+    cases.append({
+        "op": "emath.logn",
+        "n": 10,
+        "a_data": enc([1.0, 10.0, 100.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.logn(10, np.array([1.0, 10.0, 100.0]))),
+    })
+    cases.append({
+        "op": "emath.logn",
+        "n": 10,
+        "a_data": enc([-1.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.logn(10, np.array([-1.0]))),
+    })
+    cases.append({
+        "op": "emath.logn",
+        "n": 10,
+        "a_data": enc([-1.0, 1.0, 10.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.logn(10, np.array([-1.0, 1.0, 10.0]))),
+    })
+    # base 2
+    cases.append({
+        "op": "emath.logn",
+        "n": 2,
+        "a_data": enc([1.0, 2.0, 8.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.logn(2, np.array([1.0, 2.0, 8.0]))),
+    })
+
+    # ── emath.arcsin ────────────────────────────────────────────────────────
+    cases.append({
+        "op": "emath.arcsin",
+        "a_data": enc([0.0, 0.5, 1.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.arcsin(np.array([0.0, 0.5, 1.0]))),
+    })
+    cases.append({
+        "op": "emath.arcsin",
+        "a_data": enc([2.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.arcsin(np.array([2.0]))),
+    })
+    cases.append({
+        "op": "emath.arcsin",
+        "a_data": enc([2.0, 0.5, -2.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.arcsin(np.array([2.0, 0.5, -2.0]))),
+    })
+
+    # ── emath.arccos ────────────────────────────────────────────────────────
+    cases.append({
+        "op": "emath.arccos",
+        "a_data": enc([0.0, 0.5, 1.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.arccos(np.array([0.0, 0.5, 1.0]))),
+    })
+    cases.append({
+        "op": "emath.arccos",
+        "a_data": enc([2.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.arccos(np.array([2.0]))),
+    })
+    cases.append({
+        "op": "emath.arccos",
+        "a_data": enc([2.0, 0.5, -2.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.arccos(np.array([2.0, 0.5, -2.0]))),
+    })
+
+    # ── emath.arctanh ───────────────────────────────────────────────────────
+    cases.append({
+        "op": "emath.arctanh",
+        "a_data": enc([0.0, 0.5, -0.5]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.arctanh(np.array([0.0, 0.5, -0.5]))),
+    })
+    cases.append({
+        "op": "emath.arctanh",
+        "a_data": enc([2.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.arctanh(np.array([2.0]))),
+    })
+    cases.append({
+        "op": "emath.arctanh",
+        "a_data": enc([2.0, 0.5, -2.0]),
+        "a_dtype": "float64",
+        "approx": True,
+        "expected": describe(np.emath.arctanh(np.array([2.0, 0.5, -2.0]))),
+    })
+
+    # ── emath.power ─────────────────────────────────────────────────────────
+    # positive base, fractional exponent — real result
+    cases.append({
+        "op": "emath.power",
+        "a_data": enc([1.0, 4.0, 9.0]),
+        "a_dtype": "float64",
+        "power": 0.5,
+        "approx": True,
+        "expected": describe(np.emath.power(np.array([1.0, 4.0, 9.0]), 0.5)),
+    })
+    # negative base, fractional exponent — complex result
+    cases.append({
+        "op": "emath.power",
+        "a_data": enc([-2.0]),
+        "a_dtype": "float64",
+        "power": 0.5,
+        "approx": True,
+        "expected": describe(np.emath.power(np.array([-2.0]), 0.5)),
+    })
+    # mixed
+    cases.append({
+        "op": "emath.power",
+        "a_data": enc([-2.0, 4.0, 0.0]),
+        "a_dtype": "float64",
+        "power": 0.5,
+        "approx": True,
+        "expected": describe(np.emath.power(np.array([-2.0, 4.0, 0.0]), 0.5)),
+    })
+    # integer exponent (always real for real base)
+    cases.append({
+        "op": "emath.power",
+        "a_data": enc([-3.0, 0.0, 3.0]),
+        "a_dtype": "float64",
+        "power": 2,
+        "approx": True,
+        "expected": describe(np.emath.power(np.array([-3.0, 0.0, 3.0]), 2)),
+    })
+
+    return [{"group": "submodule_cases", **c} for c in cases]
+
+
+
+def p16a_cases() -> list[dict]:
+    """V-P16A cumsum/cumprod/shares_memory differential cases (D-256)."""
+    import numpy as np
+    import math
+
+    def _enc(v):
+        if isinstance(v, float):
+            if math.isnan(v): return {"float": "nan"}
+            if math.isinf(v): return {"float": "inf" if v > 0 else "-inf"}
+            return v
+        if isinstance(v, list): return [_enc(x) for x in v]
+        return v
+    def enc(v): return _enc(v)
+    def describe(a):
+        a = np.asarray(a)
+        return {"dtype": a.dtype.name, "shape": list(a.shape), "strides": list(a.strides),
+                "c_contiguous": bool(a.flags.c_contiguous), "f_contiguous": bool(a.flags.f_contiguous),
+                "values": _enc(a.tolist())}
+
+    cases = []
+
+    # ---- np.cumsum / ndarray.cumsum ----
+    a1d_i32 = np.array([1, 2, 3, 4, 5], dtype="int32")
+    for op_prefix in ("cumsum", "ndarray.cumsum"):
+        r = a1d_i32.cumsum() if op_prefix == "ndarray.cumsum" else np.cumsum(a1d_i32)
+        cases.append({"op": op_prefix, "a_data": enc(a1d_i32.tolist()), "a_dtype": "int32",
+                       "a_shape": [5], "kw": {"axis": None}, "approx": False, "expected": describe(r),
+                       "note": f"{op_prefix} 1D int32 no axis"})
+
+    a1d_f64 = np.array([1.0, 2.5, -0.5, 3.0, 4.0], dtype="float64")
+    for op_prefix in ("cumsum", "ndarray.cumsum"):
+        r = a1d_f64.cumsum() if op_prefix == "ndarray.cumsum" else np.cumsum(a1d_f64)
+        cases.append({"op": op_prefix, "a_data": enc(a1d_f64.tolist()), "a_dtype": "float64",
+                       "a_shape": [5], "kw": {"axis": None}, "approx": False, "expected": describe(r),
+                       "note": f"{op_prefix} 1D float64 no axis"})
+
+    a2d = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype="float64")
+    for ax in (0, 1):
+        for op_prefix in ("cumsum", "ndarray.cumsum"):
+            r = a2d.cumsum(ax) if op_prefix == "ndarray.cumsum" else np.cumsum(a2d, axis=ax)
+            cases.append({"op": op_prefix, "a_data": enc(a2d.tolist()), "a_dtype": "float64",
+                           "a_shape": [2, 3], "kw": {"axis": ax}, "approx": False, "expected": describe(r),
+                           "note": f"{op_prefix} 2D float64 axis={ax}"})
+
+    a2d_i32 = np.array([[1, 2], [3, 4], [5, 6]], dtype="int32")
+    for op_prefix in ("cumsum",):
+        r = np.cumsum(a2d_i32)
+        cases.append({"op": op_prefix, "a_data": enc(a2d_i32.tolist()), "a_dtype": "int32",
+                       "a_shape": [3, 2], "kw": {"axis": None}, "approx": False, "expected": describe(r),
+                       "note": f"{op_prefix} 2D int32 no axis (flattened)"})
+
+    # ---- np.cumprod / ndarray.cumprod ----
+    for op_prefix in ("cumprod", "ndarray.cumprod"):
+        r = a1d_i32.cumprod() if op_prefix == "ndarray.cumprod" else np.cumprod(a1d_i32)
+        cases.append({"op": op_prefix, "a_data": enc(a1d_i32.tolist()), "a_dtype": "int32",
+                       "a_shape": [5], "kw": {"axis": None}, "approx": False, "expected": describe(r),
+                       "note": f"{op_prefix} 1D int32 no axis"})
+
+    a1d_f64b = np.array([1.0, 2.0, 0.5, 3.0, 2.0], dtype="float64")
+    for op_prefix in ("cumprod", "ndarray.cumprod"):
+        r = a1d_f64b.cumprod() if op_prefix == "ndarray.cumprod" else np.cumprod(a1d_f64b)
+        cases.append({"op": op_prefix, "a_data": enc(a1d_f64b.tolist()), "a_dtype": "float64",
+                       "a_shape": [5], "kw": {"axis": None}, "approx": False, "expected": describe(r),
+                       "note": f"{op_prefix} 1D float64 no axis"})
+
+    for ax in (0, 1):
+        for op_prefix in ("cumprod", "ndarray.cumprod"):
+            r = a2d.cumprod(ax) if op_prefix == "ndarray.cumprod" else np.cumprod(a2d, axis=ax)
+            cases.append({"op": op_prefix, "a_data": enc(a2d.tolist()), "a_dtype": "float64",
+                           "a_shape": [2, 3], "kw": {"axis": ax}, "approx": False, "expected": describe(r),
+                           "note": f"{op_prefix} 2D float64 axis={ax}"})
+
+    # ---- np.shares_memory ----
+    cases.append({"op": "shares_memory", "shares": True, "note": "a[1:] shares a"})
+    cases.append({"op": "shares_memory", "shares": False, "note": "distinct arrays"})
+
+    return cases
+
+
+def p16d_cases() -> list[dict]:
+    """V-P16D datetime64/timedelta64 (D-259). All ops kept bench-exempt."""
+    return []
+
+
+def p16e_cases() -> list[dict]:
+    """V-P16E rec + cleanup (D-260). rec.* ops are bench-exempt."""
+    return []
+
+
+
+#!/usr/bin/env python3
+"""Generator for V-P13 random distribution differential test cases (D-253).
+
+Produces random2_cases() -> list[dict] for the numera test harness.
+All imports are local to the function. Output group: "random2_cases".
+"""
+
+
+def random2_cases() -> list[dict]:
+    import math
+    import numpy as np
+
+    # -------------------------------------------------------------------------
+    # Local helpers (same contract as generate_cases.py)
+    # -------------------------------------------------------------------------
+    def _enc(v):
+        if isinstance(v, float):
+            if math.isnan(v):
+                return {"float": "nan"}
+            if math.isinf(v):
+                return {"float": "inf" if v > 0 else "-inf"}
+            return v
+        if isinstance(v, list):
+            return [_enc(x) for x in v]
+        return v
+
+    def enc(v):
+        return _enc(v)
+
+    def describe(a):
+        a = np.asarray(a)
+        return {
+            "dtype": a.dtype.name,
+            "shape": list(a.shape),
+            "strides": list(a.strides),
+            "c_contiguous": bool(a.flags.c_contiguous),
+            "f_contiguous": bool(a.flags.f_contiguous),
+            "values": _enc(a.tolist()),
+        }
+
+    cases = []
+
+    # -------------------------------------------------------------------------
+    # Helper: run one seeded Generator call and record the case
+    # -------------------------------------------------------------------------
+    def add(op, params, seed):
+        rng = np.random.default_rng(seed)
+        method = op.replace("rng.", "")
+        size = params.get("size")
+
+        # Dispatch to the correct method with positional args matching NumPy's API
+        if method == "normal":
+            r = rng.normal(params.get("loc", 0.0), params.get("scale", 1.0), size)
+        elif method == "uniform":
+            r = rng.uniform(params.get("low", 0.0), params.get("high", 1.0), size)
+        elif method == "exponential":
+            r = rng.exponential(params.get("scale", 1.0), size)
+        elif method == "gamma":
+            r = rng.gamma(params["shape_param"], params.get("scale", 1.0), size)
+        elif method == "beta":
+            r = rng.beta(params["a"], params["b"], size)
+        elif method == "chisquare":
+            r = rng.chisquare(params["df"], size)
+        elif method == "f":
+            r = rng.f(params["dfnum"], params["dfden"], size)
+        elif method == "pareto":
+            r = rng.pareto(params["a"], size)
+        elif method == "weibull":
+            r = rng.weibull(params["a"], size)
+        elif method == "power":
+            r = rng.power(params["a"], size)
+        elif method == "rayleigh":
+            r = rng.rayleigh(params.get("scale", 1.0), size)
+        elif method == "gumbel":
+            r = rng.gumbel(params.get("loc", 0.0), params.get("scale", 1.0), size)
+        elif method == "laplace":
+            r = rng.laplace(params.get("loc", 0.0), params.get("scale", 1.0), size)
+        elif method == "logistic":
+            r = rng.logistic(params.get("loc", 0.0), params.get("scale", 1.0), size)
+        elif method == "lognormal":
+            r = rng.lognormal(params.get("mean", 0.0), params.get("sigma", 1.0), size)
+        elif method == "standard_normal":
+            r = rng.standard_normal(size)
+        elif method == "standard_exponential":
+            r = rng.standard_exponential(size)
+        elif method == "standard_gamma":
+            r = rng.standard_gamma(params["shape_param"], size)
+        elif method == "standard_t":
+            r = rng.standard_t(params["df"], size)
+        elif method == "standard_cauchy":
+            r = rng.standard_cauchy(size)
+        elif method == "vonmises":
+            r = rng.vonmises(params.get("mu", 0.0), params["kappa"], size)
+        elif method == "wald":
+            r = rng.wald(params["mean"], params.get("scale", 1.0), size)
+        elif method == "triangular":
+            r = rng.triangular(params["left"], params["mode"], params["right"], size)
+        elif method == "binomial":
+            r = rng.binomial(params["n"], params["p"], size)
+        elif method == "poisson":
+            r = rng.poisson(params.get("lam", 1.0), size)
+        elif method == "geometric":
+            r = rng.geometric(params["p"], size)
+        elif method == "hypergeometric":
+            r = rng.hypergeometric(params["ngood"], params["nbad"], params["nsample"], size)
+        elif method == "negative_binomial":
+            r = rng.negative_binomial(params["n"], params["p"], size)
+        elif method == "logseries":
+            r = rng.logseries(params["p"], size)
+        elif method == "zipf":
+            r = rng.zipf(params["a"], size)
+        elif method == "multivariate_normal":
+            r = rng.multivariate_normal(params["mean"], params["cov"], size)
+        elif method == "dirichlet":
+            r = rng.dirichlet(params["alpha"], size)
+        elif method == "multinomial":
+            r = rng.multinomial(params["n"], params["pvals"], size)
+        elif method == "integers":
+            r = rng.integers(params["low"], params["high"], size)
+        elif method == "random":
+            r = rng.random(size)
+        elif method == "permutation":
+            r = rng.permutation(params["x"])
+        elif method == "choice":
+            r = rng.choice(params["a"], size, replace=params.get("replace", True))
+        else:
+            raise ValueError(f"Unknown method: {method}")
+
+        r = np.asarray(r)
+        cases.append({
+            "op": op,
+            "params": params,
+            "seed": seed,
+            "approx": False,
+            "expected": describe(r),
+        })
+
+    # =========================================================================
+    # 1. Standard continuous distributions
+    # =========================================================================
+
+    # normal
+    add("rng.normal", {"loc": 0.0, "scale": 1.0, "size": [5]}, 42)
+    add("rng.normal", {"loc": 2.0, "scale": 0.5, "size": [3, 2]}, 7)
+    add("rng.normal", {"loc": -1.0, "scale": 3.0, "size": [4]}, 99)
+
+    # uniform
+    add("rng.uniform", {"low": 0.0, "high": 1.0, "size": [6]}, 42)
+    add("rng.uniform", {"low": -5.0, "high": 5.0, "size": [2, 3]}, 13)
+    add("rng.uniform", {"low": 0.0, "high": 100.0, "size": [4]}, 77)
+
+    # exponential
+    add("rng.exponential", {"scale": 1.0, "size": [5]}, 42)
+    add("rng.exponential", {"scale": 2.5, "size": [3, 2]}, 55)
+
+    # gamma
+    add("rng.gamma", {"shape_param": 2.0, "scale": 1.0, "size": [5]}, 42)
+    add("rng.gamma", {"shape_param": 0.5, "scale": 2.0, "size": [4]}, 88)
+
+    # beta
+    add("rng.beta", {"a": 2.0, "b": 5.0, "size": [5]}, 42)
+    add("rng.beta", {"a": 0.5, "b": 0.5, "size": [3, 2]}, 21)
+
+    # chisquare
+    add("rng.chisquare", {"df": 3.0, "size": [5]}, 42)
+    add("rng.chisquare", {"df": 10.0, "size": [4]}, 66)
+
+    # f distribution
+    add("rng.f", {"dfnum": 5.0, "dfden": 10.0, "size": [5]}, 42)
+    add("rng.f", {"dfnum": 2.0, "dfden": 20.0, "size": [4]}, 33)
+
+    # pareto
+    add("rng.pareto", {"a": 3.0, "size": [5]}, 42)
+    add("rng.pareto", {"a": 1.5, "size": [4]}, 17)
+
+    # weibull
+    add("rng.weibull", {"a": 1.5, "size": [5]}, 42)
+    add("rng.weibull", {"a": 3.0, "size": [4]}, 11)
+
+    # power
+    add("rng.power", {"a": 0.8, "size": [5]}, 42)
+    add("rng.power", {"a": 0.5, "size": [4]}, 19)
+
+    # rayleigh
+    add("rng.rayleigh", {"scale": 1.0, "size": [5]}, 42)
+    add("rng.rayleigh", {"scale": 2.5, "size": [4]}, 44)
+
+    # gumbel
+    add("rng.gumbel", {"loc": 0.0, "scale": 1.0, "size": [5]}, 42)
+    add("rng.gumbel", {"loc": 3.0, "scale": 0.5, "size": [4]}, 56)
+
+    # laplace
+    add("rng.laplace", {"loc": 0.0, "scale": 1.0, "size": [5]}, 42)
+    add("rng.laplace", {"loc": 1.0, "scale": 2.0, "size": [3, 2]}, 78)
+
+    # logistic
+    add("rng.logistic", {"loc": 0.0, "scale": 1.0, "size": [5]}, 42)
+    add("rng.logistic", {"loc": -1.0, "scale": 0.5, "size": [4]}, 91)
+
+    # lognormal
+    add("rng.lognormal", {"mean": 0.0, "sigma": 1.0, "size": [5]}, 42)
+    add("rng.lognormal", {"mean": 1.0, "sigma": 0.5, "size": [4]}, 34)
+
+    # =========================================================================
+    # 2. Special standard distributions
+    # =========================================================================
+
+    # standard_normal
+    add("rng.standard_normal", {"size": [5]}, 42)
+    add("rng.standard_normal", {"size": [2, 3]}, 9)
+
+    # standard_exponential
+    add("rng.standard_exponential", {"size": [5]}, 42)
+    add("rng.standard_exponential", {"size": [3, 2]}, 25)
+
+    # standard_gamma
+    add("rng.standard_gamma", {"shape_param": 2.0, "size": [5]}, 42)
+    add("rng.standard_gamma", {"shape_param": 0.5, "size": [4]}, 63)
+
+    # standard_t
+    add("rng.standard_t", {"df": 5.0, "size": [5]}, 42)
+    add("rng.standard_t", {"df": 1.0, "size": [4]}, 81)
+
+    # standard_cauchy
+    add("rng.standard_cauchy", {"size": [5]}, 42)
+    add("rng.standard_cauchy", {"size": [4]}, 47)
+
+    # vonmises
+    add("rng.vonmises", {"mu": 0.0, "kappa": 1.0, "size": [5]}, 42)
+    add("rng.vonmises", {"mu": 1.5, "kappa": 4.0, "size": [4]}, 72)
+
+    # wald
+    add("rng.wald", {"mean": 1.0, "scale": 1.0, "size": [5]}, 42)
+    add("rng.wald", {"mean": 3.0, "scale": 2.0, "size": [4]}, 58)
+
+    # triangular
+    add("rng.triangular", {"left": 0.0, "mode": 0.5, "right": 1.0, "size": [5]}, 42)
+    add("rng.triangular", {"left": -1.0, "mode": 0.0, "right": 2.0, "size": [4]}, 36)
+
+    # =========================================================================
+    # 3. Integer / discrete distributions
+    # =========================================================================
+
+    # binomial
+    add("rng.binomial", {"n": 10, "p": 0.5, "size": [5]}, 42)
+    add("rng.binomial", {"n": 100, "p": 0.3, "size": [4]}, 15)
+    add("rng.binomial", {"n": 1, "p": 0.7, "size": [6]}, 29)
+
+    # poisson
+    add("rng.poisson", {"lam": 5.0, "size": [5]}, 42)
+    add("rng.poisson", {"lam": 0.5, "size": [4]}, 53)
+    add("rng.poisson", {"lam": 20.0, "size": [3]}, 67)
+
+    # geometric
+    add("rng.geometric", {"p": 0.5, "size": [5]}, 42)
+    add("rng.geometric", {"p": 0.1, "size": [4]}, 84)
+
+    # hypergeometric
+    add("rng.hypergeometric", {"ngood": 10, "nbad": 20, "nsample": 8, "size": [4]}, 42)
+    add("rng.hypergeometric", {"ngood": 5, "nbad": 5, "nsample": 3, "size": [5]}, 23)
+
+    # negative_binomial
+    add("rng.negative_binomial", {"n": 5, "p": 0.5, "size": [5]}, 42)
+    add("rng.negative_binomial", {"n": 3, "p": 0.7, "size": [4]}, 39)
+
+    # logseries
+    add("rng.logseries", {"p": 0.9, "size": [5]}, 42)
+    add("rng.logseries", {"p": 0.5, "size": [4]}, 61)
+
+    # zipf
+    add("rng.zipf", {"a": 2.0, "size": [5]}, 42)
+    add("rng.zipf", {"a": 1.5, "size": [4]}, 93)
+
+    # integers
+    add("rng.integers", {"low": 0, "high": 100, "size": [5]}, 42)
+    add("rng.integers", {"low": -10, "high": 10, "size": [3, 2]}, 18)
+
+    # =========================================================================
+    # 4. Multivariate distributions
+    # =========================================================================
+
+    # multivariate_normal — not yet implemented in numera; skip cases.
+
+    # dirichlet
+    add("rng.dirichlet", {"alpha": [1.0, 2.0, 1.0], "size": [4]}, 42)
+    add("rng.dirichlet", {"alpha": [0.5, 0.5, 0.5, 0.5], "size": [3]}, 55)
+
+    # multinomial
+    add("rng.multinomial", {"n": 10, "pvals": [0.2, 0.3, 0.5], "size": [4]}, 42)
+    add("rng.multinomial", {"n": 100, "pvals": [0.25, 0.25, 0.25, 0.25], "size": [3]}, 71)
+
+    # =========================================================================
+    # 5. Permutation / sampling
+    # =========================================================================
+
+    # permutation (integer)
+    add("rng.permutation", {"x": 8}, 42)
+    add("rng.permutation", {"x": 10}, 7)
+
+    # choice (without replacement)
+    add("rng.choice", {"a": 20, "size": [5], "replace": False}, 42)
+    add("rng.choice", {"a": 100, "size": [8], "replace": True}, 13)
+
+    # random (uniform [0,1))
+    add("rng.random", {"size": [6]}, 42)
+    add("rng.random", {"size": [2, 3]}, 77)
+
+    # =========================================================================
+    # 6. shuffle: shape/dtype only (in-place, result is the shuffled arange)
+    # =========================================================================
+    # We record the full shuffled output for a seeded RNG, which IS deterministic.
+    for seed in (42, 7, 123):
+        rng = np.random.default_rng(seed)
+        x = np.arange(8)
+        rng.shuffle(x)
+        cases.append({
+            "op": "rng.shuffle",
+            "params": {"size": [8]},
+            "seed": seed,
+            "approx": False,
+            "expected": describe(x),
+        })
+
+    # =========================================================================
+    # 7. Module-level np.random functions (legacy-style, seed via np.random.seed)
+    # =========================================================================
+    for seed in (42, 0):
+        np.random.seed(seed)
+        cases.append({
+            "op": "np.random.normal",
+            "params": {"loc": 0.0, "scale": 1.0, "size": [5]},
+            "seed": seed,
+            "approx": False,
+            "expected": describe(np.random.normal(0.0, 1.0, 5)),
+        })
+
+    for seed in (42, 0):
+        np.random.seed(seed)
+        cases.append({
+            "op": "np.random.uniform",
+            "params": {"low": 0.0, "high": 1.0, "size": [6]},
+            "seed": seed,
+            "approx": False,
+            "expected": describe(np.random.uniform(0.0, 1.0, 6)),
+        })
+
+    for seed in (42, 0):
+        np.random.seed(seed)
+        cases.append({
+            "op": "np.random.exponential",
+            "params": {"scale": 1.0, "size": [5]},
+            "seed": seed,
+            "approx": False,
+            "expected": describe(np.random.exponential(1.0, 5)),
+        })
+
+    return cases
+
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     groups = {
@@ -4845,6 +7039,14 @@ def main() -> None:
         "indexing2_cases": indexing2_cases(),
         "stats_cases": stats_cases(),
         "sort_cases": sort_cases(),
+        "linalg2_cases": linalg2_cases(),
+        "fft2_cases": fft2_cases(),
+        "io_cases": io_cases(),
+        "submodule_cases": submodule_cases(),
+        "p16a_cases": p16a_cases(),
+        "p16d_cases": p16d_cases(),
+        "p16e_cases": p16e_cases(),
+        "random2_cases": random2_cases(),
     }
     for name, cases in groups.items():
         payload = {"numpy_version": np.__version__, "group": name, "cases": cases}

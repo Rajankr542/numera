@@ -1,7 +1,6 @@
 [
- "np.shares_memory [nativpy] [numpy]",
- "rec.array [nativpy] [numpy]",
- "rec.find_duplicate [nativpy] [numpy]",
- "rec.fromarrays [nativpy] [numpy]",
- "rec.fromrecords [nativpy] [numpy]"
+  "rec.array [nativpy] [numpy]",
+  "rec.find_duplicate [nativpy] [numpy]",
+  "rec.fromarrays [nativpy] [numpy]",
+  "rec.fromrecords [nativpy] [numpy]"
 ]

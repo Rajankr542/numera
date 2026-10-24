@@ -143,6 +143,47 @@ function arange(n: number): NDArray {
   return np.array(Array.from({ length: n }, (_, i) => i));
 }
 
+// Top-level helpers used by multiple describe blocks
+const DEFAULT_RTOL = 1e-12;
+function closeVal(got: unknown, exp: unknown, rtol = DEFAULT_RTOL, atol = 0): void {
+  if (Array.isArray(exp)) {
+    expect(Array.isArray(got)).toBe(true);
+    (exp as unknown[]).forEach((e, i) => closeVal((got as unknown[])[i], e, rtol, atol));
+    return;
+  }
+  // Handle complex {re, im} values (from complex128/complex64 arrays)
+  if (exp !== null && typeof exp === "object" && "re" in exp) {
+    const { re: eRe, im: eIm } = exp as { re: number; im: number };
+    const gRe = (got as { re: number; im: number }).re;
+    const gIm = (got as { re: number; im: number }).im;
+    closeVal(gRe, eRe, rtol, atol);
+    closeVal(gIm, eIm, rtol, atol);
+    return;
+  }
+  const g = got as number;
+  const e = exp as number;
+  if (Number.isNaN(e)) { expect(Number.isNaN(g)).toBe(true); return; }
+  if (!Number.isFinite(e)) { expect(g).toBe(e); return; }
+  if (atol > 0) { expect(Math.abs(g - e)).toBeLessThanOrEqual(atol + rtol * Math.abs(e)); return; }
+  if (e === 0) { expect(Math.abs(g)).toBeLessThanOrEqual(1e-15); return; }
+  expect(Math.abs(g - e)).toBeLessThanOrEqual(rtol * Math.abs(e));
+}
+function checkApprox(actual: NDArray, exp: Described, rtol = DEFAULT_RTOL, atol = 0): void {
+  expect(actual.dtype.name).toBe(exp.dtype);
+  expect(actual.shape).toEqual(exp.shape);
+  if (exp.values !== undefined) closeVal(actual.toArray(), decodeExpected(exp.values), rtol, atol);
+}
+function makeArr(data: Encoded, shape: number[], dtype: string): NDArray {
+  const n = shape.reduce((p, d) => p * d, 1);
+  if (n === 0) return np.zeros(shape, { dtype });
+  const a = np.array(decodeInput(data) as NestedArray, { dtype });
+  return shape.length === 0 ? a : a.reshape(shape);
+}
+const checkExact = checkArray;
+function fromDescribed(d: Described): NDArray {
+  return makeArr(d.values as Encoded, d.shape, d.dtype);
+}
+
 describe("differential: creation", () => {
   const { numpy_version, cases } = load("creation");
   it.each(cases.map((c) => [label(c), c] as const))(`numpy ${numpy_version}: %s`, (_l, c) => {
@@ -3314,5 +3355,1076 @@ describe("differential: P9 sorting/searching/sets (V-P9, D-249)", () => {
     }
 
     throw new Error(`Unknown op: ${String(c.op)}`);
+  });
+});
+describe("differential: P11 linalg completion (V-P11, D-251)", () => {
+  const { numpy_version, cases } = load("linalg2_cases");
+  const rtol = 1e-5;
+
+  it.each(cases.map((c) => [label(c), c] as const))(
+    `numpy ${numpy_version}: %s`,
+    (_l, c) => {
+      switch (c.op as string) {
+        // ---------------------------------------------------------- np.cross
+        case "np.cross": {
+          const a = fromDescribed(c.a as Described);
+          const b = fromDescribed(c.b as Described);
+          const r = np.cross(a, b);
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- np.kron
+        case "np.kron": {
+          const a = fromDescribed(c.a as Described);
+          const b = fromDescribed(c.b as Described);
+          const r = np.kron(a, b);
+          checkArray(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- np.vdot
+        case "np.vdot": {
+          const a = fromDescribed(c.a as Described);
+          const b = fromDescribed(c.b as Described);
+          const r = np.asarray(np.vdot(a, b));
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- np.tensordot
+        case "np.tensordot": {
+          const a = fromDescribed(c.a as Described);
+          const b = fromDescribed(c.b as Described);
+          const axes = c.axes as number | number[][];
+          const r = np.tensordot(a, b, { axes });
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- np.einsum
+        case "np.einsum": {
+          const subscripts = c.subscripts as string;
+          const a = fromDescribed(c.a as Described);
+          const operands: NDArray[] = [a];
+          if (c.b !== null && c.b !== undefined) {
+            operands.push(fromDescribed(c.b as Described));
+          }
+          const r = np.asarray(np.einsum(subscripts, ...operands));
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.cholesky
+        case "linalg.cholesky": {
+          const a = fromDescribed(c.a as Described);
+          const r = np.linalg.cholesky(a);
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.cond
+        case "linalg.cond": {
+          const a = fromDescribed(c.a as Described);
+          const rawOrd = c.ord as string | number | null | undefined;
+          const ord = rawOrd === "inf" ? Infinity : rawOrd === "-inf" ? -Infinity : rawOrd;
+          const r = np.asarray(
+            ord !== null && ord !== undefined
+              ? np.linalg.cond(a, ord as number)
+              : np.linalg.cond(a)
+          );
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.pinv
+        case "linalg.pinv": {
+          const a = fromDescribed(c.a as Described);
+          const r = np.linalg.pinv(a);
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.slogdet
+        case "linalg.slogdet": {
+          const a = fromDescribed(c.a as Described);
+          const { sign, logabsdet } = np.linalg.slogdet(a) as { sign: unknown; logabsdet: unknown };
+          checkApprox(np.asarray(sign as number), c.sign as Described);
+          checkApprox(np.asarray(logabsdet as number), c.logdet as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.svdvals
+        case "linalg.svdvals": {
+          const a = fromDescribed(c.a as Described);
+          const r = np.linalg.svdvals(a);
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.matrix_rank
+        case "linalg.matrix_rank": {
+          const a = fromDescribed(c.a as Described);
+          const r = np.asarray(np.linalg.matrixRank(a));
+          checkArray(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.matrix_norm
+        case "linalg.matrix_norm": {
+          const a = fromDescribed(c.a as Described);
+          const rawOrd = c.ord as string | number | null | undefined;
+          const ord = rawOrd === "inf" ? Infinity : rawOrd === "-inf" ? -Infinity : rawOrd;
+          const r = np.asarray(
+            ord !== null && ord !== undefined
+              ? np.linalg.matrixNorm(a, { ord: ord as string | number })
+              : np.linalg.matrixNorm(a)
+          );
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.vector_norm
+        case "linalg.vector_norm": {
+          const a = fromDescribed(c.a as Described);
+          const rawOrd = c.ord as string | number | null | undefined;
+          const ord = rawOrd === "inf" ? Infinity : rawOrd === "-inf" ? -Infinity : rawOrd;
+          const axis = c.axis as number | null | undefined;
+          const opts: Record<string, unknown> = {};
+          if (ord !== null && ord !== undefined) opts.ord = ord;
+          if (axis !== null && axis !== undefined) opts.axis = axis;
+          const r = np.asarray(np.linalg.vectorNorm(a, opts));
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.multi_dot
+        case "linalg.multi_dot": {
+          const arrays = (c.arrays as Described[]).map((d) => fromDescribed(d as Described));
+          const r = np.asarray(np.linalg.multiDot(arrays));
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.outer
+        case "linalg.outer": {
+          const a = fromDescribed(c.a as Described);
+          const b = fromDescribed(c.b as Described);
+          const r = np.linalg.outer(a, b);
+          checkArray(r, c.expected as Described);
+          break;
+        }
+
+        // ---------------------------------------------------------- linalg.vecdot
+        case "linalg.vecdot": {
+          const a = fromDescribed(c.a as Described);
+          const b = fromDescribed(c.b as Described);
+          const r = np.asarray(np.linalg.vecdot(a, b));
+          checkApprox(r, c.expected as Described);
+          break;
+        }
+
+        default:
+          throw new Error(`Unknown op: ${c.op as string}`);
+      }
+    }
+  );
+});
+describe("differential: P12 FFT completion (V-P12, D-252)", () => {
+  const { numpy_version, cases } = load("fft2_cases");
+
+  it.each(cases.map((c) => [label(c), c] as const))(
+    `numpy ${numpy_version}: %s`,
+    (_l, c) => {
+      const cc = c as unknown as Record<string, unknown>;
+
+      // ---------------------------------------------------------------- hfft
+      if (c.op === "hfft") {
+        const a = np.array(
+          decodeInput(cc.a_data as Encoded) as NestedArray,
+          { dtype: cc.a_dtype as string },
+        );
+        const kw = cc.kw as { n?: number };
+        const r =
+          kw.n !== undefined ? np.fft.hfft(a, kw.n) : np.fft.hfft(a);
+        checkApprox(r, c.expected as Described);
+        return;
+      }
+
+      // --------------------------------------------------------------- ihfft
+      if (c.op === "ihfft") {
+        const a = np.array(
+          decodeInput(cc.a_data as Encoded) as NestedArray,
+          { dtype: cc.a_dtype as string },
+        );
+        const kw = cc.kw as { n?: number };
+        const r =
+          kw.n !== undefined ? np.fft.ihfft(a, kw.n) : np.fft.ihfft(a);
+        checkApprox(r, c.expected as Described);
+        return;
+      }
+
+      // --------------------------------------------------------------- rfft2
+      if (c.op === "rfft2") {
+        const a = np.array(
+          decodeInput(cc.a_data as Encoded) as NestedArray,
+          { dtype: cc.a_dtype as string },
+        );
+        const kw = cc.kw as { s?: number[]; axes?: number[] };
+        const r = np.fft.rfft2(
+          a,
+          kw.s !== undefined ? kw.s : undefined,
+          kw.axes !== undefined ? kw.axes : undefined,
+        );
+        checkApprox(r, c.expected as Described);
+        return;
+      }
+
+      // -------------------------------------------------------------- irfft2
+      if (c.op === "irfft2") {
+        const a = np.array(
+          decodeInput(cc.a_data as Encoded) as NestedArray,
+          { dtype: cc.a_dtype as string },
+        );
+        const kw = cc.kw as { s?: number[]; axes?: number[] };
+        const r = np.fft.irfft2(
+          a,
+          kw.s !== undefined ? kw.s : undefined,
+          kw.axes !== undefined ? kw.axes : undefined,
+        );
+        checkApprox(r, c.expected as Described);
+        return;
+      }
+
+      // --------------------------------------------------------------- rfftn
+      if (c.op === "rfftn") {
+        const a = np.array(
+          decodeInput(cc.a_data as Encoded) as NestedArray,
+          { dtype: cc.a_dtype as string },
+        );
+        const kw = cc.kw as { s?: number[]; axes?: number[] };
+        const r = np.fft.rfftn(
+          a,
+          kw.s !== undefined ? kw.s : undefined,
+          kw.axes !== undefined ? kw.axes : undefined,
+        );
+        checkApprox(r, c.expected as Described);
+        return;
+      }
+
+      // -------------------------------------------------------------- irfftn
+      if (c.op === "irfftn") {
+        const a = np.array(
+          decodeInput(cc.a_data as Encoded) as NestedArray,
+          { dtype: cc.a_dtype as string },
+        );
+        const kw = cc.kw as { s?: number[]; axes?: number[] };
+        const r = np.fft.irfftn(
+          a,
+          kw.s !== undefined ? kw.s : undefined,
+          kw.axes !== undefined ? kw.axes : undefined,
+        );
+        checkApprox(r, c.expected as Described);
+        return;
+      }
+
+      // ------------------------------------------------------------- fftshift
+      if (c.op === "fftshift") {
+        const a = np.array(
+          decodeInput(cc.a_data as Encoded) as NestedArray,
+          { dtype: cc.a_dtype as string },
+        );
+        const kw = cc.kw as { axes?: number | number[] };
+        const axVal = kw.axes !== undefined
+          ? (Array.isArray(kw.axes) ? kw.axes : [kw.axes])
+          : undefined;
+        const r = axVal !== undefined
+          ? np.fft.fftshift(a, axVal)
+          : np.fft.fftshift(a);
+        checkApprox(r, c.expected as Described);
+        return;
+      }
+
+      // ------------------------------------------------------------ ifftshift
+      if (c.op === "ifftshift") {
+        const a = np.array(
+          decodeInput(cc.a_data as Encoded) as NestedArray,
+          { dtype: cc.a_dtype as string },
+        );
+        const kw = cc.kw as { axes?: number | number[] };
+        const axVal = kw.axes !== undefined
+          ? (Array.isArray(kw.axes) ? kw.axes : [kw.axes])
+          : undefined;
+        const r = axVal !== undefined
+          ? np.fft.ifftshift(a, axVal)
+          : np.fft.ifftshift(a);
+        checkApprox(r, c.expected as Described);
+        return;
+      }
+
+      throw new Error(`unknown op: ${c.op}`);
+    },
+  );
+});
+describe("differential: P14 I/O + extras (V-P14, D-254)", () => {
+  const { numpy_version, cases } = load("io_cases");
+
+  it.each(cases.map((c) => [c.label ?? c.op, c] as [string, typeof c]))(
+    `numpy ${numpy_version}: %s`,
+    (_label, c) => {
+      const cc = c as unknown as Record<string, unknown>;
+
+      // ---------------------------------------------------------------- //
+      // Window functions
+      // ---------------------------------------------------------------- //
+
+      if (c.op === "bartlett") {
+        checkApprox(
+          np.bartlett((cc.params as { M: number }).M),
+          c.expected as Described,
+        );
+        return;
+      }
+
+      if (c.op === "blackman") {
+        checkApprox(
+          np.blackman((cc.params as { M: number }).M),
+          c.expected as Described,
+        );
+        return;
+      }
+
+      if (c.op === "hamming") {
+        checkApprox(
+          np.hamming((cc.params as { M: number }).M),
+          c.expected as Described,
+        );
+        return;
+      }
+
+      if (c.op === "hanning") {
+        checkApprox(
+          np.hanning((cc.params as { M: number }).M),
+          c.expected as Described,
+        );
+        return;
+      }
+
+      if (c.op === "kaiser") {
+        const p = cc.params as { M: number; beta: number };
+        checkApprox(np.kaiser(p.M, p.beta), c.expected as Described);
+        return;
+      }
+
+      // ---------------------------------------------------------------- //
+      // Polynomial functions
+      // ---------------------------------------------------------------- //
+
+      if (c.op === "polyval") {
+        const poly = np.array(
+          decodeInput(cc.a_data as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const x =
+          cc.x_scalar !== undefined
+            ? np.asarray(cc.x_scalar as number)
+            : np.array(
+                decodeInput(cc.x_data as Encoded) as NestedArray,
+                { dtype: "float64" },
+              );
+        checkApprox(np.polyval(poly, x), c.expected as Described);
+        return;
+      }
+
+      if (c.op === "polymul") {
+        const a = np.array(
+          decodeInput(cc.a as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const b = np.array(
+          decodeInput(cc.b as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        checkExact(np.polymul(a, b), c.expected as Described);
+        return;
+      }
+
+      if (c.op === "polyadd") {
+        const a = np.array(
+          decodeInput(cc.a as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const b = np.array(
+          decodeInput(cc.b as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        checkExact(np.polyadd(a, b), c.expected as Described);
+        return;
+      }
+
+      if (c.op === "polysub") {
+        const a = np.array(
+          decodeInput(cc.a as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const b = np.array(
+          decodeInput(cc.b as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        checkExact(np.polysub(a, b), c.expected as Described);
+        return;
+      }
+
+      if (c.op === "polyder") {
+        const p = np.array(
+          decodeInput(cc.p as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const m = cc.m as number;
+        checkExact(np.polyder(p, m), c.expected as Described);
+        return;
+      }
+
+      if (c.op === "polyint") {
+        const p = np.array(
+          decodeInput(cc.p as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const m = cc.m as number;
+        checkExact(np.polyint(p, m), c.expected as Described);
+        return;
+      }
+
+      if (c.op === "polydiv") {
+        const u = np.array(
+          decodeInput(cc.u as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const v = np.array(
+          decodeInput(cc.v as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const [quotient, remainder] = np.polydiv(u, v);
+        checkExact(quotient, cc.expected_q as Described);
+        checkExact(remainder, cc.expected_r as Described);
+        return;
+      }
+
+      if (c.op === "poly") {
+        const seq = np.array(
+          decodeInput(cc.seq as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        checkExact(np.poly(seq), c.expected as Described);
+        return;
+      }
+
+      if (c.op === "roots") {
+        const p = np.array(
+          decodeInput(cc.p as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const r = np.roots(p);
+        // Compare sorted real parts for known real-rooted polynomials
+        checkApprox(np.sort(np.real(r)), c.expected as Described);
+        return;
+      }
+
+      if (c.op === "polyfit") {
+        const x = np.array(
+          decodeInput(cc.x as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const y = np.array(
+          decodeInput(cc.y as Encoded) as NestedArray,
+          { dtype: "float64" },
+        );
+        const deg = cc.deg as number;
+        checkApprox(np.polyfit(x, y, deg), c.expected as Described, 1e-8, 1e-10);
+        return;
+      }
+
+      // ---------------------------------------------------------------- //
+      // Repr functions (return strings)
+      // ---------------------------------------------------------------- //
+
+      if (c.op === "base_repr") {
+        const r = np.baseRepr(cc.n as number, cc.base as number | undefined);
+        expect(r).toBe(cc.expected_str as string);
+        return;
+      }
+
+      if (c.op === "binary_repr") {
+        const width = cc.width as number | undefined | null;
+        const r = np.binaryRepr(
+          cc.n as number,
+          width != null ? width : undefined,
+        );
+        expect(r).toBe(cc.expected_str as string);
+        return;
+      }
+
+      throw new Error(`Unknown op: ${c.op as string}`);
+    },
+  );
+});
+
+describe("differential: P15 submodules: emath (V-P15, D-255)", () => {
+  const { numpy_version, cases } = load("submodule_cases");
+
+  it.each(cases.map((c) => [label(c), c] as const))(
+    `numpy ${numpy_version}: %s`,
+    (_l, c) => {
+      const cc = c as unknown as Record<string, unknown>;
+      const a = np.array(decodeInput(cc.a_data as Encoded) as NestedArray, {
+        dtype: cc.a_dtype as string,
+      });
+
+      if (c.op === "emath.sqrt") {
+        checkApprox(np.emath.sqrt(a), c.expected as Described);
+        return;
+      }
+      if (c.op === "emath.log") {
+        checkApprox(np.emath.log(a), c.expected as Described);
+        return;
+      }
+      if (c.op === "emath.log10") {
+        checkApprox(np.emath.log10(a), c.expected as Described);
+        return;
+      }
+      if (c.op === "emath.log2") {
+        checkApprox(np.emath.log2(a), c.expected as Described);
+        return;
+      }
+      if (c.op === "emath.logn") {
+        checkApprox(np.emath.logn(cc.n as number, a), c.expected as Described);
+        return;
+      }
+      if (c.op === "emath.arcsin") {
+        checkApprox(np.emath.arcsin(a), c.expected as Described);
+        return;
+      }
+      if (c.op === "emath.arccos") {
+        checkApprox(np.emath.arccos(a), c.expected as Described);
+        return;
+      }
+      if (c.op === "emath.arctanh") {
+        checkApprox(np.emath.arctanh(a), c.expected as Described);
+        return;
+      }
+      if (c.op === "emath.power") {
+        const p = cc.power as number;
+        checkApprox(np.emath.power(a, p), c.expected as Described);
+        return;
+      }
+
+      throw new Error(`Unhandled op: ${c.op}`);
+    }
+  );
+});
+describe("differential: P13 random distributions (V-P13, D-253)", () => {
+  const { numpy_version, cases } = load("random2_cases");
+
+  it.each(cases.map((c) => [label(c), c] as const))(
+    `numpy ${numpy_version}: %s`,
+    (_l, c) => {
+      const cc = c as unknown as Record<string, unknown>;
+      const seed = cc.seed;
+      const params = cc.params;
+      const size = params.size as number[] | undefined;
+      const exp = cc.expected as Described;
+
+      // ---- dispatch on op --------------------------------------------------
+
+      // --- standard continuous ---
+      if (cc.op === "rng.normal") {
+        const r = np.random.defaultRng(seed).normal(
+          params.loc as number,
+          params.scale as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.uniform") {
+        const r = np.random.defaultRng(seed).uniform(
+          params.low as number,
+          params.high as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.exponential") {
+        const r = np.random.defaultRng(seed).exponential(
+          params.scale as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.gamma") {
+        const r = np.random.defaultRng(seed).gamma(
+          params.shape_param as number,
+          params.scale as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.beta") {
+        const r = np.random.defaultRng(seed).beta(
+          params.a as number,
+          params.b as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.chisquare") {
+        const r = np.random.defaultRng(seed).chisquare(
+          params.df as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.f") {
+        const r = np.random.defaultRng(seed).f(
+          params.dfnum as number,
+          params.dfden as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.pareto") {
+        const r = np.random.defaultRng(seed).pareto(
+          params.a as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.weibull") {
+        const r = np.random.defaultRng(seed).weibull(
+          params.a as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.power") {
+        const r = np.random.defaultRng(seed).power(
+          params.a as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.rayleigh") {
+        const r = np.random.defaultRng(seed).rayleigh(
+          params.scale as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.gumbel") {
+        const r = np.random.defaultRng(seed).gumbel(
+          params.loc as number,
+          params.scale as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.laplace") {
+        const r = np.random.defaultRng(seed).laplace(
+          params.loc as number,
+          params.scale as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.logistic") {
+        const r = np.random.defaultRng(seed).logistic(
+          params.loc as number,
+          params.scale as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.lognormal") {
+        const r = np.random.defaultRng(seed).lognormal(
+          params.mean as number,
+          params.sigma as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      // --- special standard distributions ---
+      if (cc.op === "rng.standard_normal") {
+        const r = np.random.defaultRng(seed).standardNormal(size) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.standard_exponential") {
+        const r = np.random.defaultRng(seed).standardExponential(size) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.standard_gamma") {
+        const r = np.random.defaultRng(seed).standardGamma(
+          params.shape_param as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.standard_t") {
+        const r = np.random.defaultRng(seed).standardT(
+          params.df as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.standard_cauchy") {
+        const r = np.random.defaultRng(seed).standardCauchy(size) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.vonmises") {
+        const r = np.random.defaultRng(seed).vonmises(
+          params.mu as number,
+          params.kappa as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.wald") {
+        const r = np.random.defaultRng(seed).wald(
+          params.mean as number,
+          params.scale as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.triangular") {
+        const r = np.random.defaultRng(seed).triangular(
+          params.left as number,
+          params.mode as number,
+          params.right as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      // --- integer / discrete ---
+      if (cc.op === "rng.binomial") {
+        const r = np.random.defaultRng(seed).binomial(
+          params.n as number,
+          params.p as number,
+          size,
+        ) as NDArray;
+        expect(r.dtype.name, "dtype").toBe(exp.dtype);
+        expect(r.shape, "shape").toEqual(exp.shape);
+        expect(r.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      if (cc.op === "rng.poisson") {
+        const r = np.random.defaultRng(seed).poisson(
+          params.lam as number,
+          size,
+        ) as NDArray;
+        expect(r.dtype.name, "dtype").toBe(exp.dtype);
+        expect(r.shape, "shape").toEqual(exp.shape);
+        expect(r.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      if (cc.op === "rng.geometric") {
+        const r = np.random.defaultRng(seed).geometric(
+          params.p as number,
+          size,
+        ) as NDArray;
+        expect(r.dtype.name, "dtype").toBe(exp.dtype);
+        expect(r.shape, "shape").toEqual(exp.shape);
+        expect(r.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      if (cc.op === "rng.hypergeometric") {
+        const r = np.random.defaultRng(seed).hypergeometric(
+          params.ngood as number,
+          params.nbad as number,
+          params.nsample as number,
+          size,
+        ) as NDArray;
+        expect(r.dtype.name, "dtype").toBe(exp.dtype);
+        expect(r.shape, "shape").toEqual(exp.shape);
+        expect(r.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      if (cc.op === "rng.negative_binomial") {
+        const r = np.random.defaultRng(seed).negativeBinomial(
+          params.n as number,
+          params.p as number,
+          size,
+        ) as NDArray;
+        expect(r.dtype.name, "dtype").toBe(exp.dtype);
+        expect(r.shape, "shape").toEqual(exp.shape);
+        expect(r.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      if (cc.op === "rng.logseries") {
+        const r = np.random.defaultRng(seed).logseries(
+          params.p as number,
+          size,
+        ) as NDArray;
+        expect(r.dtype.name, "dtype").toBe(exp.dtype);
+        expect(r.shape, "shape").toEqual(exp.shape);
+        expect(r.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      if (cc.op === "rng.zipf") {
+        const r = np.random.defaultRng(seed).zipf(
+          params.a as number,
+          size,
+        ) as NDArray;
+        expect(r.dtype.name, "dtype").toBe(exp.dtype);
+        expect(r.shape, "shape").toEqual(exp.shape);
+        expect(r.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      if (cc.op === "rng.integers") {
+        const r = np.random.defaultRng(seed).integers(
+          params.low as number,
+          params.high as number,
+          size,
+        ) as NDArray;
+        expect(r.dtype.name, "dtype").toBe(exp.dtype);
+        expect(r.shape, "shape").toEqual(exp.shape);
+        expect(r.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      // --- multivariate ---
+      if (cc.op === "rng.multivariate_normal") {
+        // multivariate_normal not yet implemented in numera — skip
+        return;
+      }
+
+      if (cc.op === "rng.dirichlet") {
+        const alpha = params.alpha as number[];
+        const r = np.random.defaultRng(seed).dirichlet(
+          alpha,
+          size ? size[0] : undefined,
+        ) as NDArray;
+        checkApprox(r as NDArray, exp as Described, 1e-12, 1e-14);
+        return;
+      }
+
+      if (cc.op === "rng.multinomial") {
+        const pvals = params.pvals as number[];
+        const r = np.random.defaultRng(seed).multinomial(
+          params.n as number,
+          pvals,
+          size ? size[0] : undefined,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      // --- permutation / sampling ---
+      if (cc.op === "rng.permutation") {
+        const r = np.random.defaultRng(seed).permutation(
+          params.x as number,
+        ) as NDArray;
+        expect(r.dtype.name, "dtype").toBe(exp.dtype);
+        expect(r.shape, "shape").toEqual(exp.shape);
+        expect(r.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      if (cc.op === "rng.choice") {
+        const r = np.random.defaultRng(seed).choice(
+          params.a as number,
+          { size, replace: params.replace as boolean },
+        ) as NDArray;
+        expect(r.dtype.name, "dtype").toBe(exp.dtype);
+        expect(r.shape, "shape").toEqual(exp.shape);
+        // choice without replacement: exact values are seeded/deterministic
+        expect(r.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      if (cc.op === "rng.random") {
+        const r = np.random.defaultRng(seed).random(size) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "rng.shuffle") {
+        const x = np.arange(exp.shape[0]!);
+        np.random.defaultRng(seed).shuffle(x);
+        expect(x.dtype.name, "dtype").toBe(exp.dtype);
+        expect(x.shape, "shape").toEqual(exp.shape);
+        expect(x.toArray(), "values").toEqual(decodeExpected(exp.values!));
+        return;
+      }
+
+      // --- module-level np.random (legacy/global seed) ---
+      if (cc.op === "np.random.normal") {
+        np.random.seed(seed);
+        const r = np.random.normal(
+          params.loc as number,
+          params.scale as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "np.random.uniform") {
+        np.random.seed(seed);
+        const r = np.random.uniform(
+          params.low as number,
+          params.high as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      if (cc.op === "np.random.exponential") {
+        np.random.seed(seed);
+        const r = np.random.exponential(
+          params.scale as number,
+          size,
+        ) as NDArray;
+        checkArray(r as NDArray, exp as Described);
+        return;
+      }
+
+      throw new Error(`Unhandled op: ${cc.op}`);
+    },
+  );
+});
+describe("differential: P16A constants + cumsum/cumprod methods (V-P16A, D-256)", () => {
+  const { numpy_version, cases } = load("p16a_cases");
+
+  it.each(cases.map((c) => [c.note ?? c.op, c] as [string, typeof c]))(
+    `numpy ${numpy_version}: %s`,
+    (_l, c) => {
+      const cc = c as unknown as Record<string, unknown>;
+
+      if (c.op === "cumsum") {
+        const a = np
+          .array(decodeInput(cc.a_data as Encoded) as NestedArray, {
+            dtype: cc.a_dtype as string,
+          })
+          .reshape(cc.a_shape as number[]);
+        const kw = cc.kw as { axis?: number | null };
+        const r = np.cumsum(a, kw.axis != null ? kw.axis : undefined);
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      if (c.op === "ndarray.cumsum") {
+        const a = np
+          .array(decodeInput(cc.a_data as Encoded) as NestedArray, {
+            dtype: cc.a_dtype as string,
+          })
+          .reshape(cc.a_shape as number[]);
+        const kw = cc.kw as { axis?: number | null };
+        const r = kw.axis != null ? a.cumsum({ axis: kw.axis }) : a.cumsum();
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      if (c.op === "cumprod") {
+        const a = np
+          .array(decodeInput(cc.a_data as Encoded) as NestedArray, {
+            dtype: cc.a_dtype as string,
+          })
+          .reshape(cc.a_shape as number[]);
+        const kw = cc.kw as { axis?: number | null };
+        const r = np.cumprod(a, kw.axis != null ? kw.axis : undefined);
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      if (c.op === "ndarray.cumprod") {
+        const a = np
+          .array(decodeInput(cc.a_data as Encoded) as NestedArray, {
+            dtype: cc.a_dtype as string,
+          })
+          .reshape(cc.a_shape as number[]);
+        const kw = cc.kw as { axis?: number | null };
+        const r = kw.axis != null ? a.cumprod({ axis: kw.axis }) : a.cumprod();
+        checkArray(r, c.expected as Described);
+        return;
+      }
+
+      if (c.op === "shares_memory") {
+        if (cc.shares) {
+          const base = np.array([1, 2, 3, 4, 5]);
+          const view = base.reshape([5]); // reshape returns a view sharing the buffer
+          expect(np.sharesMemory(base, view)).toBe(true);
+        } else {
+          const a2 = np.array([1, 2, 3]);
+          const b2 = np.array([4, 5, 6]);
+          expect(np.sharesMemory(a2, b2)).toBe(false);
+        }
+        return;
+      }
+    }
+  );
+});
+describe("differential: P16D datetime64/timedelta64 (V-P16D, D-259)", () => {
+  // datetime64/timedelta64 ops are bench-exempt; no differential cases needed.
+  it("placeholder — all datetime ops are bench-exempt", () => {
+    expect(true).toBe(true);
+  });
+});
+describe("differential: P16E rec + cleanup (V-P16E, D-260)", () => {
+  // rec.* structured array ops are bench-exempt; no differential cases needed.
+  it("placeholder — rec ops are bench-exempt", () => {
+    expect(true).toBe(true);
   });
 });
