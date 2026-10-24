@@ -51,7 +51,7 @@ and a benchmark case in both suites.
 Work is done in small slices (see `docs/plan/TASK_SLICES.md`). **Current focus: V phase** — add NumPy differential tests and benchmarks for each built milestone, highest-value first (V-P4 → V-P5 → V-P9 → …).
 
 ## Next steps
-1. **V phase** (see `TASK_SLICES.md`): add differential groups and benchmarks for remaining slices. P16B and P16C are now complete. Clear the remaining ~508 bench-exempt entries.
+1. **V phase** (see `TASK_SLICES.md`): add differential groups and benchmarks for remaining slices. P16B and P16C complete. Bench sweep covered P3–P16A (+260 entries). Remaining ~337 bench-exempt entries are mostly genuinely un-benchable (RandomState legacy API, ma/strings aliases, datetime/rec ops).
 2. **Remaining build work** (P3-2…P3-5, P14-8…P14-11, `multivariateNormal`, 6 ma gaps) — see `TASK_SLICES.md`.
 3. **M11 performance** (after V phase establishes a full baseline):
    - Per-call binding overhead: ~700 ns per result (ObjectWrap construction). Evaluate `napi_create_external` handles (needs a decision).

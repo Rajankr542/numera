@@ -1,13 +1,3 @@
 [
- "np.allclose [nativpy] [numpy]",
- "np.array_equal [nativpy] [numpy]",
- "np.array_equiv [nativpy] [numpy]",
- "np.bitwise_invert [nativpy] [numpy]",
- "np.bitwise_not [nativpy] [numpy]",
- "np.bitwise_left_shift [nativpy] [numpy]",
- "np.bitwise_right_shift [nativpy] [numpy]",
- "np.isnat [nativpy] [numpy]",
- "np.isscalar [nativpy] [numpy]",
- "ndarray.all [nativpy] [numpy]",
- "ndarray.any [nativpy] [numpy]"
+  "np.isnat [nativpy] [numpy]"
 ]

@@ -1381,3 +1381,14 @@ Done (P13-2, P13-4, P13-5, P13-6, P13-7 — D-161..D-163):
 - Bench entries added for ~35 ma.* ops and ~22 strings.*/char.* ops in both suites.
 - Bench-exempt: 597 → 508 (89 newly covered in P16B+P16C).
 - All 1336 unit tests + 11650 differential tests pass; api:check passes.
+
+## 2026-10-24 — V bench sweep P3–P16A (D-259)
+- Added 260+ bench entries across both suites for previously exempt callables
+  in P3 (dtype/print helpers), P4 (ufunc aliases), P5 (logic aliases),
+  P6 (shape manipulation ops), P7 (creation/grid helpers), P8 (indexing extras),
+  P9 (sorting/set ops), P10 (statistics/nan reductions), P11 (linalg completion),
+  and P13 (np.random.* module-level wrappers for all 28 distributions).
+- Bench-exempt: 508 → 337 (171 newly covered in this sweep).
+- All p03, p04, p05, p06, p07, p08, p09, p10, p11 exempt files now empty
+  (down to 0 each); only genuinely un-benchable entries remain across p13–p16e.
+- All 1336 unit tests + 11650 differential tests still pass; api:check passes.

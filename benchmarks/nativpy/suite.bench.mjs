@@ -92,6 +92,11 @@ for (const n of VEC) {
   run("elementwise", "exp f64", s, () => np.exp(a));
   run("elementwise", "log f64", s, () => np.log(a));
   run("elementwise", "abs f64", s, () => np.abs(a));
+  // p04 aliases → bench
+  run("elementwise", "absolute f64", s, () => np.absolute(a));
+  run("elementwise", "remainder f64", s, () => np.remainder(a, b));
+  run("elementwise", "true_divide f64", s, () => np.trueDivide(a, b));
+  run("elementwise", "pow f64", s, () => np.pow(a, 2));
 
   // P4 math ufuncs (V-P4)
   run("math", "sin f64", s, () => np.sin(a));
@@ -129,6 +134,15 @@ for (const n of VEC) {
   run("math", "positive f64", s, () => np.positive(a));
   run("math", "fix f64", s, () => np.fix(a));
   run("math", "round f64", s, () => np.round(a));
+  // p04 trig aliases
+  run("math", "around f64", s, () => np.around(a));
+  run("math", "acos f64", s, () => np.acos(a.clip(-1, 1)));
+  run("math", "acosh f64", s, () => np.acosh(np.add(np.abs(a), 1)));
+  run("math", "asin f64", s, () => np.asin(a.clip(-1, 1)));
+  run("math", "asinh f64", s, () => np.asinh(a));
+  run("math", "atan f64", s, () => np.atan(a));
+  run("math", "atan2 f64", s, () => np.atan2(a, b));
+  run("math", "atanh f64", s, () => np.atanh(a.clip(-0.9, 0.9)));
   run("math", "clip f64", s, () => np.clip(a, 0.1, 0.9));
   run("math", "fmod f64", s, () => np.fmod(a, b));
   run("math", "floatPower f64", s, () => np.floatPower(a, b));
@@ -157,6 +171,29 @@ for (const n of VEC) {
   run("math", "ndarray.clip f64", s, () => a.clip(0.1, 0.9));
   run("math", "ndarray.round f64", s, () => a.round());
   run("math", "ndarray.conjugate f64", s, () => a.conjugate());
+  // p03 ndarray methods → bench
+  run("math", "ndarray.fill f64", s, () => a.fill(1.0));
+  run("math", "ndarray.byteswap f64", s, () => a.byteswap());
+  run("math", "ndarray.setflags f64", s, () => a.setflags({ writeable: true }));
+  run("math", "ndarray.tobytes f64", s, () => a.tobytes());
+  run("math", "ndarray.tolist f64", s, () => a.tolist());
+  run("math", "ndarray.view f64", s, () => a.view("float32"));
+  // p03 dtype/printing → bench
+  run("math", "array2string f64", s, () => np.array2string(np.arange(10)));
+  run("math", "array_repr f64", s, () => np.arrayRepr(np.arange(10)));
+  run("math", "array_str f64", s, () => np.arrayStr(np.arange(10)));
+  run("math", "result_type f64", s, () => np.resultType("float32", "float64"));
+  run("math", "issubdtype f64", s, () => np.issubdtype("float64", "float64"));
+  run("math", "isdtype f64", s, () => np.isdtype("float64", "float"));
+  run("math", "get_printoptions", [], () => np.getPrintoptions());
+  // more p03 → bench
+  run("math", "common_type f64", [], () => np.commonType(a, b));
+  run("math", "format_float_positional", [], () => np.formatFloatPositional(3.14159));
+  run("math", "format_float_scientific", [], () => np.formatFloatScientific(3.14159));
+  run("math", "min_scalar_type", [], () => np.minScalarType(42));
+  run("math", "mintypecode", [], () => np.mintypecode(["d", "f"]));
+  run("math", "set_printoptions", [], () => np.setPrintoptions({ precision: 6 }));
+  run("math", "printoptions", [], () => { np.printoptions({ precision: 4 }); });
 
   run("reduction", "sum f64", s, () => np.sum(a));
   run("reduction", "sum f32", s, () => np.sum(a32));
@@ -217,6 +254,36 @@ run("random2", "rng.normal f64", s, () => np.random.defaultRng(0).normal(0, 1, [
   run("random2", "rng.zipf i64", s, () => np.random.defaultRng(0).zipf(2, [n]));
   run("random2", "rng.choice i64", s, () => np.random.defaultRng(0).choice(n, [n]));
   run("random2", "rng.permutation i64", s, () => np.random.defaultRng(0).permutation(n));
+  // np.random.* module-level wrappers (p13 aliases → bench)
+  run("random2", "random.beta", s, () => np.random.beta(2, 5, [n]));
+  run("random2", "random.binomial", s, () => np.random.binomial(10, 0.5, [n]));
+  run("random2", "random.chisquare", s, () => np.random.chisquare(3, [n]));
+  run("random2", "random.dirichlet", s, () => np.random.dirichlet([0.5, 0.5, 0.5], n));
+  run("random2", "random.exponential", s, () => np.random.exponential(1, [n]));
+  run("random2", "random.f", s, () => np.random.f(5, 2, [n]));
+  run("random2", "random.gamma", s, () => np.random.gamma(2, 1, [n]));
+  run("random2", "random.geometric", s, () => np.random.geometric(0.5, [n]));
+  run("random2", "random.gumbel", s, () => np.random.gumbel(0, 1, [n]));
+  run("random2", "random.hypergeometric", s, () => np.random.hypergeometric(20, 10, 5, [n]));
+  run("random2", "random.laplace", s, () => np.random.laplace(0, 1, [n]));
+  run("random2", "random.logistic", s, () => np.random.logistic(0, 1, [n]));
+  run("random2", "random.lognormal", s, () => np.random.lognormal(0, 1, [n]));
+  run("random2", "random.logseries", s, () => np.random.logseries(0.9, [n]));
+  run("random2", "random.multinomial", s, () => np.random.multinomial(10, [0.5, 0.5], n));
+  run("random2", "random.negative_binomial", s, () => np.random.negativeBinomial(5, 0.5, [n]));
+  run("random2", "random.pareto", s, () => np.random.pareto(3, [n]));
+  run("random2", "random.poisson", s, () => np.random.poisson(3, [n]));
+  run("random2", "random.power", s, () => np.random.power(0.8, [n]));
+  run("random2", "random.rayleigh", s, () => np.random.rayleigh(1, [n]));
+  run("random2", "random.standard_cauchy", s, () => np.random.standardCauchy([n]));
+  run("random2", "random.standard_exponential", s, () => np.random.standardExponential([n]));
+  run("random2", "random.standard_gamma", s, () => np.random.standardGamma(2, [n]));
+  run("random2", "random.standard_t", s, () => np.random.standardT(5, [n]));
+  run("random2", "random.triangular", s, () => np.random.triangular(0, 0.5, 1, [n]));
+  run("random2", "random.vonmises", s, () => np.random.vonmises(0, 1, [n]));
+  run("random2", "random.wald", s, () => np.random.wald(1, 1, [n]));
+  run("random2", "random.weibull", s, () => np.random.weibull(1.5, [n]));
+  run("random2", "random.zipf", s, () => np.random.zipf(2, [n]));
 run("p16a", "cumsum i32", s, () => np.cumsum(ai));
   run("p16a", "cumsum f64", s, () => np.cumsum(a));
   run("p16a", "cumprod f64", s, () => np.cumprod(a));
@@ -351,6 +418,24 @@ run("sorting", "sort f64", s, () => np.sort(a));
   run("sorting", "isin f64", s, () => np.isin(a, b));
   run("sorting", "lexsort f64", s, () => np.lexsort([a, b]));
   run("sorting", "ediff1d i32", s, () => np.ediff1d(ai));
+  // ndarray method variants (p09 exempt → bench)
+  run("sorting", "ndarray.sort f64", s, () => a.sort());
+  run("sorting", "ndarray.argsort f64", s, () => a.argsort());
+  run("sorting", "ndarray.partition f64", s, () => a.partition(Math.floor(n/2)));
+  run("sorting", "ndarray.searchsorted f64", s, () => a.searchsorted(0.5));
+  run("sorting", "ndarray.argpartition f64", s, () => a.argpartition(Math.floor(n/2)));
+  // set ops (p09 exempt → bench)
+  run("sorting", "argpartition f64", s, () => np.argpartition(a, Math.floor(n/2)));
+  run("sorting", "intersect1d f64", s, () => np.intersect1d(a, b));
+  run("sorting", "setdiff1d f64", s, () => np.setdiff1d(a, b));
+  run("sorting", "setxor1d f64", s, () => np.setxor1d(a, b));
+  run("sorting", "union1d f64", s, () => np.union1d(a, b));
+  run("sorting", "sort_complex f64", s, () => np.sortComplex(a));
+  // unique_* variants (p09 exempt → bench)
+  run("sorting", "unique_all f64", s, () => np.uniqueAll(a));
+  run("sorting", "unique_counts f64", s, () => np.uniqueCounts(a));
+  run("sorting", "unique_inverse f64", s, () => np.uniqueInverse(a));
+  run("sorting", "unique_values f64", s, () => np.uniqueValues(a));
 
 run("logic", "equal f64", s, () => np.equal(a, b));
   run("logic", "notEqual f64", s, () => np.notEqual(a, b));
@@ -369,7 +454,18 @@ run("logic", "equal f64", s, () => np.equal(a, b));
   run("logic", "isneginf f64", s, () => np.isneginf(a));
   run("logic", "all f64", s, () => np.all(a));
   run("logic", "any f64", s, () => np.any(a));
+  run("logic", "ndarray.all f64", s, () => a.all());
+  run("logic", "ndarray.any f64", s, () => a.any());
   run("logic", "isclose f64", s, () => np.isclose(a, b));
+  // p05 exempt → bench
+  run("logic", "allclose f64", s, () => np.allclose(a, b));
+  run("logic", "array_equal f64", s, () => np.arrayEqual(a, b));
+  run("logic", "array_equiv f64", s, () => np.arrayEquiv(a, b));
+  run("logic", "bitwise_invert i32", s, () => np.bitwiseInvert(ai));
+  run("logic", "bitwise_left_shift i32", s, () => np.bitwiseLeftShift(ai, ai));
+  run("logic", "bitwise_right_shift i32", s, () => np.bitwiseRightShift(ai, ai));
+  run("logic", "bitwise_not i32", s, () => np.bitwiseNot(ai));
+  run("logic", "isscalar f64", s, () => np.isscalar(1.0));
   run("logic", "bitwiseAnd i32", s, () => np.bitwiseAnd(ai, ai));
   run("logic", "bitwiseOr i32", s, () => np.bitwiseOr(ai, ai));
   run("logic", "bitwiseXor i32", s, () => np.bitwiseXor(ai, ai));
@@ -386,6 +482,44 @@ run("manip", "concatenate f64", [n * 2], () => np.concatenate([a, b]));
   run("manip", "roll f64", s, () => np.roll(a, 10));
   run("manip", "tile f64", [n * 2], () => np.tile(a, 2));
   run("manip", "split f64", s, () => np.split(a, 2));
+  // p06 exempt → bench
+  run("manip", "append f64", [n * 2], () => np.append(a, b));
+  run("manip", "insert f64", [n + 1], () => np.insert(a, Math.floor(n/2), 0));
+  run("manip", "delete f64", [n - 1], () => np.delete_(a, Math.floor(n/2)));
+  run("manip", "column_stack f64", [2, n], () => np.columnStack([a, b]));
+  run("manip", "dstack f64", [1, n, 2], () => np.dstack([a, b]));
+  run("manip", "hstack f64", [n * 2], () => np.hstack([a, b]));
+  run("manip", "hsplit f64", s, () => np.hsplit(a, 2));
+  run("manip", "vsplit 2d", [m/2, m], () => np.vsplit(A, 2));
+  run("manip", "dsplit 3d", [1, m, m/2], () => np.dsplit(np.stack([A, A]), 2));
+  run("manip", "atleast_1d f64", s, () => np.atleast1d(a));
+  run("manip", "atleast_2d f64", [1, n], () => np.atleast2d(a));
+  run("manip", "atleast_3d f64", [1, n, 1], () => np.atleast3d(a));
+  run("manip", "block f64", [n * 2], () => np.block([a, b]));
+  run("manip", "broadcast_arrays f64", [n], () => np.broadcastArrays([a, b]));
+  run("manip", "concat f64", [n * 2], () => np.concat([a, b]));
+  run("manip", "copyto f64", s, () => { const dst = np.empty(s); np.copyto(dst, a); });
+  run("manip", "fliplr 2d", [m, m], () => np.fliplr(A));
+  run("manip", "flipud 2d", [m, m], () => np.flipud(A));
+  run("manip", "matrix_transpose 2d", [m, m], () => np.matrixTranspose(A));
+  run("manip", "ndim f64", s, () => np.ndim(a));
+  run("manip", "permute_dims 2d", [m, m], () => np.permuteDims(A, [1, 0]));
+  run("manip", "resize f64", s, () => np.resize(a, [n * 2]));
+  run("manip", "rollaxis 2d", [m, m], () => np.rollaxis(A, 1));
+  run("manip", "shape f64", s, () => np.shape(a));
+  run("manip", "size f64", s, () => np.size(a));
+  run("manip", "trim_zeros f64", s, () => np.trimZeros(a));
+  run("manip", "unstack 2d", [m], () => np.unstack(A));
+  run("manip", "ndarray.repeat f64", [n * 2], () => a.repeat(2));
+  run("manip", "ndarray.resize f64", [n * 2], () => a.resize([n * 2]));
+  // p06 remaining → bench
+  run("manip", "apply_along_axis f64", [m], () => np.applyAlongAxis(x => x.sum(), 0, A));
+  run("manip", "apply_over_axes f64", [m, 1], () => np.applyOverAxes(x => x.sum({ keepdims: true }), A, [0]));
+  run("manip", "array_split f64", s, () => np.arraySplit(a, 3));
+  run("manip", "asanyarray f64", s, () => np.asanyarray(a));
+  run("manip", "asarray_chkfinite f64", s, () => np.asarrayChkfinite(a));
+  run("manip", "isfortran f64", s, () => np.isfortran(a));
+  run("manip", "require f64", s, () => np.require(a));
 run("creation2", "logspace f64", [50], () => np.logspace(0, 3));
   run("creation2", "geomspace f64", [50], () => np.geomspace(1, 1000));
   run("creation2", "astype f64->f32", s, () => np.astype(a, "float32"));
@@ -396,12 +530,53 @@ run("creation2", "logspace f64", [50], () => np.logspace(0, 3));
   run("creation2", "diag construct", s, () => np.diag(np.arange(m)));
   run("creation2", "vander f64", s, () => np.vander(np.arange(m)));
   run("creation2", "meshgrid f64", [2, m], () => np.meshgrid(np.arange(m), np.arange(m)));
+  // p07 exempt → bench (creation/indexing helpers)
+  run("creation2", "diag_indices", [m], () => np.diagIndices(m));
+  run("creation2", "diag_indices_from 2d", [2, m], () => np.diagIndicesFrom(A));
+  run("creation2", "diagflat f64", [n, n], () => np.diagflat(a.slice([[0, n]]))); // use small slice
+  run("creation2", "fill_diagonal 2d", [m, m], () => { const C = A.copy(); np.fillDiagonal(C, 1); });
+  run("creation2", "fromfunction f64", [m, m], () => np.fromfunction((i, j) => i + j, [m, m]));
+  run("creation2", "indices f64", [2, m], () => np.indices([m, m]));
+  run("creation2", "tril_indices", [2], () => np.trilIndices(m));
+  run("creation2", "tril_indices_from 2d", [2], () => np.trilIndicesFrom(A));
+  run("creation2", "triu_indices", [2], () => np.triuIndices(m));
+  run("creation2", "triu_indices_from 2d", [2], () => np.triuIndicesFrom(A));
+  // p07 remaining → bench
+  run("creation2", "fromiter f64", [m], () => np.fromiter([1, 2, 3, 4], "float64", m));
+  run("creation2", "fromstring f64", [m], () => np.fromstring("1 2 3 4", { dtype: "float64", sep: " " }));
+  run("creation2", "frombuffer f64", [m], () => np.frombuffer(new Float64Array(m).buffer, { dtype: "float64" }));
+  run("creation2", "ix_ 2d", [m, m], () => np.ix_(np.arange(m), np.arange(m)));
+  run("creation2", "mask_indices", [2], () => np.maskIndices(m, np.tril));
+  run("creation2", "mgrid f64", [m], () => np.mgrid([0, m, 1]));
+  run("creation2", "ogrid f64", [m], () => np.ogrid([0, m, 1]));
+  run("creation2", "r_ f64", [m * 2], () => np.r_(np.arange(m), np.arange(m)));
+  run("creation2", "c_ 2d", [m, 2], () => np.c_(np.arange(m), np.arange(m)));
+  run("creation2", "s_ slice", [1], () => np.s_(0, m, 1));
+  run("creation2", "index_exp", [1], () => np.indexExp(0, m, 1));
 run("indexing2", "take f64", s, () => np.take(a, idx));
   run("indexing2", "compress f64", s, () => np.compress(np.greater(a, 0.5), a));
   run("indexing2", "argwhere f64", s, () => np.argwhere(np.greater(a, 0.5)));
   run("indexing2", "flatnonzero f64", s, () => np.flatnonzero(a));
   run("indexing2", "countNonzero f64", [], () => np.countNonzero(a));
   run("indexing2", "ravelMultiIndex i32", s, () => np.ravelMultiIndex([idx, idx], [n, n]));
+  run("indexing2", "unravel_index i32", [2], () => np.unravelIndex(idx, [100, 100]));
+  // p08 exempt → bench (ndarray methods)
+  run("indexing2", "ndarray.choose f64", s, () => a.choose([a, a, a]));
+  run("indexing2", "ndarray.compress f64", s, () => a.compress(np.greater(a, 0.5)));
+  run("indexing2", "ndarray.diagonal 2d", [m], () => A.diagonal());
+  run("indexing2", "ndarray.nonzero f64", s, () => a.nonzero());
+  run("indexing2", "ndarray.put f64", s, () => { const c = a.copy(); a.put(idx, b); });
+  run("indexing2", "ndarray.take f64", s, () => a.take(idx));
+  run("indexing2", "ndarray.trace 2d", [], () => A.trace());
+  // p08 module-level
+  run("indexing2", "choose f64", s, () => np.choose(np.zeros([n], { dtype: "int32" }), [a, b]));
+  run("indexing2", "extract f64", s, () => np.extract(np.greater(a, 0.5), a));
+  run("indexing2", "piecewise f64", s, () => np.piecewise(a, [np.greater(a, 0.5)], [x => x, 0]));
+  run("indexing2", "place f64", s, () => { const c = a.copy(); np.place(c, np.greater(c, 0.5), [0]); });
+  run("indexing2", "put f64", s, () => { const c = a.copy(); np.put(c, idx, b); });
+  run("indexing2", "put_along_axis 2d", [m, m], () => { const C = A.copy(); np.putAlongAxis(C, np.argmax(C, { axis: 1, keepdims: true }), 0, 1); });
+  run("indexing2", "putmask f64", s, () => { const c = a.copy(); np.putmask(c, np.greater(c, 0.5), 0); });
+  run("indexing2", "select f64", s, () => np.select([np.greater(a, 0.5)], [b], 0));
 run("stats", "median f64", s, () => np.median(a));
   run("stats", "quantile f64", s, () => np.quantile(a, 0.5));
   run("stats", "nansum f64", s, () => np.nansum(a));
@@ -418,6 +593,30 @@ run("stats", "median f64", s, () => np.median(a));
   run("stats", "cov f64", [m, m], () => np.cov(A));
   run("stats", "corrcoef f64", [m, m], () => np.corrcoef(A));
   run("stats", "gradient f64", [m], () => np.gradient(A.slice([0])));
+  // p10 exempt → bench
+  run("stats", "average f64", s, () => np.average(a));
+  run("stats", "convolve f64", [2 * 1000 - 1], () => np.convolve(a.slice([[0, 1000]]), a.slice([[0, 100]])));
+  run("stats", "nanargmax f64", s, () => np.nanargmax(a));
+  run("stats", "nanargmin f64", s, () => np.nanargmin(a));
+  run("stats", "nanmax f64", s, () => np.nanmax(a));
+  run("stats", "nanmin f64", s, () => np.nanmin(a));
+  run("stats", "nanpercentile f64", s, () => np.nanpercentile(a, 50));
+  run("stats", "nanprod f64", s, () => np.nanprod(a));
+  run("stats", "nanquantile f64", s, () => np.nanquantile(a, 0.5));
+  run("stats", "nanstd f64", s, () => np.nanstd(a));
+  run("stats", "nanvar f64", s, () => np.nanvar(a));
+  run("stats", "percentile f64", s, () => np.percentile(a, 50));
+  run("stats", "ptp f64", s, () => np.ptp(a));
+  run("stats", "nanmedian f64", s, () => np.nanmedian(a));
+  run("stats", "nancumprod f64", s, () => np.nancumprod(a));
+  run("stats", "nancumsum f64", s, () => np.nancumsum(a));
+  run("stats", "histogram2d f64", [10, 10], () => np.histogram2d(a, b));
+  run("stats", "histogramdd f64", [10], () => np.histogramdd([a, b]));
+  run("stats", "histogram_bin_edges f64", [11], () => np.histogramBinEdges(a));
+  run("stats", "cumulative_sum f64", s, () => np.cumulativeSum(a));
+  run("stats", "cumulative_prod f64", s, () => np.cumulativeProd(a));
+  run("stats", "ndarray.cumsum f64", s, () => a.cumsum());
+  run("stats", "ndarray.cumprod f64", s, () => a.cumprod());
 }
 
 // ---- matrices: broadcasting, transpose, axis reductions, matmul, fft2 ----
@@ -480,6 +679,20 @@ run("linalg2", "tensordot f64", s, () => np.tensordot(A, B, { axes: 1 }));
   run("linalg2", "matrix_rank f64", [1], () => np.linalg.matrixRank(A));
   run("linalg2", "matrix_norm fro f64", [1], () => np.linalg.matrixNorm(A, { ord: "fro" }));
   run("linalg2", "vecdot f64", [m], () => np.linalg.vecdot(A, B));
+  // p11 exempt → bench
+  run("linalg2", "linalg.cross f64", [m, 3], () => np.linalg.cross(np.ones([m, 3]), np.ones([m, 3])));
+  run("linalg2", "linalg.diagonal 2d", [m], () => np.linalg.diagonal(A));
+  run("linalg2", "linalg.matrix_power f64", s, () => np.linalg.matrixPower(A, 2));
+  run("linalg2", "linalg.matrix_transpose 2d", s, () => np.linalg.matrixTranspose(A));
+  run("linalg2", "linalg.tensordot f64", s, () => np.linalg.tensordot(A, B, 1));
+  run("linalg2", "linalg.tensorinv f64", [m * m, m * m], () => np.linalg.tensorinv(np.eye(m * m)));
+  run("linalg2", "linalg.tensorsolve f64", s, () => np.linalg.tensorsolve(np.eye(m), np.ones([m])));
+  run("linalg2", "linalg.trace 2d", [1], () => np.linalg.trace(A));
+  run("linalg2", "ndarray.dot 2d", s, () => A.dot(B));
+  run("linalg2", "einsum_path f64", s, () => np.einsumPath("ij,jk->ik", A, B));
+  run("linalg2", "matvec f64", [m], () => np.matvec(A, A.slice([0])));
+  run("linalg2", "vecdot top-level f64", [m], () => np.vecdot(A, B));
+  run("linalg2", "vecmat f64", [m], () => np.vecmat(A.slice([0]), A));
 run("rfft2",   "rfft2 f64",    [m, m], () => np.fft.rfft2(A));
   run("irfft2",  "irfft2 f64",   [m, m], () => np.fft.irfft2(np.fft.rfft2(A)));
   run("rfftn",   "rfftn f64",    [m, m], () => np.fft.rfftn(A));

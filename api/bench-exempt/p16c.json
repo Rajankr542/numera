@@ -10,7 +10,6 @@
   "strings.isupper [nativpy] [numpy]",
   "strings.istitle [nativpy] [numpy]",
   "strings.mod [nativpy] [numpy]",
-  "strings.multiply [nativpy] [numpy]",
   "strings.rfind [nativpy] [numpy]",
   "strings.rindex [nativpy] [numpy]",
   "strings.rjust [nativpy] [numpy]",

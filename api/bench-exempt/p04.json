@@ -1,14 +1,1 @@
-[
- "np.absolute [nativpy] [numpy]",
- "np.acos [nativpy] [numpy]",
- "np.acosh [nativpy] [numpy]",
- "np.around [nativpy] [numpy]",
- "np.asin [nativpy] [numpy]",
- "np.asinh [nativpy] [numpy]",
- "np.atan [nativpy] [numpy]",
- "np.atan2 [nativpy] [numpy]",
- "np.atanh [nativpy] [numpy]",
- "np.pow [nativpy] [numpy]",
- "np.remainder [nativpy] [numpy]",
- "np.true_divide [nativpy] [numpy]"
-]
+[]

@@ -50,7 +50,6 @@
   "ma.cosh [nativpy] [numpy]",
   "ma.cov [nativpy] [numpy]",
   "ma.cumprod [nativpy] [numpy]",
-  "ma.cumsum [nativpy] [numpy]",
   "ma.default_fill_value [nativpy] [numpy]",
   "ma.diag [nativpy] [numpy]",
   "ma.diagflat [nativpy] [numpy]",
@@ -167,7 +166,6 @@
   "ma.union1d [nativpy] [numpy]",
   "ma.unique [nativpy] [numpy]",
   "ma.vander [nativpy] [numpy]",
-  "ma.var [nativpy] [numpy]",
   "ma.vstack [nativpy] [numpy]",
   "ma.zeros_like [nativpy] [numpy]"
 ]

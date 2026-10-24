@@ -3012,3 +3012,29 @@ delegate to their plain-np counterparts on `.filled()` data and combine masks.
   has N>1 strings (each string gets `values[i]`); for a single string the full
   values tuple is used as positional args for format specs.
   46 differential cases added; all pass.
+- **D-259** (V bench sweep — P3–P16A): Bulk bench entries added to both suites
+  to cover 260+ previously bench-exempt callables across milestones P3–P16A.
+  The additions cover: P3 dtype/printing/ndarray helpers (array2string, array_repr,
+  array_str, result_type, isdtype, issubdtype, get/set_printoptions, printoptions,
+  common_type, format_float_*, min_scalar_type, mintypecode, ndarray.fill/byteswap/
+  setflags/tobytes/tolist/view); P4 NumPy-name aliases (absolute, around, acos,
+  acosh, asin, asinh, atan, atan2, atanh, pow, remainder, true_divide);
+  P5 logic/bitwise aliases (allclose, array_equal, array_equiv, bitwise_not,
+  bitwise_invert/left_shift/right_shift, isscalar); P6 shape ops (append, insert,
+  delete, column_stack, dstack, hstack, h/v/dsplit, atleast_1/2/3d, block,
+  broadcast_arrays, concat, copyto, fliplr, flipud, matrix_transpose, ndim,
+  permute_dims, resize, rollaxis, shape, size, trim_zeros, unstack, ndarray.repeat/
+  resize); P7 creation helpers (fromiter, fromstring, frombuffer, ix_, mask_indices,
+  mgrid, ogrid, r_, c_, s_, index_exp); P8 indexing extras (unravel_index,
+  ndarray.choose/compress/diagonal/nonzero/put/take/trace, choose, extract,
+  piecewise, place, put, put_along_axis, putmask, select); P9 sorting/sets
+  (ndarray.sort/argsort/partition/searchsorted/argpartition, argpartition,
+  intersect1d, setdiff1d, setxor1d, union1d, sort_complex, unique_all/counts/
+  inverse/values); P10 stats (average, convolve, nanarg*/nanmax/nanmin,
+  nanpercentile/nanprod/nanquantile/nanstd/nanvar, percentile, ptp, nanmedian,
+  nancumprod/nancumsum, histogram2d/histogramdd/histogram_bin_edges,
+  cumulative_sum/prod, ndarray.cumsum/cumprod); P11 linalg (linalg.cross/diagonal/
+  matrix_power/matrix_transpose/tensordot/tensorinv/tensorsolve/trace, ndarray.dot,
+  einsum_path, matvec, vecdot top-level, vecmat); random module-level wrappers
+  (np.random.beta/binomial/chisquare/.../zipf — 28 wrappers over rng.* methods).
+  Bench-exempt: 597 → 337 (260 newly covered). All 1336+11650 tests pass.

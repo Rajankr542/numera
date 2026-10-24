@@ -1,15 +1,1 @@
-[
-  "linalg.cross [nativpy] [numpy]",
-  "linalg.diagonal [nativpy] [numpy]",
-  "linalg.matrix_power [nativpy] [numpy]",
-  "linalg.matrix_transpose [nativpy] [numpy]",
-  "linalg.tensordot [nativpy] [numpy]",
-  "linalg.tensorinv [nativpy] [numpy]",
-  "linalg.tensorsolve [nativpy] [numpy]",
-  "linalg.trace [nativpy] [numpy]",
-  "ndarray.dot [nativpy] [numpy]",
-  "np.einsum_path [nativpy] [numpy]",
-  "np.matvec [nativpy] [numpy]",
-  "np.vecdot [nativpy] [numpy]",
-  "np.vecmat [nativpy] [numpy]"
-]
+[]
