@@ -586,6 +586,68 @@ function _computeOutMask(
   return _allFalse(result) ? false : result;
 }
 
+/** Mean over unmasked elements only (fixes D-253: ignore masked positions). */
+function _maMean(
+  ma: MaskedArray, axis: number | null, keepdims: boolean, dtype?: DTypeLike,
+): NDArray {
+  if (ma._mask === false) return ma._data.mean({ axis, keepdims, dtype });
+  const n = ma._data.ravel().size;
+  const maskFlat = (ma._mask as NDArray).ravel();
+  // Build 0-filled data (masked → 0) and unmasked count
+  const filled0 = ma.filled(0);
+  const invData = Array.from({ length: n }, (_, i) => (maskFlat.item(i) as boolean) ? 0 : 1);
+  const cntArr = _array(invData, { dtype: "float64" }).reshape(ma.shape) as NDArray;
+  const sumR = filled0.sum({ axis, keepdims }) as NDArray;
+  const cnt = cntArr.sum({ axis, keepdims }) as NDArray;
+  const sumList = (sumR.ravel().tolist() as number[]);
+  const cntList = (cnt.ravel().tolist() as number[]);
+  const out = sumList.map((s, i) => { const c = cntList[i]!; return c === 0 ? 0 : s / c; });
+  return (_array(out, { dtype: "float64" }) as NDArray).reshape((sumR as NDArray).shape);
+}
+
+/** Variance/std over unmasked elements only. */
+function _maMeanStd(
+  ma: MaskedArray, op: "var" | "std", axis: number | null, keepdims: boolean, ddof: number,
+): NDArray {
+  if (ma._mask === false) {
+    return op === "var" ? ma._data.var({ axis, keepdims, ddof }) : ma._data.std({ axis, keepdims, ddof });
+  }
+  const mean = _maMean(ma, axis, keepdims);
+  const n = ma._data.ravel().size;
+  const maskFlat = (ma._mask as NDArray).ravel();
+  const invData = Array.from({ length: n }, (_, i) => (maskFlat.item(i) as boolean) ? 0 : 1);
+  const cntArr = _array(invData, { dtype: "float64" }).reshape(ma.shape) as NDArray;
+  const cnt = cntArr.sum({ axis, keepdims }) as NDArray;
+  // Broadcast mean back to original shape
+  let broadMean: NDArray;
+  if (axis === null) {
+    const mv = ((mean as NDArray).ravel().tolist() as number[])[0]!;
+    broadMean = (_array(new Array<number>(n).fill(mv), { dtype: "float64" }) as NDArray).reshape(ma.shape);
+  } else {
+    broadMean = _broadcastTo(mean as NDArray, ma.shape) as NDArray;
+  }
+  const filled0 = ma.filled(0);
+  const diff2Arr: number[] = [];
+  const dataFlat = filled0.ravel();
+  const bFlat = broadMean.ravel();
+  for (let i = 0; i < n; i++) {
+    if (maskFlat.item(i) as boolean) { diff2Arr.push(0); continue; }
+    const d = (dataFlat.item(i) as number) - (bFlat.item(i) as number);
+    diff2Arr.push(d * d);
+  }
+  const diff2 = (_array(diff2Arr, { dtype: "float64" }) as NDArray).reshape(ma.shape);
+  const ssSum = diff2.sum({ axis, keepdims }) as NDArray;
+  const cntList = (cnt.ravel().tolist() as number[]);
+  const ssList = (ssSum.ravel().tolist() as number[]);
+  const varList = ssList.map((s, i) => { const c = cntList[i]! - ddof; return c <= 0 ? 0 : s / c; });
+  const varR = (_array(varList, { dtype: "float64" }) as NDArray).reshape((ssSum as NDArray).shape);
+  if (op === "std") {
+    return (_array((varR.ravel().tolist() as number[]).map(Math.sqrt), { dtype: "float64" }) as NDArray)
+      .reshape(varR.shape);
+  }
+  return varR;
+}
+
 function _maReduce(
   ma: MaskedArray, op: string,
   opts: { axis?: number | null; keepdims?: boolean; dtype?: DTypeLike; ddof?: number },
@@ -602,9 +664,9 @@ function _maReduce(
     case "any":   result = _any(filled, { axis, keepdims }); break;
     case "min":   result = filled.min({ axis, keepdims }); break;
     case "max":   result = filled.max({ axis, keepdims }); break;
-    case "mean":  result = filled.mean({ axis, keepdims, dtype: opts.dtype }); break;
-    case "var":   result = filled.var({ axis, keepdims, ddof: opts.ddof ?? 0 }); break;
-    case "std":   result = filled.std({ axis, keepdims, ddof: opts.ddof ?? 0 }); break;
+    case "mean":  result = _maMean(ma, axis, keepdims, opts.dtype); break;
+    case "var":   result = _maMeanStd(ma, "var", axis, keepdims, opts.ddof ?? 0); break;
+    case "std":   result = _maMeanStd(ma, "std", axis, keepdims, opts.ddof ?? 0); break;
     case "sum":   result = filled.sum({ axis, keepdims, dtype: opts.dtype }); break;
     case "prod":  result = filled.prod({ axis, keepdims, dtype: opts.dtype }); break;
     default:      result = filled.sum({ axis, keepdims }); break;

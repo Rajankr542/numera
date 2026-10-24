@@ -490,12 +490,27 @@ export function decode(a: StringLike, encoding = "utf-8", _errors = "strict"): S
 /** np.strings.mod: %-style formatting (D-213 — subset of Python's % operator). */
 export function mod(a: StringLike, values: unknown): StringArray {
   const sa = toStringArray(a);
-  return mapStr(sa, (s) => {
-    const args: unknown[] = Array.isArray(values) ? (values as unknown[]) : [values];
-    let i = 0;
-    return s.replace(/%([diouxXeEfFgGs%])/g, (_, spec: string) => {
+  const n = sa.size;
+  const out: string[] = new Array<string>(n);
+  // When a has 1 element, treat `values` as positional args for its format specs.
+  // When a has N>1 elements, element i gets values[i] (or the scalar if values is scalar).
+  const isSingleString = n === 1;
+  const valArr: unknown[] = Array.isArray(values)
+    ? (values as unknown[])
+    : values instanceof StringArray
+      ? values._data
+      : [values];
+  for (let i = 0; i < n; i++) {
+    const s = sa._data[i] ?? "";
+    // For single string: positional args come from the full valArr
+    // For multi-string: element i gets valArr[i] (wrap in array for the replacer)
+    const args: unknown[] = isSingleString
+      ? valArr
+      : Array.isArray(valArr[i]) ? (valArr[i] as unknown[]) : [valArr[i]];
+    let ai = 0;
+    out[i] = s.replace(/%([diouxXeEfFgGs%])/g, (_, spec: string) => {
       if (spec === "%") return "%";
-      const v = args[i++];
+      const v = args[ai++];
       switch (spec) {
         case "d": case "i": return Math.trunc(Number(v)).toString();
         case "o": return Math.trunc(Number(v)).toString(8);
@@ -514,7 +529,8 @@ export function mod(a: StringLike, values: unknown): StringArray {
         default: return `%${spec}`;
       }
     });
-  });
+  }
+  return new StringArray(out, sa.shape.length ? (sa.shape as number[]) : [n], sa.dtype);
 }
 
 // ─── Split / partition ────────────────────────────────────────────────────────
@@ -635,26 +651,44 @@ export function splitlines(a: StringLike, keepends = false): StringArray[] {
   });
 }
 
-export function partition(a: StringLike, sep: StringLike): StringArray[] {
+export function partition(a: StringLike, sep: StringLike): [StringArray, StringArray, StringArray] {
   const sa = toStringArray(a);
   const sb = toStringArray(sep);
-  return sa._data.map((s, i) => {
+  const n = sa.size;
+  const before: string[] = [], seps: string[] = [], after: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const s = sa._data[i] ?? "";
     const t = (sb.size === 1 ? sb._data[0] : sb._data[i]) ?? "";
     const idx = s.indexOf(t);
-    if (idx === -1) return new StringArray([s, "", ""], [3], sa.dtype);
-    return new StringArray([s.slice(0, idx), t, s.slice(idx + t.length)], [3], sa.dtype);
-  });
+    if (idx === -1) { before.push(s); seps.push(""); after.push(""); }
+    else { before.push(s.slice(0, idx)); seps.push(t); after.push(s.slice(idx + t.length)); }
+  }
+  const shape = sa.shape.length ? (sa.shape as number[]) : [1];
+  return [
+    new StringArray(before, shape, sa.dtype),
+    new StringArray(seps, shape, sa.dtype),
+    new StringArray(after, shape, sa.dtype),
+  ];
 }
 
-export function rpartition(a: StringLike, sep: StringLike): StringArray[] {
+export function rpartition(a: StringLike, sep: StringLike): [StringArray, StringArray, StringArray] {
   const sa = toStringArray(a);
   const sb = toStringArray(sep);
-  return sa._data.map((s, i) => {
+  const n = sa.size;
+  const before: string[] = [], seps: string[] = [], after: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const s = sa._data[i] ?? "";
     const t = (sb.size === 1 ? sb._data[0] : sb._data[i]) ?? "";
     const idx = s.lastIndexOf(t);
-    if (idx === -1) return new StringArray(["", "", s], [3], sa.dtype);
-    return new StringArray([s.slice(0, idx), t, s.slice(idx + t.length)], [3], sa.dtype);
-  });
+    if (idx === -1) { before.push(""); seps.push(""); after.push(s); }
+    else { before.push(s.slice(0, idx)); seps.push(t); after.push(s.slice(idx + t.length)); }
+  }
+  const shape = sa.shape.length ? (sa.shape as number[]) : [1];
+  return [
+    new StringArray(before, shape, sa.dtype),
+    new StringArray(seps, shape, sa.dtype),
+    new StringArray(after, shape, sa.dtype),
+  ];
 }
 
 // ─── Comparisons ─────────────────────────────────────────────────────────────

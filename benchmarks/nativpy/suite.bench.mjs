@@ -224,6 +224,89 @@ run("p16a", "cumsum i32", s, () => np.cumsum(ai));
   run("p16a", "ndarray.cumprod f64", s, () => a.cumprod());
   run("p16a", "shares_memory", [1], () => np.sharesMemory(a, b));
 
+// ---- p16b: ma.* masked arrays (V-P16B, D-253) ----
+{
+  const n1k = 1_000;
+  const maData = rng.random([n1k]);
+  const maMask = rng.integers(0, 2, [n1k], "int32").astype("bool");
+  const ma1k = np.ma.array(maData, { mask: maMask });
+  const ma2d = np.ma.array(rng.random([32, 32]), { mask: np.zeros([32, 32], { dtype: "bool" }) });
+  const s1 = [n1k];
+  const s2 = [32, 32];
+  run("p16b", "ma.array f64", s1, () => np.ma.array(maData, { mask: maMask }));
+  run("p16b", "ma.masked_where f64", s1, () => np.ma.masked_where(np.greater(maData, 0.5), maData));
+  run("p16b", "ma.masked_greater f64", s1, () => np.ma.masked_greater(maData, 0.5));
+  run("p16b", "ma.masked_invalid f64", s1, () => np.ma.masked_invalid(maData));
+  run("p16b", "ma.sum f64", s1, () => np.ma.sum(ma1k));
+  run("p16b", "ma.mean f64", s1, () => np.ma.mean(ma1k));
+  run("p16b", "ma.std f64", s1, () => np.ma.std(ma1k));
+  run("p16b", "ma.min f64", s1, () => np.ma.min(ma1k));
+  run("p16b", "ma.max f64", s1, () => np.ma.max(ma1k));
+  run("p16b", "ma.all f64", s1, () => np.ma.all(ma1k));
+  run("p16b", "ma.any f64", s1, () => np.ma.any(ma1k));
+  run("p16b", "ma.count f64", s1, () => np.ma.count(ma1k));
+  run("p16b", "ma.count_masked f64", s1, () => np.ma.count_masked(ma1k));
+  run("p16b", "ma.filled f64", s1, () => np.ma.filled(ma1k, 0));
+  run("p16b", "ma.compressed f64", s1, () => ma1k.compressed());
+  run("p16b", "ma.getdata f64", s1, () => np.ma.getdata(ma1k));
+  run("p16b", "ma.getmask f64", s1, () => np.ma.getmask(ma1k));
+  run("p16b", "ma.is_masked f64", s1, () => np.ma.is_masked(ma1k));
+  run("p16b", "ma.allclose f64", s1, () => np.ma.allclose(ma1k, ma1k));
+  run("p16b", "ma.add f64", s1, () => np.ma.add(ma1k, maData));
+  run("p16b", "ma.multiply f64", s1, () => np.ma.multiply(ma1k, 2.0));
+  run("p16b", "ma.sin f64", s1, () => np.ma.sin(ma1k));
+  run("p16b", "ma.exp f64", s1, () => np.ma.exp(ma1k));
+  run("p16b", "ma.log f64", s1, () => np.ma.log(np.ma.masked_less(maData, 0.01)));
+  run("p16b", "ma.sqrt f64", s1, () => np.ma.sqrt(ma1k));
+  run("p16b", "ma.abs f64", s1, () => np.ma.abs(ma1k));
+  run("p16b", "ma.sort f64", s1, () => np.ma.sort(ma1k));
+  run("p16b", "ma.cumsum f64", s1, () => np.ma.cumsum(ma1k));
+  run("p16b", "ma.nonzero f64", s1, () => np.ma.nonzero(ma1k));
+  run("p16b", "ma.transpose 2d", s2, () => np.ma.transpose(ma2d));
+  run("p16b", "ma.reshape f64", s1, () => np.ma.reshape(ma1k, [n1k, 1]));
+  run("p16b", "ma.masked_equal f64", s1, () => np.ma.masked_equal(maData, 0.5));
+  run("p16b", "ma.masked_less f64", s1, () => np.ma.masked_less(maData, 0.5));
+  run("p16b", "ma.var f64", s1, () => np.ma.var(ma1k));
+  run("p16b", "ma.where f64", s1, () => np.ma.where(np.greater(maData, 0.5), maData, np.zeros([n1k])));
+  run("p16b", "ma.zeros f64", s1, () => np.ma.zeros([n1k]));
+  run("p16b", "ma.ones f64", s1, () => np.ma.ones([n1k]));
+  run("p16b", "ma.arange f64", s1, () => np.ma.arange(n1k));
+}
+
+// ---- p16c: strings.* / char.* (V-P16C, D-254) ----
+{
+  const words = ["hello", "world", "foo", "bar", "baz", "qux", "alpha", "beta"];
+  const n = words.length;
+  const ns = [n];
+  run("p16c", "strings.upper", ns, () => np.strings.upper(words));
+  run("p16c", "strings.lower", ns, () => np.strings.lower(words));
+  run("p16c", "strings.capitalize", ns, () => np.strings.capitalize(words));
+  run("p16c", "strings.center", ns, () => np.strings.center(words, 10));
+  run("p16c", "strings.ljust", ns, () => np.strings.ljust(words, 10));
+  run("p16c", "strings.strip", ns, () => np.strings.strip(words));
+  run("p16c", "strings.str_len", ns, () => np.strings.str_len(words));
+  run("p16c", "strings.add", ns, () => np.strings.add(words, words));
+  run("p16c", "strings.multiply", ns, () => np.strings.multiply(words, 3));
+  run("p16c", "strings.replace", ns, () => np.strings.replace(words, "o", "0"));
+  run("p16c", "strings.find", ns, () => np.strings.find(words, "l"));
+  run("p16c", "strings.count", ns, () => np.strings.count(words, "l"));
+  run("p16c", "strings.startswith", ns, () => np.strings.startswith(words, "h"));
+  run("p16c", "strings.endswith", ns, () => np.strings.endswith(words, "o"));
+  run("p16c", "strings.isalpha", ns, () => np.strings.isalpha(words));
+  run("p16c", "strings.isdigit", ns, () => np.strings.isdigit(words));
+  run("p16c", "strings.islower", ns, () => np.strings.islower(words));
+  run("p16c", "strings.equal", ns, () => np.strings.equal(words, words));
+  run("p16c", "strings.not_equal", ns, () => np.strings.not_equal(words, words));
+  run("p16c", "strings.greater", ns, () => np.strings.greater(words, words));
+  run("p16c", "strings.greater_equal", ns, () => np.strings.greater_equal(words, words));
+  run("p16c", "strings.less", ns, () => np.strings.less(words, words));
+  run("p16c", "strings.less_equal", ns, () => np.strings.less_equal(words, words));
+  run("p16c", "strings.lstrip", ns, () => np.strings.lstrip(words));
+  run("p16c", "strings.slice", ns, () => np.strings.slice(words, 1, 3));
+  run("p16c", "strings.partition", ns, () => np.strings.partition(words, "l"));
+  run("p16c", "char.join", ns, () => np.char.join("-", words));
+}
+
 run("linalg2", "vdot f64", [1], () => np.vdot(a, b));
   run("linalg2", "kron f64", [n * n], () => np.kron(a, b));
   run("linalg2", "vector_norm f64", [1], () => np.linalg.vectorNorm(a));

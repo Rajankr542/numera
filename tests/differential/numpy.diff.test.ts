@@ -4428,3 +4428,415 @@ describe("differential: P16E rec + cleanup (V-P16E, D-260)", () => {
     expect(true).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// P16B: np.ma masked arrays (V-P16B, D-253)
+// ---------------------------------------------------------------------------
+
+interface MaDescribed { ma: true; data: unknown[]; mask: boolean[]; shape: number[]; dtype: string }
+interface StringResult { string_values: string[]; shape: number[] }
+interface PartitionResult { partitions: [string[], string[], string[]] }
+
+describe("differential: P16B np.ma masked arrays (V-P16B, D-253)", () => {
+  const { cases } = load("p16b_cases") as {
+    numpy_version: string;
+    cases: { op: string; [k: string]: unknown }[];
+  };
+
+  function makeMa1D(data: number[], mask: boolean[]) {
+    const d = np.array(data, { dtype: "float64" });
+    if (mask.length === 0) return np.ma.array(d, { mask: false as false });
+    const m = np.array(mask, { dtype: "bool" });
+    return np.ma.array(d, { mask: m });
+  }
+
+  function makeMa2D(data: number[][], mask: boolean[][]) {
+    const d = np.array(data, { dtype: "float64" });
+    const m = np.array(mask, { dtype: "bool" });
+    return np.ma.array(d, { mask: m });
+  }
+
+  function checkMa(result: ReturnType<typeof np.ma.array>, exp: MaDescribed, atol = 1e-9) {
+    const expData = exp.data as number[];
+    const expMask = exp.mask as boolean[];
+    const actualMask =
+      result.mask === false
+        ? Array(result.size).fill(false)
+        : (result.mask as ReturnType<typeof np.array>).tolist() as boolean[];
+    expect(actualMask).toEqual(expMask);
+    const actualData = result.filled(0).tolist() as number[];
+    for (let i = 0; i < expData.length; i++) {
+      if (expMask[i]) continue;
+      expect(Math.abs(actualData[i]! - expData[i]!)).toBeLessThanOrEqual(
+        atol + 1e-7 * Math.abs(expData[i]!),
+      );
+    }
+  }
+
+  /** Works whether the reduction returned a MaskedArray or a plain NDArray. */
+  function checkMaOrND(
+    result: ReturnType<typeof np.ma.array> | ReturnType<typeof np.array>,
+    exp: MaDescribed,
+    atol = 1e-9,
+  ) {
+    if (result instanceof np.ma.MaskedArray) { checkMa(result, exp, atol); return; }
+    // Plain NDArray — compare unmasked values; expected mask should be all-false
+    const expData = exp.data as number[];
+    const actual = (result as ReturnType<typeof np.array>).ravel().tolist() as number[];
+    for (let i = 0; i < expData.length; i++) {
+      if (exp.mask[i]) continue;
+      expect(Math.abs(actual[i]! - expData[i]!)).toBeLessThanOrEqual(
+        atol + 1e-7 * Math.abs(expData[i]!),
+      );
+    }
+  }
+
+  it.each(cases.map((c, i) => [`${c.op}#${i}`, c] as const))("ma: %s", (_l, c) => {
+    const data = c.data as number[] | undefined;
+    const mask = (c.mask as boolean[] | undefined) ?? [];
+    const ma = np.ma;
+
+    if (c.op === "ma.array") { checkMa(makeMa1D(data!, mask), c.expected as MaDescribed); return; }
+
+    if (c.op === "ma.masked_where") {
+      const d = np.array(data!, { dtype: "float64" });
+      const cond = np.array(c.cond as boolean[], { dtype: "bool" });
+      checkMa(ma.masked_where(cond, d), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.masked_greater") {
+      const d = np.array(data!, { dtype: "float64" });
+      checkMa(ma.masked_greater(d, c.value as number), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.masked_less") {
+      const d = np.array(data!, { dtype: "float64" });
+      checkMa(ma.masked_less(d, c.value as number), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.masked_equal") {
+      const d = np.array(data!, { dtype: "float64" });
+      checkMa(ma.masked_equal(d, c.value as number), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.masked_invalid") {
+      // c.data may contain encoded nan/inf — decode first
+      const raw = (c.data as Encoded[]).map((v) => decodeExpected(v) as number);
+      const d = np.array(raw);
+      const r = ma.masked_invalid(d);
+      const expMask = (c.expected as MaDescribed).mask;
+      const actualMask =
+        r.mask === false
+          ? Array(r.size).fill(false)
+          : (r.mask as ReturnType<typeof np.array>).tolist() as boolean[];
+      expect(actualMask).toEqual(expMask);
+      return;
+    }
+
+    if (c.op === "ma.sum" || c.op === "ma.min" || c.op === "ma.max") {
+      const m = makeMa1D(data!, mask);
+      const fn = c.op === "ma.sum" ? ma.sum : c.op === "ma.min" ? ma.min : ma.max;
+      const r = fn(m) as ReturnType<typeof np.array>;
+      expect(Math.abs((r.tolist() as number) - (c.expected as number))).toBeLessThan(1e-10);
+      return;
+    }
+    if (c.op === "ma.mean") {
+      const m = makeMa1D(data!, mask);
+      const r = ma.mean(m) as ReturnType<typeof np.array>;
+      expect(Math.abs((r.tolist() as number) - (c.expected as number))).toBeLessThan(1e-10);
+      return;
+    }
+    if (c.op === "ma.std" || c.op === "ma.var") {
+      const m = makeMa1D(data!, mask);
+      const fn = c.op === "ma.std" ? ma.std : ma.var;
+      const r = fn(m) as ReturnType<typeof np.array>;
+      expect(Math.abs((r.tolist() as number) - (c.expected as number))).toBeLessThan(1e-9);
+      return;
+    }
+    if (c.op === "ma.argmin" || c.op === "ma.argmax") {
+      const m = makeMa1D(data!, mask);
+      const fn = c.op === "ma.argmin" ? ma.argmin : ma.argmax;
+      expect((fn(m).tolist() as number)).toBe(c.expected as number);
+      return;
+    }
+    if (c.op === "ma.all" || c.op === "ma.any") {
+      const d = np.array(c.data as boolean[], { dtype: "bool" });
+      const mm = np.array(c.mask as boolean[], { dtype: "bool" });
+      const marr = np.ma.array(d, { mask: mm });
+      const fn = c.op === "ma.all" ? ma.all : ma.any;
+      const r = fn(marr) as ReturnType<typeof np.array>;
+      expect(Boolean(r.tolist())).toBe(c.expected as boolean);
+      return;
+    }
+    if (c.op === "ma.count") {
+      expect(makeMa1D(data!, mask).count()).toBe(c.expected as number);
+      return;
+    }
+    if (c.op === "ma.count_masked") {
+      expect(ma.count_masked(makeMa1D(data!, mask))).toBe(c.expected as number);
+      return;
+    }
+
+    if (c.op === "ma.filled") {
+      checkArray(makeMa1D(data!, mask).filled(c.fill_value as number), c.expected as Described);
+      return;
+    }
+    if (c.op === "ma.compressed") {
+      checkArray(makeMa1D(data!, mask).compressed(), c.expected as Described);
+      return;
+    }
+    if (c.op === "ma.getdata") {
+      checkArray(ma.getdata(makeMa1D(data!, mask)), c.expected as Described);
+      return;
+    }
+    if (c.op === "ma.getmaskarray") {
+      checkArray(ma.getmaskarray(makeMa1D(data!, mask)), c.expected as Described);
+      return;
+    }
+
+    if (c.op === "ma.sum_axis0" || c.op === "ma.sum_axis1") {
+      const m = makeMa2D(c.data as number[][], c.mask as boolean[][]);
+      const axis = c.op.endsWith("0") ? 0 : 1;
+      checkMaOrND(ma.sum(m, { axis }), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.mean_2d") {
+      const m = makeMa2D(c.data as number[][], c.mask as boolean[][]);
+      const r = ma.mean(m) as ReturnType<typeof np.array>;
+      expect(Math.abs((r.tolist() as number) - (c.expected as number))).toBeLessThan(1e-10);
+      return;
+    }
+    if (c.op === "ma.mean_axis0" || c.op === "ma.mean_axis1") {
+      const m = makeMa2D(c.data as number[][], c.mask as boolean[][]);
+      const axis = c.op.endsWith("0") ? 0 : 1;
+      checkMaOrND(ma.mean(m, { axis }), c.expected as MaDescribed, 1e-10);
+      return;
+    }
+
+    if (c.op === "ma.add") {
+      const m = makeMa1D(data!, mask);
+      checkMa(ma.add(m, np.array(c.b as number[], { dtype: "float64" })), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.subtract") {
+      const m = makeMa1D(data!, mask);
+      checkMa(ma.subtract(m, np.array(c.b as number[], { dtype: "float64" })), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.multiply") {
+      checkMa(ma.multiply(makeMa1D(data!, mask), c.scalar as number), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.divide") {
+      checkMa(ma.divide(makeMa1D(data!, mask), c.scalar as number), c.expected as MaDescribed);
+      return;
+    }
+
+    if (c.op === "ma.sin") {
+      checkMa(ma.sin(makeMa1D(data!, mask)), c.expected as MaDescribed, 1e-12);
+      return;
+    }
+    if (c.op === "ma.exp" || c.op === "ma.log" || c.op === "ma.sqrt" || c.op === "ma.abs") {
+      const d = np.array(c.data as number[], { dtype: "float64" });
+      const mm = np.array(c.mask as boolean[], { dtype: "bool" });
+      const m = np.ma.array(d, { mask: mm });
+      const fn = c.op === "ma.exp" ? ma.exp
+        : c.op === "ma.log" ? ma.log
+        : c.op === "ma.sqrt" ? ma.sqrt
+        : ma.abs;
+      checkMa(fn(m), c.expected as MaDescribed, 1e-12);
+      return;
+    }
+
+    if (c.op === "ma.reshape") {
+      checkMa(makeMa1D(data!, mask).reshape(c.new_shape as number[]), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.transpose") {
+      checkMa(np.ma.transpose(makeMa2D(c.data as number[][], c.mask as boolean[][])), c.expected as MaDescribed);
+      return;
+    }
+
+    if (c.op === "ma.is_masked") {
+      expect(ma.is_masked(makeMa1D(data!, mask))).toBe(true);
+      return;
+    }
+    if (c.op === "ma.is_masked_nomask") {
+      const d = np.array(data!, { dtype: "float64" });
+      expect(ma.is_masked(np.ma.array(d, { mask: false as false }))).toBe(false);
+      return;
+    }
+    if (c.op === "ma.default_fill_value") {
+      expect(typeof ma.default_fill_value(makeMa1D(data!, mask))).toBe("number");
+      return;
+    }
+
+    if (c.op === "ma.nonzero") {
+      const d = np.array(c.data as number[], { dtype: "float64" });
+      const mm = np.array(c.mask as boolean[], { dtype: "bool" });
+      const [idx] = ma.nonzero(np.ma.array(d, { mask: mm }));
+      expect((idx as ReturnType<typeof np.array>).tolist()).toEqual(c.expected as number[]);
+      return;
+    }
+    if (c.op === "ma.sort") {
+      const d = np.array(c.data as number[], { dtype: "float64" });
+      const mm = np.array(c.mask as boolean[], { dtype: "bool" });
+      checkMa(np.ma.sort(np.ma.array(d, { mask: mm })), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.cumsum") {
+      checkMa(ma.cumsum(makeMa1D(data!, mask)), c.expected as MaDescribed);
+      return;
+    }
+    if (c.op === "ma.cumprod") {
+      const d = np.array(c.data as number[], { dtype: "float64" });
+      const mm = np.array(c.mask as boolean[], { dtype: "bool" });
+      checkMa(ma.cumprod(np.ma.array(d, { mask: mm })), c.expected as MaDescribed);
+      return;
+    }
+
+    if (c.op === "ma.zeros") {
+      const r = ma.zeros(c.shape_arg as number[]);
+      expect(r instanceof np.ma.MaskedArray).toBe(true);
+      expect(r.shape).toEqual(c.shape_arg as number[]);
+      return;
+    }
+    if (c.op === "ma.ones") {
+      const r = ma.ones(c.shape_arg as number[]);
+      expect(r instanceof np.ma.MaskedArray).toBe(true);
+      expect(r.filled(0).tolist()).toEqual([1, 1, 1]);
+      return;
+    }
+    if (c.op === "ma.where") {
+      const cond = np.array(c.cond as boolean[], { dtype: "bool" });
+      const a = np.array(c.a as number[], { dtype: "float64" });
+      const b = np.array(c.b as number[], { dtype: "float64" });
+      const r = ma.where(cond, a, b);
+      const actual = r instanceof np.ma.MaskedArray ? r.filled(0).tolist() : (r as ReturnType<typeof np.array>).tolist();
+      expect(actual).toEqual(c.expected as number[]);
+      return;
+    }
+    if (c.op === "ma.arange") {
+      const r = ma.arange(c.n as number);
+      expect(r instanceof np.ma.MaskedArray).toBe(true);
+      expect(r.filled(0).tolist()).toEqual([0, 1, 2, 3, 4]);
+      return;
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P16C: np.strings + np.char (V-P16C, D-254)
+// ---------------------------------------------------------------------------
+
+describe("differential: P16C np.strings + np.char (V-P16C, D-254)", () => {
+  const { cases } = load("p16c_cases") as {
+    numpy_version: string;
+    cases: { op: string; [k: string]: unknown }[];
+  };
+
+  const s = np.strings;
+  const ch = np.char;
+
+  function checkStr(actual: { toArray(): unknown }, exp: StringResult) {
+    expect(actual.toArray()).toEqual(exp.string_values);
+  }
+
+  it.each(cases.map((c, i) => [`${c.op}#${i}`, c] as const))("strings: %s", (_l, c) => {
+    const strs = c.strings as string[];
+    const exp = c.expected as StringResult | PartitionResult | Described;
+
+    if (c.op === "strings.upper")     { checkStr(s.upper(strs), exp as StringResult); return; }
+    if (c.op === "strings.lower")     { checkStr(s.lower(strs), exp as StringResult); return; }
+    if (c.op === "strings.capitalize"){ checkStr(s.capitalize(strs), exp as StringResult); return; }
+    if (c.op === "strings.swapcase")  { checkStr(s.swapcase(strs), exp as StringResult); return; }
+    if (c.op === "strings.title")     { checkStr(s.title(strs), exp as StringResult); return; }
+
+    if (c.op === "strings.center") { checkStr(s.center(strs, c.width as number), exp as StringResult); return; }
+    if (c.op === "strings.ljust")  { checkStr(s.ljust(strs, c.width as number), exp as StringResult); return; }
+    if (c.op === "strings.rjust")  { checkStr(s.rjust(strs, c.width as number), exp as StringResult); return; }
+    if (c.op === "strings.zfill")  { checkStr(s.zfill(strs, c.width as number), exp as StringResult); return; }
+
+    if (c.op === "strings.strip")  { checkStr(s.strip(strs), exp as StringResult); return; }
+    if (c.op === "strings.lstrip") { checkStr(s.lstrip(strs), exp as StringResult); return; }
+    if (c.op === "strings.rstrip") { checkStr(s.rstrip(strs), exp as StringResult); return; }
+
+    if (c.op === "strings.str_len") { checkArray(s.str_len(strs), exp as Described); return; }
+
+    if (c.op === "strings.add")      { checkStr(s.add(strs, c.b as string[]), exp as StringResult); return; }
+    if (c.op === "strings.multiply") { checkStr(s.multiply(strs, c.count as number), exp as StringResult); return; }
+    if (c.op === "strings.replace")  { checkStr(s.replace(strs, c.old as string, c.new_ as string), exp as StringResult); return; }
+
+    if (c.op === "strings.find")   { checkArray(s.find(strs, c.sub as string), exp as Described); return; }
+    if (c.op === "strings.rfind")  { checkArray(s.rfind(strs, c.sub as string), exp as Described); return; }
+    if (c.op === "strings.index")  { checkArray(s.index(strs, c.sub as string), exp as Described); return; }
+    if (c.op === "strings.rindex") { checkArray(s.rindex(strs, c.sub as string), exp as Described); return; }
+    if (c.op === "strings.count")  { checkArray(s.count(strs, c.sub as string), exp as Described); return; }
+
+    if (c.op === "strings.startswith") { checkArray(s.startswith(strs, c.prefix as string), exp as Described); return; }
+    if (c.op === "strings.endswith")   { checkArray(s.endswith(strs, c.suffix as string), exp as Described); return; }
+
+    if (c.op === "strings.isalpha")   { checkArray(s.isalpha(strs), exp as Described); return; }
+    if (c.op === "strings.isdigit")   { checkArray(s.isdigit(strs), exp as Described); return; }
+    if (c.op === "strings.isalnum")   { checkArray(s.isalnum(strs), exp as Described); return; }
+    if (c.op === "strings.isspace")   { checkArray(s.isspace(strs), exp as Described); return; }
+    if (c.op === "strings.islower")   { checkArray(s.islower(strs), exp as Described); return; }
+    if (c.op === "strings.isupper")   { checkArray(s.isupper(strs), exp as Described); return; }
+    if (c.op === "strings.istitle")   { checkArray(s.istitle(strs), exp as Described); return; }
+    if (c.op === "strings.isdecimal") { checkArray(s.isdecimal(strs), exp as Described); return; }
+    if (c.op === "strings.isnumeric") { checkArray(s.isnumeric(strs), exp as Described); return; }
+
+    if (c.op === "strings.expandtabs") { checkStr(s.expandtabs(strs, c.tabsize as number), exp as StringResult); return; }
+
+    if (c.op === "strings.equal")         { checkArray(s.equal(strs, c.b as string[]), exp as Described); return; }
+    if (c.op === "strings.not_equal")     { checkArray(s.not_equal(strs, c.b as string[]), exp as Described); return; }
+    if (c.op === "strings.greater")       { checkArray(s.greater(strs, c.b as string[]), exp as Described); return; }
+    if (c.op === "strings.less")          { checkArray(s.less(strs, c.b as string[]), exp as Described); return; }
+    if (c.op === "strings.greater_equal") { checkArray(s.greater_equal(strs, c.b as string[]), exp as Described); return; }
+    if (c.op === "strings.less_equal")    { checkArray(s.less_equal(strs, c.b as string[]), exp as Described); return; }
+
+    if (c.op === "strings.slice") {
+      checkStr(s.slice(strs, c.start as number, c.stop as number), exp as StringResult);
+      return;
+    }
+
+    if (c.op === "strings.partition") {
+      const [p0, p1, p2] = s.partition(strs, c.sep as string);
+      const parts = (exp as PartitionResult).partitions;
+      expect(p0.toArray()).toEqual(parts[0]);
+      expect(p1.toArray()).toEqual(parts[1]);
+      expect(p2.toArray()).toEqual(parts[2]);
+      return;
+    }
+    if (c.op === "strings.rpartition") {
+      const [p0, p1, p2] = s.rpartition(strs, c.sep as string);
+      const parts = (exp as PartitionResult).partitions;
+      expect(p0.toArray()).toEqual(parts[0]);
+      expect(p1.toArray()).toEqual(parts[1]);
+      expect(p2.toArray()).toEqual(parts[2]);
+      return;
+    }
+
+    if (c.op === "strings.mod") {
+      checkStr(s.mod(strs, c.values as string[]), exp as StringResult);
+      return;
+    }
+    if (c.op === "strings.encode_decode") {
+      const enc = s.encode(strs, "utf-8");
+      checkStr(s.decode(enc, "utf-8"), exp as StringResult);
+      return;
+    }
+
+    if (c.op === "char.join") {
+      checkStr(ch.join(c.sep as string[], strs), exp as StringResult);
+      return;
+    }
+    if (c.op === "char.compare_chararrays") {
+      checkArray(
+        ch.compare_chararrays(strs, c.b as string[], c.cmp as string, c.rstrip as boolean),
+        exp as Described,
+      );
+      return;
+    }
+  });
+});

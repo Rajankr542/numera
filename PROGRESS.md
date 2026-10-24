@@ -1368,3 +1368,16 @@ Done (P13-2, P13-4, P13-5, P13-6, P13-7 — D-161..D-163):
   complex {re,im} comparison in closeVal; atol parameter for polyfit tolerance.
 - All 1336 unit tests + 11555 differential tests pass; api:check passes.
 - Committed cd42789.
+
+## 2026-10-24 — V-P16B + V-P16C bug fixes + differential tests (D-257–D-258)
+- **Bug fix (D-257)**: `ma.mean`/`ma.var`/`ma.std` corrected in `ma.ts` — added
+  `_maMean` and `_maMeanStd` helpers that operate only on unmasked elements.
+  Previously divided by the total element count N instead of the unmasked count.
+- **Bug fix (D-258)**: `strings.partition`/`rpartition` return shape corrected in
+  `p16c.ts` — now returns `[StringArray_N, StringArray_N, StringArray_N]` to match
+  NumPy semantics instead of `Array<StringArray_3>`. `strings.mod` also corrected
+  for multi-string arrays (per-element value indexing).
+- 49 P16B (ma.*) + 46 P16C (strings.*/char.*) differential cases added and passing.
+- Bench entries added for ~35 ma.* ops and ~22 strings.*/char.* ops in both suites.
+- Bench-exempt: 597 → 508 (89 newly covered in P16B+P16C).
+- All 1336 unit tests + 11650 differential tests pass; api:check passes.

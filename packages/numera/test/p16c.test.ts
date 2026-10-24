@@ -186,15 +186,18 @@ describe("P16C-5: comparisons (np.strings)", () => {
 
 describe("P16C-6: split / partition (np.strings)", () => {
   it("partition splits on first occurrence", () => {
-    const parts = np.strings.partition(["hello world"], " ");
-    expect(parts.length).toBe(1);
-    expect(SA(parts[0])).toEqual(["hello", " ", "world"]);
+    // Returns [before_arr, sep_arr, after_arr] — 3 arrays each of length N
+    const [before, sep, after] = np.strings.partition(["hello world"], " ");
+    expect(SA(before)).toEqual(["hello"]);
+    expect(SA(sep)).toEqual([" "]);
+    expect(SA(after)).toEqual(["world"]);
   });
 
   it("rpartition splits on last occurrence", () => {
-    const parts = np.strings.rpartition(["hello world"], " ");
-    expect(parts.length).toBe(1);
-    expect(SA(parts[0])).toEqual(["hello", " ", "world"]);
+    const [before, sep, after] = np.strings.rpartition(["hello world"], " ");
+    expect(SA(before)).toEqual(["hello"]);
+    expect(SA(sep)).toEqual([" "]);
+    expect(SA(after)).toEqual(["world"]);
   });
 
   it("rstrip via strings.rstrip", () => {

@@ -2997,3 +2997,18 @@ delegate to their plain-np counterparts on `.filled()` data and combine masks.
   `fromDescribed`, `closeVal` promoted to top-level scope in the shared test file
   so all `describe` blocks (P11+) can use them. `checkExact` is an alias for
   `checkArray`. `closeVal` gains `atol` parameter.
+- **D-257** (V-P16B ma.*): `ma.mean`/`ma.var`/`ma.std` had a correctness bug —
+  they operated on the fill-padded array (treating masked positions as 0 for mean,
+  etc.) instead of only the unmasked elements. Fixed with new `_maMean` and
+  `_maMeanStd` helpers in `ma.ts` that compute statistics over the true unmasked
+  count. This is a **patch** fix (observable only when mask is non-empty).
+  49 differential cases added; all pass.
+- **D-258** (V-P16C strings.*): `strings.partition`/`rpartition` returned the
+  wrong shape — they returned an array of N `StringArray([s,sep,after], [3])` (N
+  arrays of 3) instead of 3 `StringArray(…, [N])` (3 arrays of N strings), which
+  is what NumPy returns. Fixed in `p16c.ts` to produce `[StringArray, StringArray,
+  StringArray]`. This is a **breaking** shape change (major bump deferred until
+  next public release). `strings.mod` also fixed to index per-element when array
+  has N>1 strings (each string gets `values[i]`); for a single string the full
+  values tuple is used as positional args for format specs.
+  46 differential cases added; all pass.
