@@ -6631,6 +6631,377 @@ def p16a_cases() -> list[dict]:
     return cases
 
 
+def p16b_cases() -> list[dict]:
+    """V-P16B np.ma masked-array differential cases (D-257)."""
+    import numpy as np
+
+    def _enc_list(v):
+        """Recursively encode a nested list, handling nan/inf as {float:...}."""
+        if isinstance(v, list):
+            return [_enc_list(x) for x in v]
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, float):
+            if math.isnan(v):
+                return {"float": "nan"}
+            if math.isinf(v):
+                return {"float": "inf" if v > 0 else "-inf"}
+            if v == 0 and math.copysign(1.0, v) < 0:
+                return {"float": "-0"}
+            return v
+        return v
+
+    def _ma(arr):
+        """Encode a MaskedArray as {ma, data, mask, shape, dtype}."""
+        data = _enc_list(np.ma.getdata(arr).tolist())
+        mask = np.ma.getmaskarray(arr).tolist()
+        return {"ma": True, "data": data, "mask": mask,
+                "shape": list(arr.shape), "dtype": str(arr.dtype)}
+
+    def _nd(arr):
+        a = np.asarray(arr)
+        return {"dtype": str(a.dtype), "shape": list(a.shape),
+                "strides": list(a.strides), "c_contiguous": bool(a.flags["C_CONTIGUOUS"]),
+                "f_contiguous": bool(a.flags["F_CONTIGUOUS"]),
+                "values": _enc_list(a.tolist())}
+
+    data1 = [1.0, 2.0, 3.0, 4.0, 5.0]
+    mask1 = [False, True, False, False, True]
+    m1 = np.ma.array(data1, mask=mask1)
+
+    data2 = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    mask2 = [[False, True, False], [False, False, True]]
+    m2 = np.ma.array(data2, mask=mask2)
+
+    cases: list[dict] = []
+
+    # Construction
+    cases.append({"op": "ma.array", "data": data1, "mask": mask1,
+                  "expected": _ma(m1), "note": "1D float64 mask=[F,T,F,F,T]"})
+    cases.append({"op": "ma.masked_where", "data": data1,
+                  "cond": [False, True, True, False, False],
+                  "expected": _ma(np.ma.masked_where([False, True, True, False, False], data1)),
+                  "note": "masked_where cond=[F,T,T,F,F]"})
+    cases.append({"op": "ma.masked_greater", "data": data1, "value": 3.0,
+                  "expected": _ma(np.ma.masked_greater(data1, 3.0)),
+                  "note": "masked_greater >3"})
+    cases.append({"op": "ma.masked_less", "data": data1, "value": 3.0,
+                  "expected": _ma(np.ma.masked_less(data1, 3.0)),
+                  "note": "masked_less <3"})
+    cases.append({"op": "ma.masked_equal", "data": data1, "value": 3.0,
+                  "expected": _ma(np.ma.masked_equal(data1, 3.0)),
+                  "note": "masked_equal ==3"})
+    nan_data = [1.0, float("nan"), 3.0, float("inf"), 5.0]
+    cases.append({"op": "ma.masked_invalid",
+                  "data": enc(nan_data),
+                  "expected": _ma(np.ma.masked_invalid(nan_data)),
+                  "note": "masked_invalid nan+inf"})
+
+    # Reductions
+    cases.append({"op": "ma.sum", "data": data1, "mask": mask1,
+                  "expected": float(m1.sum()), "note": "sum 1D masked"})
+    cases.append({"op": "ma.mean", "data": data1, "mask": mask1,
+                  "expected": float(m1.mean()), "note": "mean 1D masked = 8/3"})
+    cases.append({"op": "ma.std", "data": data1, "mask": mask1,
+                  "expected": float(m1.std()), "note": "std 1D masked"})
+    cases.append({"op": "ma.var", "data": data1, "mask": mask1,
+                  "expected": float(m1.var()), "note": "var 1D masked"})
+    cases.append({"op": "ma.min", "data": data1, "mask": mask1,
+                  "expected": float(m1.min()), "note": "min ignores masked"})
+    cases.append({"op": "ma.max", "data": data1, "mask": mask1,
+                  "expected": float(m1.max()), "note": "max ignores masked"})
+    cases.append({"op": "ma.argmin", "data": data1, "mask": mask1,
+                  "expected": int(m1.argmin()), "note": "argmin ignores masked"})
+    cases.append({"op": "ma.argmax", "data": data1, "mask": mask1,
+                  "expected": int(m1.argmax()), "note": "argmax ignores masked"})
+
+    # Boolean reductions
+    bool_data = [True, False, True, True, False]
+    mb = np.ma.array(bool_data, mask=mask1)
+    cases.append({"op": "ma.all", "data": bool_data, "mask": mask1,
+                  "expected": bool(mb.all()), "note": "all bool 1D masked"})
+    cases.append({"op": "ma.any", "data": bool_data, "mask": mask1,
+                  "expected": bool(mb.any()), "note": "any bool 1D masked"})
+
+    # Count / mask helpers
+    cases.append({"op": "ma.count", "data": data1, "mask": mask1,
+                  "expected": int(m1.count()), "note": "count unmasked = 3"})
+    cases.append({"op": "ma.filled", "data": data1, "mask": mask1, "fill_value": 0.0,
+                  "expected": _nd(np.ma.filled(m1, 0.0)), "note": "filled(0)"})
+    cases.append({"op": "ma.compressed", "data": data1, "mask": mask1,
+                  "expected": _nd(m1.compressed()), "note": "compressed removes masked"})
+    cases.append({"op": "ma.getdata", "data": data1, "mask": mask1,
+                  "expected": _nd(np.ma.getdata(m1)), "note": "getdata returns raw data"})
+    cases.append({"op": "ma.getmaskarray", "data": data1, "mask": mask1,
+                  "expected": _nd(np.ma.getmaskarray(m1)), "note": "getmaskarray returns bool mask"})
+
+    # 2D reductions
+    cases.append({"op": "ma.sum_axis0", "data": data2, "mask": mask2,
+                  "expected": _ma(m2.sum(axis=0)), "note": "sum 2D axis=0"})
+    cases.append({"op": "ma.sum_axis1", "data": data2, "mask": mask2,
+                  "expected": _ma(m2.sum(axis=1)), "note": "sum 2D axis=1"})
+    cases.append({"op": "ma.mean_2d", "data": data2, "mask": mask2,
+                  "expected": float(m2.mean()), "note": "mean 2D global"})
+    cases.append({"op": "ma.mean_axis0", "data": data2, "mask": mask2,
+                  "expected": _ma(m2.mean(axis=0)), "note": "mean 2D axis=0"})
+    cases.append({"op": "ma.mean_axis1", "data": data2, "mask": mask2,
+                  "expected": _ma(m2.mean(axis=1)), "note": "mean 2D axis=1"})
+
+    # Arithmetic (mask propagation)
+    b1 = [10.0, 20.0, 30.0, 40.0, 50.0]
+    cases.append({"op": "ma.add", "data": data1, "mask": mask1, "b": b1,
+                  "expected": _ma(m1 + np.array(b1)), "note": "add propagates mask"})
+    cases.append({"op": "ma.subtract", "data": data1, "mask": mask1, "b": b1,
+                  "expected": _ma(m1 - np.array(b1)), "note": "subtract propagates mask"})
+    cases.append({"op": "ma.multiply", "data": data1, "mask": mask1, "scalar": 2.0,
+                  "expected": _ma(m1 * 2.0), "note": "multiply by scalar"})
+    cases.append({"op": "ma.divide", "data": data1, "mask": mask1, "scalar": 2.0,
+                  "expected": _ma(m1 / 2.0), "note": "divide by scalar"})
+
+    # Ufuncs
+    cases.append({"op": "ma.sin", "data": data1, "mask": mask1,
+                  "expected": _ma(np.ma.sin(m1)), "note": "sin propagates mask"})
+    exp_data = [1.0, 2.0, 3.0, 0.5, 4.0]
+    me = np.ma.array(exp_data, mask=[False, True, False, False, True])
+    cases.append({"op": "ma.exp", "data": exp_data, "mask": [False, True, False, False, True],
+                  "expected": _ma(np.ma.exp(me)), "note": "exp propagates mask"})
+    cases.append({"op": "ma.log", "data": exp_data, "mask": [False, True, False, False, True],
+                  "expected": _ma(np.ma.log(me)), "note": "log propagates mask"})
+    cases.append({"op": "ma.sqrt", "data": exp_data, "mask": [False, True, False, False, True],
+                  "expected": _ma(np.ma.sqrt(me)), "note": "sqrt propagates mask"})
+    abs_data = [-1.0, -2.0, 3.0, -4.0, 5.0]
+    mabs = np.ma.array(abs_data, mask=[False, True, False, False, True])
+    cases.append({"op": "ma.abs", "data": abs_data, "mask": [False, True, False, False, True],
+                  "expected": _ma(np.ma.abs(mabs)), "note": "abs propagates mask"})
+
+    # Shape ops
+    cases.append({"op": "ma.reshape", "data": data1, "mask": mask1, "new_shape": [5, 1],
+                  "expected": _ma(np.ma.reshape(m1, [5, 1])), "note": "reshape [5]->[5,1]"})
+    cases.append({"op": "ma.transpose", "data": data2, "mask": mask2,
+                  "expected": _ma(m2.T), "note": "transpose 2D"})
+
+    # Predicates / utilities
+    cases.append({"op": "ma.is_masked", "data": data1, "mask": mask1,
+                  "expected": bool(np.ma.is_masked(m1)), "note": "is_masked -> True"})
+    cases.append({"op": "ma.is_masked_nomask", "data": data1, "mask": [],
+                  "expected": bool(np.ma.is_masked(np.ma.array(data1))),
+                  "note": "is_masked nomask -> False"})
+    cases.append({"op": "ma.default_fill_value", "data": data1, "mask": mask1,
+                  "expected": float(np.ma.default_fill_value(m1)),
+                  "note": "default_fill_value float64"})
+    cases.append({"op": "ma.nonzero", "data": [0.0, 1.0, 0.0, 2.0, 0.0],
+                  "mask": [False, False, True, False, False],
+                  "expected": [1, 3], "note": "nonzero indices"})
+    sort_data = [3.0, 1.0, 4.0, 1.0, 5.0]
+    msort = np.ma.array(sort_data, mask=[False, False, True, False, False])
+    cases.append({"op": "ma.sort", "data": sort_data, "mask": [False, False, True, False, False],
+                  "expected": _ma(np.ma.sort(msort)), "note": "sort masked to end"})
+    cases.append({"op": "ma.cumsum", "data": data1, "mask": mask1,
+                  "expected": _ma(m1.cumsum()), "note": "cumsum with masked"})
+    cases.append({"op": "ma.cumprod", "data": data1, "mask": mask1,
+                  "expected": _ma(m1.cumprod()), "note": "cumprod with masked"})
+    cases.append({"op": "ma.count_masked", "data": data1, "mask": mask1,
+                  "expected": int(np.ma.count_masked(m1)), "note": "count_masked = 2"})
+
+    # Constructors
+    cases.append({"op": "ma.zeros", "shape_arg": [3],
+                  "expected": _ma(np.ma.zeros(3)), "note": "ma.zeros [3]"})
+    cases.append({"op": "ma.ones", "shape_arg": [3],
+                  "expected": _ma(np.ma.ones(3)), "note": "ma.ones [3]"})
+    cond_w = [True, False, True, False, True]
+    cases.append({"op": "ma.where", "cond": cond_w,
+                  "a": [1.0, 2.0, 3.0, 4.0, 5.0], "b": [10.0, 20.0, 30.0, 40.0, 50.0],
+                  "expected": np.ma.where(cond_w, [1.0, 2.0, 3.0, 4.0, 5.0],
+                                          [10.0, 20.0, 30.0, 40.0, 50.0]).tolist(),
+                  "note": "where 3-arg"})
+    cases.append({"op": "ma.arange", "n": 5,
+                  "expected": _ma(np.ma.arange(5)), "note": "arange 5"})
+
+    return cases
+
+
+def p16c_cases() -> list[dict]:
+    """V-P16C np.strings / np.char differential cases (D-258)."""
+    import numpy as np
+
+    def _sa(arr):
+        return {"string_values": list(arr), "shape": list(np.asarray(arr).shape)}
+
+    def _nd(arr):
+        a = np.asarray(arr)
+        return {"dtype": str(a.dtype), "shape": list(a.shape),
+                "strides": list(a.strides), "c_contiguous": bool(a.flags["C_CONTIGUOUS"]),
+                "f_contiguous": bool(a.flags["F_CONTIGUOUS"]),
+                "values": a.tolist()}
+
+    cases: list[dict] = []
+
+    # Case/padding
+    cases.append({"op": "strings.upper", "strings": ["hello", "world", "foo", "bar"],
+                  "expected": _sa(np.strings.upper(["hello", "world", "foo", "bar"])),
+                  "note": "upper"})
+    cases.append({"op": "strings.lower", "strings": ["Hello World", "foo bar", "UPPER lower"],
+                  "expected": _sa(np.strings.lower(["Hello World", "foo bar", "UPPER lower"])),
+                  "note": "lower"})
+    cases.append({"op": "strings.capitalize", "strings": ["hello", "world", "foo", "bar"],
+                  "expected": _sa(np.strings.capitalize(["hello", "world", "foo", "bar"])),
+                  "note": "capitalize"})
+    cases.append({"op": "strings.swapcase", "strings": ["Hello", "WORLD", "Foo"],
+                  "expected": _sa(np.strings.swapcase(["Hello", "WORLD", "Foo"])),
+                  "note": "swapcase"})
+    cases.append({"op": "strings.title", "strings": ["Hello World", "foo bar", "UPPER lower"],
+                  "expected": _sa(np.strings.title(["Hello World", "foo bar", "UPPER lower"])),
+                  "note": "title"})
+    cases.append({"op": "strings.center", "strings": ["hello", "world", "foo", "bar"], "width": 7,
+                  "expected": _sa(np.strings.center(["hello", "world", "foo", "bar"], 7)),
+                  "note": "center width=7"})
+    cases.append({"op": "strings.ljust", "strings": ["hello", "world", "foo", "bar"], "width": 7,
+                  "expected": _sa(np.strings.ljust(["hello", "world", "foo", "bar"], 7)),
+                  "note": "ljust width=7"})
+    cases.append({"op": "strings.rjust", "strings": ["hello", "world", "foo", "bar"], "width": 7,
+                  "expected": _sa(np.strings.rjust(["hello", "world", "foo", "bar"], 7)),
+                  "note": "rjust width=7"})
+    cases.append({"op": "strings.zfill", "strings": ["1", "22", "333", "4444"], "width": 5,
+                  "expected": _sa(np.strings.zfill(["1", "22", "333", "4444"], 5)),
+                  "note": "zfill width=5"})
+    cases.append({"op": "strings.strip", "strings": ["  hi  ", "  ho  ", " abc "],
+                  "expected": _sa(np.strings.strip(["  hi  ", "  ho  ", " abc "])),
+                  "note": "strip"})
+    cases.append({"op": "strings.lstrip", "strings": ["  hi  ", "  ho  "],
+                  "expected": _sa(np.strings.lstrip(["  hi  ", "  ho  "])),
+                  "note": "lstrip"})
+    cases.append({"op": "strings.rstrip", "strings": ["  hi  ", "  ho  "],
+                  "expected": _sa(np.strings.rstrip(["  hi  ", "  ho  "])),
+                  "note": "rstrip"})
+
+    # Length / search
+    cases.append({"op": "strings.str_len", "strings": ["hello", "world", "foo", "bar"],
+                  "expected": _nd(np.strings.str_len(["hello", "world", "foo", "bar"])),
+                  "note": "str_len"})
+    cases.append({"op": "strings.add", "strings": ["a", "b", "c"], "b": ["1", "2", "3"],
+                  "expected": _sa(np.strings.add(["a", "b", "c"], ["1", "2", "3"])),
+                  "note": "add concatenate"})
+    cases.append({"op": "strings.multiply", "strings": ["ab", "xy"], "count": 3,
+                  "expected": _sa(np.strings.multiply(["ab", "xy"], 3)),
+                  "note": "multiply repeat"})
+    cases.append({"op": "strings.replace",
+                  "strings": ["hello", "world", "foo", "bar"], "old": "l", "new_": "L",
+                  "expected": _sa(np.strings.replace(["hello", "world", "foo", "bar"], "l", "L")),
+                  "note": "replace l->L"})
+    cases.append({"op": "strings.find", "strings": ["hello", "world", "foo", "bar"], "sub": "l",
+                  "expected": _nd(np.strings.find(["hello", "world", "foo", "bar"], "l")),
+                  "note": "find 'l'"})
+    cases.append({"op": "strings.rfind", "strings": ["hello", "world", "foo", "bar"], "sub": "l",
+                  "expected": _nd(np.strings.rfind(["hello", "world", "foo", "bar"], "l")),
+                  "note": "rfind 'l'"})
+    cases.append({"op": "strings.index", "strings": ["hello", "world"], "sub": "l",
+                  "expected": _nd(np.strings.index(["hello", "world"], "l")),
+                  "note": "index 'l'"})
+    cases.append({"op": "strings.rindex", "strings": ["hello", "world"], "sub": "l",
+                  "expected": _nd(np.strings.rindex(["hello", "world"], "l")),
+                  "note": "rindex 'l'"})
+    cases.append({"op": "strings.count", "strings": ["hello", "world", "foo", "bar"], "sub": "l",
+                  "expected": _nd(np.strings.count(["hello", "world", "foo", "bar"], "l")),
+                  "note": "count 'l'"})
+
+    # Predicates
+    cases.append({"op": "strings.startswith",
+                  "strings": ["hello", "world", "foo", "bar"], "prefix": "h",
+                  "expected": _nd(np.strings.startswith(["hello", "world", "foo", "bar"], "h")),
+                  "note": "startswith 'h'"})
+    cases.append({"op": "strings.endswith",
+                  "strings": ["hello", "world", "foo", "bar"], "suffix": "o",
+                  "expected": _nd(np.strings.endswith(["hello", "world", "foo", "bar"], "o")),
+                  "note": "endswith 'o'"})
+    cases.append({"op": "strings.isalpha", "strings": ["hello", "world", "foo", "bar"],
+                  "expected": _nd(np.strings.isalpha(["hello", "world", "foo", "bar"])),
+                  "note": "isalpha"})
+    cases.append({"op": "strings.isdigit", "strings": ["123", "abc", "456"],
+                  "expected": _nd(np.strings.isdigit(["123", "abc", "456"])),
+                  "note": "isdigit"})
+    cases.append({"op": "strings.isalnum", "strings": ["abc1", "!!", "foo"],
+                  "expected": _nd(np.strings.isalnum(["abc1", "!!", "foo"])),
+                  "note": "isalnum"})
+    cases.append({"op": "strings.isspace", "strings": ["   ", "abc", " "],
+                  "expected": _nd(np.strings.isspace(["   ", "abc", " "])),
+                  "note": "isspace"})
+    cases.append({"op": "strings.islower", "strings": ["hello", "world", "foo", "bar"],
+                  "expected": _nd(np.strings.islower(["hello", "world", "foo", "bar"])),
+                  "note": "islower"})
+    cases.append({"op": "strings.isupper", "strings": ["HELLO", "world", "FOO"],
+                  "expected": _nd(np.strings.isupper(["HELLO", "world", "FOO"])),
+                  "note": "isupper"})
+    cases.append({"op": "strings.istitle", "strings": ["Hello World", "foo bar", "Hello"],
+                  "expected": _nd(np.strings.istitle(["Hello World", "foo bar", "Hello"])),
+                  "note": "istitle"})
+    cases.append({"op": "strings.isdecimal", "strings": ["123", "12.3", "abc"],
+                  "expected": _nd(np.strings.isdecimal(["123", "12.3", "abc"])),
+                  "note": "isdecimal"})
+    cases.append({"op": "strings.isnumeric", "strings": ["123", "abc"],
+                  "expected": _nd(np.strings.isnumeric(["123", "abc"])),
+                  "note": "isnumeric"})
+    cases.append({"op": "strings.expandtabs", "strings": ["a\tb", "c\td"], "tabsize": 4,
+                  "expected": _sa(np.strings.expandtabs(["a\tb", "c\td"], 4)),
+                  "note": "expandtabs"})
+
+    # Comparisons
+    cases.append({"op": "strings.equal", "strings": ["a", "b", "c"], "b": ["a", "x", "c"],
+                  "expected": _nd(np.strings.equal(["a", "b", "c"], ["a", "x", "c"])),
+                  "note": "equal"})
+    cases.append({"op": "strings.not_equal", "strings": ["a", "b", "c"], "b": ["a", "x", "c"],
+                  "expected": _nd(np.strings.not_equal(["a", "b", "c"], ["a", "x", "c"])),
+                  "note": "not_equal"})
+    cases.append({"op": "strings.greater", "strings": ["b", "a"], "b": ["a", "b"],
+                  "expected": _nd(np.strings.greater(["b", "a"], ["a", "b"])),
+                  "note": "greater"})
+    cases.append({"op": "strings.less", "strings": ["a", "b"], "b": ["b", "a"],
+                  "expected": _nd(np.strings.less(["a", "b"], ["b", "a"])),
+                  "note": "less"})
+    cases.append({"op": "strings.greater_equal", "strings": ["b", "a"], "b": ["a", "b"],
+                  "expected": _nd(np.strings.greater_equal(["b", "a"], ["a", "b"])),
+                  "note": "greater_equal"})
+    cases.append({"op": "strings.less_equal", "strings": ["a", "b"], "b": ["b", "a"],
+                  "expected": _nd(np.strings.less_equal(["a", "b"], ["b", "a"])),
+                  "note": "less_equal"})
+
+    # Slice / partition / mod
+    cases.append({"op": "strings.slice", "strings": ["hello", "world", "foo", "bar"],
+                  "start": 1, "stop": 3,
+                  "expected": _sa(np.strings.slice(["hello", "world", "foo", "bar"], 1, 3)),
+                  "note": "slice [1:3]"})
+    strs_p = ["hello", "world", "foo", "bar"]
+    p_result = np.strings.partition(strs_p, "l")  # returns [before, sep, after] each shape [N]
+    cases.append({"op": "strings.partition", "strings": strs_p, "sep": "l",
+                  "expected": {"partitions": [p_result[0].tolist(), p_result[1].tolist(), p_result[2].tolist()]},
+                  "note": "partition by 'l'"})
+    strs_rp = ["hello", "world"]
+    rp_result = np.strings.rpartition(strs_rp, "l")
+    cases.append({"op": "strings.rpartition", "strings": strs_rp, "sep": "l",
+                  "expected": {"partitions": [rp_result[0].tolist(), rp_result[1].tolist(), rp_result[2].tolist()]},
+                  "note": "rpartition by 'l'"})
+    cases.append({"op": "strings.mod",
+                  "strings": ["Hello %s!", "Bye %s!"], "values": ["world", "there"],
+                  "expected": _sa(np.strings.mod(["Hello %s!", "Bye %s!"], ("world", "there"))),
+                  "note": "mod %s"})
+
+    # Encode/decode round-trip
+    strs_enc = np.strings.encode(["abc", "xyz", "foo"], "utf-8")
+    strs_dec = np.strings.decode(strs_enc, "utf-8")
+    cases.append({"op": "strings.encode_decode", "strings": ["abc", "xyz", "foo"],
+                  "expected": _sa(strs_dec), "note": "encode->decode utf-8 round-trip"})
+
+    # np.char (legacy)
+    cases.append({"op": "char.join", "sep": ["-", "+"], "strings": ["abc", "xyz"],
+                  "expected": _sa(np.char.join(["-", "+"], ["abc", "xyz"])),
+                  "note": "join"})
+    cases.append({"op": "char.compare_chararrays",
+                  "strings": ["a", "b", "c"], "b": ["a", "x", "c"], "cmp": "==", "rstrip": False,
+                  "expected": _nd(np.char.compare_chararrays(["a", "b", "c"], ["a", "x", "c"], "==", False)),
+                  "note": "compare_chararrays =="})
+
+    return cases
+
+
 def p16d_cases() -> list[dict]:
     """V-P16D datetime64/timedelta64 (D-259). All ops kept bench-exempt."""
     return []
@@ -7044,6 +7415,8 @@ def main() -> None:
         "io_cases": io_cases(),
         "submodule_cases": submodule_cases(),
         "p16a_cases": p16a_cases(),
+        "p16b_cases": p16b_cases(),
+        "p16c_cases": p16c_cases(),
         "p16d_cases": p16d_cases(),
         "p16e_cases": p16e_cases(),
         "random2_cases": random2_cases(),
