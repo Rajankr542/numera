@@ -1347,3 +1347,24 @@ Done (P13-2, P13-4, P13-5, P13-6, P13-7 — D-161..D-163):
   listed under "Remaining build work" in TASK_SLICES.md.
 - D-numbers D-242–D-260 reserved for V-phase fixes; D-242 is V-P2, D-243 is
   V-P3, … D-260 is V-P16E.
+
+## 2026-10-24 — V-P4 through V-P10 (D-244–D-250)
+- Added 296 math-ufunc cases (P4), 587 logic/manip/creation/indexing/sort/stats
+  cases (P5–P10). Fixed 27 test dispatch bugs; committed cc99785.
+- Bench-exempt: 795 → 682. All tests (1336 unit + 11303 diff) pass.
+
+## 2026-10-24 — V-P11 through V-P16E (D-251–D-260)
+- Added 246 new differential test cases across 10 slices:
+  P11 (53): linalg2 — cross/kron/vdot/tensordot/einsum/cholesky/cond/pinv/
+    slogdet/svdvals/matrix_rank/matrix_norm/vector_norm/multi_dot/outer/vecdot
+  P12 (37): FFT2 — hfft/ihfft/rfft2/irfft2/rfftn/irfftn/fftshift/ifftshift
+  P13 (85): random2 — all 38 Generator distributions, seeded exact match
+  P14 (27): io — window functions + all poly functions + base_repr + polyfit
+  P15 (29): emath — 9 functions × real/complex/mixed cases
+  P16A (19): cumsum/cumprod (1D/2D/axis/method) + shares_memory
+  P16D/E: placeholder (all ops remain bench-exempt)
+- Bench-exempt: 682 → 597 (85 newly covered).
+- Infrastructure: top-level checkApprox/makeArr/checkExact/fromDescribed;
+  complex {re,im} comparison in closeVal; atol parameter for polyfit tolerance.
+- All 1336 unit tests + 11555 differential tests pass; api:check passes.
+- Committed cd42789.

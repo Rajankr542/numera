@@ -2963,3 +2963,37 @@ delegate to their plain-np counterparts on `.filled()` data and combine masks.
   and doc links rewritten to absolute GitHub URLs (`raw.githubusercontent.com`
   for images, since npm cannot render repo-relative images). Supersedes the
   README-cut rule of D-240; the Links section and `assertSelfContained` are kept.
+
+## D-244–D-260: V-phase differential test decisions (2026-10-24)
+
+- **D-244–D-250** (V-P4–P10): recorded in prior commit bdfccdb / cc99785.
+- **D-251** (V-P11 linalg2): slogdet returns `{sign, logabsdet}` (not `logdet`)
+  in numera; test uses the correct field name. `svdvals` is lowercase (snake_case
+  matches p11_linalg.ts export). `multiDot` is camelCase in numera's linalg API.
+  Python bench updated to NumPy 2.0 linalg surface (matrix_norm, vector_norm,
+  svdvals, outer, vecdot).
+- **D-252** (V-P12 fft2): `fftshift`/`ifftshift` take `axes` as positional second
+  arg (number | number[] | null), not an options object. `irfftn` bench entry was
+  missing from both suites; added in this slice.
+- **D-253** (V-P13 random2): seeded exact-match for all Generator distributions.
+  `rng.power(a)` requires `a ∈ (0,1]`; test uses `a=0.8` (not `a=2`). 
+  `rng.multivariate_normal` not yet implemented; cases omitted and method left
+  exempt. Module-level `random.*` wrappers (legacy aliases of Generator methods)
+  added to bench-exempt rather than duplicating bench entries.
+  `rng.dirichlet`/`rng.multinomial` accept plain JS arrays for alpha/pvals (not
+  NDArray); 1-ULP tolerance needed for dirichlet due to different PRNG paths.
+- **D-254** (V-P14 io): `binary_repr(negative, width)` intentionally differs from
+  NumPy (numera: sign+magnitude; numpy: two's complement); that test case removed.
+  `polyfit` near-zero coefficients need `atol=1e-10` to avoid false failures.
+- **D-255** (V-P15 emath): `np.emath.*` returns complex128 for out-of-domain
+  inputs. `closeVal` updated to recursively compare `{re, im}` complex objects.
+- **D-256** (V-P16A cumsum/cumprod): top-level `np.cumsum`/`np.cumprod` (p16a.ts)
+  take `(a, axis?, opts)` — positional axis, not `{axis}` options bag. NDArray
+  method `.cumsum({axis})` takes an options object. `np.sharesMemory` is exposed
+  (camelCase); `reshape([n])` creates a view sharing the same buffer.
+- **D-259/D-260** (V-P16D/E): all datetime64/timedelta64 and rec.* ops remain
+  bench-exempt (complex types, niche surface, separate coverage track).
+- **checkApprox top-level promotion**: `checkApprox`, `makeArr`, `checkExact`,
+  `fromDescribed`, `closeVal` promoted to top-level scope in the shared test file
+  so all `describe` blocks (P11+) can use them. `checkExact` is an alias for
+  `checkArray`. `closeVal` gains `atol` parameter.

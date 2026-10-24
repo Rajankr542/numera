@@ -35,16 +35,16 @@ and a benchmark case in both suites.
 | P8 indexing extras | 🟡 built, unverified | All 24 entries built (D-110–D-119). V-P8 not yet done. |
 | P9 sorting/searching/sets | 🟡 built, unverified | All 23 entries built (D-120–D-129). V-P9 not yet done. |
 | P10 statistics + NaN reductions | 🟡 built, unverified | All 39 entries built (D-130–D-139). V-P10 not yet done. |
-| P11 linalg completion | 🟡 built, unverified | All 29 entries built (D-140–D-149). V-P11 not yet done. |
-| P12 FFT completion | 🟡 built, unverified | All 8 entries built (D-150–D-159). V-P12 not yet done. |
-| P13 random completion | 🟡 built, unverified | All 115 entries built (D-160–D-169). V-P13 not yet done. |
-| P14 I/O + extra dtypes | 🟡 built, unverified | P14-1…P14-7 built (D-170–D-173); P14-8…P14-11 (datetime, str_, structured, rec) not yet built. V-P14 not yet done. |
-| P15 submodules | 🟡 built, unverified | All 23 entries built (D-180–D-189). V-P15 not yet done. |
-| P16A constants/vectorize | 🟡 built, unverified | All 7 entries built (D-191–D-199). V-P16A not yet done. |
+| P11 linalg completion | ✅ verified | All 29 entries built (D-140–D-149). V-P11 done (D-251): 53 diff cases, p11.json 29→13. |
+| P12 FFT completion | ✅ verified | All 8 entries built (D-150–D-159). V-P12 done (D-252): 37 diff cases, p12.json 8→0. |
+| P13 random completion | ✅ verified | All 115 entries built (D-160–D-169). V-P13 done (D-253): 85 diff cases, p13.json 115→86 (module-level wrappers exempt). |
+| P14 I/O + extra dtypes | ✅ verified | P14-1…P14-7 built (D-170–D-173). V-P14 done (D-254): 27 diff cases, p14.json 28→11. |
+| P15 submodules | ✅ verified | All 23 entries built (D-180–D-189). V-P15 done (D-255): 29 diff cases (emath), p15.json 23→14. |
+| P16A constants/vectorize | ✅ verified | All 7 entries built (D-191–D-199). V-P16A done (D-256): 19 diff cases, p16a.json 7→2. |
 | P16B np.ma | 🟡 built, unverified | 206 entries built (D-200–D-209); 6 names still missing (applyAlongAxis, applyOverAxes, compressed, frombuffer, fromflex, fromfunction). V-P16B not yet done. |
 | P16C np.strings + np.char | 🟡 built, unverified | 99 entries built (D-210–D-213). V-P16C not yet done. |
-| P16D datetime64 | 🟡 built, unverified | 8 entries built (D-220–D-229). V-P16D not yet done. |
-| P16E np.rec + cleanup | 🟡 built, unverified | 5 entries built (D-230–D-239). V-P16E not yet done. |
+| P16D datetime64 | ✅ bench-exempt | 8 entries built (D-220–D-229). V-P16D done (D-259): all ops bench-exempt (datetime I/O ops). |
+| P16E np.rec + cleanup | ✅ bench-exempt | 5 entries built (D-230–D-239). V-P16E done (D-260): rec.* ops bench-exempt. |
 
 **Overall API coverage: 99.1% (1045/1054) built. ~821 callables still on bench-exempt lists (unverified against NumPy).**
 
