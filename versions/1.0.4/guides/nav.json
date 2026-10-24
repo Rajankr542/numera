@@ -1,0 +1,22 @@
+[
+ { "title": "Getting started", "pages": [
+  { "file": "index", "title": "Introduction", "description": "numera brings NumPy's n-dimensional arrays, ufuncs, linear algebra, FFT and random numbers to Node.js, backed by a native C++ core." },
+  { "file": "installation", "title": "Installation", "description": "Install numera from npm. Prebuilt binaries for macOS and Linux, no compiler needed." },
+  { "file": "quickstart", "title": "Quickstart", "description": "A ten-minute tour of numera: create arrays, do math, reduce, index and solve." },
+  { "file": "numpy-migration", "title": "Coming from NumPy", "description": "How NumPy code translates to numera: naming, keyword arguments, indexing and return values." }
+ ]},
+ { "title": "Core concepts", "pages": [
+  { "file": "array-basics", "title": "Array basics", "description": "Shape, dtype, strides, views and copies, and converting to and from JavaScript values." },
+  { "file": "dtypes", "title": "Data types", "description": "The 14 numeric dtypes, NumPy type promotion, weak JS scalars, casting rules and 64-bit integers." },
+  { "file": "broadcasting", "title": "Broadcasting", "description": "How arrays of different shapes combine in element-wise operations." },
+  { "file": "indexing", "title": "Indexing and slicing", "description": "get, slice and set: integer, slice, ellipsis, newaxis, integer-array and boolean-mask indexing." },
+  { "file": "reductions", "title": "Reductions and statistics", "description": "sum, mean, std and friends with axis, keepdims, dtype, initial and where." }
+ ]},
+ { "title": "Topics", "pages": [
+  { "file": "random", "title": "Random numbers", "description": "Generator and RandomState, with the same streams as NumPy for the same seed." },
+  { "file": "linalg-fft", "title": "Linear algebra and FFT", "description": "np.linalg and np.fft, including batched inputs and complex results." },
+  { "file": "errors", "title": "Errors and floating-point", "description": "Typed error classes, seterr and errstate." },
+  { "file": "typescript", "title": "TypeScript", "description": "Types exported by numera and how to use them." },
+  { "file": "performance", "title": "Performance and memory", "description": "How numera runs, what is fast, what is not, and how native memory is released." }
+ ]}
+]
