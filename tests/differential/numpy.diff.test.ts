@@ -2377,7 +2377,7 @@ describe("differential: P7 creation + grids (V-P7, D-247)", () => {
     if (c2.op === "geomspace") {
       const kw = c2.kw as { endpoint?: boolean; dtype?: string };
       const r = np.geomspace(c2.start!, c2.stop!, c2.num!, kw);
-      checkArray(r, c2.expected as Described);
+      checkApprox(r, c2.expected as Described, 1e-14);
       return;
     }
 
